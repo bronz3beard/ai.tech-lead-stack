@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "RTK-powered agent skills for Tech Leads.",
   "bin": {
-    "tech-lead-init": "./install.sh",
+    "lead-init": "./install.sh",
+    "lead-run": "./scripts/rtk-run.sh",
     "tech-lead-clean": "./scripts/cleanup.sh"
   },
   "rtk": {
@@ -31,7 +32,6 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@rtk-ai/rtk": "latest",
     "autoevals": "latest",
     "playwright": "latest",
     "playwright-extra": "latest",

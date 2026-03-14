@@ -69,7 +69,19 @@ async def upload_as_user(task_url, file_path):
         await browser_context.close()
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
+    # check for CLI args first
+    task_url = sys.argv[1] if len(sys.argv) > 1 else None
+    file_path = sys.argv[2] if len(sys.argv) > 2 else None
+
+    # If missing but in a terminal, ask the user interactively
+    if sys.stdin.isatty():
+        if not task_url:
+            task_url = input("🔗 Enter ClickUp Task URL: ").strip()
+        if not file_path:
+            file_path = input("📁 Enter Local File Path: ").strip()
+
+    if not task_url or not file_path:
         print(json.dumps({"error": "Missing params"}))
         sys.exit(1)
-    asyncio.run(upload_as_user(sys.argv[1], sys.argv[2]))
+        
+    asyncio.run(upload_as_user(task_url, file_path))
