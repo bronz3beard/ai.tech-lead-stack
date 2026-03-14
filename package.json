@@ -21,7 +21,12 @@
   },
   "scripts": {
     "setup-browsers": "npx playwright install chromium",
-    "postinstall": "npm run setup-browsers"
+    "postinstall": "npm run setup-browsers",
+    "format": "npx prettier --write \".ai/skills/*.md\" \"scripts/*.js\" \"README.md\"",
+    "format:check": "npx prettier --check \".ai/skills/*.md\" \"scripts/*.js\" \"README.md\"",
+    "lint": "npx markdownlint-cli \".ai/skills/*.md\"",
+    "lint:fix": "npx markdownlint-cli --fix \".ai/skills/*.md\" && npm run format",
+    "prepare": "husky"
   },
   "dependencies": {
     "@rtk-ai/rtk": "latest",
@@ -31,6 +36,12 @@
     "puppeteer-extra-plugin-stealth": "latest",
     "dotenv": "latest"
   },
+  "devDependencies": {
+    "husky": "^9.0.0",
+    "lint-staged": "^15.0.0",
+    "markdownlint-cli": "^0.40.0",
+    "prettier": "^3.0.0"
+  },
   "keywords": [
     "agent",
     "tech-lead",
@@ -39,5 +50,14 @@
     "minimumcd"
   ],
   "author": "bronz3beard",
-  "license": "MIT"
+  "license": "MIT",
+  "lint-staged": {
+    ".ai/skills/*.md": [
+      "npx markdownlint-cli --fix",
+      "npx prettier --write"
+    ],
+    "scripts/*.js": [
+      "npx prettier --write"
+    ]
+  }
 }

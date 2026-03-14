@@ -21,11 +21,16 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Install Markdown Linter
-        run: npm install -g markdownlint-cli
+      - name: Install Linting Tools
+        run: npm install prettier markdownlint-cli --no-save || true
+
+
+      - name: Check Formatting
+        run: npm run format:check
 
       - name: Lint Markdown Skills
-        run: markdownlint '.ai/**/*.md' --ignore '.ai/agents.md'
+        run: npm run lint
+
 
       - name: Validate YAML Frontmatter
         run: |

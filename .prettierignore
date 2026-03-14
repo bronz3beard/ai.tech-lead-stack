@@ -1,0 +1,7 @@
+node_modules
+dist
+.git
+.github
+.agents
+.ai/agents.md
+package-lock.json

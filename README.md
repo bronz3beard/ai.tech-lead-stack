@@ -1,6 +1,9 @@
 # The Lead Stack: Agent-Ambiguous Workflows
 
-A high-performance repository of "Skills" and RTK-powered tools designed for Tech Leads. These workflows are **Agent-Ambiguous**, allowing any LLM agent (Gemini, Claude, GPT) to assist with implementation planning, code review, and automated testing.
+A high-performance repository of "Skills" and RTK-powered tools designed for
+Tech Leads. These workflows are **Agent-Ambiguous**, allowing any LLM agent
+(Gemini, Claude, GPT) to assist with implementation planning, code review, and
+automated testing.
 
 ## Requirements
 
@@ -10,7 +13,8 @@ A high-performance repository of "Skills" and RTK-powered tools designed for Tec
 - **Python Deps**: `pip install python-dotenv playwright`
 - **System**: Access to your local Chrome User Data Directory.
 
-* **Firecrawl API**: (Optional) For the `planning-expert` to read external links.
+* **Firecrawl API**: (Optional) For the `planning-expert` to read external
+  links.
 
 ---
 
@@ -40,8 +44,10 @@ lead-init
 ### 🛠 Final Checklist
 
 1. **Permissions**: Run `chmod +x scripts/cleanup.sh` in your toolbox repo.
-2. **Execution**: You can now run `lead-init` to build it and `lead-clean` to tear it down.
-3. **Mission Control**: Your `lead-init` will now automatically run a pre-flight check to make sure you didn't miss a step.
+2. **Execution**: You can now run `lead-init` to build it and `lead-clean` to
+   tear it down.
+3. **Mission Control**: Your `lead-init` will now automatically run a pre-flight
+   check to make sure you didn't miss a step.
 
 ---
 
@@ -51,15 +57,19 @@ lead-init
 
 #### Option A: The "Context Injection" (Universal)
 
-If using a web-based agent (Claude.ai, ChatGPT) or starting a fresh session without workspace access:
+If using a web-based agent (Claude.ai, ChatGPT) or starting a fresh session
+without workspace access:
 
-> "Analyze the skills in /path/to/lead-stack/.ai/skills/. You are now a Tech Lead Agent equipped with these workflows. Use rtk for all tool executions."
+> "Analyze the skills in /path/to/lead-stack/.ai/skills/. You are now a Tech
+> Lead Agent equipped with these workflows. Use rtk for all tool executions."
 
 #### Option B: The Symlink (Best for Antigravity/Cursor/Claude Code)
 
-Since lead-init has already linked the instructions to your project, simply prompt the agent in your workspace:
+Since lead-init has already linked the instructions to your project, simply
+prompt the agent in your workspace:
 
-"Read the instructions in .ai/agents.md and follow the planning-expert workflow for this ticket."
+"Read the instructions in .ai/agents.md and follow the planning-expert workflow
+for this ticket."
 
 ---
 
@@ -88,13 +98,17 @@ lead-clean
 
 This repository uses **GitHub Actions** to validate:
 
-1. **Skill Integrity**: Ensures all `.md` files in `.ai/skills/` have valid YAML frontmatter.
-2. **Markdown Linting**: Prevents malformed instructions that could confuse agents.
+1. **Skill Integrity**: Ensures all `.md` files in `.ai/skills/` have valid YAML
+   frontmatter.
+2. **Markdown Linting**: Prevents malformed instructions that could confuse
+   agents.
 3. **Script Permissions**: Ensures all tools in `scripts/` remain executable.
 
 ### Pro-Tip: The "Profile Locked" Error
 
-If you get an error that the browser profile is "already in use," close your active Chrome window or create a dedicated Profile for the Agent and update your `.env` accordingly.
+If you get an error that the browser profile is "already in use," close your
+active Chrome window or create a dedicated Profile for the Agent and update your
+`.env` accordingly.
 
 ```bash
 
