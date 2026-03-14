@@ -26,6 +26,8 @@
     "format:check": "npx prettier --check \".ai/skills/*.md\" \"scripts/*.js\" \"README.md\"",
     "lint": "npx markdownlint-cli \".ai/skills/*.md\"",
     "lint:fix": "npx markdownlint-cli --fix \".ai/skills/*.md\" && npm run format",
+    "validate:skills": "bash scripts/validate-skills.sh",
+    "validate:scripts": "bash scripts/validate-scripts.sh",
     "prepare": "husky"
   },
   "dependencies": {
@@ -53,8 +55,12 @@
   "license": "MIT",
   "lint-staged": {
     ".ai/skills/*.md": [
+      "bash scripts/validate-skills.sh",
       "npx markdownlint-cli --fix",
       "npx prettier --write"
+    ],
+    "scripts/*": [
+      "bash scripts/validate-scripts.sh"
     ],
     "scripts/*.js": [
       "npx prettier --write"
