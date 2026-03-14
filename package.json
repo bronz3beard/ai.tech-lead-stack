@@ -1,0 +1,43 @@
+{
+  "name": "@bronz3beard/tech-lead-stack",
+  "version": "1.0.0",
+  "description": "RTK-powered agent skills for Tech Leads.",
+  "bin": {
+    "tech-lead-init": "./install.sh",
+    "tech-lead-clean": "./scripts/cleanup.sh"
+  },
+  "rtk": {
+    "tools": {
+      "mission-control": "cat .ai/skills/mission-control.md",
+      "planning": "cat .ai/skills/planning-expert.md",
+      "eval": "node scripts/autoeval-check.js",
+      "create-pr": "bash scripts/gh-pr-create.sh",
+      "upload": "python3 scripts/upload-evidence.py",
+      "cleanup": "bash scripts/cleanup.sh",
+      "standup": "cat .ai/skills/daily-standup.md",
+      "dr-remediate": "cat .ai/skills/dr-remediation.md",
+      "qa-remediate": "cat .ai/skills/qa-remediation.md"
+    }
+  },
+  "scripts": {
+    "setup-browsers": "npx playwright install chromium",
+    "postinstall": "npm run setup-browsers"
+  },
+  "dependencies": {
+    "@rtk-ai/rtk": "latest",
+    "autoevals": "latest",
+    "playwright": "latest",
+    "playwright-extra": "latest",
+    "puppeteer-extra-plugin-stealth": "latest",
+    "dotenv": "latest"
+  },
+  "keywords": [
+    "agent",
+    "tech-lead",
+    "automation",
+    "rtk",
+    "minimumcd"
+  ],
+  "author": "bronz3beard",
+  "license": "MIT"
+}

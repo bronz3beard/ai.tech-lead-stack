@@ -1,0 +1,45 @@
+name: Agent Skill Validation
+
+on:
+  push:
+    paths:
+      - '.ai/**'
+      - 'scripts/**'
+  pull_request:
+    paths:
+      - '.ai/**'
+
+jobs:
+  validate-skills:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install Markdown Linter
+        run: npm install -g markdownlint-cli
+
+      - name: Lint Markdown Skills
+        run: markdownlint '.ai/**/*.md' --ignore '.ai/agents.md'
+
+      - name: Validate YAML Frontmatter
+        run: |
+          for file in .ai/skills/*.md; do
+            echo "Checking $file..."
+            head -n 1 "$file" | grep -q "---" || (echo "Missing Frontmatter in $file" && exit 1)
+            grep -q "name:" "$file" || (echo "Missing 'name' in $file" && exit 1)
+          done
+
+      - name: Verify Script Permissions
+        run: |
+          for script in scripts/*; do
+            if [[ -f "$script" && ! -x "$script" ]]; then
+              echo "Error: $script is not executable. Run chmod +x $script"
+              exit 1
+            fi
+          done

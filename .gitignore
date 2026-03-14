@@ -1,0 +1,16 @@
+# Local Environment
+.env
+.env.local
+
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# RTK & Agent Temps
+.tmp/
+rtk.log

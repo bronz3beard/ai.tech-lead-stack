@@ -1,0 +1,4 @@
+# Core dependencies for Python-based Agent tools
+playwright==1.42.0
+python-dotenv==1.0.1
+requests==2.31.0
