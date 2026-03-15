@@ -166,3 +166,18 @@ tech-lead-stack/
 └── requirements.txt
 
 ```
+
+## Resources 📚
+
+- https://skills.sh/
+- https://github.com/AgriciDaniel/claude-seo
+- https://skills.sh/dammyjay93/interface-design/interface-design
+- https://github.com/orgs/firecrawl/repositories?q=sort%3Astars
+- https://www.npmjs.com/package/autoevals
+- https://github.com/pezzolabs/pezzo
+- https://beyond.minimumcd.org/docs/team-chatbot/
+- https://substack.com/home/post/p-187289110
+- https://github.com/garrytan/gstack
+- https://bryanfinster.substack.com/p/ai-broke-your-code-review-heres-how
+- https://migration.minimumcd.org/docs/reference/practices/continuous-integration/
+- https://agents.md/
