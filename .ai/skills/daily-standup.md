@@ -8,6 +8,25 @@ capabilities: [filesystem_access, shell_access]
 
 # Daily Standup Report
 
+## 🎯 Verification Gates
+
+### Gate 1: Activity Significance
+
+- **Positive (Signal):** Detects meaningful feature commits, merged PRs, and
+  resolved ClickUp tickets.
+- **Negative (Noise):** Includes "Merge branch 'main'", typo fixes, or automated
+  dependency bumps.
+- **Action:** Filter all Negative noise to keep the standup concise and
+  high-impact.
+
+### Gate 2: Tone & Format
+
+- **Positive (Pass):** Output is concise, uses emojis for scannability, and
+  clearly identifies Blockers.
+- **Negative (Fail):** Uses overly technical jargon or reads like a raw Git log.
+- **Action:** Re-format content into the "Accomplishments / Focus / Impediments"
+  specific structure.
+
 ## Objective
 
 Generate a concise, high-impact status update based on actual repository

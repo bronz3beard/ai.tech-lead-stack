@@ -8,6 +8,25 @@ capabilities: [filesystem_access, rtk_execution, shell_access]
 
 # Mission Control (Pre-Flight Check)
 
+## 🎯 Verification Gates
+
+### Gate 1: Environment Readiness
+
+- **Positive (GO):** Found valid `.env`, authenticated GitHub CLI (`gh`), and
+  accessible browser profile path.
+- **Negative (ABORT):** Missing `.env` variables or `gh auth status` fails.
+- **Action:** Immediately halt processes and print the exact bash command the
+  user needs to run to fix it.
+
+### Gate 2: Agent Skill Integrity
+
+- **Positive (GO):** All mandatory `.ai/skills/*.md` files are readable and
+  `rtk list` successfully maps to scripts.
+- **Negative (ABORT):** Core skills missing, or `rtk.tools` configuration in
+  `package.json` is broken/missing.
+- **Action:** Halt the mission-control scan and instruct the user to run the
+  `install.sh --link .` reset.
+
 ## Objective
 
 To ensure the local environment is fully operational and that the "Agent Brain"

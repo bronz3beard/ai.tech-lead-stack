@@ -13,6 +13,32 @@ capabilities: [web_browsing, filesystem_access, rtk_execution]
 To resolve QA feedback through a rigorous, automated pipeline that ensures the
 fix is G-Stack compliant and verified via Continuous Integration (MinimumCD).
 
+## 🎯 Verification Gates
+
+### Gate 1: Ingestion & Impact Analysis
+
+- **Positive Outcome (Signal):** Feedback is mapped to specific lines of code;
+  Regression Test Strategy is defined.
+- **Negative Outcome (Noise):** Vague remediation (e.g., "trying a different CSS
+  class"); missing automated test plan.
+- **Action:** If Negative, halt and run `planning-expert` with `--strict` flag.
+
+### Gate 2: Implementation Integrity
+
+- **Positive Outcome (Clean):** Fix is atomic; uses G-Stack components; passes
+  `rtk run eval`.
+- **Negative Outcome (Dirty):** Fix introduces "ghost dependencies"; breaks
+  existing snapshots; uses `!important` or inline styles.
+- **Action:** Reject commit. Refactor using G-Stack design tokens.
+
+### Gate 3: Visual Proof
+
+- **Positive Outcome (Verified):** Screenshots match the Figma/Task specs in
+  both Desktop and Mobile views.
+- **Negative Outcome (Unverified):** Evidence is missing or resolution is
+  incorrect.
+- **Action:** Re-run `scripts/upload-evidence.py` and block PR creation.
+
 ## Core Principles
 
 - **G-Stack Consistency**: All fixes must use the established tech stack

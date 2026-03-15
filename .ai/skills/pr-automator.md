@@ -5,6 +5,25 @@ description: Automates the creation of GitHub Pull Requests with full context.
 
 # PR Automator
 
+## 🎯 Verification Gates
+
+### Gate 1: Context Density
+
+- **Positive (Signal):** Description provides a clear "Why" (Value Proposition)
+  and "What" (Technical changes). Task IDs exist.
+- **Negative (Noise):** Description just echoes commit messages like "fixes
+  typo" without detailing user-impact.
+- **Action:** Synthesize a high-level summary. Strip the raw commit log.
+
+### Gate 2: Evidence & Quality Formatting
+
+- **Positive (Verified):** UI features have valid screenshot Links from
+  `visual-verifier`.
+- **Negative (Risk):** Required fields in the `PULL_REQUEST_TEMPLATE.md`
+  checklist are left completely blank.
+- **Action:** Ensure the checklist is populated base on diff data, or explicitly
+  state "N/A".
+
 ## Objective
 
 Generate a complete Pull Request description and (optionally) create the PR on

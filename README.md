@@ -5,15 +5,17 @@ Tech Leads. These workflows are **Agent-Ambiguous**, allowing any LLM agent
 (Gemini, Claude, GPT) to assist with implementation planning, code review, and
 automated testing.
 
-
-> [!IMPORTANT]
-> This stack and its associated skills are currently **only configured for macOS and Linux**. Windows users should use WSL2 for full compatibility.
+> [!IMPORTANT] This stack and its associated skills are currently **only
+> configured for macOS and Linux**. Windows users should use WSL2 for full
+> compatibility.
 
 ### Running Agent Tasks
 
-This stack includes a helper script to run agent-specific tasks defined in `package.json`.
+This stack includes a helper script to run agent-specific tasks defined in
+`package.json`.
 
 1. **Set the alias** (one-time per session):
+
    ```bash
    alias rtk="$(pwd)/scripts/rtk-run.sh"
    ```
@@ -26,7 +28,8 @@ This stack includes a helper script to run agent-specific tasks defined in `pack
 
 ## Requirements
 
-- **RTK (Runtime Toolkit)**: `curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh`
+- **RTK (Runtime Toolkit)**:
+  `curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh`
 - **GitHub CLI (gh)**: Required for automated PR management.
 - **Browsers (Playwright)**: `npx playwright install chromium`
 - **Python Deps**: `pip install python-dotenv playwright`
