@@ -24,6 +24,7 @@ if [[ "$1" == "--link" ]]; then
 
     echo "🔗 Linking components..."
     safe_ln "$SOURCE_DIR/.ai" "$TARGET_DIR/.ai"
+    safe_ln "$SOURCE_DIR/.agents" "$TARGET_DIR/.agents" # Add this line
     safe_ln "$SOURCE_DIR/scripts" "$TARGET_DIR/scripts"
     safe_ln "$SOURCE_DIR/templates/PULL_REQUEST_TEMPLATE.md" "$TARGET_DIR/.github/PULL_REQUEST_TEMPLATE.md"
 
