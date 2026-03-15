@@ -4,6 +4,10 @@
 
 # Requirement: node (available in this environment)
 
+SCRIPT_PATH=$(realpath "$0" 2>/dev/null || echo "$0")
+SCRIPT_DIR=$(cd "$(dirname "$SCRIPT_PATH")" && pwd)
+STACK_PKG="$SCRIPT_DIR/../package.json"
+
 if [[ "$1" == "run" ]]; then
     TOOL_NAME=$2
     if [[ -z "$TOOL_NAME" ]]; then
@@ -12,15 +16,23 @@ if [[ "$1" == "run" ]]; then
     fi
 
     # Extract command from package.json using node
+    # Checks target project package.json first, falls back to tech-lead-stack package.json
     CMD=$(node -e "
+        let toolCmd;
         try {
-            const pkg = require('./package.json');
-            const toolCmd = pkg.rtk && pkg.rtk.tools && pkg.rtk.tools['$TOOL_NAME'];
-            if (toolCmd) console.log(toolCmd);
-            else process.exit(1);
-        } catch (e) {
-            process.exit(1);
+            const pkg = require(process.cwd() + '/package.json');
+            toolCmd = pkg.rtk && pkg.rtk.tools && pkg.rtk.tools['$TOOL_NAME'];
+        } catch (e) {}
+
+        if (!toolCmd) {
+            try {
+                const stackPkg = require('$STACK_PKG');
+                toolCmd = stackPkg.rtk && stackPkg.rtk.tools && stackPkg.rtk.tools['$TOOL_NAME'];
+            } catch (e) {}
         }
+        
+        if (toolCmd) console.log(toolCmd);
+        else process.exit(1);
     " 2>/dev/null)
 
     if [[ $? -ne 0 || -z "$CMD" ]]; then
@@ -38,22 +50,31 @@ if [[ "$1" == "run" ]]; then
     fi
 
 elif [[ "$1" == "list" ]]; then
-    echo "📋 Available Agent Skills & Tools (from package.json):"
+    echo "📋 Available Agent Skills & Tools:"
     node -e "
+        let tools = {};
         try {
-            const pkg = require('./package.json');
-            const tools = pkg.rtk && pkg.rtk.tools;
-            if (tools) {
-                Object.entries(tools).forEach(([name, cmd]) => {
-                    console.log('  - ' + name.padEnd(15) + ' -> ' + cmd);
-                });
-            } else {
-                console.log('  (No tools defined in package.json)');
+            const stackPkg = require('$STACK_PKG');
+            if (stackPkg.rtk && stackPkg.rtk.tools) {
+                Object.assign(tools, stackPkg.rtk.tools);
             }
-        } catch (e) {
-            console.error('  (Error reading package.json)');
+        } catch (e) {}
+
+        try {
+            const localPkg = require(process.cwd() + '/package.json');
+            if (localPkg.rtk && localPkg.rtk.tools) {
+                Object.assign(tools, localPkg.rtk.tools);
+            }
+        } catch (e) {}
+
+        if (Object.keys(tools).length > 0) {
+            Object.entries(tools).forEach(([name, cmd]) => {
+                console.log('  - ' + name.padEnd(15) + ' -> ' + cmd);
+            });
+        } else {
+            console.log('  (No tools defined in package.json)');
         }
-    "
+    " 2>/dev/null
 else
     # Proxy all other commands directly to the global rtk binary
     rtk "$@"

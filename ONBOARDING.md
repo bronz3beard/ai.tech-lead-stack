@@ -164,16 +164,14 @@ The agent will execute browser automation (potentially using Playwright via the 
 
 ---
 
-## 💡 Contributing & Feedback
+---
 
-This stack is meant to evolve! New workflows can be added, and existing ones improved.
+## 🛠️ Troubleshooting
 
-If you have ideas for useful software engineering day-to-day task automation, want to add downloadable files for new skills, or if you encounter any issues, please create an issue or submit a PR on our internal engineering skills repository. We are preparing the team for the new age of Ai workflows, and your feedback is crucial.
+### "Error while analyzing directory: Cannot list directory .agents..."
+You may see this error message when your agent first starts in a new repository that hasn't been initialized yet.
 
-Refer to the original skill files and resources for a deeper dive into the principles:
-
-- [skills.sh](https://skills.sh/)
-- [MinimumCD principles](https://beyond.minimumcd.org/docs/team-chatbot/)
-- [AI Workflow analysis](https://substack.com/home/post/p-187289110)
+- **Why it happens**: Some agents automatically search for an `.agents` directory to understand the project's workflows. If the directory doesn't exist, the search tool reports an error.
+- **The fix**: This is expected behavior. Simply run the `/init` workflow to set up the necessary directory and symlinks. The error will disappear in future sessions.
 
 Happy automating!

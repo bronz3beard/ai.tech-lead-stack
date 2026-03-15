@@ -2,6 +2,7 @@
 # tech-lead-stack cleanup
 # Usage: ./scripts/cleanup.sh [target_path]
 
+SOURCE_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 TARGET_DIR=$(realpath "${1:-.}")
 
 echo "🧹 Starting cleanup in: $TARGET_DIR"
