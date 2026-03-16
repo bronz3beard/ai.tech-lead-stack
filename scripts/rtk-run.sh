@@ -19,6 +19,7 @@ if [[ "$1" == "run" ]]; then
     # Checks target project package.json first, falls back to tech-lead-stack package.json
     CMD=$(node -e "
         let toolCmd;
+        let isFromStack = false;
         try {
             const pkg = require(process.cwd() + '/package.json');
             toolCmd = pkg.rtk && pkg.rtk.tools && pkg.rtk.tools['$TOOL_NAME'];
@@ -28,11 +29,22 @@ if [[ "$1" == "run" ]]; then
             try {
                 const stackPkg = require('$STACK_PKG');
                 toolCmd = stackPkg.rtk && stackPkg.rtk.tools && stackPkg.rtk.tools['$TOOL_NAME'];
+                if (toolCmd) isFromStack = true;
             } catch (e) {}
         }
         
-        if (toolCmd) console.log(toolCmd);
-        else process.exit(1);
+        if (toolCmd) {
+            if (isFromStack) {
+                const tlsRoot = require('path').resolve('$SCRIPT_DIR', '..');
+                // Replace relative paths with absolute ones from TLS root
+                toolCmd = toolCmd.replace(/(^|\s)(\.ai\/|\.agents\/|scripts\/)/g, (match, prefix, path) => {
+                    return prefix + tlsRoot + '/' + path;
+                });
+            }
+            console.log(toolCmd);
+        } else {
+            process.exit(1);
+        }
     " 2>/dev/null)
 
     if [[ $? -ne 0 || -z "$CMD" ]]; then

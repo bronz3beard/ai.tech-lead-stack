@@ -7,6 +7,32 @@ TARGET_DIR=$(realpath "${2:-.}")
 if [[ "$1" == "--link" ]]; then
     echo "🚀 Initializing Tech-Lead Stack..."
 
+    # 0. Smart Package Manager & Project Health Check
+    detect_manager() {
+        if [[ -f "$TARGET_DIR/pnpm-lock.yaml" ]]; then echo "pnpm"
+        elif [[ -f "$TARGET_DIR/yarn.lock" ]]; then echo "yarn"
+        elif [[ -f "$TARGET_DIR/bun.lockb" ]]; then echo "bun"
+        else echo "npm"
+        fi
+    }
+
+    PKG_MANAGER=$(detect_manager)
+    echo "📦 Detected project manager: $PKG_MANAGER"
+
+    if [[ -f "$TARGET_DIR/package.json" ]]; then
+        echo "🔍 Reviewing project health..."
+        if ! node -e "try { require('$TARGET_DIR/package.json') } catch(e) { process.exit(1) }" &> /dev/null; then
+            echo "⚠️  Warning: $TARGET_DIR/package.json appeared to be invalid."
+            echo "   Proceeding with caution, but you might want to check it for syntax errors or invalid names."
+        fi
+    fi
+
+    # Ensure stack's own dependencies are installed using the preferred manager
+    if [[ ! -d "$SOURCE_DIR/node_modules" ]]; then
+        echo "🛠️ Installing Stack dependencies with $PKG_MANAGER..."
+        (cd "$SOURCE_DIR" && "$PKG_MANAGER" install --quiet)
+    fi
+
     # 1. Symlinks (Robust & Non-Recursive)
     mkdir -p "$TARGET_DIR/.github"
     
@@ -24,8 +50,7 @@ if [[ "$1" == "--link" ]]; then
 
     echo "🔗 Linking components..."
     safe_ln "$SOURCE_DIR/.ai" "$TARGET_DIR/.ai"
-    safe_ln "$SOURCE_DIR/.agents" "$TARGET_DIR/.agents" # Add this line
-    safe_ln "$SOURCE_DIR/scripts" "$TARGET_DIR/scripts"
+    safe_ln "$SOURCE_DIR/.agents" "$TARGET_DIR/.agents"
     safe_ln "$SOURCE_DIR/templates/PULL_REQUEST_TEMPLATE.md" "$TARGET_DIR/.github/PULL_REQUEST_TEMPLATE.md"
 
     # 2. Python Setup
@@ -72,7 +97,7 @@ if [[ "$1" == "--link" ]]; then
         (cd "$TARGET_DIR" && rtk init)
         
         echo "📡 Running Mission Control Pre-Flight..."
-        (cd "$TARGET_DIR" && bash scripts/rtk-run.sh run mission-control)
+        (cd "$TARGET_DIR" && bash "$SOURCE_DIR/scripts/rtk-run.sh" run mission-control)
     else
         echo "❌ RTK setup failed. Please install it manually: https://rtk-ai.app"
     fi
@@ -81,7 +106,7 @@ if [[ "$1" == "--link" ]]; then
     echo ""
 
     # 5. Native Alias Automation
-    ALIAS_CMD="alias rtk='$(pwd)/scripts/rtk-run.sh'"
+    ALIAS_CMD="alias rtk='$SOURCE_DIR/scripts/rtk-run.sh'"
     ALIAS_ADDED=false
 
     add_alias_to_rc() {

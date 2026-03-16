@@ -19,8 +19,7 @@ use the below semantics for listing what is in this PR
 ## Shared Code Impact
 
 - Shared code affected/modified?: (Yes/No)
-- Shared code modified (list files)
-  -
+- ## Shared code modified (list files)
 - Team notified of shared code changes?: (Yes/No)
 
 ## FYI 🙋
