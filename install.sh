@@ -51,7 +51,7 @@ if [[ "$1" == "--link" ]]; then
     echo "🔗 Linking components..."
     safe_ln "$SOURCE_DIR/.ai" "$TARGET_DIR/.ai"
     safe_ln "$SOURCE_DIR/.agents" "$TARGET_DIR/.agents"
-    safe_ln "$SOURCE_DIR/templates/PULL_REQUEST_TEMPLATE.md" "$TARGET_DIR/.github/PULL_REQUEST_TEMPLATE.md"
+    cp "$SOURCE_DIR/templates/PULL_REQUEST_TEMPLATE.md" "$TARGET_DIR/.github/PULL_REQUEST_TEMPLATE.md"
 
     # 2. Python Setup
     echo "🐍 Ensuring Python dependencies are met..."

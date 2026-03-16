@@ -23,9 +23,9 @@ for item in "${PATHS_TO_CLEAN[@]}"; do
     if [ -L "$FILE_PATH" ]; then
         echo "🗑️ Removing symlink: $item"
         rm "$FILE_PATH"
-    elif [ -d "$FILE_PATH" ] && [[ "$item" == ".rtk" ]]; then
-        echo "🗑️ Removing RTK directory: $item"
-        rm -rf "$FILE_PATH"
+    elif [ -f "$FILE_PATH" ] && [[ "$item" == ".github/PULL_REQUEST_TEMPLATE.md" ]]; then
+        echo "🗑️ Removing copied template: $item"
+        rm "$FILE_PATH"
     elif [ -f "$FILE_PATH" ] && [[ "$item" == "rtk.json" ]]; then
         echo "🗑️ Removing RTK config: $item"
         rm "$FILE_PATH"
