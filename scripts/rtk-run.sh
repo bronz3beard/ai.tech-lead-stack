@@ -10,6 +10,15 @@ STACK_PKG="$SCRIPT_DIR/../package.json"
 
 if [[ "$1" == "run" ]]; then
     TOOL_NAME=$2
+    if [[ "$TOOL_NAME" == "--help" || "$TOOL_NAME" == "-h" ]]; then
+        echo "📖 RTK Tool Runner"
+        echo "Usage: rtk run <tool_name> [args...]"
+        echo ""
+        echo "Execute a tool from 'rtk.tools' (checks project and Tech-Lead Stack)."
+        echo "Use 'rtk list' to see all available tools."
+        exit 0
+    fi
+
     if [[ -z "$TOOL_NAME" ]]; then
         echo "❌ Error: Please specify a tool name. Use 'rtk list' to see available tools."
         exit 1
