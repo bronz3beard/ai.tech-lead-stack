@@ -1,8 +1,8 @@
 ---
 name: daily-standup
 description:
-  Analyzes local git activity and task progress to generate a professional daily
-  status update.
+  Analyzes local git activity and task progress to generate a comprehensive
+  2-day rolling standup report following a strict template.
 capabilities: [filesystem_access, shell_access]
 ---
 
@@ -37,23 +37,34 @@ activity from the last 24 hours.
 1. **Activity Discovery**:
    - Identify all active branches.
    - Run
-     `git log --author="$(git config user.name)" --since="24 hours ago" --pretty=format:"%s"`
+     `git log --author="$(git config user.name)" --since="2 days ago" --pretty=format:"%s"`
      across the project.
 2. **Context Synthesis**:
    - Categorize activity into: **Features**, **Bug Fixes**, **Reviews**, and
      **Ops**.
    - Cross-reference commit messages with ClickUp task IDs if present.
 3. **Drafting**:
-   - **Yesterday**: What was actually pushed/merged.
-   - **Today**: What is currently "In Progress" (based on uncommitted changes or
-     active branch).
-   - **Blockers**: Identify any open TODOs or failing tests (using the `eval`
-     tool) that are preventing progress.
-4. **Formatting**: Output the report in a format suitable for Slack, ClickUp, or
-   a Standup meeting.
+   - Summarize the last 2 days of work (rolling date) based on the collected
+     context.
+   - **Only output a template of an update that follows the format below.**
+   - Do NOT automate a Slack message or anything like that.
 
 ## Output Structure
 
-- **🚀 Accomplishments**: List of completed items with impact notes.
-- **📅 Today's Focus**: Current priority tasks.
-- **🛑 Impediments**: Technical blockers or pending reviews.
+⭐️ Feature: [Briefly describe the main functionality or goal of the day with
+ticket link if applicable.] ✅ Delivered: [Write what you completed or delivered
+yesterday. For example, "Finished the API implementation" or "Submitted
+documentation to the client” with ticket link if applicable.] ➡️ Needs Review:
+[List the tasks or deliverables that need review by a teammate, lead, or client.
+For example, "Waiting for feedback on the new design from the team." with ticket
+link if applicable.] ⏳ Waiting On: [Describe what you’re waiting for, whether
+it’s from the client, a teammate, or an external dependency. For example,
+"Waiting for the client’s confirmation on the sprint scope." with ticket link if
+applicable.] 📝 Plans for Today: [Explain what you’ll work on today. Be clear
+and specific about your daily objectives. For example, "Working on the filter
+component for the product page." with ticket link if applicable.] 📅 Plans for
+Tomorrow: [Detail your planned objectives for the next day. This could include
+new tasks or a continuation of the current ones. For example, "Completing the
+remaining unit tests." with ticket link if applicable.] 🧉 Other Information:
+[Include any additional information that might be relevant, such as blockers,
+priority changes, or personal circumstances affecting your work.]
