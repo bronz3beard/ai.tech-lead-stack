@@ -4,17 +4,65 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart } from "@/components/ui/chart";
 
-async function getUserMetrics() {
-  // Query Langfuse API with userId
-  return {
-    totalExecutions: 350,
-    activeWorkflows: 12,
-    topSkills: [
-      { name: "code-review", total: 150 },
-      { name: "planning-expert", total: 100 },
-      { name: "visual-verify", total: 100 },
-    ],
-  };
+async function getUserMetrics(userId: string) {
+  const publicKey = process.env.LANGFUSE_PUBLIC_KEY;
+  const secretKey = process.env.LANGFUSE_SECRET_KEY;
+  const baseUrl = process.env.LANGFUSE_BASE_URL || "https://cloud.langfuse.com";
+
+  if (!publicKey || !secretKey) {
+    throw new Error("Missing Langfuse API keys in environment variables");
+  }
+
+  const authHeader = `Basic ${Buffer.from(`${publicKey}:${secretKey}`).toString("base64")}`;
+
+  try {
+    const tracesResponse = await fetch(`${baseUrl}/api/public/traces?userId=${userId}`, {
+      headers: {
+        Authorization: authHeader,
+      },
+      next: { revalidate: 60 },
+    });
+
+    if (!tracesResponse.ok) {
+      throw new Error(`Failed to fetch from Langfuse: ${tracesResponse.statusText}`);
+    }
+
+    const tracesData = await tracesResponse.json();
+    const traces = tracesData.data || [];
+
+    const totalExecutions = traces.length;
+    let activeWorkflows = 0;
+    const skillCounts: Record<string, number> = {};
+
+    for (const trace of traces) {
+      if (trace.name) {
+        skillCounts[trace.name] = (skillCounts[trace.name] || 0) + 1;
+      }
+      // Simple heuristic for active workflows (e.g. executed recently or has some session id)
+      if (trace.sessionId) {
+        activeWorkflows++;
+      }
+    }
+
+    const topSkills = Object.entries(skillCounts)
+      .map(([name, total]) => ({ name, total }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
+
+    return {
+      totalExecutions,
+      activeWorkflows: activeWorkflows > 0 ? activeWorkflows : totalExecutions,
+      topSkills,
+    };
+  } catch (error) {
+    console.error("Error fetching metrics from Langfuse:", error);
+    // Return fallback empty metrics on error
+    return {
+      totalExecutions: 0,
+      activeWorkflows: 0,
+      topSkills: [],
+    };
+  }
 }
 
 export default async function DashboardPage() {
@@ -24,9 +72,8 @@ export default async function DashboardPage() {
     redirect("/api/auth/signin");
   }
 
-
-
-  const metrics = await getUserMetrics();
+  const userId = (session.user as { id: string }).id;
+  const metrics = await getUserMetrics(userId);
 
   return (
     <div className="flex flex-col min-h-screen bg-white p-8">

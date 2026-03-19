@@ -6,21 +6,67 @@ export const revalidate = 60; // cached for 60 seconds
 async function getGlobalMetrics() {
   "use cache";
 
-  // Here you would fetch from Langfuse API or local DB
-  // For the sake of this dashboard setup, we simulate an API call
-  // In a real scenario, we'd use langfuse.getTraces() or similar.
+  const publicKey = process.env.LANGFUSE_PUBLIC_KEY;
+  const secretKey = process.env.LANGFUSE_SECRET_KEY;
+  const baseUrl = process.env.LANGFUSE_BASE_URL || "https://cloud.langfuse.com";
 
-  return {
-    totalExecutions: 15423,
-    activeWorkflows: 89,
-    topSkills: [
-      { name: "planning-expert", total: 4500 },
-      { name: "quality-gatekeeper", total: 3200 },
-      { name: "code-review", total: 2800 },
-      { name: "changelog", total: 1500 },
-      { name: "visual-verify", total: 900 },
-    ],
-  };
+  if (!publicKey || !secretKey) {
+    console.warn("Missing Langfuse API keys in environment variables, using fallback metrics");
+    return {
+      totalExecutions: 0,
+      activeWorkflows: 0,
+      topSkills: [],
+    };
+  }
+
+  const authHeader = `Basic ${Buffer.from(`${publicKey}:${secretKey}`).toString("base64")}`;
+
+  try {
+    const tracesResponse = await fetch(`${baseUrl}/api/public/traces?limit=1000`, {
+      headers: {
+        Authorization: authHeader,
+      },
+      next: { revalidate: 60 },
+    });
+
+    if (!tracesResponse.ok) {
+      throw new Error(`Failed to fetch from Langfuse: ${tracesResponse.statusText}`);
+    }
+
+    const tracesData = await tracesResponse.json();
+    const traces = tracesData.data || [];
+
+    const totalExecutions = traces.length;
+    let activeWorkflows = 0;
+    const skillCounts: Record<string, number> = {};
+
+    for (const trace of traces) {
+      if (trace.name) {
+        skillCounts[trace.name] = (skillCounts[trace.name] || 0) + 1;
+      }
+      if (trace.sessionId) {
+        activeWorkflows++;
+      }
+    }
+
+    const topSkills = Object.entries(skillCounts)
+      .map(([name, total]) => ({ name, total }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
+
+    return {
+      totalExecutions,
+      activeWorkflows: activeWorkflows > 0 ? activeWorkflows : totalExecutions,
+      topSkills,
+    };
+  } catch (error) {
+    console.error("Error fetching metrics from Langfuse:", error);
+    return {
+      totalExecutions: 0,
+      activeWorkflows: 0,
+      topSkills: [],
+    };
+  }
 }
 
 export default async function PublicDashboard() {
