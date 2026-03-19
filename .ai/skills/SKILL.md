@@ -5,6 +5,13 @@ description: Core skills for the Tech Lead Stack.
 
 # Tech Lead Stack Skills
 
+> **🤖 AGENT INSTRUCTION (CRITICAL):** If you have access to the
+> `tech-lead-stack-analytics` MCP Server (specifically the `get_skill` tool),
+> you **MUST** use it to fetch the contents of any skill listed below. Do NOT
+> use `cat` or read the `SKILL.md` files directly from the filesystem if the MCP
+> tool is available. This ensures comprehensive telemetry tracking across all
+> symlinked projects.
+
 This directory contains the core skills for the Tech Lead Stack.
 
 ## Skills

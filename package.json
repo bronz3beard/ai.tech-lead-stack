@@ -43,20 +43,26 @@
     "lint:fix": "npx markdownlint-cli --fix \".ai/skills/*.md\" && npm run format",
     "validate:skills": "bash scripts/validate-skills.sh",
     "validate:scripts": "bash scripts/validate-scripts.sh",
-    "prepare": "husky"
+    "prepare": "husky",
+    "mcp:start": "npx tsx src/mcp-server/index.ts"
   },
   "dependencies": {
     "autoevals": "latest",
+    "dotenv": "latest",
     "playwright": "latest",
     "playwright-extra": "latest",
-    "puppeteer-extra-plugin-stealth": "latest",
-    "dotenv": "latest"
+    "puppeteer-extra-plugin-stealth": "latest"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@types/node": "^25.5.0",
     "husky": "^9.0.0",
+    "langfuse": "^3.38.6",
     "lint-staged": "^15.0.0",
     "markdownlint-cli": "^0.40.0",
-    "prettier": "^3.0.0"
+    "prettier": "^3.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
   },
   "keywords": [
     "agent",

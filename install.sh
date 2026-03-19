@@ -28,10 +28,8 @@ if [[ "$1" == "--link" ]]; then
     fi
 
     # Ensure stack's own dependencies are installed using the preferred manager
-    if [[ ! -d "$SOURCE_DIR/node_modules" ]]; then
-        echo "🛠️ Installing Stack dependencies with $PKG_MANAGER..."
-        (cd "$SOURCE_DIR" && "$PKG_MANAGER" install --quiet)
-    fi
+    echo "🛠️ Ensuring Stack dependencies are installed with $PKG_MANAGER..."
+    (cd "$SOURCE_DIR" && "$PKG_MANAGER" install --quiet)
 
     # 1. Symlinks (Robust & Non-Recursive)
     mkdir -p "$TARGET_DIR/.github"
