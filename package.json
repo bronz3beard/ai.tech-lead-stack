@@ -36,7 +36,7 @@
   "scripts": {
     "test": "echo \"No tests specified.\" && exit 0",
     "setup-browsers": "npx playwright install chromium",
-    "postinstall": "npm run setup-browsers",
+    "postinstall": "prisma generate && npm run setup-browsers",
     "format": "npx prettier --write \".ai/skills/*.md\" \"scripts/*.js\" \"README.md\"",
     "format:check": "npx prettier --check \".ai/skills/*.md\" \"scripts/*.js\" \"README.md\"",
     "lint": "npx markdownlint-cli \".ai/skills/*.md\"",
@@ -44,14 +44,19 @@
     "validate:skills": "bash scripts/validate-skills.sh",
     "validate:scripts": "bash scripts/validate-scripts.sh",
     "prepare": "husky",
-    "mcp:start": "npx tsx src/mcp-server/index.ts"
+    "mcp:start": "npx tsx src/mcp-server/index.ts",
+    "dev": "prisma generate && next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "lint:next": "next lint"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
     "@radix-ui/react-slot": "^1.2.4",
     "@tailwindcss/postcss": "^4.2.2",
     "@types/bcryptjs": "^2.4.6",
-    "@types/pg": "^8.18.0",
+    "@types/pg": "^8.11.11",
     "autoevals": "latest",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",

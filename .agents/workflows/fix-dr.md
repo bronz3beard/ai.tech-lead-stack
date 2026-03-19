@@ -1,6 +1,8 @@
 ---
-description: Design Review Remediation
+description: DR Fix Ochestrator
 ---
 
 // turbo
-A Design Review was performed. Using the dr-remediation skill, implement the UI/UX polish and style updates. Ensure all changes adhere to our G-Stack Design Tokens (Tailwind/CSS Vars), maintain A11y standards, and provide Visual Evidence for both Desktop and Mobile views.
+
+1. Execute the following command:
+   Use the tech-lead-stack.get_skills tool to read the "dr-remediation" skill. Follow its workflow to resolve UI/UX feedback while maintaining design token integrity.

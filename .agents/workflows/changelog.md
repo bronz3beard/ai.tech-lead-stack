@@ -3,5 +3,6 @@ description: Generate Changelog
 ---
 
 // turbo
+
 1. Execute the following command:
-Using the changelog-generator skill, analyze the local git history and generate a semantic changelog based on standard principles.
+   Use the tech-lead-stack.get_skills tool to read the "changelog-generator" skill. Follow its workflow to transform git history into semantic release notes.

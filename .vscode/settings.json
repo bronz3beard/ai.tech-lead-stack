@@ -1,0 +1,97 @@
+{
+  "prettier.requireConfig": true,
+  "prettier.configPath": ".prettierrc",
+  "prettier.jsxSingleQuote": false,
+  "prettier.singleQuote": true,
+  "prettier.resolveGlobalModules": true,
+  "editor.formatOnSave": true,
+  "editor.formatOnSaveMode": "file",
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit",
+    "source.fixAll.eslint": "explicit",
+    "source.sortMembers": "explicit",
+    "source.organizeImports": "explicit",
+    "source.addMissingImports": "explicit"
+  },
+  "editor.tabSize": 2,
+  "editor.hover.above": false,
+  "editor.guides.bracketPairs": true,
+  "workbench.editor.wrapTabs": true,
+  "workbench.editor.pinnedTabsOnSeparateRow": true,
+  "css.validate": false,
+  "scss.validate": false,
+  "editor.acceptSuggestionOnCommitCharacter": false,
+  "editor.bracketPairColorization.enabled": true,
+  "javascript.inlayHints.variableTypes.enabled": true,
+  "javascript.inlayHints.parameterNames.enabled": "all",
+  "editor.minimap.size": "fill",
+  "editor.minimap.scale": 1,
+  "window.density.editorTabHeight": "compact",
+  "workbench.editor.pinnedTabSizing": "compact",
+  "editor.insertSpaces": true,
+  "editor.autoClosingBrackets": "languageDefined",
+  "editor.autoClosingQuotes": "languageDefined",
+  "editor.autoIndent": "none",
+  "editor.colorDecorators": true,
+  "editor.quickSuggestions": {
+    "other": true,
+    "comments": true,
+    "strings": true
+  },
+  "editor.tabCompletion": "onlySnippets",
+  "editor.trimAutoWhitespace": false,
+  "files.encoding": "utf8",
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": false,
+  "html.autoClosingTags": true,
+  "html.format.contentUnformatted": "pre,code,textarea",
+  "html.format.enable": true,
+  "html.format.indentInnerHtml": true,
+  "html.format.wrapAttributes": "aligned-multiple",
+  "html.format.wrapLineLength": 100,
+  "html.suggest.html5": true,
+  "json.format.enable": true,
+  "javascript.autoClosingTags": true,
+  "javascript.format.enable": true,
+  "javascript.format.insertSpaceAfterCommaDelimiter": true,
+  "javascript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": true,
+  "javascript.format.insertSpaceAfterOpeningAndBeforeClosingJsxExpressionBraces": false,
+  "javascript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
+  "javascript.format.insertSpaceBeforeAndAfterBinaryOperators": true,
+  "javascript.suggest.autoImports": true,
+  "javascript.suggest.enabled": true,
+  "javascript.suggest.names": true,
+  "javascript.suggest.paths": true,
+  "javascript.suggestionActions.enabled": true,
+  "javascript.validate.enable": true,
+  "eslint.validate": ["javascript", "typescript", "typescriptreact"],
+  "diffEditor.ignoreTrimWhitespace": false,
+  "editor.unicodeHighlight.invisibleCharacters": true,
+  "editor.unicodeHighlight.ambiguousCharacters": true,
+  "editor.unicodeHighlight.nonBasicASCII": true,
+  "javascript.suggest.classMemberSnippets.enabled": true,
+  "javascript.preferences.jsxAttributeCompletionStyle": "braces",
+  "editor.stickyScroll.enabled": true,
+  "cSpell.words": ["Colour", "gilly", "Gilly", "sanitise"]
+}

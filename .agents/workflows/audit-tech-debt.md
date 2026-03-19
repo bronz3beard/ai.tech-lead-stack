@@ -3,5 +3,6 @@ description: Technical Debt Audit
 ---
 
 // turbo
+
 1. Execute the following command:
-Using the technical-debt-auditor skill, scan for complexity and unused code to output a prioritized ROI heatmap.
+   Use the tech-lead-stack.get_skills tool to read the "technical-debt-auditor" skill. Follow its workflow to perform a structural health scan and identify quick-win cleanup tasks.

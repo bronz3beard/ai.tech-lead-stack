@@ -39,7 +39,7 @@ export class Telemetry {
     }
 
     const trace = this.langfuse.trace({
-      name: "skill_execution",
+      name: `skill:${skillName}`,
       metadata: {
         skillName,
         projectId: projectId ?? "unknown",
@@ -55,12 +55,15 @@ export class Telemetry {
       });
 
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+
       trace.update({
-        output: `Error executing skill ${skillName}: ${error.message}`,
+        output: `Error executing skill ${skillName}: ${errorMessage}`,
         metadata: {
-          error: error.message,
-          stack: error.stack
+          error: errorMessage,
+          stack: errorStack
         }
       });
       throw error;

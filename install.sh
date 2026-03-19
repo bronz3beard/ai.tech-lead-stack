@@ -100,10 +100,46 @@ if [[ "$1" == "--link" ]]; then
         echo "❌ RTK setup failed. Please install it manually: https://rtk-ai.app"
     fi
 
+    # 5. Generic MCP Configuration
+    setup_mcp_environment() {
+        # Check common configuration paths for various agents/IDEs
+        local config_paths=(
+            "$HOME/Library/Application Support/Claude/claude_desktop_config.json"
+            "$HOME/.config/Claude/claude_desktop_config.json"
+        )
+        
+        for config_file in "${config_paths[@]}"; do
+            if [[ -f "$config_file" ]]; then
+                echo "⚙️  Detected Agent configuration at: $config_file"
+                
+                # Check if server already exists
+                if ! grep -q "tech-lead-stack" "$config_file"; then
+                    echo "   ✨ Adding tech-lead-stack to Agent tools..."
+                    
+                    if command -v jq &> /dev/null; then
+                        local tmp_config="/tmp/mcp_config_tmp.json"
+                        # Use --prefix instead of cwd for universal compatibility
+                            jq --arg name "tech-lead-stack" \
+                               --arg cmd "npm" \
+                               --arg prefix "$SOURCE_DIR" \
+                               '.mcpServers[$name] = {"command": $cmd, "args": ["--prefix", $prefix, "--silent", "run", "mcp:start"]}' \
+                               "$config_file" > "$tmp_config" && mv "$tmp_config" "$config_file"
+                        echo "   ✅ Successfully configured!"
+                    else
+                        echo "   ⚠️  jq not found. Skipping automated JSON update to avoid corruption."
+                    fi
+                else
+                    echo "   - Configuration already present."
+                fi
+            fi
+        done
+    }
+    setup_mcp_environment
+
     echo "✨ Initialization complete."
     echo ""
 
-    # 5. Native Alias Automation
+    # 6. Native Alias Automation
     ALIAS_CMD="alias rtk='$SOURCE_DIR/scripts/rtk-run.sh'"
     ALIAS_ADDED=false
 
@@ -128,8 +164,34 @@ if [[ "$1" == "--link" ]]; then
     add_alias_to_rc "$HOME/.zshrc"
     add_alias_to_rc "$HOME/.bashrc"
 
+    echo ""
+    echo "----------------------------------------------------------------"
+    echo "🚨 IMPORTANT: AGENT TELEMETRY CONFIGURATION 🚨"
+    echo "----------------------------------------------------------------"
+    echo "To track skill usage, add this to your Agent's MCP settings:"
+    echo ""
+    echo "{"
+    echo "  \"mcpServers\": {"
+    echo "    \"tech-lead-stack\": {"
+    echo "      \"command\": \"npm\","
+    echo "      \"args\": ["
+    echo "         \"--prefix\","
+    echo "         \"$SOURCE_DIR\","
+    echo "         \"--silent\","
+    echo "         \"run\","
+    echo "         \"mcp:start\""
+    echo "      ]"
+    echo "    }"
+    echo "  }"
+    echo "}"
+    echo ""
+    echo "🔧 FIXED: \"Property cwd is not allowed\""
+    echo "We now use the --prefix flag inside the args list, which is"
+    echo "supported by all MCP clients including Antigravity."
+    echo "----------------------------------------------------------------"
+    echo ""
+
     if [ "$ALIAS_ADDED" = true ]; then
-        echo ""
         echo "💡 Tip: Restart your terminal or run \`source ~/.zshrc\` (or .bashrc) to use 'rtk run <tool>' natively!"
     else
         echo "💡 Tip: We couldn't find your .zshrc or .bashrc. To use 'rtk run <tool>' natively, manually run:"

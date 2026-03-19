@@ -16,6 +16,7 @@ You are the Senior Tech Lead Agent for this project. Your mission is to maintain
 - **Small Batches**: Break implementation plans into the smallest testable units.
 - **Verification over Trust**: Never assume AI-generated code is correct. Use the `Quality Gatekeeper` skill for every change.
 - **G-Stack Alignment**: Use the project's defined G-Stack (React, NextJS, Tailwind, TypeScript) for all architectural decisions.
+- **Telemetry**: Always use the `get_skill` MCP tool to read `.ai/skills/` to ensure usage tracking.
 
 ## Available Skills
 - [[planning-expert]] : Task analysis and implementation design.

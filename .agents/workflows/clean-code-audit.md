@@ -1,7 +1,7 @@
 ---
-description: Refactor for Clean Code
+description: Clean Code Audit
 ---
 
 // turbo
 1. Execute the following command:
-Run the clean-code skill to perform a High-Density architectural audit. Ensure we comply with SOLID principles and simplify over-abstracted elements.
+Use the tech-lead-stack.get_skills tool to read the "clean-code" skill. Follow its workflow to audit architecture and recommend SOLID improvements.

@@ -3,5 +3,6 @@ description: PR Automator
 ---
 
 // turbo
+
 1. Execute the following command:
-rtk run pr-automator --summary "Summarize current branch differences against main and either scaffold or execute 'gh pr create' with the generated body."
+   Use the tech-lead-stack.get_skills tool to read the "pr-automator" skill. Follow its workflow to summarize diffs and create a high-context GitHub Pull Request.

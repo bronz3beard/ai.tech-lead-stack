@@ -3,5 +3,6 @@ description: Visual Smoke Test
 ---
 
 // turbo
+
 1. Execute the following command:
-Run the visual-verifier skill. Capture desktop and mobile evidence, then use rtk run upload to post the proof to the ClickUp task linked in my branch name.
+   Use the tech-lead-stack.get_skills tool to read the "visual-verifier" skill. Follow its workflow to capture before/after screenshots and upload evidence.

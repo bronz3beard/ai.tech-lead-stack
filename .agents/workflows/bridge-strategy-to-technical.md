@@ -3,5 +3,6 @@ description: Strategy to Execution
 ---
 
 // turbo
+
 1. Execute the following command:
-Invoke the strategy-to-execution skill to map market priorities into technical plans, ensuring our roadmap aligns with immediate tech implementations.
+   Use the tech-lead-stack.get_skills tool to read the "strategy-to-execution" skill. Follow its workflow to bridge high-level goals with technical implementation plans and PRs.

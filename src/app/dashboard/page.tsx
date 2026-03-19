@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart } from "@/components/ui/chart";
+import { BarChart, LineChart } from "@/components/ui/chart";
 
 async function getUserMetrics(userId: string) {
   const publicKey = process.env.LANGFUSE_PUBLIC_KEY;
@@ -16,7 +16,8 @@ async function getUserMetrics(userId: string) {
   const authHeader = `Basic ${Buffer.from(`${publicKey}:${secretKey}`).toString("base64")}`;
 
   try {
-    const tracesResponse = await fetch(`${baseUrl}/api/public/traces?userId=${userId}`, {
+    // Increase limit to 100 (Langfuse maximum) for better time-series data
+    const tracesResponse = await fetch(`${baseUrl}/api/public/traces?userId=${userId}&limit=100`, {
       headers: {
         Authorization: authHeader,
       },
@@ -33,15 +34,35 @@ async function getUserMetrics(userId: string) {
     const totalExecutions = traces.length;
     let activeWorkflows = 0;
     const skillCounts: Record<string, number> = {};
+    const timeBuckets: Record<string, number> = {};
 
-    for (const trace of traces) {
-      if (trace.name) {
-        skillCounts[trace.name] = (skillCounts[trace.name] || 0) + 1;
+    // Sort traces by timestamp ascending
+    const sortedTraces = [...traces].sort((a, b) => 
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+
+    for (const trace of sortedTraces) {
+      // 1. Group by skill name
+      let skillName = "unknown";
+      if (trace.name && trace.name.startsWith("skill:")) {
+        skillName = trace.name.replace("skill:", "");
+      } else if (trace.name === "skill_execution" && trace.metadata?.skillName) {
+        skillName = trace.metadata.skillName;
+      } else if (trace.name) {
+        skillName = trace.name;
       }
-      // Simple heuristic for active workflows (e.g. executed recently or has some session id)
+      
+      skillCounts[skillName] = (skillCounts[skillName] || 0) + 1;
+
+      // 2. Track workflows
       if (trace.sessionId) {
         activeWorkflows++;
       }
+
+      // 3. Time series: group by day
+      const date = new Date(trace.timestamp);
+      const dateKey = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      timeBuckets[dateKey] = (timeBuckets[dateKey] || 0) + 1;
     }
 
     const topSkills = Object.entries(skillCounts)
@@ -49,18 +70,24 @@ async function getUserMetrics(userId: string) {
       .sort((a, b) => b.total - a.total)
       .slice(0, 5);
 
+    const tracesByTime = Object.entries(timeBuckets).map(([name, total]) => ({
+      name,
+      total,
+    }));
+
     return {
       totalExecutions,
       activeWorkflows: activeWorkflows > 0 ? activeWorkflows : totalExecutions,
       topSkills,
+      tracesByTime,
     };
   } catch (error) {
     console.error("Error fetching metrics from Langfuse:", error);
-    // Return fallback empty metrics on error
     return {
       totalExecutions: 0,
       activeWorkflows: 0,
       topSkills: [],
+      tracesByTime: [],
     };
   }
 }
@@ -102,8 +129,17 @@ export default async function DashboardPage() {
           </Card>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-          <Card className="col-span-4">
+        <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-7">
+          <Card className="lg:col-span-7">
+            <CardHeader>
+              <CardTitle>My Traces by time</CardTitle>
+            </CardHeader>
+            <CardContent className="pl-2">
+              <LineChart data={metrics.tracesByTime} />
+            </CardContent>
+          </Card>
+
+          <Card className="lg:col-span-4">
             <CardHeader>
               <CardTitle>My Top Skills</CardTitle>
             </CardHeader>
