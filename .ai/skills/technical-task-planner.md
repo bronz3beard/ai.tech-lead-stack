@@ -72,7 +72,10 @@ For every task generated, include the following metadata:
    [DELETE]).
 4. **Task Batching**: Create Parent Tasks for logical milestones.
 5. **Subtask Detailing**: Create Subtasks with exact "Definition of Done".
-6. **Final Polish**: Verify against `clean-code.md` and `security-audit.md`.
+6. **AI Prompt Generation**: For every task and subtask, generate a high-density
+   technical prompt that a developer can use with an AI (e.g., Antigravity,
+   Claude, ChatGPT) to execute the work.
+7. **Final Polish**: Verify against `clean-code.md` and `security-audit.md`.
 
 ## Output Format
 
@@ -82,11 +85,19 @@ For every task generated, include the following metadata:
 - **Status**: TO DO
 - **Labels**: [Labels]
 - **Success Criteria**: [Criteria]
+- **Technical Details**: [Architecture, files, and logic]
+- **AI Execution Prompt**: [A detailed, context-rich prompt for an AI assistant
+  to execute this entire parent task.]
 
 ## Subtasks:
 
-1. [Subtask Name]: [Detailed implementation steps]
+1. [Subtask Name]
+   - Description: [Specific implementation steps]
    - DoD: [Specific verification step]
-2. [Subtask Name]: [Detailed implementation steps]
+   - **AI Execution Prompt**: [A granular prompt specifically for this subtask.]
+
+2. [Subtask Name]
+   - Description: [Specific implementation steps]
    - DoD: [Specific verification step]
+   - **AI Execution Prompt**: [A granular prompt specifically for this subtask.]
 ```
