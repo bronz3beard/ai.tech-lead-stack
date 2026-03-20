@@ -3,7 +3,7 @@
  * @tool quality-check
  * @description Runs a tech-lead level quality evaluation using rtk.
  */
-const { execSync } = require('child_process');
+import { execSync } from 'child_process';
 
 function run() {
   console.log(
@@ -14,7 +14,7 @@ function run() {
     // Structured check
     try {
       execSync('npm test', { stdio: 'ignore' });
-    } catch (e) {
+    } catch {
       // Ignore failure if it's just missing tests
     }
     const diff = execSync('git diff main..HEAD').toString();
@@ -35,7 +35,7 @@ function run() {
     // RTK prefers JSON output for token efficiency
     console.log(JSON.stringify(results));
     process.exit(results.passed ? 0 : 1);
-  } catch (e) {
+  } catch {
     console.log(JSON.stringify({ error: 'Tests failed', passed: false }));
     process.exit(1);
   }

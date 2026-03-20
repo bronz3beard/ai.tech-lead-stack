@@ -64,10 +64,12 @@ if [[ "$1" == "run" ]]; then
     echo "🚀 Executing RTK tool: $TOOL_NAME"
     # We execute with rtk prefixing to ensure token savings if the tool produces output
     # but we check if it's a 'cat' or 'node' command and decide whether to prefix
+    # Pass all remaining arguments to the tool command
+    TOOL_ARGS="${@:3}"
     if [[ "$CMD" == cat* ]]; then
-        eval "$CMD"
+        eval "$CMD $TOOL_ARGS"
     else
-        rtk sh -c "$CMD"
+        rtk sh -c "$CMD $TOOL_ARGS"
     fi
 
 elif [[ "$1" == "list" ]]; then
