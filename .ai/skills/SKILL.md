@@ -32,4 +32,6 @@ This directory contains the core skills for the Tech Lead Stack.
 - [[security-audit]] : Production-ready security screening.
 - [[strategy-to-execution]] : Bridges high-level strategy to technical
   implementation.
+- [[technical-task-planner]] : Detailed technical task decomposition and ClickUp
+  planning.
 - [[daily-standup]] : Generates concise daily status reports.
