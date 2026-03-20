@@ -1,22 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #1e293b; /* Slate 800 - Soft Night Blue */
+  --foreground: #f8fafc; /* Slate 50 - Off-white */
+  --card: #334155; /* Slate 700 - Lighter Blue/Gray Card */
+  --card-foreground: #f8fafc;
+  --muted: #94a3b8; /* Slate 400 */
+  --muted-foreground: #cbd5e1; /* Slate 300 */
+  --border: #475569; /* Slate 600 */
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
