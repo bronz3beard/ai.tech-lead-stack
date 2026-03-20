@@ -14,8 +14,10 @@ description:
   (1920x1080) and Mobile (iPhone 14) resolutions perfectly.
 - **Negative (Unverified):** Screenshots capture a 404/blank page, or the UI is
   completely cropped/broken.
-- **Action:** If the target element is hidden/loading, inject explicit wait
-  states (`await page.waitForSelector`) and retry capture.
+- **Action:** Ensure the app is running (e.g., `npm run dev`) AND authenticated.
+  Run `rtk run visual-verifier` to capture evidence. If the target element is
+  hidden/loading, the script will wait, but ensure the server is reachable and
+  you are logged in.
 
 ### Gate 2: Workflow Continuity
 
@@ -30,8 +32,8 @@ description:
 
 1. **Local Test**: Run the app locally (e.g., `npm run dev`).
 2. **Capture**:
-   - Run `rtk run visual-verifier [URL1] [URL2] ...` to automate capture of all
-     modified pages.
+   - Run `rtk run visual-verifier [URL1] [URL2] ...` from any project directory.
+   - The tool will automatically resolve the script from the Tech-Lead Stack.
    - Captures Desktop (1920x1080) and Mobile (iPhone 14) full-page screenshots
      for each URL.
 3. **Proof of Work**:

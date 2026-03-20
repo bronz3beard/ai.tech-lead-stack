@@ -1,10 +1,29 @@
 import { chromium, devices } from 'playwright';
 import path from 'path';
 import fs from 'fs';
+import http from 'http';
+import https from 'https';
+
+async function checkUrl(url) {
+  return new Promise((resolve) => {
+    const protocol = url.startsWith('https') ? https : http;
+    const req = protocol.get(url, (res) => {
+      resolve(res.statusCode >= 200 && res.statusCode < 400);
+    });
+    req.on('error', () => resolve(false));
+    req.end();
+  });
+}
 
 async function captureScreenshots(url, outputDir = '.github/evidence') {
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
+  }
+
+  const isAlive = await checkUrl(url);
+  if (!isAlive) {
+    console.error(`❌ Error: URL ${url} is not reachable. Is your dev server running?`);
+    return;
   }
 
   const browser = await chromium.launch();
@@ -28,7 +47,21 @@ async function captureScreenshots(url, outputDir = '.github/evidence') {
       // Wait a bit for any dynamic content/animations
       await page.waitForTimeout(2000);
 
-      const fileName = `${url.split('/').pop() || 'page'}-${config.name}.png`;
+      const finalUrl = page.url();
+      const isAuthRedirect = (urlPath, finalUrlPath) => {
+        const authKeywords = ['login', 'signin', 'auth', 'authorize', 'session'];
+        return authKeywords.some(kw => !urlPath.toLowerCase().includes(kw) && finalUrlPath.toLowerCase().includes(kw));
+      };
+
+      if (isAuthRedirect(url, finalUrl)) {
+        console.warn(`\n⚠️  WARNING: Requested ${url} but ended up at ${finalUrl}.`);
+        console.warn(`   This usually means authentication is required.`);
+        console.warn(`   👉 Please ensure your app is running AND you are logged in.\n`);
+      }
+
+      // Sanitize URL for filename
+      const urlPath = url.replace(/^https?:\/\//, '').replace(/[\/:]/g, '-');
+      const fileName = `${urlPath || 'index'}-${config.name}.png`;
       const filePath = path.join(outputDir, fileName);
 
       await page.screenshot({ path: filePath, fullPage: true });

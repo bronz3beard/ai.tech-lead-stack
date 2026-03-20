@@ -63,6 +63,8 @@ GitHub.
      module numbers) based on git metadata and branch names.
    - **Visuals**: Use `rtk run visual-verifier [URL1] [URL2] ...` to capture
      full-page screenshots for **ALL** modified UI routes.
+     - **MANDATORY**: The app must be running locally AND authenticated for
+       `visual-verifier` to succeed.
      - **MANDATORY**: Do not skip any modified pages. If the PR affects 5 pages,
        capture all 5.
      - **IMPORTANT**: Convert local screenshot paths (e.g.,

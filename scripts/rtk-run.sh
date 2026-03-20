@@ -4,7 +4,11 @@
 
 # Requirement: node (available in this environment)
 
-SCRIPT_PATH=$(realpath "$0" 2>/dev/null || echo "$0")
+# Use BASH_SOURCE to reliably find the script's directory even when called via alias/symlink
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+if [ -z "$SCRIPT_PATH" ]; then
+    SCRIPT_PATH=$(realpath "$0" 2>/dev/null || echo "$0")
+fi
 SCRIPT_DIR=$(cd "$(dirname "$SCRIPT_PATH")" && pwd)
 STACK_PKG="$SCRIPT_DIR/../package.json"
 
@@ -46,7 +50,8 @@ if [[ "$1" == "run" ]]; then
             if (isFromStack) {
                 const tlsRoot = require('path').resolve('$SCRIPT_DIR', '..');
                 // Replace relative paths with absolute ones from TLS root
-                toolCmd = toolCmd.replace(/(^|\s)(\.ai\/|\.agents\/|scripts\/)/g, (match, prefix, path) => {
+                // Supports .ai/, .agents/, .scripts/, scripts/, templates/
+                toolCmd = toolCmd.replace(/(^|\s)(\.ai\/|\.agents\/|\.?scripts\/|templates\/)/g, (match, prefix, path) => {
                     return prefix + tlsRoot + '/' + path;
                 });
             }
