@@ -68,11 +68,11 @@ description:
 
 ## 🛠 Execution Workflow
 
-| Step              | Discovery Action                                        |
-| :---------------- | :------------------------------------------------------ | ------------------------------------------- |
-| **Culture Audit** | `rtk run git-parse` (Extracts real branch/commit data). |
-| **Local Audit**   | `cat package.json                                       | grep -A 10 "scripts"` (Finds entry points). |
-| **Import Audit**  | `grep -r "import" src/` (Maps shared code).             |
+| Step              | Discovery Action                                                  |
+| :---------------- | :---------------------------------------------------------------- | ------------------------------------------- |
+| **Culture Audit** | `./.ai/rtk-run run git-parse` (Extracts real branch/commit data). |
+| **Local Audit**   | `cat package.json                                                 | grep -A 10 "scripts"` (Finds entry points). |
+| **Import Audit**  | `grep -r "import" src/` (Maps shared code).                       |
 
 ## 📦 The "Day One" Onboarding Report
 

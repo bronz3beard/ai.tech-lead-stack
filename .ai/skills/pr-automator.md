@@ -38,8 +38,8 @@ GitHub.
      branched from. Do NOT automatically assume `main`.
    - Analyze all commits on the current branch compared to the discovered base
      branch.
-   - **MANDATORY**: Run `rtk run visual-verifier` if the diff contains UI/CSS
-     changes to provide visual proof.
+   - **MANDATORY**: Run `./.ai/rtk-run run visual-verifier` if the diff contains
+     UI/CSS changes to provide visual proof.
    - **Label & Reviewer Discovery**:
      - Run `gh label list --json name` to fetch available repository labels.
        Determine 1-3 labels that match the technical changes (e.g., `bug`,

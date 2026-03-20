@@ -66,9 +66,9 @@ description:
 
 | Agent Role    | RTK Validation Command            |
 | ------------- | --------------------------------- |
-| **Tech Lead** | `rtk run gatekeeper`              |
-| **Security**  | `rtk run security-scan`           |
-| **Quality**   | `rtk run eval`                    |
+| **Tech Lead** | `./.ai/rtk-run run gatekeeper`    |
+| **Security**  | `./.ai/rtk-run run security-scan` |
+| **Quality**   | `./.ai/rtk-run run eval`          |
 | **Any Role**  | `python3 scripts/verify-stack.sh` |
 
 ## 🔴 Script Output Handling (READ → SUMMARIZE → ASK)

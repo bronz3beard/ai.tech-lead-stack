@@ -1,0 +1,15 @@
+#!/bin/bash
+# .ai/rtk-run
+# Universal wrapper for Tech-Lead Stack tools.
+# This script ensures that tools are resolved correctly from the stack repository
+# even in non-interactive shells or when the native alias is missing.
+
+# Find the directory where this script is located (symlink-aware)
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+if [ -z "$SCRIPT_PATH" ]; then
+    SCRIPT_PATH=$(realpath "$0" 2>/dev/null || echo "$0")
+fi
+SCRIPT_DIR=$(cd "$(dirname "$SCRIPT_PATH")" && pwd)
+
+# Route the call to the central rtk-run.sh in the scripts directory
+bash "$SCRIPT_DIR/../scripts/rtk-run.sh" "$@"

@@ -66,12 +66,12 @@ description:
 
 ## 🛠 Execution Workflow (RTK Integration)
 
-| Step          | Tool / Action                                         |
-| :------------ | :---------------------------------------------------- |
-| **1. Ingest** | Read PR Diff and `agents.md` context.                 |
-| **2. Audit**  | Run `rtk run gatekeeper` and `rtk run security-scan`. |
-| **3. Verify** | Run `python3 scripts/verify-stack.sh`.                |
-| **4. Report** | Use the "Comment Template" below for feedback.        |
+| Step          | Tool / Action                                                             |
+| :------------ | :------------------------------------------------------------------------ |
+| **1. Ingest** | Read PR Diff and `agents.md` context.                                     |
+| **2. Audit**  | Run `./.ai/rtk-run run gatekeeper` and `./.ai/rtk-run run security-scan`. |
+| **3. Verify** | Run `python3 scripts/verify-stack.sh`.                                    |
+| **4. Report** | Use the "Comment Template" below for feedback.                            |
 
 ## 📝 Review Comment Template
 

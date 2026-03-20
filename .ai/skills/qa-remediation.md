@@ -26,7 +26,7 @@ fix is G-Stack compliant and verified via Continuous Integration (MinimumCD).
 ### Gate 2: Implementation Integrity
 
 - **Positive Outcome (Clean):** Fix is atomic; uses G-Stack components; passes
-  `rtk run eval`.
+  `./.ai/rtk-run run eval`.
 - **Negative Outcome (Dirty):** Fix introduces "ghost dependencies"; breaks
   existing snapshots; uses `!important` or inline styles.
 - **Action:** Reject commit. Refactor using G-Stack design tokens.
@@ -62,12 +62,13 @@ fix is G-Stack compliant and verified via Continuous Integration (MinimumCD).
    - Use `rtk` to execute local dev servers and verify the fix
      manually/automatically.
 4. **Chain: quality-gatekeeper**:
-   - Run `rtk run eval`.
+   - Run `./.ai/rtk-run run eval`.
    - Ensure the remediation meets the "Extreme Prejudice" review standard—no
      console logs, no bypasses.
 5. **Chain: visual-verifier**:
    - Capture Desktop and Mobile proof.
-   - Run `rtk run upload` to post the evidence directly to the QA ticket.
+   - Run `./.ai/rtk-run run upload` to post the evidence directly to the QA
+     ticket.
 6. **Chain: pr-automator**:
    - Update the PR description to include a "QA Remediation" section, linking
      the evidence and the test results.

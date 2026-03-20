@@ -15,9 +15,9 @@ description:
 - **Negative (Unverified):** Screenshots capture a 404/blank page, or the UI is
   completely cropped/broken.
 - **Action:** Ensure the app is running (e.g., `npm run dev`) AND authenticated.
-  Run `rtk run visual-verifier` to capture evidence. If the target element is
-  hidden/loading, the script will wait, but ensure the server is reachable and
-  you are logged in.
+  Run `./.ai/rtk-run run visual-verifier http://localhost:3000/path` to capture
+  evidence. If the target element is hidden/loading, the script will wait, but
+  ensure the server is reachable and you are logged in.
 
 ### Gate 2: Workflow Continuity
 

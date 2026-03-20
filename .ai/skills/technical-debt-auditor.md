@@ -16,7 +16,7 @@ description:
 - **Negative (Noise):** Undated/anonymous markers; "Ghost exports";
   commented-out logic > 2 lines.
 - **Action:** If Negative, generate a "Cleanup Task" for immediate execution
-  using `rtk run cleanup`.
+  using `./.ai/rtk-run run cleanup`.
 
 ### Gate 2: Complexity & Abstraction (The SOLID Scan)
 
@@ -33,7 +33,8 @@ description:
   current; `.env.example` matches actual usage.
 - **Negative Outcome (Fail):** Stale/vulnerable packages; hardcoded secrets;
   pinned-to-old-major versions without justification.
-- **Action:** Run `rtk run security-scan` and list specific update paths.
+- **Action:** Run `./.ai/rtk-run run security-scan` and list specific update
+  paths.
 
 ### Gate 4: Test & Coverage Gaps
 
@@ -60,12 +61,12 @@ description:
 
 ## 🛠 Execution Layer (RTK Tool Mapping)
 
-| Audit Phase       | RTK Command                                     |
-| :---------------- | :---------------------------------------------- |
-| **Tooling Check** | `rtk list` (Verify linters/formatters)          |
-| **Logic Eval**    | `rtk run eval` (Check MinimumCD score)          |
-| **Security Scan** | `rtk run security-scan` (Dependency debt)       |
-| **Stack Verify**  | `python3 scripts/verify-stack.sh` (Config debt) |
+| Audit Phase       | RTK Command                                         |
+| :---------------- | :-------------------------------------------------- |
+| **Tooling Check** | `rtk list` (Verify linters/formatters)              |
+| **Logic Eval**    | `./.ai/rtk-run run eval` (Check MinimumCD score)    |
+| **Security Scan** | `./.ai/rtk-run run security-scan` (Dependency debt) |
+| **Stack Verify**  | `python3 scripts/verify-stack.sh` (Config debt)     |
 
 ## 📦 Report Template (Mandatory Structure)
 

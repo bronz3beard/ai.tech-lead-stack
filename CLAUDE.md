@@ -116,6 +116,13 @@ rtk init                # Add RTK instructions to CLAUDE.md
 rtk init --global       # Add RTK to ~/.claude/CLAUDE.md
 ```
 
+### Tech-Lead Stack Tools
+For any linked project, use the localized runner for stack-specific skills:
+```bash
+./.ai/rtk-run list          # List all available stack tools
+./.ai/rtk-run run <tool>    # Execute a stack tool (e.g., visual-verifier)
+```
+
 ## Token Savings Overview
 
 | Category | Commands | Typical Savings |
