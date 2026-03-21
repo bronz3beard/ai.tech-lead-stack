@@ -45,6 +45,9 @@ async function getUserMetrics(userId: string) {
       status: t.status as string | undefined,
       metadata: t.metadata as Record<string, unknown> | undefined,
       totalCost: t.totalCost as number | undefined,
+      totalTokens: (t.totalTokens || t.tokens) as number | undefined,
+      inputTokens: t.inputTokens as number | undefined,
+      outputTokens: t.outputTokens as number | undefined,
     }));
   } catch (error) {
     console.error('Error fetching metrics from Langfuse:', error);

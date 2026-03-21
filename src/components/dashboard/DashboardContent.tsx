@@ -16,6 +16,9 @@ export type TraceData = {
   status?: string;
   metadata?: Record<string, unknown>;
   totalCost?: number;
+  totalTokens?: number;
+  inputTokens?: number;
+  outputTokens?: number;
 };
 
 export function DashboardContent({

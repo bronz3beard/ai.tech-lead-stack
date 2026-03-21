@@ -29,6 +29,7 @@ const FALLBACK_TOKEN_COST: Record<string, number> = {
   'security-audit': 495,
   'strategy-to-execution': 420,
   'technical-debt-auditor': 760,
+  'technical-task-planner': 925,
   'visual-verifier': 375,
 };
 
@@ -41,6 +42,8 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
         totalDuration: number;
         errors: number;
         tokenCost: number;
+        tokenUsage: number;
+        hasLangfuse: boolean;
       }
     > = {};
 
@@ -60,6 +63,8 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
           totalDuration: 0,
           errors: 0,
           tokenCost: 0,
+          tokenUsage: 0,
+          hasLangfuse: false,
         };
       }
 
@@ -79,7 +84,14 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
 
       // Check for totalCost from langfuse
       if (typeof trace.totalCost === 'number') {
-          skillStats[skillName].tokenCost += trace.totalCost;
+        skillStats[skillName].tokenCost += trace.totalCost;
+        skillStats[skillName].hasLangfuse = true;
+      }
+      
+      // Accumulate tokens
+      if (typeof trace.totalTokens === 'number') {
+        skillStats[skillName].tokenUsage += trace.totalTokens;
+        skillStats[skillName].hasLangfuse = true;
       }
     }
 
@@ -94,30 +106,44 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
           ? ((1 - stats.errors / stats.executions) * 100).toFixed(1)
           : '100.0';
 
-      const hasLangfuseCost = stats.tokenCost > 0;
+      const normalizedName = name.toLowerCase();
+      const hasLangfuseData = stats.hasLangfuse;
 
-      const perRunCost = hasLangfuseCost
-        ? (stats.tokenCost / stats.executions)
-        : (FALLBACK_TOKEN_COST[name] || 0);
+      const perRunCost = hasLangfuseData
+        ? stats.tokenCost / stats.executions
+        : FALLBACK_TOKEN_COST[normalizedName] || 0;
 
-      const totalCost = hasLangfuseCost
+      const totalCost = hasLangfuseData
         ? stats.tokenCost
-        : (perRunCost * stats.executions);
+        : perRunCost * stats.executions;
 
-      const displayPerRunCost = hasLangfuseCost
+      const perRunTokens = hasLangfuseData
+        ? stats.tokenUsage / stats.executions
+        : FALLBACK_TOKEN_COST[normalizedName] || 0;
+
+      const totalTokens = hasLangfuseData
+        ? stats.tokenUsage
+        : perRunTokens * stats.executions;
+
+      const displayPerRunCost = hasLangfuseData
         ? `$${perRunCost.toFixed(4)}`
         : `~${perRunCost}`;
 
-      const displayTotalCost = hasLangfuseCost
+      const displayTotalCost = hasLangfuseData
         ? `$${totalCost.toFixed(4)}`
         : `~${totalCost}`;
+
+      const displayTotalTokens = hasLangfuseData
+        ? `${totalTokens.toLocaleString()}`
+        : `~${totalTokens.toLocaleString()}`;
 
       return {
         name,
         executions: stats.executions,
         perRunCost: displayPerRunCost,
         totalCost: displayTotalCost,
-        isFallbackCost: !hasLangfuseCost,
+        totalTokens: displayTotalTokens,
+        isFallbackCost: !hasLangfuseData,
         avgDuration: stats.totalDuration > 0 ? `${avgDuration}ms` : 'N/A',
         accuracy: `${accuracy}%`,
       };
@@ -136,6 +162,7 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
           <TableHead className="text-right">Executions</TableHead>
           <TableHead className="text-right">Est. Token Cost (per run)</TableHead>
           <TableHead className="text-right">Total execution cost</TableHead>
+          <TableHead className="text-right">Total Tokens</TableHead>
           <TableHead className="text-right">Avg Duration</TableHead>
           <TableHead className="text-right">Accuracy (Success Rate)</TableHead>
         </TableRow>
@@ -158,13 +185,24 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
             </TableCell>
             <TableCell className="text-right">
               {row.isFallbackCost ? (
-                <Tooltip text="Estimated total cost (Executions * Base Cost).">
+                <Tooltip text="Estimated total cost. Langfuse data unavailable.">
                   <span className="border-b border-dotted border-gray-400 cursor-help">
                     {row.totalCost}
                   </span>
                 </Tooltip>
               ) : (
                 row.totalCost
+              )}
+            </TableCell>
+            <TableCell className="text-right">
+              {row.isFallbackCost ? (
+                <Tooltip text="Estimated total tokens based on base skill cost. Langfuse data unavailable.">
+                  <span className="border-b border-dotted border-gray-400 cursor-help">
+                    {row.totalTokens}
+                  </span>
+                </Tooltip>
+              ) : (
+                row.totalTokens
               )}
             </TableCell>
             <TableCell className="text-right">{row.avgDuration}</TableCell>
