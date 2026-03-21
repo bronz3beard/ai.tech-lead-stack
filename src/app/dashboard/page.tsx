@@ -1,9 +1,29 @@
 import { authOptions } from '@/lib/auth';
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
-import { DashboardContent } from '@/components/dashboard/DashboardContent';
+import { DashboardContent, TraceData } from '@/components/dashboard/DashboardContent';
 
-async function getUserMetrics(userId: string) {
+interface LangfuseTrace {
+  id: string;
+  name?: string;
+  timestamp: string;
+  sessionId?: string;
+  metadata?: Record<string, unknown>;
+  model?: string;
+  duration?: number;
+  status?: string;
+  totalCost?: number;
+  usage?: {
+    totalTokens?: number;
+    inputTokens?: number;
+    outputTokens?: number;
+  };
+  totalTokens?: number;
+  inputTokens?: number;
+  outputTokens?: number;
+}
+
+async function getUserMetrics(userId: string): Promise<TraceData[]> {
   const publicKey = process.env.LANGFUSE_PUBLIC_KEY;
   const secretKey = process.env.LANGFUSE_SECRET_KEY;
   const baseUrl = process.env.LANGFUSE_BASE_URL || 'https://cloud.langfuse.com';
@@ -37,11 +57,11 @@ async function getUserMetrics(userId: string) {
     }
 
     const tracesData = await tracesResponse.json();
-    const traces = tracesData.data || [];
+    const traces: LangfuseTrace[] = tracesData.data || [];
 
     console.log(`Successfully fetched ${traces.length} traces for ${userId}`);
 
-    return traces.map((t: any) => {
+    return traces.map((t) => {
       // Safely extract metadata
       const metadata = t.metadata || {};
 
@@ -51,8 +71,8 @@ async function getUserMetrics(userId: string) {
         timestamp: t.timestamp,
         sessionId: t.sessionId,
         // Ensure projectName is extracted correctly from metadata
-        projectName: metadata.projectName || 'unknown',
-        model: t.model || metadata.model,
+        projectName: (metadata.projectName as string) || 'unknown',
+        model: t.model || (metadata.model as string),
         duration: t.duration,
         status: t.status,
         metadata: metadata,

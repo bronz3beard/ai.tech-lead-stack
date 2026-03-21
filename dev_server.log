@@ -57,3 +57,5 @@ https://next-auth.js.org/warnings#no_secret
  POST /api/auth/_log 200 in 182ms
  GET /api/auth/session 200 in 82ms
  GET /signin 200 in 101ms
+ ✓ Compiled in 8.2s (815 modules)
+ ✓ Compiled in 527ms (815 modules)

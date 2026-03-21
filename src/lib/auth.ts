@@ -1,7 +1,15 @@
-import { AuthOptions } from "next-auth";
-import GithubProvider from "next-auth/providers/github";
+import { AuthOptions, DefaultSession } from "next-auth";
+import GithubProvider, { GithubProfile } from "next-auth/providers/github";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "./prisma";
+
+declare module "next-auth" {
+  interface Session extends DefaultSession {
+    user: {
+      id: string;
+    } & DefaultSession["user"]
+  }
+}
 
 export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -24,8 +32,7 @@ export const authOptions: AuthOptions = {
         token.id = user.id;
       }
       if (profile) {
-        // Cast profile to any to access potentially missing fields from the base type
-        const githubProfile = profile as any;
+        const githubProfile = profile as GithubProfile;
         token.name = githubProfile.name || githubProfile.login;
         token.image = githubProfile.avatar_url;
       }
@@ -33,7 +40,7 @@ export const authOptions: AuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id = token.id as string;
+        session.user.id = token.id as string;
         session.user.name = token.name as string;
         session.user.image = token.image as string;
       }
