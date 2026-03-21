@@ -15,6 +15,7 @@ export type TraceData = {
   duration?: number;
   status?: string;
   metadata?: Record<string, unknown>;
+  totalCost?: number;
 };
 
 export function DashboardContent({

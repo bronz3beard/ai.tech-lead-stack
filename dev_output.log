@@ -27,3 +27,5 @@ Missing Langfuse API keys in environment variables, using fallback metrics
  GET / 200 in 13031ms
 [0m[7m Cache [0m Missing Langfuse API keys in environment variables, using fallback metrics
  GET / 200 in 131ms
+ ✓ Compiled in 5.6s (729 modules)
+ ✓ Compiled in 4.1s (1569 modules)

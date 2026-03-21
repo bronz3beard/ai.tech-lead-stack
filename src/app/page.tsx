@@ -53,6 +53,7 @@ async function getGlobalMetrics() {
       duration: t.duration as number | undefined,
       status: t.status as string | undefined,
       metadata: t.metadata as Record<string, unknown> | undefined,
+      totalCost: t.totalCost as number | undefined,
     }));
   } catch (error) {
     console.error('Error fetching metrics from Langfuse:', error);

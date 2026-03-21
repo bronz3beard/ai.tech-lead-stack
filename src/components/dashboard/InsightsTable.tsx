@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { Tooltip } from '@/components/ui/tooltip';
 import {
   Table,
   TableBody,
@@ -58,7 +59,7 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
           executions: 0,
           totalDuration: 0,
           errors: 0,
-          tokenCost: FALLBACK_TOKEN_COST[skillName] || 0,
+          tokenCost: 0,
         };
       }
 
@@ -76,9 +77,9 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
         skillStats[skillName].errors += 1;
       }
 
-      // Check for explicit token cost in metadata
-      if (typeof trace.metadata?.estimatedTokenCost === 'number') {
-          skillStats[skillName].tokenCost = trace.metadata.estimatedTokenCost;
+      // Check for totalCost from langfuse
+      if (typeof trace.totalCost === 'number') {
+          skillStats[skillName].tokenCost += trace.totalCost;
       }
     }
 
@@ -93,10 +94,16 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
           ? ((1 - stats.errors / stats.executions) * 100).toFixed(1)
           : '100.0';
 
+      const hasLangfuseCost = stats.tokenCost > 0;
+      const displayCost = hasLangfuseCost
+        ? `$${stats.tokenCost.toFixed(4)}`
+        : `~${FALLBACK_TOKEN_COST[name] || 0}`;
+
       return {
         name,
         executions: stats.executions,
-        tokenCost: stats.tokenCost > 0 ? `~${stats.tokenCost}` : 'Unknown',
+        tokenCost: displayCost,
+        isFallbackCost: !hasLangfuseCost,
         avgDuration: stats.totalDuration > 0 ? `${avgDuration}ms` : 'N/A',
         accuracy: `${accuracy}%`,
       };
@@ -123,7 +130,17 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
           <TableRow key={row.name}>
             <TableCell className="font-medium">{row.name}</TableCell>
             <TableCell className="text-right">{row.executions}</TableCell>
-            <TableCell className="text-right">{row.tokenCost}</TableCell>
+            <TableCell className="text-right">
+              {row.isFallbackCost ? (
+                <Tooltip text="Estimated base token cost. Langfuse data unavailable.">
+                  <span className="border-b border-dotted border-gray-400 cursor-help">
+                    {row.tokenCost}
+                  </span>
+                </Tooltip>
+              ) : (
+                row.tokenCost
+              )}
+            </TableCell>
             <TableCell className="text-right">{row.avgDuration}</TableCell>
             <TableCell className="text-right">{row.accuracy}</TableCell>
           </TableRow>
