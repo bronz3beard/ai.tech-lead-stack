@@ -1,23 +1,33 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { useSession, signOut } from "next-auth/react";
-import { Menu, X, LayoutDashboard, Globe, LogIn, LogOut } from "lucide-react";
-import { cn } from "@/lib/utils";
-import Image from "next/image";
+import { cn } from '@/lib/utils';
+import { Globe, LayoutDashboard, LogIn, LogOut, Menu, X } from 'lucide-react';
+import { signOut, useSession } from 'next-auth/react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 
 const navigation = [
-  { name: "Global Dashboard", href: "/", icon: Globe },
-  { name: "User Dashboard", href: "/dashboard", icon: LayoutDashboard, protected: true },
+  { name: 'Global Dashboard', href: '/', icon: Globe },
+  {
+    name: 'User Dashboard',
+    href: '/dashboard',
+    icon: LayoutDashboard,
+    protected: true,
+  },
 ];
+
+function avatarFallbackLetter(name?: string | null, email?: string | null) {
+  const c = name?.trim()?.[0] ?? email?.trim()?.[0];
+  return c ? c.toUpperCase() : '?';
+}
 
 export function Navbar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { data: session, status } = useSession();
-  const isAuthenticated = status === "authenticated";
+  const isAuthenticated = status === 'authenticated';
 
   const activeLink = (href: string) => pathname === href;
 
@@ -41,10 +51,10 @@ export function Navbar() {
                   key={item.name}
                   href={item.href}
                   className={cn(
-                    "inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium",
+                    'inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium',
                     activeLink(item.href)
-                      ? "border-blue-500 text-foreground"
-                      : "border-transparent text-muted-foreground hover:border-muted hover:text-foreground"
+                      ? 'border-blue-500 text-foreground'
+                      : 'border-transparent text-muted-foreground hover:border-muted hover:text-foreground'
                   )}
                 >
                   <item.icon className="w-4 h-4 mr-2" />
@@ -61,22 +71,30 @@ export function Navbar() {
                     {session.user?.name}
                   </span>
                   {session.user?.image ? (
-                    <div className="h-8 w-8 rounded-full overflow-hidden border border-border">
+                    <div className="h-8 w-8 rounded-full overflow-hidden border border-border shrink-0">
                       <Image
                         src={session.user.image}
-                        alt={session.user.name || "User"}
+                        alt={session.user.name || session.user.email || 'User'}
                         width={32}
                         height={32}
+                        className="object-cover"
+                        sizes="32px"
                       />
                     </div>
                   ) : (
-                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs">
-                      {session.user?.email?.[0].toUpperCase()}
+                    <div
+                      className="h-8 w-8 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs shrink-0"
+                      aria-hidden
+                    >
+                      {avatarFallbackLetter(
+                        session.user?.name,
+                        session.user?.email
+                      )}
                     </div>
                   )}
                 </div>
                 <button
-                  onClick={() => signOut()}
+                  onClick={() => signOut({ callbackUrl: '/' })}
                   className="text-muted-foreground hover:text-foreground p-2 rounded-md"
                   title="Sign Out"
                 >
@@ -120,10 +138,10 @@ export function Navbar() {
                 href={item.href}
                 onClick={() => setMobileMenuOpen(false)}
                 className={cn(
-                  "block pl-3 pr-4 py-2 border-l-4 text-base font-medium",
+                  'block pl-3 pr-4 py-2 border-l-4 text-base font-medium',
                   activeLink(item.href)
-                    ? "bg-blue-500/10 border-blue-500 text-foreground"
-                    : "border-transparent text-muted-foreground hover:bg-muted/10 hover:border-muted hover:text-foreground"
+                    ? 'bg-blue-500/10 border-blue-500 text-foreground'
+                    : 'border-transparent text-muted-foreground hover:bg-muted/10 hover:border-muted hover:text-foreground'
                 )}
               >
                 <div className="flex items-center">
@@ -138,17 +156,25 @@ export function Navbar() {
               <div className="space-y-1">
                 <div className="px-4 flex items-center mb-3">
                   {session.user?.image ? (
-                    <div className="h-10 w-10 rounded-full overflow-hidden border border-border">
+                    <div className="h-10 w-10 rounded-full overflow-hidden border border-border shrink-0">
                       <Image
                         src={session.user.image}
-                        alt={session.user.name || "User"}
+                        alt={session.user.name || session.user.email || 'User'}
                         width={40}
                         height={40}
+                        className="object-cover"
+                        sizes="40px"
                       />
                     </div>
                   ) : (
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">
-                      {session.user?.email?.[0].toUpperCase()}
+                    <div
+                      className="h-10 w-10 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold shrink-0"
+                      aria-hidden
+                    >
+                      {avatarFallbackLetter(
+                        session.user?.name,
+                        session.user?.email
+                      )}
                     </div>
                   )}
                   <div className="ml-3">

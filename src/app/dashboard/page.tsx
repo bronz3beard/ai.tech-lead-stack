@@ -1,7 +1,10 @@
+import {
+  DashboardContent,
+  TraceData,
+} from '@/components/dashboard/DashboardContent';
 import { authOptions } from '@/lib/auth';
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
-import { DashboardContent, TraceData } from '@/components/dashboard/DashboardContent';
 
 interface LangfuseTrace {
   id: string;
@@ -39,15 +42,12 @@ async function getUserMetrics(userId: string): Promise<TraceData[]> {
     const url = `${baseUrl}/api/public/traces?userId=${encodeURIComponent(userId)}&limit=100`;
     console.log(`Fetching traces for user: ${userId} from ${url}`);
 
-    const tracesResponse = await fetch(
-      url,
-      {
-        headers: {
-          Authorization: authHeader,
-        },
-        next: { revalidate: 60 },
-      }
-    );
+    const tracesResponse = await fetch(url, {
+      headers: {
+        Authorization: authHeader,
+      },
+      next: { revalidate: 60 },
+    });
 
     if (!tracesResponse.ok) {
       const errorText = await tracesResponse.text();
@@ -78,9 +78,9 @@ async function getUserMetrics(userId: string): Promise<TraceData[]> {
         metadata: metadata,
         // Langfuse sometimes puts usage at the top level or inside usage object
         totalCost: t.totalCost || 0,
-        totalTokens: t.totalTokens || (t.usage?.totalTokens) || 0,
-        inputTokens: t.inputTokens || (t.usage?.inputTokens) || 0,
-        outputTokens: t.outputTokens || (t.usage?.outputTokens) || 0,
+        totalTokens: t.totalTokens || t.usage?.totalTokens || 0,
+        inputTokens: t.inputTokens || t.usage?.inputTokens || 0,
+        outputTokens: t.outputTokens || t.usage?.outputTokens || 0,
       };
     });
   } catch (error) {
