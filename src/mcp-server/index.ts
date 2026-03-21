@@ -51,6 +51,10 @@ const GET_SKILLS_TOOL: Tool = {
         type: "string",
         description: "The name of the project where the agent is currently operating. Used for telemetry tracking.",
       },
+      model: {
+        type: "string",
+        description: "The LLM model being used (e.g., 'gpt-4o', 'claude-3-5-sonnet', 'gemini-1.5-pro').",
+      },
     },
     required: ["skillName"],
   },
@@ -113,9 +117,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request: { params: { name
   }
 
   if (name === "get_skills" || name === "get_skill") {
-    const { skillName, projectName } = args as {
+    const { skillName, projectName, model } = args as {
       skillName: string;
       projectName?: string;
+      model?: string;
     };
 
     const safeSkillName = path.basename(skillName, ".md");
@@ -149,6 +154,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request: { params: { name
         const fileContent = await telemetry.withAnalytics(
           safeSkillName,
           actualProjectName,
+          model,
           async () => content!
         );
 

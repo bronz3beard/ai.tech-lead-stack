@@ -6,6 +6,8 @@ export interface LangfuseMetadata {
   projectId?: string;
   projectName: string;
   environment: 'dev' | 'prod' | 'local';
+  userEmail?: string;
+  model?: string;
   error?: string;
   stack?: string;
   duration?: number;
@@ -44,6 +46,7 @@ export class Telemetry {
   async withAnalytics<T>(
     skillName: string,
     projectName: string | undefined,
+    model: string | undefined,
     executeCallback: () => Promise<T>
   ): Promise<T> {
     if (!this.isConfigured || !this.langfuse) {
@@ -72,6 +75,7 @@ export class Telemetry {
       projectName: projectName ?? 'unknown',
       environment: 'local',
       userEmail: userEmail,
+      model: model,
     };
 
     const trace = this.langfuse.trace({
@@ -91,7 +95,7 @@ export class Telemetry {
       // or we can let Langfuse calculate it if we provide the model
       trace.generation({
         name: `generation:${skillName}`,
-        model: 'gpt-4', // Default fallback model
+        model: model || 'unknown', // Use provided model or fallback
         output: outputStr,
         usage: {
           // Rough estimation: ~4 chars per token for output

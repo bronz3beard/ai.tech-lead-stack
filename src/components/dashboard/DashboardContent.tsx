@@ -12,6 +12,7 @@ export type TraceData = {
   timestamp: string;
   sessionId?: string;
   projectName: string;
+  model?: string;
   duration?: number;
   status?: string;
   metadata?: Record<string, unknown>;

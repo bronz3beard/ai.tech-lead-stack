@@ -41,6 +41,7 @@ async function getUserMetrics(userId: string) {
       timestamp: t.timestamp as string,
       sessionId: t.sessionId as string | undefined,
       projectName: (t.metadata as Record<string, unknown>)?.projectName as string || 'unknown',
+      model: (t.metadata as Record<string, unknown>)?.model as string | undefined,
       duration: t.duration as number | undefined,
       status: t.status as string | undefined,
       metadata: t.metadata as Record<string, unknown> | undefined,

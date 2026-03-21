@@ -24,6 +24,18 @@ describe("withAnalytics", () => {
     expect(mockSkill).toHaveBeenCalledWith("test-input");
   });
 
+  it("should support model in context", async () => {
+    const mockSkill = jest.fn().mockResolvedValue("Success!");
+    const wrappedSkill = await withAnalytics(
+      "test-skill",
+      { userId: "user-123", model: "gpt-4o" },
+      mockSkill
+    );
+
+    const result = await wrappedSkill("test-input");
+    expect(result).toBe("Success!");
+  });
+
   it("should handle error in skill execution", async () => {
     const mockSkill = jest.fn().mockRejectedValue(new Error("Failed"));
     const wrappedSkill = await withAnalytics("test-skill", { userId: "user-123" }, mockSkill);

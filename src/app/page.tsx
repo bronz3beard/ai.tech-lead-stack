@@ -37,6 +37,7 @@ interface LangfuseTrace {
 
 interface SkillInsight {
   name: string;
+  model: string;
   executions: number;
   estTokenCost: number;
   totalCost: number;
@@ -199,6 +200,7 @@ async function getGlobalMetrics(projectId?: string) {
         successful: number;
         totalTokens: number;
         totalCost: number;
+        models: Set<string>;
       }
     > = {};
     const timeBuckets: Record<string, number> = {};
@@ -221,6 +223,7 @@ async function getGlobalMetrics(projectId?: string) {
           successful: 0,
           totalTokens: 0,
           totalCost: 0,
+          models: new Set<string>(),
         };
       }
 
@@ -250,6 +253,10 @@ async function getGlobalMetrics(projectId?: string) {
         trace.totalCost || (trace.metadata?.cost as number | undefined) || 0;
       stats.totalCost += cost;
 
+      if (trace.metadata?.model) {
+        stats.models.add(trace.metadata.model as string);
+      }
+
       // Aggregate by time
       const dateKey = new Date(trace.timestamp).toLocaleDateString(undefined, {
         month: 'short',
@@ -271,6 +278,7 @@ async function getGlobalMetrics(projectId?: string) {
     const skillInsights: SkillInsight[] = Object.entries(skillStats).map(
       ([name, stats]) => ({
         name,
+        model: Array.from(stats.models).join(', ') || 'gpt-4',
         executions: stats.executions,
         estTokenCost:
           stats.executions > 0
@@ -418,6 +426,9 @@ export default async function PublicDashboard({ searchParams }: PageProps) {
                       Skill Name
                     </th>
                     <th className="px-6 py-4 border-b border-slate-800">
+                      LLM Model
+                    </th>
+                    <th className="px-6 py-4 border-b border-slate-800">
                       Executions
                     </th>
                     <th className="px-6 py-4 border-b border-slate-800">
@@ -443,6 +454,11 @@ export default async function PublicDashboard({ searchParams }: PageProps) {
                       <td className="px-6 py-5">
                         <span className="font-mono text-indigo-400 font-semibold">
                           {skill.name}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5">
+                        <span className="text-slate-400 text-sm">
+                          {skill.model}
                         </span>
                       </td>
                       <td className="px-6 py-5 text-slate-300 font-medium">
