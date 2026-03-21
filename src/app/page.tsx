@@ -278,7 +278,7 @@ async function getGlobalMetrics(projectId?: string) {
     const skillInsights: SkillInsight[] = Object.entries(skillStats).map(
       ([name, stats]) => ({
         name,
-        model: Array.from(stats.models).join(', ') || 'gpt-4',
+        model: Array.from(stats.models).join(', ') || 'unknown',
         executions: stats.executions,
         estTokenCost:
           stats.executions > 0

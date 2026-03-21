@@ -1,7 +1,5 @@
 'use client';
 
-import { useMemo } from 'react';
-import { Tooltip } from '@/components/ui/tooltip';
 import {
   Table,
   TableBody,
@@ -10,6 +8,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Tooltip } from '@/components/ui/tooltip';
+import { useMemo } from 'react';
 import { TraceData } from './DashboardContent';
 
 const FALLBACK_TOKEN_COST: Record<string, number> = {
@@ -52,7 +52,10 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
       let skillName = 'unknown';
       if (trace.name && trace.name.startsWith('skill:')) {
         skillName = trace.name.replace('skill:', '');
-      } else if (trace.name === 'skill_execution' && typeof trace.metadata?.skillName === 'string') {
+      } else if (
+        trace.name === 'skill_execution' &&
+        typeof trace.metadata?.skillName === 'string'
+      ) {
         skillName = trace.metadata.skillName;
       } else if (trace.name) {
         skillName = trace.name;
@@ -89,7 +92,7 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
         skillStats[skillName].tokenCost += trace.totalCost;
         skillStats[skillName].hasLangfuse = true;
       }
-      
+
       // Accumulate tokens
       if (typeof trace.totalTokens === 'number') {
         skillStats[skillName].tokenUsage += trace.totalTokens;
@@ -103,64 +106,70 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
       }
     }
 
-    return Object.entries(skillStats).map(([name, stats]) => {
-      const avgDuration =
-        stats.executions > 0
-          ? (stats.totalDuration / stats.executions).toFixed(2)
-          : '0.00';
+    return Object.entries(skillStats)
+      .map(([name, stats]) => {
+        const avgDuration =
+          stats.executions > 0
+            ? (stats.totalDuration / stats.executions).toFixed(2)
+            : '0.00';
 
-      const accuracy =
-        stats.executions > 0
-          ? ((1 - stats.errors / stats.executions) * 100).toFixed(1)
-          : '100.0';
+        const accuracy =
+          stats.executions > 0
+            ? ((1 - stats.errors / stats.executions) * 100).toFixed(1)
+            : '100.0';
 
-      const normalizedName = name.toLowerCase();
-      const hasLangfuseData = stats.hasLangfuse;
+        const normalizedName = name.toLowerCase();
+        const hasLangfuseData = stats.hasLangfuse;
 
-      const perRunCost = hasLangfuseData
-        ? stats.tokenCost / stats.executions
-        : FALLBACK_TOKEN_COST[normalizedName] || 0;
+        const perRunCost = hasLangfuseData
+          ? stats.tokenCost / stats.executions
+          : FALLBACK_TOKEN_COST[normalizedName] || 0;
 
-      const totalCost = hasLangfuseData
-        ? stats.tokenCost
-        : perRunCost * stats.executions;
+        const totalCost = hasLangfuseData
+          ? stats.tokenCost
+          : perRunCost * stats.executions;
 
-      const perRunTokens = hasLangfuseData
-        ? stats.tokenUsage / stats.executions
-        : FALLBACK_TOKEN_COST[normalizedName] || 0;
+        const perRunTokens = hasLangfuseData
+          ? stats.tokenUsage / stats.executions
+          : FALLBACK_TOKEN_COST[normalizedName] || 0;
 
-      const totalTokens = hasLangfuseData
-        ? stats.tokenUsage
-        : perRunTokens * stats.executions;
+        const totalTokens = hasLangfuseData
+          ? stats.tokenUsage
+          : perRunTokens * stats.executions;
 
-      const displayPerRunCost = hasLangfuseData
-        ? `$${perRunCost.toFixed(4)}`
-        : `~${perRunCost}`;
+        const displayPerRunCost = hasLangfuseData
+          ? `$${perRunCost.toFixed(4)}`
+          : `~${perRunCost}`;
 
-      const displayTotalCost = hasLangfuseData
-        ? `$${totalCost.toFixed(4)}`
-        : `~${totalCost}`;
+        const displayTotalCost = hasLangfuseData
+          ? `$${totalCost.toFixed(4)}`
+          : `~${totalCost}`;
 
-      const displayTotalTokens = hasLangfuseData
-        ? `${totalTokens.toLocaleString()}`
-        : `~${totalTokens.toLocaleString()}`;
+        const displayTotalTokens = hasLangfuseData
+          ? `${totalTokens.toLocaleString()}`
+          : `~${totalTokens.toLocaleString()}`;
 
-      return {
-        name,
-        executions: stats.executions,
-        model: Array.from(stats.models).join(', ') || 'gpt-4',
-        perRunCost: displayPerRunCost,
-        totalCost: displayTotalCost,
-        totalTokens: displayTotalTokens,
-        isFallbackCost: !hasLangfuseData,
-        avgDuration: stats.totalDuration > 0 ? `${avgDuration}ms` : 'N/A',
-        accuracy: `${accuracy}%`,
-      };
-    }).sort((a, b) => b.executions - a.executions); // sort by executions descending
+        return {
+          name,
+          executions: stats.executions,
+          model: Array.from(stats.models).join(', ') || 'unknown',
+          perRunCost: displayPerRunCost,
+          totalCost: displayTotalCost,
+          totalTokens: displayTotalTokens,
+          isFallbackCost: !hasLangfuseData,
+          avgDuration: stats.totalDuration > 0 ? `${avgDuration}ms` : 'N/A',
+          accuracy: `${accuracy}%`,
+        };
+      })
+      .sort((a, b) => b.executions - a.executions); // sort by executions descending
   }, [traces]);
 
   if (tableData.length === 0) {
-    return <div className="text-muted-foreground p-4">No data available to display.</div>;
+    return (
+      <div className="text-muted-foreground p-4">
+        No data available to display.
+      </div>
+    );
   }
 
   return (
@@ -170,7 +179,9 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
           <TableHead>Skill Name</TableHead>
           <TableHead>Model</TableHead>
           <TableHead className="text-right">Executions</TableHead>
-          <TableHead className="text-right">Est. Token Cost (per run)</TableHead>
+          <TableHead className="text-right">
+            Est. Token Cost (per run)
+          </TableHead>
           <TableHead className="text-right">Total execution cost</TableHead>
           <TableHead className="text-right">Total Tokens</TableHead>
           <TableHead className="text-right">Avg Duration</TableHead>

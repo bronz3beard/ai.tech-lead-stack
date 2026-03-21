@@ -21,10 +21,10 @@ export const authOptions: AuthOptions = {
     }),
   ],
   session: {
-    strategy: "jwt",
+    strategy: 'jwt',
   },
   pages: {
-    signIn: "/signin",
+    signIn: '/signin',
   },
   callbacks: {
     async jwt({ token, user, profile }) {
