@@ -11,7 +11,7 @@ export default function SignInPage() {
   const paramError = searchParams.get('error') as unknown as string;
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(`Error: ${paramError}` || '');
+  const [error, setError] = useState(paramError ? `Error: ${paramError}` : '');
 
   const handleGitHubSignIn = async () => {
     setLoading(true);
