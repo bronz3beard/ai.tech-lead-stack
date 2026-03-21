@@ -1,4 +1,5 @@
 import { chromium, devices } from 'playwright';
+import { execSync } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import http from 'http';
@@ -15,18 +16,34 @@ async function checkUrl(url) {
   });
 }
 
-async function captureScreenshots(url, outputDir = '.github/evidence') {
+async function captureScreenshots(url, options = {}) {
+  const { outputDir = '.github/evidence', skipCheck = false } = options;
+
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  const isAlive = await checkUrl(url);
-  if (!isAlive) {
-    console.error(`❌ Error: URL ${url} is not reachable. Is your dev server running?`);
-    return;
+  if (!skipCheck) {
+    const isAlive = await checkUrl(url);
+    if (!isAlive) {
+      console.warn(`⚠️  Warning: URL ${url} might not be reachable. Proceeding anyway with Playwright.`);
+    }
   }
 
-  const browser = await chromium.launch();
+  let browser;
+  try {
+    browser = await chromium.launch({ headless: true });
+  } catch {
+    console.warn(`\n⚠️  Playwright browser not found. Attempting to install automatically...`);
+    try {
+      execSync('npx playwright install chromium', { stdio: 'inherit' });
+      browser = await chromium.launch({ headless: true });
+    } catch (installError) {
+      console.error(`❌ Error: Could not launch or install Playwright: ${installError.message}`);
+      console.error(`👉 Potential Fix: 'npm run setup-browsers' manually on your host machine.`);
+      return;
+    }
+  }
 
   const configs = [
     { name: 'desktop', width: 1920, height: 1080 },
@@ -43,8 +60,11 @@ async function captureScreenshots(url, outputDir = '.github/evidence') {
     const page = await context.newPage();
 
     try {
-      await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
-      // Wait a bit for any dynamic content/animations
+      await page.goto(url, { waitUntil: 'load', timeout: 60000 });
+      // Wait for network to be idle
+      await page.waitForLoadState('networkidle').catch(() => console.log('  Wait for networkidle timed out, proceeding anyway...'));
+      
+      // Wait a bit for animations
       await page.waitForTimeout(2000);
 
       const finalUrl = page.url();
@@ -54,9 +74,7 @@ async function captureScreenshots(url, outputDir = '.github/evidence') {
       };
 
       if (isAuthRedirect(url, finalUrl)) {
-        console.warn(`\n⚠️  WARNING: Requested ${url} but ended up at ${finalUrl}.`);
-        console.warn(`   This usually means authentication is required.`);
-        console.warn(`   👉 Please ensure your app is running AND you are logged in.\n`);
+        console.warn(`\n⚠️  WARNING: Requested ${url} but ended up at ${finalUrl}. Auth Required.`);
       }
 
       // Sanitize URL for filename
@@ -77,13 +95,18 @@ async function captureScreenshots(url, outputDir = '.github/evidence') {
   console.log('🏁 Screenshot capture complete.');
 }
 
-const targetUrls = process.argv.slice(2);
+// Parse args
+const args = process.argv.slice(2);
+const skipCheck = args.includes('--no-check');
+const targetUrls = args.filter(a => !a.startsWith('--'));
+
 if (targetUrls.length === 0) {
   targetUrls.push('http://localhost:3000');
 }
 
 (async () => {
   for (const url of targetUrls) {
-    await captureScreenshots(url).catch(console.error);
+    await captureScreenshots(url, { skipCheck }).catch(console.error);
   }
 })();
+
