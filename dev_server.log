@@ -1,0 +1,59 @@
+
+> @bronz3beard/tech-lead-stack@1.0.0 dev
+> prisma generate && next dev
+
+Loaded Prisma config from prisma.config.ts.
+
+Prisma schema loaded from prisma/schema.prisma.
+warn Preview feature "driverAdapters" is deprecated. The functionality can be used without specifying it as a preview feature.
+
+✔ Generated Prisma Client (v7.5.0) to ./node_modules/@prisma/client in 149ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+
+   ▲ Next.js 15.5.14
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.0.2:3000
+   - Experiments (use with caution):
+     ✓ useCache
+
+ ✓ Starting...
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+ ✓ Ready in 1982ms
+ ○ Compiling / ...
+ ✓ Compiled / in 14.9s (1792 modules)
+Missing Langfuse API keys in environment variables, using fallback metrics
+[0m[7m Cache [0m Missing Langfuse API keys in environment variables, using fallback metrics
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+ GET / 200 in 18140ms
+ ○ Compiling /api/auth/[...nextauth] ...
+ ✓ Compiled /signin in 6.5s (2103 modules)
+ GET /signin 200 in 5737ms
+ GET /signin 200 in 81ms
+ ○ Compiling /register ...
+ ✓ Compiled /register in 590ms (2110 modules)
+[next-auth][warn][NEXTAUTH_URL]
+https://next-auth.js.org/warnings#nextauth_url
+[next-auth][warn][NO_SECRET]
+https://next-auth.js.org/warnings#no_secret
+ GET /api/auth/session 200 in 8828ms
+ GET /register 200 in 1326ms
+[next-auth][warn][NEXTAUTH_URL]
+https://next-auth.js.org/warnings#nextauth_url
+[next-auth][warn][NO_SECRET]
+https://next-auth.js.org/warnings#no_secret
+ POST /api/auth/_log 200 in 182ms
+ GET /api/auth/session 200 in 82ms
+ GET /signin 200 in 101ms

@@ -54,19 +54,29 @@ export class Telemetry {
       return executeCallback();
     }
 
-    // Capture user email from git config or gh cli
+    // Strictly get user email from GitHub CLI for dashboard parity
     let userEmail = 'unknown';
     try {
-      userEmail = execSync('git config --global user.email', { stdio: 'pipe' })
+      // Primary: GitHub CLI (best for parity with GitHub OAuth)
+      userEmail = execSync('gh api user -q .email', { stdio: 'pipe' })
         .toString()
         .trim();
+
+      // If GH CLI returns nothing or empty, fallback to git config
+      if (!userEmail || userEmail === 'null') {
+         userEmail = execSync('git config --global user.email', { stdio: 'pipe' })
+           .toString()
+           .trim();
+      }
     } catch {
       try {
-        userEmail = execSync('gh api user -q .email', { stdio: 'pipe' })
+        // Fallback: Git Config
+        userEmail = execSync('git config --global user.email', { stdio: 'pipe' })
           .toString()
           .trim();
       } catch {
-        // Fallback
+        // Fallback: Env variable
+        userEmail = process.env.USER_EMAIL || 'unknown';
       }
     }
 
@@ -91,16 +101,13 @@ export class Telemetry {
         typeof result === 'string' ? result : JSON.stringify(result);
 
       // Track a generation to ensure Langfuse can calculate/display token costs
-      // We use a rough estimation for tokens if real usage isn't available
-      // or we can let Langfuse calculate it if we provide the model
       trace.generation({
         name: `generation:${skillName}`,
-        model: model || 'unknown', // Use provided model or fallback
+        model: model || 'unknown',
         output: outputStr,
         usage: {
-          // Rough estimation: ~4 chars per token for output
           completionTokens: Math.ceil(outputStr.length / 4),
-          promptTokens: 500, // Estimated base prompt cost
+          promptTokens: 500,
         },
       });
 

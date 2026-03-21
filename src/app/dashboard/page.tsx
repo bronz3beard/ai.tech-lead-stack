@@ -8,16 +8,19 @@ async function getUserMetrics(userId: string) {
   const secretKey = process.env.LANGFUSE_SECRET_KEY;
   const baseUrl = process.env.LANGFUSE_BASE_URL || 'https://cloud.langfuse.com';
 
-  if (!publicKey || !secretKey) {
-    throw new Error('Missing Langfuse API keys in environment variables');
+  if (!publicKey || !secretKey || publicKey === 'placeholder') {
+    console.warn('Langfuse API keys are not configured or still placeholders');
+    return [];
   }
 
   const authHeader = `Basic ${Buffer.from(`${publicKey}:${secretKey}`).toString('base64')}`;
 
   try {
-    // Increase limit to 100 (Langfuse maximum) for better time-series data
+    const url = `${baseUrl}/api/public/traces?userId=${encodeURIComponent(userId)}&limit=100`;
+    console.log(`Fetching traces for user: ${userId} from ${url}`);
+
     const tracesResponse = await fetch(
-      `${baseUrl}/api/public/traces?userId=${userId}&limit=100`,
+      url,
       {
         headers: {
           Authorization: authHeader,
@@ -27,29 +30,39 @@ async function getUserMetrics(userId: string) {
     );
 
     if (!tracesResponse.ok) {
+      const errorText = await tracesResponse.text();
       throw new Error(
-        `Failed to fetch from Langfuse: ${tracesResponse.statusText}`
+        `Failed to fetch from Langfuse: ${tracesResponse.status} ${tracesResponse.statusText} - ${errorText}`
       );
     }
 
     const tracesData = await tracesResponse.json();
     const traces = tracesData.data || [];
 
-    return traces.map((t: Record<string, unknown>) => ({
-      id: t.id as string,
-      name: t.name as string,
-      timestamp: t.timestamp as string,
-      sessionId: t.sessionId as string | undefined,
-      projectName: (t.metadata as Record<string, unknown>)?.projectName as string || 'unknown',
-      model: (t.metadata as Record<string, unknown>)?.model as string | undefined,
-      duration: t.duration as number | undefined,
-      status: t.status as string | undefined,
-      metadata: t.metadata as Record<string, unknown> | undefined,
-      totalCost: t.totalCost as number | undefined,
-      totalTokens: (t.totalTokens || t.tokens) as number | undefined,
-      inputTokens: t.inputTokens as number | undefined,
-      outputTokens: t.outputTokens as number | undefined,
-    }));
+    console.log(`Successfully fetched ${traces.length} traces for ${userId}`);
+
+    return traces.map((t: any) => {
+      // Safely extract metadata
+      const metadata = t.metadata || {};
+
+      return {
+        id: t.id,
+        name: t.name || 'unnamed-trace',
+        timestamp: t.timestamp,
+        sessionId: t.sessionId,
+        // Ensure projectName is extracted correctly from metadata
+        projectName: metadata.projectName || 'unknown',
+        model: t.model || metadata.model,
+        duration: t.duration,
+        status: t.status,
+        metadata: metadata,
+        // Langfuse sometimes puts usage at the top level or inside usage object
+        totalCost: t.totalCost || 0,
+        totalTokens: t.totalTokens || (t.usage?.totalTokens) || 0,
+        inputTokens: t.inputTokens || (t.usage?.inputTokens) || 0,
+        outputTokens: t.outputTokens || (t.usage?.outputTokens) || 0,
+      };
+    });
   } catch (error) {
     console.error('Error fetching metrics from Langfuse:', error);
     return [];
@@ -60,13 +73,14 @@ export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
 
   if (!session || !session.user) {
-    redirect('/api/auth/signin');
+    redirect('/signin');
   }
 
   const userEmail = session.user.email;
   if (!userEmail) {
-    redirect('/api/auth/signin');
+    redirect('/signin');
   }
+
   const traces = await getUserMetrics(userEmail);
 
   return <DashboardContent traces={traces} titlePrefix="My Authenticated" />;
