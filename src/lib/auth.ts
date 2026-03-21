@@ -1,47 +1,23 @@
-import bcrypt from 'bcryptjs';
-import { AuthOptions } from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import { z } from 'zod';
-import { prisma } from './prisma';
+import { AuthOptions, DefaultSession } from "next-auth";
+import GithubProvider, { GithubProfile } from "next-auth/providers/github";
+import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import { prisma } from "./prisma";
 
-const loginSchema = z.object({
-  email: z.email(),
-  password: z.string().min(6),
-});
+declare module "next-auth" {
+  interface Session extends DefaultSession {
+    user: {
+      id: string;
+    } & DefaultSession["user"]
+  }
+}
 
 export const authOptions: AuthOptions = {
+  adapter: PrismaAdapter(prisma),
   providers: [
-    CredentialsProvider({
-      name: 'Credentials',
-      credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
-      },
-      async authorize(credentials) {
-        if (!credentials) return null;
-
-        const parsed = loginSchema.safeParse(credentials);
-        if (!parsed.success) {
-          return null;
-        }
-
-        const { email, password } = parsed.data;
-
-        const user = await prisma.user.findUnique({
-          where: { email },
-        });
-
-        if (!user) {
-          return null;
-        }
-
-        const isValid = await bcrypt.compare(password, user.password_hash);
-        if (!isValid) {
-          return null;
-        }
-
-        return { id: user.id, email: user.email };
-      },
+    GithubProvider({
+      clientId: process.env.GITHUB_ID!,
+      clientSecret: process.env.GITHUB_SECRET!,
+      allowDangerousEmailAccountLinking: true,
     }),
   ],
   session: {
@@ -51,15 +27,22 @@ export const authOptions: AuthOptions = {
     signIn: '/signin',
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, profile }) {
       if (user) {
         token.id = user.id;
+      }
+      if (profile) {
+        const githubProfile = profile as GithubProfile;
+        token.name = githubProfile.name || githubProfile.login;
+        token.image = githubProfile.avatar_url;
       }
       return token;
     },
     async session({ session, token }) {
-      if (session.user && token.id) {
-        (session.user as { id: string }).id = token.id as string;
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.name = token.name as string;
+        session.user.image = token.image as string;
       }
       return session;
     },

@@ -4,8 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
-import { Menu, X, LayoutDashboard, Globe, LogIn, UserPlus, LogOut } from "lucide-react";
+import { Menu, X, LayoutDashboard, Globe, LogIn, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 const navigation = [
   { name: "Global Dashboard", href: "/", icon: Globe },
@@ -55,8 +56,24 @@ export function Navbar() {
           <div className="hidden sm:ml-6 sm:flex sm:items-center space-x-4">
             {isAuthenticated ? (
               <div className="flex items-center space-x-4">
-                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs">
-                  {session.user?.email?.[0].toUpperCase()}
+                <div className="flex items-center space-x-3 mr-2">
+                  <span className="text-sm font-medium text-foreground hidden md:inline">
+                    {session.user?.name}
+                  </span>
+                  {session.user?.image ? (
+                    <div className="h-8 w-8 rounded-full overflow-hidden border border-border">
+                      <Image
+                        src={session.user.image}
+                        alt={session.user.name || "User"}
+                        width={32}
+                        height={32}
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs">
+                      {session.user?.email?.[0].toUpperCase()}
+                    </div>
+                  )}
                 </div>
                 <button
                   onClick={() => signOut()}
@@ -70,15 +87,9 @@ export function Navbar() {
               <div className="flex items-center space-x-4">
                 <Link
                   href="/signin"
-                  className="text-sm font-medium text-muted-foreground hover:text-foreground"
-                >
-                  Sign In
-                </Link>
-                <Link
-                  href="/register"
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
                 >
-                  Register
+                  Sign In
                 </Link>
               </div>
             )}
@@ -126,11 +137,25 @@ export function Navbar() {
             {isAuthenticated ? (
               <div className="space-y-1">
                 <div className="px-4 flex items-center mb-3">
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">
-                    {session.user?.email?.[0].toUpperCase()}
-                  </div>
+                  {session.user?.image ? (
+                    <div className="h-10 w-10 rounded-full overflow-hidden border border-border">
+                      <Image
+                        src={session.user.image}
+                        alt={session.user.name || "User"}
+                        width={40}
+                        height={40}
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold">
+                      {session.user?.email?.[0].toUpperCase()}
+                    </div>
+                  )}
                   <div className="ml-3">
                     <div className="text-base font-medium text-foreground">
+                      {session.user?.name}
+                    </div>
+                    <div className="text-sm font-medium text-muted-foreground">
                       {session.user?.email}
                     </div>
                   </div>
@@ -158,16 +183,6 @@ export function Navbar() {
                   <div className="flex items-center">
                     <LogIn className="w-5 h-5 mr-3" />
                     Sign In
-                  </div>
-                </Link>
-                <Link
-                  href="/register"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block px-4 py-2 text-base font-medium text-muted-foreground hover:bg-muted/10 hover:text-foreground"
-                >
-                  <div className="flex items-center">
-                    <UserPlus className="w-5 h-5 mr-3" />
-                    Register
                   </div>
                 </Link>
               </div>
