@@ -47,9 +47,9 @@ const GET_SKILLS_TOOL: Tool = {
         type: "string",
         description: "The name of the skill (without the .md extension), e.g., 'planning-expert'.",
       },
-      projectId: {
+      projectName: {
         type: "string",
-        description: "The name or path of the symlinked project where the agent is currently operating. Used for telemetry tracking.",
+        description: "The name of the project where the agent is currently operating. Used for telemetry tracking.",
       },
     },
     required: ["skillName"],
@@ -113,9 +113,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request: { params: { name
   }
 
   if (name === "get_skills" || name === "get_skill") {
-    const { skillName, projectId } = args as {
+    const { skillName, projectName } = args as {
       skillName: string;
-      projectId?: string;
+      projectName?: string;
     };
 
     const safeSkillName = path.basename(skillName, ".md");
@@ -135,9 +135,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request: { params: { name
 
     if (content && usedPath) {
       try {
+        let actualProjectName = projectName;
+        if (!actualProjectName) {
+           try {
+              const packageJsonContent = await fs.readFile(path.join(process.cwd(), "package.json"), "utf-8");
+              const packageJson = JSON.parse(packageJsonContent);
+              actualProjectName = packageJson.name;
+           } catch {
+              // Ignore missing package.json
+           }
+        }
+
         const fileContent = await telemetry.withAnalytics(
           safeSkillName,
-          projectId,
+          actualProjectName,
           async () => content!
         );
 
