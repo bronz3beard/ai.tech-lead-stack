@@ -51,6 +51,26 @@ export class Telemetry {
       }
     }
 
+    const FALLBACK_TOKEN_COST: Record<string, number> = {
+      'changelog-generator': 670,
+      'clean-code': 880,
+      'code-review-checklist': 840,
+      'codebase-onboarding-intelligence': 960,
+      'daily-standup': 500,
+      'dr-remediation': 780,
+      'feature-design-assistant': 700,
+      'mission-control': 615,
+      'planning-expert': 475,
+      'pr-automator': 875,
+      'product-strategist': 750,
+      'qa-remediation': 730,
+      'quality-gatekeeper': 650,
+      'security-audit': 495,
+      'strategy-to-execution': 420,
+      'technical-debt-auditor': 760,
+      'visual-verifier': 375,
+    };
+
     const trace = this.langfuse.trace({
       name: `skill:${skillName}`,
       userId: userEmail,
@@ -59,6 +79,7 @@ export class Telemetry {
         projectName: projectName ?? "unknown",
         environment: "local",
         userEmail: userEmail,
+        estimatedTokenCost: FALLBACK_TOKEN_COST[skillName] || 0,
       }
     });
 
