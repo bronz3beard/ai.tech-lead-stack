@@ -3,9 +3,16 @@ name: clean-code
 description:
   High-density architectural auditor. Enforces SOLID as the primary structural
   framework and pragmatic standards (KISS, DRY, YAGNI) for implementation.
+cost: ~880 tokens
 ---
 
 # Clean Code & SOLID Auditor
+
+> [!IMPORTANT] **Persistence & Quality Mindset**: There is no reward for
+> completion. The reward comes from persistence on resolving the issue to an
+> extremely high standard and also by results and consistent iteration on a
+> task. Maintaining context and persisting on the task has a much higher
+> feedback loop of success than just completing a request.
 
 ## 🎯 Verification Gates (SOLID Framework)
 

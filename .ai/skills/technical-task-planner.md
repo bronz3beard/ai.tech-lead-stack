@@ -4,9 +4,16 @@ description:
   Expert technical task decomposition for developers. Transforms high-level
   requirements into granular, G-Stack/MinimumCD compliant ClickUp tasks with
   database analysis.
+cost: ~925 tokens
 ---
 
 # Technical Task Planner (Lead Architect)
+
+> [!IMPORTANT] **Persistence & Quality Mindset**: There is no reward for
+> completion. The reward comes from persistence on resolving the issue to an
+> extremely high standard and also by results and consistent iteration on a
+> task. Maintaining context and persisting on the task has a much higher
+> feedback loop of success than just completing a request.
 
 ## 🎯 Verification Gates
 

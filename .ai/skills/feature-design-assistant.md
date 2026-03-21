@@ -3,9 +3,16 @@ name: feature-design-assistant
 description:
   High-density discovery and architectural design engine. Use to translate vague
   ideas into G-Stack compliant technical specifications.
+cost: ~700 tokens
 ---
 
 # Feature Design Assistant (The Discovery Engine)
+
+> [!IMPORTANT] **Persistence & Quality Mindset**: There is no reward for
+> completion. The reward comes from persistence on resolving the issue to an
+> extremely high standard and also by results and consistent iteration on a
+> task. Maintaining context and persisting on the task has a much higher
+> feedback loop of success than just completing a request.
 
 ## 🎯 Verification Gates
 

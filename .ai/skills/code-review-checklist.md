@@ -3,9 +3,16 @@ name: code-review-checklist
 description:
   High-density code review auditor. Enforces functionality, security,
   performance, and G-Stack standards via pattern-based verification.
+cost: ~840 tokens
 ---
 
 # Code Review Checklist (The Auditor)
+
+> [!IMPORTANT] **Persistence & Quality Mindset**: There is no reward for
+> completion. The reward comes from persistence on resolving the issue to an
+> extremely high standard and also by results and consistent iteration on a
+> task. Maintaining context and persisting on the task has a much higher
+> feedback loop of success than just completing a request.
 
 ## 🎯 Verification Gates
 

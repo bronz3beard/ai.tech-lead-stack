@@ -4,9 +4,16 @@ description:
   Analyzes local git activity and task progress to generate a comprehensive
   2-day rolling standup report following a strict template.
 capabilities: [filesystem_access, shell_access]
+cost: ~500 tokens
 ---
 
 # Daily Standup Report
+
+> [!IMPORTANT] **Persistence & Quality Mindset**: There is no reward for
+> completion. The reward comes from persistence on resolving the issue to an
+> extremely high standard and also by results and consistent iteration on a
+> task. Maintaining context and persisting on the task has a much higher
+> feedback loop of success than just completing a request.
 
 ## 🎯 Verification Gates
 

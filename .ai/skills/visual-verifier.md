@@ -2,9 +2,16 @@
 name: visual-verifier
 description:
   Performs smoke testing and uploads media evidence to ClickUp/GitHub.
+cost: ~375 tokens
 ---
 
 # Visual Verifier
+
+> [!IMPORTANT] **Persistence & Quality Mindset**: There is no reward for
+> completion. The reward comes from persistence on resolving the issue to an
+> extremely high standard and also by results and consistent iteration on a
+> task. Maintaining context and persisting on the task has a much higher
+> feedback loop of success than just completing a request.
 
 ## 🎯 Verification Gates
 

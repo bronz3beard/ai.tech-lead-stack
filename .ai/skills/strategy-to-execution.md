@@ -3,9 +3,16 @@ name: strategy-to-execution
 description:
   Orchestrator that translates Product Strategy into G-Stack Technical
   Implementation Plans.
+cost: ~420 tokens
 ---
 
 # Strategy-to-Execution (The Bridge)
+
+> [!IMPORTANT] **Persistence & Quality Mindset**: There is no reward for
+> completion. The reward comes from persistence on resolving the issue to an
+> extremely high standard and also by results and consistent iteration on a
+> task. Maintaining context and persisting on the task has a much higher
+> feedback loop of success than just completing a request.
 
 ## Objective
 

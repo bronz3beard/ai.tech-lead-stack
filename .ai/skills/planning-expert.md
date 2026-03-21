@@ -3,9 +3,16 @@ name: planning-expert
 description:
   Converts task descriptions into G-Stack optimized implementation plans, with
   architectural verification.
+cost: ~475 tokens
 ---
 
 # Planning Expert (Technical Architect)
+
+> [!IMPORTANT] **Persistence & Quality Mindset**: There is no reward for
+> completion. The reward comes from persistence on resolving the issue to an
+> extremely high standard and also by results and consistent iteration on a
+> task. Maintaining context and persisting on the task has a much higher
+> feedback loop of success than just completing a request.
 
 ## 🔍 Validation Logic
 

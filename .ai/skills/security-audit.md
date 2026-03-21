@@ -2,10 +2,18 @@
 name: security-audit
 description:
   Cross-platform security scanner for AI Agent configurations to detect malware,
-  prompt injection, and exfiltration.
+  prompt injection, and exfiltration. Running on agent-generated scripts to
+  ensure no backdoors are introduced.
+cost: '~495 tokens'
 ---
 
 # Universal Agent Security Audit
+
+> [!IMPORTANT] **Persistence & Quality Mindset**: There is no reward for
+> completion. The reward comes from persistence on resolving the issue to an
+> extremely high standard and also by results and consistent iteration on a
+> task. Maintaining context and persisting on the task has a much higher
+> feedback loop of success than just completing a request.
 
 ## Purpose
 
