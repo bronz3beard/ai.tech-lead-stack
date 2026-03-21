@@ -95,14 +95,28 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
           : '100.0';
 
       const hasLangfuseCost = stats.tokenCost > 0;
-      const displayCost = hasLangfuseCost
-        ? `$${stats.tokenCost.toFixed(4)}`
-        : `~${FALLBACK_TOKEN_COST[name] || 0}`;
+
+      const perRunCost = hasLangfuseCost
+        ? (stats.tokenCost / stats.executions)
+        : (FALLBACK_TOKEN_COST[name] || 0);
+
+      const totalCost = hasLangfuseCost
+        ? stats.tokenCost
+        : (perRunCost * stats.executions);
+
+      const displayPerRunCost = hasLangfuseCost
+        ? `$${perRunCost.toFixed(4)}`
+        : `~${perRunCost}`;
+
+      const displayTotalCost = hasLangfuseCost
+        ? `$${totalCost.toFixed(4)}`
+        : `~${totalCost}`;
 
       return {
         name,
         executions: stats.executions,
-        tokenCost: displayCost,
+        perRunCost: displayPerRunCost,
+        totalCost: displayTotalCost,
         isFallbackCost: !hasLangfuseCost,
         avgDuration: stats.totalDuration > 0 ? `${avgDuration}ms` : 'N/A',
         accuracy: `${accuracy}%`,
@@ -120,7 +134,8 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
         <TableRow>
           <TableHead>Skill Name</TableHead>
           <TableHead className="text-right">Executions</TableHead>
-          <TableHead className="text-right">Est. Token Cost</TableHead>
+          <TableHead className="text-right">Est. Token Cost (per run)</TableHead>
+          <TableHead className="text-right">Total execution cost</TableHead>
           <TableHead className="text-right">Avg Duration</TableHead>
           <TableHead className="text-right">Accuracy (Success Rate)</TableHead>
         </TableRow>
@@ -134,11 +149,22 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
               {row.isFallbackCost ? (
                 <Tooltip text="Estimated base token cost. Langfuse data unavailable.">
                   <span className="border-b border-dotted border-gray-400 cursor-help">
-                    {row.tokenCost}
+                    {row.perRunCost}
                   </span>
                 </Tooltip>
               ) : (
-                row.tokenCost
+                row.perRunCost
+              )}
+            </TableCell>
+            <TableCell className="text-right">
+              {row.isFallbackCost ? (
+                <Tooltip text="Estimated total cost (Executions * Base Cost).">
+                  <span className="border-b border-dotted border-gray-400 cursor-help">
+                    {row.totalCost}
+                  </span>
+                </Tooltip>
+              ) : (
+                row.totalCost
               )}
             </TableCell>
             <TableCell className="text-right">{row.avgDuration}</TableCell>
