@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { createPortal } from 'react-dom';
-import { cn } from '@/lib/utils';
 
 export function Tooltip({
   children,
@@ -62,7 +61,10 @@ export function Tooltip({
               viewBox="0 0 255 255"
               xmlSpace="preserve"
             >
-              <polygon className="fill-current" points="0,0 127.5,127.5 255,0" />
+              <polygon
+                className="fill-current"
+                points="0,0 127.5,127.5 255,0"
+              />
             </svg>
           </div>,
           document.body
