@@ -65,6 +65,22 @@ export class Telemetry {
     try {
       const result = await executeCallback();
       
+      const outputStr = typeof result === 'string' ? result : JSON.stringify(result);
+
+      // Track a generation to ensure Langfuse can calculate/display token costs
+      // We use a rough estimation for tokens if real usage isn't available
+      // or we can let Langfuse calculate it if we provide the model
+      trace.generation({
+        name: `generation:${skillName}`,
+        model: "gpt-4", // Default fallback model
+        output: outputStr,
+        usage: {
+            // Rough estimation: ~4 chars per token for output
+            completionTokens: Math.ceil(outputStr.length / 4),
+            promptTokens: 500, // Estimated base prompt cost
+        }
+      });
+
       trace.update({
         output: `Skill ${skillName} executed successfully.`
       });

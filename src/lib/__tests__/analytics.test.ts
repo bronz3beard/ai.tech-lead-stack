@@ -4,6 +4,7 @@ import { withAnalytics } from "../analytics";
 jest.mock("langfuse-node", () => {
   const mTrace = {
     update: jest.fn(),
+    generation: jest.fn(),
   };
   return {
     Langfuse: jest.fn().mockImplementation(() => ({

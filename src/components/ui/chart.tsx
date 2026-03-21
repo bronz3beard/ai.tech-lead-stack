@@ -31,38 +31,41 @@ export function BarChart({
   colors?: string[];
 }) {
   return (
-    <ResponsiveContainer width="100%" height={350}>
-      <RechartsBarChart data={data}>
-        <XAxis
-          dataKey="name"
-          stroke="#94a3b8"
-          fontSize={18}
-          tickLine={false}
-          axisLine={false}
-        />
-        <YAxis
-          stroke="#94a3b8"
-          fontSize={14}
-          tickLine={false}
-          axisLine={false}
-          tickFormatter={(value) => `${value}`}
-        />
-        <Tooltip
-          contentStyle={{
-            backgroundColor: '#1e293b',
-            border: 'none',
-            borderRadius: '8px',
-            color: '#f8fafc',
-          }}
-          itemStyle={{ color: '#f8fafc' }}
-        />
-        <Bar dataKey="total" radius={[4, 4, 0, 0]}>
-          {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
-          ))}
-        </Bar>
-      </RechartsBarChart>
-    </ResponsiveContainer>
+    <div className="w-full h-[350px] relative overflow-visible">
+      <ResponsiveContainer width="100%" height="100%">
+        <RechartsBarChart data={data} overflow="visible">
+          <XAxis
+            dataKey="name"
+            stroke="#94a3b8"
+            fontSize={18}
+            tickLine={false}
+            axisLine={false}
+          />
+          <YAxis
+            stroke="#94a3b8"
+            fontSize={14}
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={(value) => `${value}`}
+          />
+          <Tooltip
+            allowEscapeViewBox={{ x: true, y: true }}
+            contentStyle={{
+              backgroundColor: '#1e293b',
+              border: 'none',
+              borderRadius: '8px',
+              color: '#f8fafc',
+            }}
+            itemStyle={{ color: '#f8fafc' }}
+          />
+          <Bar dataKey="total" radius={[4, 4, 0, 0]}>
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+            ))}
+          </Bar>
+        </RechartsBarChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
@@ -72,46 +75,49 @@ export function LineChart({
   data: { name: string; total: number }[];
 }) {
   return (
-    <ResponsiveContainer width="100%" height={350}>
-      <RechartsLineChart data={data}>
-        <CartesianGrid
-          strokeDasharray="3 3"
-          vertical={false}
-          stroke="#334155"
-        />
-        <XAxis
-          dataKey="name"
-          stroke="#94a3b8"
-          fontSize={16}
-          tickLine={false}
-          axisLine={false}
-          padding={{ left: 10, right: 10 }}
-        />
-        <YAxis
-          stroke="#94a3b8"
-          fontSize={14}
-          tickLine={false}
-          axisLine={false}
-          tickFormatter={(value) => `${value}`}
-        />
-        <Tooltip
-          contentStyle={{
-            backgroundColor: '#1e293b',
-            border: 'none',
-            borderRadius: '8px',
-            color: '#f8fafc',
-          }}
-          itemStyle={{ color: '#f8fafc' }}
-        />
-        <Line
-          type="monotone"
-          dataKey="total"
-          stroke="#60a5fa"
-          strokeWidth={2}
-          dot={{ r: 4, fill: '#60a5fa' }}
-          activeDot={{ r: 6 }}
-        />
-      </RechartsLineChart>
-    </ResponsiveContainer>
+    <div className="w-full h-[350px] relative overflow-visible">
+      <ResponsiveContainer width="100%" height="100%">
+        <RechartsLineChart data={data} overflow="visible">
+          <CartesianGrid
+            strokeDasharray="3 3"
+            vertical={false}
+            stroke="#334155"
+          />
+          <XAxis
+            dataKey="name"
+            stroke="#94a3b8"
+            fontSize={16}
+            tickLine={false}
+            axisLine={false}
+            padding={{ left: 10, right: 10 }}
+          />
+          <YAxis
+            stroke="#94a3b8"
+            fontSize={14}
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={(value) => `${value}`}
+          />
+          <Tooltip
+            allowEscapeViewBox={{ x: true, y: true }}
+            contentStyle={{
+              backgroundColor: '#1e293b',
+              border: 'none',
+              borderRadius: '8px',
+              color: '#f8fafc',
+            }}
+            itemStyle={{ color: '#f8fafc' }}
+          />
+          <Line
+            type="monotone"
+            dataKey="total"
+            stroke="#60a5fa"
+            strokeWidth={2}
+            dot={{ r: 4, fill: '#60a5fa' }}
+            activeDot={{ r: 6 }}
+          />
+        </RechartsLineChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
