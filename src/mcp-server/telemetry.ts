@@ -1,4 +1,5 @@
 import { Langfuse } from "langfuse";
+import { execSync } from "child_process";
 
 export class Telemetry {
   private langfuse: Langfuse | null = null;
@@ -30,7 +31,7 @@ export class Telemetry {
    */
   async withAnalytics<T>(
     skillName: string,
-    projectId: string | undefined,
+    projectName: string | undefined,
     executeCallback: () => Promise<T>
   ): Promise<T> {
     if (!this.isConfigured || !this.langfuse) {
@@ -38,15 +39,24 @@ export class Telemetry {
       return executeCallback();
     }
 
-    // Capture user email from the environment
-    const userEmail = process.env.USER_EMAIL || "unknown";
+    // Capture user email from git config or gh cli
+    let userEmail = "unknown";
+    try {
+      userEmail = execSync("git config --global user.email", { stdio: "pipe" }).toString().trim();
+    } catch {
+      try {
+        userEmail = execSync("gh api user -q .email", { stdio: "pipe" }).toString().trim();
+      } catch {
+        // Fallback
+      }
+    }
 
     const trace = this.langfuse.trace({
       name: `skill:${skillName}`,
       userId: userEmail,
       metadata: {
         skillName,
-        projectId: projectId ?? "unknown",
+        projectName: projectName ?? "unknown",
         environment: "local",
         userEmail: userEmail,
       }
