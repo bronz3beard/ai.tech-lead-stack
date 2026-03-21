@@ -38,12 +38,17 @@ export class Telemetry {
       return executeCallback();
     }
 
+    // Capture user email from the environment
+    const userEmail = process.env.USER_EMAIL || "unknown";
+
     const trace = this.langfuse.trace({
       name: `skill:${skillName}`,
+      userId: userEmail,
       metadata: {
         skillName,
         projectId: projectId ?? "unknown",
-        environment: "local"
+        environment: "local",
+        userEmail: userEmail,
       }
     });
 

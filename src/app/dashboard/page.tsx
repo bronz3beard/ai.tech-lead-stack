@@ -111,8 +111,11 @@ export default async function DashboardPage() {
     redirect('/api/auth/signin');
   }
 
-  const userId = (session.user as { id: string }).id;
-  const metrics = await getUserMetrics(userId);
+  const userEmail = session.user.email;
+  if (!userEmail) {
+    redirect('/api/auth/signin');
+  }
+  const metrics = await getUserMetrics(userEmail);
 
   return (
     <div className="flex flex-col min-h-screen bg-background p-8">
