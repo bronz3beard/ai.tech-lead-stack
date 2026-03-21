@@ -15,7 +15,7 @@ export async function withAnalytics<T, U>(
     const trace = langfuse.trace({
       name: skillName,
       userId: context.userId || 'anonymous',
-      metadata: { input, model: context.model },
+      metadata: { input, model: context.model || 'unknown' },
     });
 
     try {

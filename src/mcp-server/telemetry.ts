@@ -75,7 +75,7 @@ export class Telemetry {
       projectName: projectName ?? 'unknown',
       environment: 'local',
       userEmail: userEmail,
-      model: model,
+      model: model || 'unknown',
     };
 
     const trace = this.langfuse.trace({
