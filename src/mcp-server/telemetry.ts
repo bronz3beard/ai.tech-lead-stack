@@ -3,9 +3,9 @@ import { Langfuse } from 'langfuse';
 
 export interface LangfuseMetadata {
   skillName: string;
-  projectId: string;
+  projectId?: string;
   projectName: string;
-  environment: 'dev' | 'prod';
+  environment: 'dev' | 'prod' | 'local';
   error?: string;
   stack?: string;
   duration?: number;
@@ -67,15 +67,17 @@ export class Telemetry {
       }
     }
 
+    const metadata: LangfuseMetadata = {
+      skillName,
+      projectName: projectName ?? 'unknown',
+      environment: 'local',
+      userEmail: userEmail,
+    };
+
     const trace = this.langfuse.trace({
       name: `skill:${skillName}`,
       userId: userEmail,
-      metadata: {
-        skillName,
-        projectName: projectName ?? 'unknown',
-        environment: 'local',
-        userEmail: userEmail,
-      },
+      metadata,
     });
 
     try {
