@@ -1,4 +1,5 @@
 ---
+name: workflow-bridge-strategy-to-technical
 description: Strategy to Execution
 ---
 

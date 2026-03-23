@@ -1,0 +1,44 @@
+# Cursor global skills: skill_directory|path relative to tech-lead-stack repo root
+# Lines starting with # are ignored. skill_directory becomes ~/.cursor/skills/<dir>/SKILL.md -> symlink target.
+
+# Index
+tech-lead-stack-skills|.ai/skills/SKILL.md
+
+# Core skills (.ai/skills)
+changelog-generator|.ai/skills/changelog-generator.md
+clean-code|.ai/skills/clean-code.md
+code-review-checklist|.ai/skills/code-review-checklist.md
+codebase-onboarding-intelligence|.ai/skills/codebase-onboarding-intelligence.md
+daily-standup|.ai/skills/daily-standup.md
+dr-remediation|.ai/skills/dr-remediation.md
+feature-design-assistant|.ai/skills/feature-design-assistant.md
+mission-control|.ai/skills/mission-control.md
+planning-expert|.ai/skills/planning-expert.md
+pr-automator|.ai/skills/pr-automator.md
+product-strategist|.ai/skills/product-strategist.md
+qa-remediation|.ai/skills/qa-remediation.md
+quality-gatekeeper|.ai/skills/quality-gatekeeper.md
+security-audit|.ai/skills/security-audit.md
+strategy-to-execution|.ai/skills/strategy-to-execution.md
+technical-debt-auditor|.ai/skills/technical-debt-auditor.md
+technical-task-planner|.ai/skills/technical-task-planner.md
+visual-verifier|.ai/skills/visual-verifier.md
+
+# Antigravity-style workflows (.agents/workflows) — distinct names to avoid clashing with skills
+workflow-audit-tech-debt|.agents/workflows/audit-tech-debt.md
+workflow-bridge-strategy-to-technical|.agents/workflows/bridge-strategy-to-technical.md
+workflow-changelog|.agents/workflows/changelog.md
+workflow-clean-code-audit|.agents/workflows/clean-code-audit.md
+workflow-code-review|.agents/workflows/code-review.md
+workflow-design-requirements-to-architecture|.agents/workflows/design-requirements-to-architecture.md
+workflow-fix-dr|.agents/workflows/fix-dr.md
+workflow-fix-qa|.agents/workflows/fix-qa.md
+workflow-init|.agents/workflows/init.md
+workflow-onboard-dev|.agents/workflows/onboard-dev.md
+workflow-plan|.agents/workflows/plan.md
+workflow-plan-technical-tasks|.agents/workflows/plan-technical-tasks.md
+workflow-pr-automator|.agents/workflows/pr-automator.md
+workflow-security-audit|.agents/workflows/security-audit.md
+workflow-standup-daily-summary|.agents/workflows/standup-daily-summary.md
+workflow-strategy-target-evalutaion|.agents/workflows/strategy-target-evalutaion.md
+workflow-verify-changes|.agents/workflows/verify-changes.md

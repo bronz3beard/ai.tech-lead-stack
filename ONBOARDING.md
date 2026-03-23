@@ -20,6 +20,16 @@ You'll need access to a reasoning-capable agent or AI IDE. Follow the specific s
 
 The skill files define the automated workflows. For project-specific skills, you should have an `.agents/skills/` directory in your project root. If these aren't present, you'll need to create them. For global availability, place them in `~/.gemini/antigravity/skills/` (for Antigravity).
 
+#### Cursor
+
+If you use **Cursor**, run the stack installer with **`--ide cursor`** so skills are registered **globally** under `~/.cursor/skills/` (each skill is a folder named for the workflow with a `SKILL.md` symlink into this repository). Nothing is added under `.cursor/` in your application project. Example:
+
+```bash
+/path/to/tech-lead-stack/install.sh --link . --ide cursor
+```
+
+With **`--ide auto`** (the default), the same global Cursor install runs only when the integrated terminal exposes Cursor (for example `CURSOR_TRACE_ID` or `CURSOR_AGENT`). Use **`--ide none`** to skip Cursor global setup entirely. If you move the `tech-lead-stack` checkout, re-run the installer so the symlinks stay valid. The installer also merges the **tech-lead-stack** MCP server into **`~/.cursor/mcp.json`** when Cursor skills are installed.
+
 You'll need to populate this directory with the specific skill folders. The current skills are:
 
 - **`planning-expert/`**

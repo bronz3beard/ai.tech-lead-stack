@@ -60,6 +60,9 @@ Clone this repo and link it globally for easy access:
 # Add this to your ~/.zshrc
 alias lead-init='bash /path/to/tech-lead-stack/install.sh --link .'
 
+# Cursor: register skills globally (~/.cursor/skills/) without touching your app repo
+alias lead-init-cursor='bash /path/to/tech-lead-stack/install.sh --link . --ide cursor'
+
 ```
 
 ### 2. Initialize a Project
@@ -101,6 +104,11 @@ prompt the agent in your workspace:
 
 "Read the instructions in .ai/agents.md and follow the planning-expert workflow
 for this ticket."
+
+**Cursor:** use `install.sh --link . --ide cursor` (or `lead-init-cursor` above) so
+the same skills appear under your user **`~/.cursor/skills/`** as symlinks into
+this repo. Your app repository does not get a `.cursor/` folder from this step.
+Invoke skills from Cursor’s skills UI (or the slash menu) like Antigravity workflows.
 
 ---
 

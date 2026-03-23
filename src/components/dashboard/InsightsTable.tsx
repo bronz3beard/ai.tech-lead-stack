@@ -45,6 +45,7 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
         tokenUsage: number;
         hasLangfuse: boolean;
         models: Set<string>;
+        agents: Set<string>;
       }
     > = {};
 
@@ -70,6 +71,7 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
           tokenUsage: 0,
           hasLangfuse: false,
           models: new Set<string>(),
+          agents: new Set<string>(),
         };
       }
 
@@ -99,11 +101,8 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
         skillStats[skillName].hasLangfuse = true;
       }
 
-      if (trace.model) {
-        skillStats[skillName].models.add(trace.model);
-      } else if (trace.metadata?.model) {
-        skillStats[skillName].models.add(trace.metadata.model as string);
-      }
+      skillStats[skillName].models.add(trace.model);
+      skillStats[skillName].agents.add(trace.agent);
     }
 
     return Object.entries(skillStats)
@@ -153,6 +152,7 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
           name,
           executions: stats.executions,
           model: Array.from(stats.models).join(', ') || 'unknown',
+          agent: Array.from(stats.agents).join(', ') || 'unknown',
           perRunCost: displayPerRunCost,
           totalCost: displayTotalCost,
           totalTokens: displayTotalTokens,
@@ -178,6 +178,7 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
         <TableRow>
           <TableHead>Skill Name</TableHead>
           <TableHead>Model</TableHead>
+          <TableHead>Agent</TableHead>
           <TableHead className="text-right">Executions</TableHead>
           <TableHead className="text-right">
             Est. Token Cost (per run)
@@ -193,6 +194,7 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
           <TableRow key={row.name}>
             <TableCell className="font-medium">{row.name}</TableCell>
             <TableCell>{row.model}</TableCell>
+            <TableCell>{row.agent}</TableCell>
             <TableCell className="text-right">{row.executions}</TableCell>
             <TableCell className="text-right">
               {row.isFallbackCost ? (

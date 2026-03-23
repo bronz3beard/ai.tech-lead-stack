@@ -1,4 +1,5 @@
 ---
+name: workflow-onboard-dev
 description: Codebase Onboarding Intelligence
 ---
 

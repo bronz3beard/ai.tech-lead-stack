@@ -1,6 +1,7 @@
 import { ProjectSelect, type Project } from '@/components/ProjectSelect';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, LineChart } from '@/components/ui/chart';
+import { langfuseLabel } from '@/lib/langfuse-labels';
 
 export const revalidate = 60; // cached for 60 seconds
 
@@ -38,6 +39,7 @@ interface LangfuseTrace {
 interface SkillInsight {
   name: string;
   model: string;
+  agent: string;
   executions: number;
   estTokenCost: number;
   totalCost: number;
@@ -85,6 +87,8 @@ async function getGlobalMetrics(projectId?: string) {
       skillInsights: [
         {
           name: 'planning-expert',
+          model: 'unknown',
+          agent: 'unknown',
           executions: 16,
           estTokenCost: 475,
           totalCost: 7600,
@@ -93,6 +97,8 @@ async function getGlobalMetrics(projectId?: string) {
         },
         {
           name: 'pr-automator',
+          model: 'unknown',
+          agent: 'unknown',
           executions: 8,
           estTokenCost: 875,
           totalCost: 7000,
@@ -101,6 +107,8 @@ async function getGlobalMetrics(projectId?: string) {
         },
         {
           name: 'qa-remediation',
+          model: 'unknown',
+          agent: 'unknown',
           executions: 6,
           estTokenCost: 730,
           totalCost: 4380,
@@ -109,6 +117,8 @@ async function getGlobalMetrics(projectId?: string) {
         },
         {
           name: 'visual-verifier',
+          model: 'unknown',
+          agent: 'unknown',
           executions: 3,
           estTokenCost: 375,
           totalCost: 1125,
@@ -117,6 +127,8 @@ async function getGlobalMetrics(projectId?: string) {
         },
         {
           name: 'technical-task-planner',
+          model: 'unknown',
+          agent: 'unknown',
           executions: 3,
           estTokenCost: 0,
           totalCost: 0,
@@ -125,6 +137,8 @@ async function getGlobalMetrics(projectId?: string) {
         },
         {
           name: 'feature-design-assistant',
+          model: 'unknown',
+          agent: 'unknown',
           executions: 1,
           estTokenCost: 700,
           totalCost: 700,
@@ -201,6 +215,7 @@ async function getGlobalMetrics(projectId?: string) {
         totalTokens: number;
         totalCost: number;
         models: Set<string>;
+        agents: Set<string>;
       }
     > = {};
     const timeBuckets: Record<string, number> = {};
@@ -224,6 +239,7 @@ async function getGlobalMetrics(projectId?: string) {
           totalTokens: 0,
           totalCost: 0,
           models: new Set<string>(),
+          agents: new Set<string>(),
         };
       }
 
@@ -253,9 +269,8 @@ async function getGlobalMetrics(projectId?: string) {
         trace.totalCost || (trace.metadata?.cost as number | undefined) || 0;
       stats.totalCost += cost;
 
-      if (trace.metadata?.model) {
-        stats.models.add(trace.metadata.model as string);
-      }
+      stats.models.add(langfuseLabel(trace.metadata?.model));
+      stats.agents.add(langfuseLabel(trace.metadata?.agent));
 
       // Aggregate by time
       const dateKey = new Date(trace.timestamp).toLocaleDateString(undefined, {
@@ -279,6 +294,7 @@ async function getGlobalMetrics(projectId?: string) {
       ([name, stats]) => ({
         name,
         model: Array.from(stats.models).join(', ') || 'unknown',
+        agent: Array.from(stats.agents).join(', ') || 'unknown',
         executions: stats.executions,
         estTokenCost:
           stats.executions > 0
@@ -429,6 +445,9 @@ export default async function PublicDashboard({ searchParams }: PageProps) {
                       LLM Model
                     </th>
                     <th className="px-6 py-4 border-b border-slate-800">
+                      Agent
+                    </th>
+                    <th className="px-6 py-4 border-b border-slate-800">
                       Executions
                     </th>
                     <th className="px-6 py-4 border-b border-slate-800">
@@ -459,6 +478,11 @@ export default async function PublicDashboard({ searchParams }: PageProps) {
                       <td className="px-6 py-5">
                         <span className="text-slate-400 text-sm">
                           {skill.model}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5">
+                        <span className="text-slate-400 text-sm">
+                          {skill.agent}
                         </span>
                       </td>
                       <td className="px-6 py-5 text-slate-300 font-medium">
@@ -492,7 +516,7 @@ export default async function PublicDashboard({ searchParams }: PageProps) {
                   {metrics.skillInsights.length === 0 && (
                     <tr>
                       <td
-                        colSpan={6}
+                        colSpan={8}
                         className="px-6 py-12 text-center text-slate-500 italic"
                       >
                         No analytics data available for the selected project.

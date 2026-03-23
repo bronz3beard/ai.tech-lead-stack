@@ -1,4 +1,5 @@
 ---
+name: workflow-plan-technical-tasks
 description: Technical Task Breakdown & ClickUp Planning
 ---
 

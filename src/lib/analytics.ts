@@ -1,4 +1,5 @@
 import { Langfuse } from 'langfuse-node';
+import { langfuseLabel } from '@/lib/langfuse-labels';
 
 const langfuse = new Langfuse({
   publicKey: process.env.LANGFUSE_PUBLIC_KEY || 'pk-lf-test',
@@ -8,14 +9,17 @@ const langfuse = new Langfuse({
 
 export async function withAnalytics<T, U>(
   skillName: string,
-  context: { userId?: string; model?: string },
+  context: { userId?: string; model?: string; agent?: string },
   skill: (input: T) => Promise<U>
 ) {
   return async (input: T): Promise<U> => {
+    const resolvedModel = langfuseLabel(context.model);
+    const resolvedAgent = langfuseLabel(context.agent);
+
     const trace = langfuse.trace({
       name: skillName,
       userId: context.userId || 'anonymous',
-      metadata: { input, model: context.model || 'unknown' },
+      metadata: { input, model: resolvedModel, agent: resolvedAgent },
     });
 
     try {
@@ -26,7 +30,7 @@ export async function withAnalytics<T, U>(
       // Track a generation to ensure Langfuse can calculate/display token costs
       trace.generation({
         name: `generation:${skillName}`,
-        model: context.model || 'unknown',
+        model: resolvedModel,
         output: outputStr,
         usage: {
           completionTokens: Math.ceil(outputStr.length / 4),

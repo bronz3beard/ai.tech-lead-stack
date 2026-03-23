@@ -1,4 +1,5 @@
 ---
+name: workflow-pr-automator
 description: PR Automator
 ---
 

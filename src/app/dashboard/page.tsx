@@ -3,6 +3,7 @@ import {
   TraceData,
 } from '@/components/dashboard/DashboardContent';
 import { authOptions } from '@/lib/auth';
+import { langfuseLabel } from '@/lib/langfuse-labels';
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
 
@@ -12,7 +13,6 @@ interface LangfuseTrace {
   timestamp: string;
   sessionId?: string;
   metadata?: Record<string, unknown>;
-  model?: string;
   duration?: number;
   status?: string;
   totalCost?: number;
@@ -72,7 +72,8 @@ async function getUserMetrics(userId: string): Promise<TraceData[]> {
         sessionId: t.sessionId,
         // Ensure projectName is extracted correctly from metadata
         projectName: (metadata.projectName as string) || 'unknown',
-        model: t.model || (metadata.model as string),
+        model: langfuseLabel(metadata.model),
+        agent: langfuseLabel(metadata.agent),
         duration: t.duration,
         status: t.status,
         metadata: metadata,

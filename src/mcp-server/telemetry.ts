@@ -1,5 +1,6 @@
 import { execSync } from 'child_process';
 import { Langfuse } from 'langfuse';
+import { langfuseLabel } from '../lib/langfuse-labels';
 
 export interface LangfuseMetadata {
   skillName: string;
@@ -8,6 +9,7 @@ export interface LangfuseMetadata {
   environment: 'dev' | 'prod' | 'local';
   userEmail?: string;
   model?: string;
+  agent?: string;
   error?: string;
   stack?: string;
   duration?: number;
@@ -47,6 +49,7 @@ export class Telemetry {
     skillName: string,
     projectName: string | undefined,
     model: string | undefined,
+    agent: string | undefined,
     executeCallback: () => Promise<T>
   ): Promise<T> {
     if (!this.isConfigured || !this.langfuse) {
@@ -80,12 +83,16 @@ export class Telemetry {
       }
     }
 
+    const resolvedModel = langfuseLabel(model);
+    const resolvedAgent = langfuseLabel(agent);
+
     const metadata: LangfuseMetadata = {
       skillName,
       projectName: projectName ?? 'unknown',
       environment: 'local',
       userEmail: userEmail,
-      model: model || 'unknown',
+      model: resolvedModel,
+      agent: resolvedAgent,
     };
 
     const trace = this.langfuse.trace({
@@ -103,7 +110,7 @@ export class Telemetry {
       // Track a generation to ensure Langfuse can calculate/display token costs
       trace.generation({
         name: `generation:${skillName}`,
-        model: model || 'unknown',
+        model: resolvedModel,
         output: outputStr,
         usage: {
           completionTokens: Math.ceil(outputStr.length / 4),
