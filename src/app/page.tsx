@@ -6,6 +6,7 @@ import { InsightsTable } from '@/components/dashboard/InsightsTable';
 import { TraceData } from '@/components/dashboard/DashboardContent';
 import { DashboardDisclaimer } from '@/components/dashboard/DashboardDisclaimer';
 import { isSkillTrace } from '@/lib/trace-utils';
+import { fetchAllPages } from '@/lib/langfuse-api';
 
 export const revalidate = 60; // cached for 60 seconds
 
@@ -68,25 +69,14 @@ async function getGlobalMetrics(projectId?: string) {
   const authHeader = `Basic ${Buffer.from(`${publicKey}:${secretKey}`).toString('base64')}`;
 
   try {
-    // 1. Fetch ALL traces (up to 100) to find all available project names and global metrics
-    const tracesResponse = await fetch(
-      `${baseUrl}/api/public/traces?limit=100`,
-      {
-        headers: {
-          Authorization: authHeader,
-        },
-        next: { revalidate: 60 },
-      }
+    // 1. Fetch ALL traces to find all available project names and global metrics
+    const queryParams = new URLSearchParams();
+    const allTraces = await fetchAllPages<LangfuseTrace>(
+      baseUrl,
+      '/api/public/traces',
+      queryParams,
+      authHeader
     );
-
-    if (!tracesResponse.ok) {
-      throw new Error(`Langfuse API error: ${tracesResponse.statusText}`);
-    }
-
-    const tracesData = (await tracesResponse.json()) as {
-      data: LangfuseTrace[];
-    };
-    const allTraces = tracesData.data || [];
 
     // 2. Aggregate available projects dynamically from traces metadata
     const projectSet = new Set<string>();
