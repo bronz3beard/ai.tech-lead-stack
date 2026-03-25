@@ -5,6 +5,7 @@ import { langfuseLabel } from '@/lib/langfuse-labels';
 import { InsightsTable } from '@/components/dashboard/InsightsTable';
 import { TraceData } from '@/components/dashboard/DashboardContent';
 import { DashboardDisclaimer } from '@/components/dashboard/DashboardDisclaimer';
+import { isSkillTrace } from '@/lib/trace-utils';
 
 export const revalidate = 60; // cached for 60 seconds
 
@@ -103,16 +104,19 @@ async function getGlobalMetrics(projectId?: string) {
       })),
     ];
 
-    // 3. Filter traces if a specific project is selected
-    const filteredTraces =
-      projectId && projectId !== 'all'
-        ? allTraces.filter(
-            (t: LangfuseTrace) =>
-              t.metadata?.projectId === projectId ||
-              t.metadata?.projectName === projectId ||
-              t.tags?.includes(projectId)
-          )
-        : allTraces;
+    // 3. Filter traces if a specific project is selected, and ALWAYS filter out skeletal SKILL traces
+    const filteredTraces = allTraces.filter((t: LangfuseTrace) => {
+      // Basic filtering for SKILL.md related traces
+      if (isSkillTrace(t.name, t.metadata?.skillName)) return false;
+
+      // Project-specific filtering
+      if (!projectId || projectId === 'all') return true;
+      return (
+        t.metadata?.projectId === projectId ||
+        t.metadata?.projectName === projectId ||
+        t.tags?.includes(projectId)
+      );
+    });
 
     const mappedTraces: TraceData[] = filteredTraces.map((t) => {
       const metadata = t.metadata || {};

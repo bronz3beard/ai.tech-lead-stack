@@ -11,6 +11,7 @@ import {
 import { Tooltip } from '@/components/ui/tooltip';
 import { useMemo } from 'react';
 import { TraceData } from './DashboardContent';
+import { isSkillTrace } from '@/lib/trace-utils';
 
 const FALLBACK_TOKEN_COST: Record<string, number> = {
   'changelog-generator': 670,
@@ -62,6 +63,9 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
       } else if (trace.name) {
         skillName = trace.name;
       }
+
+      // Secondary filter to ignore skeletal skill traces
+      if (isSkillTrace(trace.name, skillName)) continue;
 
       if (!skillStats[skillName]) {
         skillStats[skillName] = {

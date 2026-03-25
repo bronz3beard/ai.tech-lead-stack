@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { langfuseLabel } from '@/lib/langfuse-labels';
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
+import { isSkillTrace } from '@/lib/trace-utils';
 
 interface LangfuseTrace {
   id: string;
@@ -58,10 +59,13 @@ async function getUserMetrics(userId: string): Promise<TraceData[]> {
       );
     }
 
-    const tracesData = await tracesResponse.json();
-    const traces: LangfuseTrace[] = tracesData.data || [];
+    const tracesResponseData = await tracesResponse.json();
+    const allTraces: LangfuseTrace[] = tracesResponseData.data || [];
 
-    console.log(`Successfully fetched ${traces.length} traces for ${userId}`);
+    // Filter out skeletal SKILL traces before processing
+    const traces = allTraces.filter(t => !isSkillTrace(t.name, t.metadata?.skillName as string | undefined));
+
+    console.log(`Successfully fetched ${traces.length} filtered traces for ${userId} (skipped ${allTraces.length - traces.length} SKILL traces)`);
 
     return traces.map((t) => {
       // Safely extract metadata

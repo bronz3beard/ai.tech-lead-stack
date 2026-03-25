@@ -1,6 +1,7 @@
 import { execSync } from 'child_process';
 import { Langfuse } from 'langfuse';
 import { langfuseLabel } from '../lib/langfuse-labels';
+import { isSkillTrace } from '../lib/trace-utils';
 
 export interface LangfuseMetadata {
   skillName: string;
@@ -52,8 +53,8 @@ export class Telemetry {
     agent: string | undefined,
     executeCallback: () => Promise<T>
   ): Promise<T> {
-    if (!this.isConfigured || !this.langfuse) {
-      // If Langfuse isn't configured, just run the callback directly
+    if (!this.isConfigured || !this.langfuse || isSkillTrace(undefined, skillName)) {
+      // If Langfuse isn't configured or it's a skeletal skill trace, just run the callback directly
       return executeCallback();
     }
 

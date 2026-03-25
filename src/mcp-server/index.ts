@@ -10,6 +10,7 @@ import {
 import * as fs from "fs/promises";
 import * as path from "path";
 import { Telemetry } from "./telemetry.js";
+import { isSkillTrace } from "../lib/trace-utils.js";
 import "dotenv/config";
 
 const telemetry = new Telemetry();
@@ -96,7 +97,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request: { params: { name
         }
       }
       
-      const skillFiles = Array.from(allSkills).sort();
+      const skillFiles = Array.from(allSkills)
+        .filter(skill => !isSkillTrace(undefined, skill))
+        .sort();
       
       return {
         content: [
@@ -156,13 +159,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request: { params: { name
            }
         }
 
-        const fileContent = await telemetry.withAnalytics(
-          safeSkillName,
-          actualProjectName,
-          model,
-          agent,
-          async () => content!
-        );
+        const shouldSkipAnalytics = isSkillTrace(undefined, safeSkillName);
+        
+        const fileContent = shouldSkipAnalytics 
+          ? await content!
+          : await telemetry.withAnalytics(
+              safeSkillName,
+              actualProjectName,
+              model,
+              agent,
+              async () => content!
+            );
 
         return {
           content: [

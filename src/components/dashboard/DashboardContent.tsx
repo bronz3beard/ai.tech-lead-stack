@@ -6,6 +6,7 @@ import { BarChart, LineChart } from '@/components/ui/chart';
 import { ProjectSelector } from '@/components/dashboard/ProjectSelector';
 import { InsightsTable } from '@/components/dashboard/InsightsTable';
 import { DashboardDisclaimer } from '@/components/dashboard/DashboardDisclaimer';
+import { isSkillTrace } from '@/lib/trace-utils';
 
 export type TraceData = {
   id: string;
@@ -74,6 +75,9 @@ export function DashboardContent({
       } else if (trace.name) {
         skillName = trace.name;
       }
+      
+      // Secondary filter to ignore skeletal skill traces
+      if (isSkillTrace(trace.name, skillName)) continue;
 
       skillCounts[skillName] = (skillCounts[skillName] || 0) + 1;
 
