@@ -9,6 +9,8 @@ automated testing.
 
 - [🚀 Quick Start](#-quick-start)
 - [How to use in any project](#how-to-use-in-any-project)
+- [Antigravity Setup](#antigravity-setup)
+- [Cursor Setup](#cursor-setup)
 - [🧹 Resetting a Project](#-resetting-a-project)
 - [🧪 CI/CD](#-cicd)
 - [Resources 📚](#resources-)
@@ -105,10 +107,159 @@ prompt the agent in your workspace:
 "Read the instructions in .ai/agents.md and follow the planning-expert workflow
 for this ticket."
 
-**Cursor:** use `install.sh --link . --ide cursor` (or `lead-init-cursor` above) so
-the same skills appear under your user **`~/.cursor/skills/`** as symlinks into
-this repo. Your app repository does not get a `.cursor/` folder from this step.
-Invoke skills from Cursor’s skills UI (or the slash menu) like Antigravity workflows.
+**Cursor:** use `install.sh --link . --ide cursor` (or `lead-init-cursor` above)
+so the same skills appear under your user **`~/.cursor/skills/`** as symlinks
+into this repo. Your app repository does not get a `.cursor/` folder from this
+step. Invoke skills from Cursor’s skills UI (or the slash menu) like Antigravity
+workflows.
+
+---
+
+## Antigravity Setup
+
+### Step 1: Clone the Repository
+
+Open your terminal and clone the `tech-lead-stack` repository to a permanent
+location on your machine.
+
+```bash
+git clone https://github.com/your-username/tech-lead-stack.git ~/tech-lead-stack
+cd ~/tech-lead-stack
+```
+
+### Step 2: Run the Installer
+
+Run the `install.sh` script to set up dependencies and link the stack to your
+current working directory.
+
+```bash
+./install.sh --link .
+```
+
+_Note: This will also output a JSON snippet for MCP configuration. Keep this
+handy for Step 6._
+
+### Step 3: Access Antigravity Customizations
+
+Open the **Agent** panel in Antigravity. Click the **"Open Agent Manager"**
+button at the top to find the **Customizations** menu.
+
+### Step 4: Navigate to Workflows
+
+In the Customizations panel, select the **Workflows** tab.
+
+### Step 5: Register Global Workflows
+
+To make workflows available across all projects:
+
+1. Click the **+ Global** button.
+2. Open any workflow file from `.agents/workflows/` in your IDE (e.g.,
+   `audit-tech-debt.md`).
+3. Copy the entire content of the markdown file.
+4. Paste it into the Antigravity workflow editor.
+5. Give it a name (e.g., `audit-tech-debt`). You can optionally add a suffix
+   like `-tls` if you want to distinguish them.
+6. Repeat for other workflows you wish to use globally.
+
+### Step 6: Configure the MCP Server
+
+Antigravity requires the MCP server to execute tools (like `rtk`).
+
+1. Go to **Settings** (Gear icon) -> **MCP**.
+2. Add a new MCP server named `tech-lead-stack`.
+3. Use the following configuration (replacing `/path/to/tech-lead-stack` with
+   your actual absolute path):
+
+```json
+{
+  "mcpServers": {
+    "tech-lead-stack": {
+      "command": "npm",
+      "args": [
+        "--prefix",
+        "/path/to/tech-lead-stack",
+        "--silent",
+        "run",
+        "mcp:start"
+      ]
+    }
+  }
+}
+```
+
+### Step 7: Usage
+
+You can now invoke these workflows in the Agent chat by typing `/` followed by
+the workflow name.
+
+---
+
+## Cursor Setup
+
+### Step 1: Clone the Repository
+
+Open your terminal and clone the `tech-lead-stack` repository to a permanent
+location on your machine.
+
+```bash
+git clone https://github.com/your-username/tech-lead-stack.git ~/tech-lead-stack
+cd ~/tech-lead-stack
+```
+
+### Step 2: Run the Installer with Cursor Flag
+
+Run the `install.sh` script to set up dependencies and link the stack to your
+current working directory.
+
+```bash
+./install.sh --link . --ide cursor
+```
+
+_Note: This will also output a JSON snippet for MCP configuration. Keep this
+handy for Step 4._
+
+### Step 3: Verify Symlinked Skills
+
+The `install.sh` script will automatically symlink the skills into your global
+`~/.cursor/skills/` directory. You can verify this by running:
+
+```bash
+ls -la ~/.cursor/skills/
+```
+
+You should see symlinks to the `.ai/skills/` directory of the `tech-lead-stack`
+repo.
+
+### Step 4: Configure the MCP Server in Cursor
+
+Cursor requires the MCP server to execute tools (like `rtk`).
+
+1. Open **Cursor Settings** (Gear icon) -> **Cursor Settings**.
+2. Select **MCP** from the sidebar.
+3. Click **+ Add New MCP Server**.
+4. Name the server `tech-lead-stack`.
+5. Set the **Type** to `command`.
+6. Use the following configuration (replacing `/path/to/tech-lead-stack` with
+   your actual absolute path):
+
+```json
+{
+  "command": "npm",
+  "args": [
+    "--prefix",
+    "/path/to/tech-lead-stack",
+    "--silent",
+    "run",
+    "mcp:start"
+  ]
+}
+```
+
+### Step 5: Usage
+
+You can now invoke these skills in the Cursor chat by typing `@` followed by the
+skill name (e.g., `@planning-expert`). Cursor will suggest the skill from the
+list of available global skills.
 
 ---
 
