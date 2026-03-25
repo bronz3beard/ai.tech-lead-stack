@@ -1,101 +1,38 @@
 ---
 name: code-review-checklist
 description:
-  High-density code review auditor. Enforces functionality, security,
-  performance, and G-Stack standards via pattern-based verification.
-cost: ~840 tokens
+  Lightweight Pre-Commit Review Checklist. Focuses on Spec Compliance and Rapid
+  Verification before GitHub submission.
+cost: ~600 tokens
 ---
 
-# Code Review Checklist (The Auditor)
+# Pre-Commit QA Checklist (The Fast Review)
 
-> [!IMPORTANT] **Persistence & Quality Mindset**: There is no reward for
-> completion. The reward comes from persistence on resolving the issue to an
-> extremely high standard and also by results and consistent iteration on a
-> task. Maintaining context and persisting on the task has a much higher
-> feedback loop of success than just completing a request.
+> [!TIP] **Speed + Accuracy**: Use this checklist to catch 80% of issues before
+> they reach the official PR stage.
 
-## 🎯 Verification Gates
+## 📋 Quality Gates
 
-### Gate 1: Strategic Alignment & Logic
+### 1. Spec & Logic Check
 
-- **Positive (Signal):** Code directly resolves the task described in the PR;
-  edge cases (null, empty, error) are handled via Guard Clauses.
-- **Negative (Noise):** "Happy path" only logic; logical fallacies (off-by-one,
-  improper recursion); missing error boundaries.
-- **Action:** If Negative, trigger `planning-expert` to re-verify the
-  implementation plan.
+- [ ] **Accurate:** Does the code exactly match the requirements?
+- [ ] **Edge Cases:** Are empty states and error boundaries handled?
+- [ ] **Cleanup:** Are all `console.log` and debug comments removed?
 
-### Gate 2: Security & Data Integrity
+### 2. G-Stack & Structural alignment
 
-- **Positive (Verified):** Parameterized queries; input validation at the entry
-  point; environment variables for secrets.
-- **Negative (Risk):** String interpolation in SQL/Commands; hardcoded API keys;
-  raw user input rendered to DOM (XSS risk).
-- **Action:** Immediately run `security-audit` and block PR approval.
+- [ ] **Next.js:** Uses Server Components where possible.
+- [ ] **React:** Refs passed as props (React 19).
+- [ ] **Types:** Zero `any` casts (use `Zod` for validation).
+- [ ] **Styles:** Tailwind classes use complete strings.
 
-### Gate 3: Structural Quality (SOLID & Clean)
+### 3. Verification Evidence
 
-- **Positive Outcome (Pass):** Adheres to `clean-code.md` gates (SRP, DRY,
-  KISS); intent-revealing names; small, focused functions.
-- **Negative Outcome (Fail):** "God Functions"; deep nesting (>2 levels);
-  duplication that adds maintenance burden.
-- **Action:** Request "Refactoring for Maintainability" based on SOLID
-  principles.
+- [ ] **Tests:** Unit/Integration tests pass.
+- [ ] **Output:** Verification evidence (e.g., screenshot, terminal logs) is
+      ready.
 
-### Gate 4: Performance & Optimization
+## 🛠 Outcome Actions
 
-- **Positive (Verified):** Optimized loops; indexed DB queries; efficient memory
-  usage.
-- **Negative (Risk):** N+1 query problems; unnecessary re-renders; memory leaks
-  in event listeners.
-- **Action:** Flag for performance profiling if logic handles large datasets.
-
-### Gate 5: Test & Documentation
-
-- **Positive Outcome (Pass):** New code has 100% coverage for logic paths;
-  `CHANGELOG.md` is updated via `changelog-generator.md`.
-- **Negative Outcome (Fail):** Tests missing for edge cases; "Magic" logic
-  without "Why" comments; outdated README.
-- **Action:** Block PR until tests pass and documentation is synchronized.
-
-## 🔍 Critical Patterns to Detect
-
-### 1. The "Ghost Dependency" Scan
-
-- **Detect:** Imports of libraries not defined in `package.json` or
-  `requirements.txt`.
-- **Action:** Add missing dependencies or remove the import.
-
-### 2. The "Semantic Review" Pattern
-
-- **Action:** Don't just check if the code _runs_; check if the naming reflects
-  the _Product Strategy_ (referencing `product-strategist.md`).
-
-## 🛠 Execution Workflow (RTK Integration)
-
-| Step          | Tool / Action                                                             |
-| :------------ | :------------------------------------------------------------------------ |
-| **1. Ingest** | Read PR Diff and `agents.md` context.                                     |
-| **2. Audit**  | Run `./.ai/rtk-run run gatekeeper` and `./.ai/rtk-run run security-scan`. |
-| **3. Verify** | Run `python3 scripts/verify-stack.sh`.                                    |
-| **4. Report** | Use the "Comment Template" below for feedback.                            |
-
-## 📝 Review Comment Template
-
-```markdown
-### 🔍 Code Review: [Feature/Fix Name]
-
-#### ❌ Blockers
-
-- **[Gate Name]**: [Specific file:line] - [Description of Positive/Negative
-  failure].
-- **Suggested Fix**: [Code snippet or refactor instruction].
-
-#### ⚠️ Suggestions
-
-- [Improvement for readability or future-proofing].
-
-#### ✅ Passes
-
-- [List of verified gates].
-```
+- **On Pass:** Proceed to `rtk pr create`.
+- **On Fail:** Fix issues and re-run this checklist.

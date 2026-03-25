@@ -6,6 +6,7 @@ import { BarChart, LineChart } from '@/components/ui/chart';
 import { ProjectSelector } from '@/components/dashboard/ProjectSelector';
 import { InsightsTable } from '@/components/dashboard/InsightsTable';
 import { DashboardDisclaimer } from '@/components/dashboard/DashboardDisclaimer';
+import { WorkflowPhaseTracker } from '@/components/dashboard/WorkflowPhaseTracker';
 import { isSkillTrace } from '@/lib/trace-utils';
 
 export type TraceData = {
@@ -155,6 +156,17 @@ export function DashboardContent({
             onSelectProject={setSelectedProject}
           />
         </div>
+
+        <Card className="border-none bg-emerald-500/5">
+          <CardHeader className="pb-2 text-center">
+            <CardTitle className="text-sm font-medium text-emerald-500 uppercase tracking-wider">
+              Active Workflow Progress
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <WorkflowPhaseTracker traces={filteredTraces} />
+          </CardContent>
+        </Card>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>

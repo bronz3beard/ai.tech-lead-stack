@@ -14,23 +14,22 @@ import { TraceData } from './DashboardContent';
 import { isSkillTrace } from '@/lib/trace-utils';
 
 const FALLBACK_TOKEN_COST: Record<string, number> = {
+  'agent-optimizer': 500,
   'changelog-generator': 670,
   'clean-code': 880,
-  'code-review-checklist': 840,
+  'code-review-checklist': 600,
   'codebase-onboarding-intelligence': 960,
   'daily-standup': 500,
-  'dr-remediation': 780,
   'feature-design-assistant': 700,
+  'mission-architect': 1200,
   'mission-control': 615,
   'planning-expert': 475,
   'pr-automator': 875,
   'product-strategist': 750,
-  'qa-remediation': 730,
-  'quality-gatekeeper': 650,
+  'regression-bug-fix': 1300,
   'security-audit': 495,
-  'strategy-to-execution': 420,
   'technical-debt-auditor': 760,
-  'technical-task-planner': 925,
+  'verification-auditor': 1400,
   'visual-verifier': 375,
 };
 
