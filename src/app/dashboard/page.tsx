@@ -27,6 +27,16 @@ interface LangfuseTrace {
   totalTokens?: number;
   inputTokens?: number;
   outputTokens?: number;
+  observations?: LangfuseObservation[];
+}
+
+interface LangfuseObservation {
+  id: string;
+  traceId: string;
+  type: string;
+  name?: string;
+  model?: string;
+  metadata?: Record<string, unknown>;
 }
 
 async function getUserMetrics(userId: string): Promise<TraceData[]> {
@@ -67,9 +77,52 @@ async function getUserMetrics(userId: string): Promise<TraceData[]> {
 
     console.log(`Successfully fetched ${traces.length} filtered traces for ${userId} (skipped ${allTraces.length - traces.length} SKILL traces)`);
 
-    return traces.map((t) => {
+    // Fetch observations for each trace to get the model and agent
+    const tracesWithObservations = await Promise.all(
+      traces.map(async (t) => {
+        try {
+          const obsUrl = `${baseUrl}/api/public/observations?traceId=${t.id}`;
+          const obsResponse = await fetch(obsUrl, {
+            headers: { Authorization: authHeader },
+            next: { revalidate: 60 },
+          });
+          if (obsResponse.ok) {
+            const obsData = await obsResponse.json();
+            return { ...t, observations: (obsData.data as LangfuseObservation[]) || [] };
+          }
+        } catch (e) {
+          console.error(`Error fetching observations for trace ${t.id}:`, e);
+        }
+        return { ...t, observations: [] };
+      })
+    );
+
+    return tracesWithObservations.map((t) => {
       // Safely extract metadata
       const metadata = t.metadata || {};
+
+      // Try to find model and agent in observations if not in metadata
+      let model = metadata.model as string | undefined;
+      let agent = metadata.agent as string | undefined;
+
+      if (t.observations && t.observations.length > 0) {
+        // Find the first observation that has a model (Langfuse observation types can be 'generation' or 'GENERATION')
+        const generation = t.observations.find((o: LangfuseObservation) =>
+          (o.type?.toLowerCase() === 'generation' || o.type === 'generation') && o.model
+        );
+        if (generation && !model) {
+          model = generation.model;
+        }
+        // Check for agent in observation metadata if still not found
+        if (!agent) {
+          for (const obs of (t.observations as LangfuseObservation[])) {
+             if (obs.metadata?.agent) {
+               agent = obs.metadata.agent as string;
+               break;
+             }
+          }
+        }
+      }
 
       return {
         id: t.id,
@@ -78,8 +131,8 @@ async function getUserMetrics(userId: string): Promise<TraceData[]> {
         sessionId: t.sessionId,
         // Ensure projectName is extracted correctly from metadata
         projectName: (metadata.projectName as string) || 'unknown',
-        model: langfuseLabel(metadata.model),
-        agent: langfuseLabel(metadata.agent),
+        model: langfuseLabel(model),
+        agent: langfuseLabel(agent),
         duration: t.duration,
         status: t.status,
         metadata: metadata,
