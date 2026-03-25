@@ -88,7 +88,7 @@ async function getUserMetrics(userId: string): Promise<TraceData[]> {
           });
           if (obsResponse.ok) {
             const obsData = await obsResponse.json();
-            return { ...t, observations: obsData.data || [] };
+            return { ...t, observations: (obsData.data as LangfuseObservation[]) || [] };
           }
         } catch (e) {
           console.error(`Error fetching observations for trace ${t.id}:`, e);
@@ -107,7 +107,7 @@ async function getUserMetrics(userId: string): Promise<TraceData[]> {
 
       if (t.observations && t.observations.length > 0) {
         // Find the first observation that has a model (Langfuse observation types can be 'generation' or 'GENERATION')
-        const generation = t.observations.find(o =>
+        const generation = t.observations.find((o: LangfuseObservation) =>
           (o.type?.toLowerCase() === 'generation' || o.type === 'generation') && o.model
         );
         if (generation && !model) {
@@ -115,7 +115,7 @@ async function getUserMetrics(userId: string): Promise<TraceData[]> {
         }
         // Check for agent in observation metadata if still not found
         if (!agent) {
-          for (const obs of t.observations) {
+          for (const obs of (t.observations as LangfuseObservation[])) {
              if (obs.metadata?.agent) {
                agent = obs.metadata.agent as string;
                break;
