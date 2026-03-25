@@ -109,11 +109,24 @@ export function DashboardContent({
       total,
     }));
 
+    const totalCost = filteredTraces.reduce(
+      (sum, t) => sum + (t.totalCost || 0),
+      0
+    );
+
+    const successfulTraces = filteredTraces.filter(
+      (t) => !t.metadata?.error && t.status !== 'ERROR'
+    ).length;
+    const averageAccuracy =
+      totalExecutions > 0 ? (successfulTraces / totalExecutions) * 100 : 100;
+
     return {
       totalExecutions,
       activeWorkflows,
       topSkills,
       tracesByTime,
+      totalCost,
+      averageAccuracy,
     };
   }, [filteredTraces]);
 
@@ -160,6 +173,30 @@ export function DashboardContent({
             <CardContent>
               <div className="text-2xl font-bold text-foreground">
                 {metrics.activeWorkflows.toLocaleString()}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-lg font-semibold text-foreground">
+                Total Est. Cost
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-emerald-500">
+                ${metrics.totalCost.toFixed(2)}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-lg font-semibold text-foreground">
+                Project Health
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-foreground">
+                {Math.round(metrics.averageAccuracy)}%
               </div>
             </CardContent>
           </Card>

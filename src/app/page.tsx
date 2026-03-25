@@ -2,6 +2,8 @@ import { ProjectSelect, type Project } from '@/components/ProjectSelect';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, LineChart } from '@/components/ui/chart';
 import { langfuseLabel } from '@/lib/langfuse-labels';
+import { InsightsTable } from '@/components/dashboard/InsightsTable';
+import { TraceData } from '@/components/dashboard/DashboardContent';
 
 export const revalidate = 60; // cached for 60 seconds
 
@@ -16,11 +18,15 @@ interface LangfuseMetadata {
   error?: string;
   stack?: string;
   duration?: number;
+  model?: string;
+  agent?: string;
   [key: string]: string | number | boolean | undefined;
 }
 
 interface LangfuseUsage {
   totalTokens?: number;
+  inputTokens?: number;
+  outputTokens?: number;
   promptTokens?: number;
   completionTokens?: number;
 }
@@ -34,118 +40,26 @@ interface LangfuseTrace {
   sessionId?: string;
   totalCost?: number;
   tags?: string[];
-}
-
-interface SkillInsight {
-  name: string;
-  model: string;
-  agent: string;
-  executions: number;
-  estTokenCost: number;
-  totalCost: number;
-  avgDuration: number;
-  accuracy: number;
+  duration?: number;
+  status?: string;
+  totalTokens?: number;
+  inputTokens?: number;
+  outputTokens?: number;
 }
 
 async function getGlobalMetrics(projectId?: string) {
-  'use cache';
-
   const publicKey = process.env.LANGFUSE_PUBLIC_KEY;
   const secretKey = process.env.LANGFUSE_SECRET_KEY;
   const baseUrl = process.env.LANGFUSE_BASE_URL || 'https://cloud.langfuse.com';
 
-  if (!publicKey || !secretKey) {
-    console.warn(
-      'Missing Langfuse API keys in environment variables, using fallback metrics'
-    );
-    // FALLBACK DATA for demo purposes if no API keys are provided
+  if (!publicKey || !secretKey || publicKey === 'placeholder') {
     return {
-      totalExecutions: 32,
-      activeWorkflows: 6,
-      projects: [
-        { id: 'all', name: 'All Projects' },
-        { id: 'tech-lead-stack', name: 'Tech Lead Stack' },
-        { id: 'agent-toolbox', name: 'Agent Toolbox' },
-        { id: 'gilly-llms', name: 'Gilly LLMs' },
-      ],
-      topSkills: [
-        { name: 'planning-expert', total: 12 },
-        { name: 'qa-remediation', total: 8 },
-        { name: 'pr-automator', total: 6 },
-        { name: 'visual-verifier', total: 4 },
-        { name: 'technical-task-planner', total: 2 },
-      ],
-      tracesByTime: [
-        { name: 'Mar 15', total: 5 },
-        { name: 'Mar 16', total: 10 },
-        { name: 'Mar 17', total: 8 },
-        { name: 'Mar 18', total: 15 },
-        { name: 'Mar 19', total: 20 },
-        { name: 'Mar 20', total: 25 },
-        { name: 'Mar 21', total: 32 },
-      ],
-      skillInsights: [
-        {
-          name: 'planning-expert',
-          model: 'unknown',
-          agent: 'unknown',
-          executions: 16,
-          estTokenCost: 475,
-          totalCost: 7600,
-          avgDuration: 1200,
-          accuracy: 100,
-        },
-        {
-          name: 'pr-automator',
-          model: 'unknown',
-          agent: 'unknown',
-          executions: 8,
-          estTokenCost: 875,
-          totalCost: 7000,
-          avgDuration: 2500,
-          accuracy: 100,
-        },
-        {
-          name: 'qa-remediation',
-          model: 'unknown',
-          agent: 'unknown',
-          executions: 6,
-          estTokenCost: 730,
-          totalCost: 4380,
-          avgDuration: 1800,
-          accuracy: 100,
-        },
-        {
-          name: 'visual-verifier',
-          model: 'unknown',
-          agent: 'unknown',
-          executions: 3,
-          estTokenCost: 375,
-          totalCost: 1125,
-          avgDuration: 3200,
-          accuracy: 100,
-        },
-        {
-          name: 'technical-task-planner',
-          model: 'unknown',
-          agent: 'unknown',
-          executions: 3,
-          estTokenCost: 0,
-          totalCost: 0,
-          avgDuration: 800,
-          accuracy: 100,
-        },
-        {
-          name: 'feature-design-assistant',
-          model: 'unknown',
-          agent: 'unknown',
-          executions: 1,
-          estTokenCost: 700,
-          totalCost: 700,
-          avgDuration: 1500,
-          accuracy: 100,
-        },
-      ] as SkillInsight[],
+      totalExecutions: 0,
+      activeWorkflows: 0,
+      projects: [{ id: 'all', name: 'All Projects' }],
+      topSkills: [],
+      tracesByTime: [],
+      traces: [],
     };
   }
 
@@ -199,78 +113,53 @@ async function getGlobalMetrics(projectId?: string) {
           )
         : allTraces;
 
-    const totalExecutions = filteredTraces.length;
+    const mappedTraces: TraceData[] = filteredTraces.map((t) => {
+      const metadata = t.metadata || {};
+      return {
+        id: t.id,
+        name: t.name || 'unnamed-trace',
+        timestamp: t.timestamp,
+        sessionId: t.sessionId,
+        projectName: (metadata.projectName as string) || 'unknown',
+        model: langfuseLabel(metadata.model),
+        agent: langfuseLabel(metadata.agent),
+        duration: t.duration,
+        status: t.status,
+        metadata: metadata,
+        totalCost: t.totalCost || 0,
+        totalTokens: t.totalTokens || t.usage?.totalTokens || 0,
+        inputTokens:
+          t.inputTokens || t.usage?.inputTokens || t.usage?.promptTokens || 0,
+        outputTokens:
+          t.outputTokens ||
+          t.usage?.outputTokens ||
+          t.usage?.completionTokens ||
+          0,
+      };
+    });
+
+    const totalExecutions = mappedTraces.length;
     const sessionIds = new Set(
-      filteredTraces.map((t: LangfuseTrace) => t.sessionId).filter(Boolean)
+      mappedTraces.map((t) => t.sessionId).filter(Boolean)
     );
     const activeWorkflows =
       sessionIds.size > 0 ? sessionIds.size : totalExecutions;
 
-    const skillStats: Record<
-      string,
-      {
-        executions: number;
-        totalDuration: number;
-        successful: number;
-        totalTokens: number;
-        totalCost: number;
-        models: Set<string>;
-        agents: Set<string>;
-      }
-    > = {};
+    const skillCounts: Record<string, number> = {};
     const timeBuckets: Record<string, number> = {};
 
-    filteredTraces.forEach((trace: LangfuseTrace) => {
+    mappedTraces.forEach((trace) => {
       // Aggregate by skill
       let skillName = 'unknown';
       if (trace.name && trace.name.startsWith('skill:')) {
         skillName = trace.name.replace('skill:', '');
       } else if (trace.metadata?.skillName) {
-        skillName = trace.metadata.skillName;
+        skillName = trace.metadata.skillName as string;
       } else if (trace.name) {
         skillName = trace.name;
       }
 
-      if (!skillStats[skillName]) {
-        skillStats[skillName] = {
-          executions: 0,
-          totalDuration: 0,
-          successful: 0,
-          totalTokens: 0,
-          totalCost: 0,
-          models: new Set<string>(),
-          agents: new Set<string>(),
-        };
-      }
-
-      const stats = skillStats[skillName];
-      stats.executions++;
-
-      // Calculate duration
-      const duration = trace.metadata?.duration || 0;
-      stats.totalDuration += duration;
-
-      // Accuracy - assume successful if no error is in metadata
-      if (!trace.metadata?.error && !trace.metadata?.stack) {
-        stats.successful++;
-      }
-
-      // Usage/Cost tracking
-      const usage =
-        trace.usage ||
-        (trace.metadata?.usage as LangfuseUsage | undefined) ||
-        {};
-      const totalTokens =
-        usage.totalTokens ||
-        (usage.promptTokens || 0) + (usage.completionTokens || 0);
-      stats.totalTokens += totalTokens;
-
-      const cost =
-        trace.totalCost || (trace.metadata?.cost as number | undefined) || 0;
-      stats.totalCost += cost;
-
-      stats.models.add(langfuseLabel(trace.metadata?.model));
-      stats.agents.add(langfuseLabel(trace.metadata?.agent));
+      skillCounts[skillName] = (skillCounts[skillName] || 0) + 1;
 
       // Aggregate by time
       const dateKey = new Date(trace.timestamp).toLocaleDateString(undefined, {
@@ -280,8 +169,8 @@ async function getGlobalMetrics(projectId?: string) {
       timeBuckets[dateKey] = (timeBuckets[dateKey] || 0) + 1;
     });
 
-    const topSkills = Object.entries(skillStats)
-      .map(([name, stats]) => ({ name, total: stats.executions }))
+    const topSkills = Object.entries(skillCounts)
+      .map(([name, total]) => ({ name, total }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 5);
 
@@ -290,29 +179,6 @@ async function getGlobalMetrics(projectId?: string) {
       total,
     }));
 
-    const skillInsights: SkillInsight[] = Object.entries(skillStats).map(
-      ([name, stats]) => ({
-        name,
-        model: Array.from(stats.models).join(', ') || 'unknown',
-        agent: Array.from(stats.agents).join(', ') || 'unknown',
-        executions: stats.executions,
-        estTokenCost:
-          stats.executions > 0
-            ? Math.round(stats.totalTokens / stats.executions)
-            : 0,
-        totalCost:
-          stats.totalCost > 0
-            ? stats.totalCost
-            : Math.round(stats.totalTokens * 0.000002 * 100) / 100,
-        avgDuration:
-          stats.executions > 0 ? stats.totalDuration / stats.executions : 0,
-        accuracy:
-          stats.executions > 0
-            ? (stats.successful / stats.executions) * 100
-            : 0,
-      })
-    );
-
     return {
       totalExecutions,
       activeWorkflows:
@@ -320,7 +186,7 @@ async function getGlobalMetrics(projectId?: string) {
       projects,
       topSkills,
       tracesByTime,
-      skillInsights,
+      traces: mappedTraces,
     };
   } catch (error) {
     console.error('Error fetching metrics from Langfuse:', error);
@@ -330,7 +196,7 @@ async function getGlobalMetrics(projectId?: string) {
       projects: [{ id: 'all', name: 'All Projects' }],
       topSkills: [],
       tracesByTime: [],
-      skillInsights: [],
+      traces: [],
     };
   }
 }
@@ -345,6 +211,14 @@ export default async function PublicDashboard({ searchParams }: PageProps) {
 
   const selectedProject =
     metrics.projects.find((p) => p.id === projectId) || metrics.projects[0];
+
+  const totalCost = metrics.traces.reduce((sum, t) => sum + (t.totalCost || 0), 0);
+
+  // Calculate average accuracy
+  const successfulTraces = metrics.traces.filter(t => !t.metadata?.error && t.status !== 'ERROR').length;
+  const averageAccuracy = metrics.totalExecutions > 0
+    ? (successfulTraces / metrics.totalExecutions) * 100
+    : 100;
 
   return (
     <div className="flex flex-col min-h-screen bg-[#0f172a] text-slate-200 p-8 font-sans">
@@ -385,12 +259,12 @@ export default async function PublicDashboard({ searchParams }: PageProps) {
           />
           <KPICard
             title="Total Est. Cost"
-            value={`$${metrics.skillInsights.reduce((sum, s) => sum + s.totalCost, 0).toFixed(2)}`}
+            value={`$${totalCost.toFixed(2)}`}
             subtitle="Calculated from LLM usage"
           />
           <KPICard
             title="Project Health"
-            value={`${Math.round(metrics.skillInsights.reduce((sum, s) => sum + s.accuracy, 0) / (metrics.skillInsights.length || 1))}%`}
+            value={`${Math.round(averageAccuracy)}%`}
             subtitle="Success rate average"
           />
         </div>
@@ -433,99 +307,8 @@ export default async function PublicDashboard({ searchParams }: PageProps) {
               Detailed performance and token cost metrics for each skill.
             </p>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-800/50 text-slate-400 text-sm font-semibold uppercase tracking-wider">
-                    <th className="px-6 py-4 border-b border-slate-800">
-                      Skill Name
-                    </th>
-                    <th className="px-6 py-4 border-b border-slate-800">
-                      LLM Model
-                    </th>
-                    <th className="px-6 py-4 border-b border-slate-800">
-                      Agent
-                    </th>
-                    <th className="px-6 py-4 border-b border-slate-800">
-                      Executions
-                    </th>
-                    <th className="px-6 py-4 border-b border-slate-800">
-                      Est. Token Cost (per run)
-                    </th>
-                    <th className="px-6 py-4 border-b border-slate-800">
-                      Total execution cost
-                    </th>
-                    <th className="px-6 py-4 border-b border-slate-800">
-                      Avg Duration
-                    </th>
-                    <th className="px-6 py-4 border-b border-slate-800 text-right">
-                      Accuracy (Success Rate)
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800">
-                  {metrics.skillInsights.map((skill) => (
-                    <tr
-                      key={skill.name}
-                      className="hover:bg-slate-800/30 transition-colors"
-                    >
-                      <td className="px-6 py-5">
-                        <span className="font-mono text-indigo-400 font-semibold">
-                          {skill.name}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5">
-                        <span className="text-slate-400 text-sm">
-                          {skill.model}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5">
-                        <span className="text-slate-400 text-sm">
-                          {skill.agent}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5 text-slate-300 font-medium">
-                        {skill.executions}
-                      </td>
-                      <td className="px-6 py-5 text-slate-400 italic">
-                        {skill.estTokenCost > 0
-                          ? `~${skill.estTokenCost}`
-                          : '~0'}
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
-                          <span className="text-slate-300 font-semibold">
-                            ~{Math.round(skill.totalCost)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5 text-slate-400">
-                        {skill.avgDuration > 0
-                          ? `${(skill.avgDuration / 1000).toFixed(1)}s`
-                          : 'N/A'}
-                      </td>
-                      <td className="px-6 py-5 text-right">
-                        <span className="bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full text-sm font-bold border border-emerald-500/20">
-                          {skill.accuracy.toFixed(1)}%
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                  {metrics.skillInsights.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={8}
-                        className="px-6 py-12 text-center text-slate-500 italic"
-                      >
-                        No analytics data available for the selected project.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+          <CardContent>
+            <InsightsTable traces={metrics.traces} />
           </CardContent>
         </Card>
       </div>
