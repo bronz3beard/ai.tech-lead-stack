@@ -86,15 +86,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request: { params: { name
     try {
       const allSkills = new Set<string>();
       
+      // Concurrently read all directories to speed up I/O
+      // We use Promise.all to map over directories and wait for all fs.readdir calls to complete in parallel
       await Promise.all(
         searchDirs.map(async (dir) => {
           try {
             const files = await fs.readdir(dir);
+            // Only consider markdown files as valid skills
             files
               .filter(file => file.endsWith(".md"))
               .forEach(file => allSkills.add(path.basename(file, ".md")));
           } catch {
-            // Skip if directory doesn't exist
+            // Skip if directory doesn't exist or is unreadable (e.g. project missing local .ai/skills folder)
           }
         })
       );
