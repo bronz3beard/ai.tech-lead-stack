@@ -25,6 +25,8 @@ interface LangfuseMetadata {
 
 interface LangfuseUsage {
   totalTokens?: number;
+  inputTokens?: number;
+  outputTokens?: number;
   promptTokens?: number;
   completionTokens?: number;
 }
@@ -126,8 +128,13 @@ async function getGlobalMetrics(projectId?: string) {
         metadata: metadata,
         totalCost: t.totalCost || 0,
         totalTokens: t.totalTokens || t.usage?.totalTokens || 0,
-        inputTokens: t.inputTokens || t.usage?.inputTokens || 0,
-        outputTokens: t.outputTokens || t.usage?.outputTokens || 0,
+        inputTokens:
+          t.inputTokens || t.usage?.inputTokens || t.usage?.promptTokens || 0,
+        outputTokens:
+          t.outputTokens ||
+          t.usage?.outputTokens ||
+          t.usage?.completionTokens ||
+          0,
       };
     });
 
