@@ -13,8 +13,18 @@ export async function withAnalytics<T, U>(
   skill: (input: T) => Promise<U>
 ) {
   return async (input: T): Promise<U> => {
+    // Detect Agent from environment if not provided
+    let detectedAgent = context.agent;
+    if (!detectedAgent || detectedAgent === 'unknown') {
+      if (process.env.CURSOR_AGENT || process.env.CURSOR_TRACE_ID) {
+        detectedAgent = 'Cursor';
+      } else if (process.env.ANTIGRAVITY_AGENT || process.env.ANTIGRAVITY_WORKFLOW_ID) {
+        detectedAgent = 'Antigravity';
+      }
+    }
+
     const resolvedModel = langfuseLabel(context.model);
-    const resolvedAgent = langfuseLabel(context.agent);
+    const resolvedAgent = langfuseLabel(detectedAgent);
 
     const trace = langfuse.trace({
       name: skillName,

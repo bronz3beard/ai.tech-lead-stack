@@ -84,8 +84,18 @@ export class Telemetry {
       }
     }
 
+    // Detect Agent from environment if not provided
+    let detectedAgent = agent;
+    if (!detectedAgent || detectedAgent === 'unknown') {
+      if (process.env.CURSOR_AGENT || process.env.CURSOR_TRACE_ID) {
+        detectedAgent = 'Cursor';
+      } else if (process.env.ANTIGRAVITY_AGENT || process.env.ANTIGRAVITY_WORKFLOW_ID) {
+        detectedAgent = 'Antigravity';
+      }
+    }
+
     const resolvedModel = langfuseLabel(model);
-    const resolvedAgent = langfuseLabel(agent);
+    const resolvedAgent = langfuseLabel(detectedAgent);
 
     const metadata: LangfuseMetadata = {
       skillName,

@@ -107,8 +107,12 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
         skillStats[skillName].hasLangfuseTokens = true;
       }
 
-      skillStats[skillName].models.add(trace.model);
-      skillStats[skillName].agents.add(trace.agent);
+      if (trace.model && trace.model !== 'unknown') {
+        skillStats[skillName].models.add(trace.model);
+      }
+      if (trace.agent && trace.agent !== 'unknown') {
+        skillStats[skillName].agents.add(trace.agent);
+      }
     }
 
     return Object.entries(skillStats)
@@ -163,8 +167,8 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
         return {
           name,
           executions: stats.executions,
-          model: Array.from(stats.models).join(', ') || 'unknown',
-          agent: Array.from(stats.agents).join(', ') || 'unknown',
+          model: Array.from(stats.models).sort().join(', ') || 'unknown',
+          agent: Array.from(stats.agents).sort().join(', ') || 'unknown',
           perRunCost: displayPerRunCost,
           totalCost: displayTotalCost,
           perRunTokens: displayPerRunTokens,
