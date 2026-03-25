@@ -1,12 +1,6 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
 import * as fs from "fs/promises";
-import * as path from "path";
-import { Telemetry } from "../telemetry.js";
 import { isSkillTrace } from "../../lib/trace-utils.js";
 
 // Mock dependencies
@@ -47,8 +41,11 @@ jest.mock("../telemetry.js", () => {
 });
 
 describe("MCP Server", () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let listToolsHandler: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let callToolHandler: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let mockServer: any;
 
   beforeEach(() => {
@@ -86,6 +83,7 @@ describe("MCP Server", () => {
       const result = await listToolsHandler();
       expect(result.tools).toHaveLength(3);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const toolNames = result.tools.map((t: any) => t.name);
       expect(toolNames).toContain("list_skills");
       expect(toolNames).toContain("get_skills");
