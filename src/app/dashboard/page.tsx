@@ -8,6 +8,7 @@ import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
 import { isSkillTrace } from '@/lib/trace-utils';
 import pMap from 'p-map';
+import { fetchAllPages } from '@/lib/langfuse-api';
 
 interface LangfuseTrace {
   id: string;
@@ -53,25 +54,15 @@ async function getUserMetrics(userId: string): Promise<TraceData[]> {
   const authHeader = `Basic ${Buffer.from(`${publicKey}:${secretKey}`).toString('base64')}`;
 
   try {
-    const url = `${baseUrl}/api/public/traces?userId=${encodeURIComponent(userId)}&limit=100`;
-    console.log(`Fetching traces for user: ${userId} from ${url}`);
+    const queryParams = new URLSearchParams({ userId });
+    console.log(`Fetching all traces for user: ${userId}`);
 
-    const tracesResponse = await fetch(url, {
-      headers: {
-        Authorization: authHeader,
-      },
-      next: { revalidate: 60 },
-    });
-
-    if (!tracesResponse.ok) {
-      const errorText = await tracesResponse.text();
-      throw new Error(
-        `Failed to fetch from Langfuse: ${tracesResponse.status} ${tracesResponse.statusText} - ${errorText}`
-      );
-    }
-
-    const tracesResponseData = await tracesResponse.json();
-    const allTraces: LangfuseTrace[] = tracesResponseData.data || [];
+    const allTraces = await fetchAllPages<LangfuseTrace>(
+      baseUrl,
+      '/api/public/traces',
+      queryParams,
+      authHeader
+    );
 
     // Filter out skeletal SKILL traces before processing
     const traces = allTraces.filter(t => !isSkillTrace(t.name, t.metadata?.skillName as string | undefined));
