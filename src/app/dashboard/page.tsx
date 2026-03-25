@@ -7,6 +7,7 @@ import { langfuseLabel } from '@/lib/langfuse-labels';
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
 import { isSkillTrace } from '@/lib/trace-utils';
+import pMap from 'p-map';
 
 interface LangfuseTrace {
   id: string;
@@ -78,8 +79,9 @@ async function getUserMetrics(userId: string): Promise<TraceData[]> {
     console.log(`Successfully fetched ${traces.length} filtered traces for ${userId} (skipped ${allTraces.length - traces.length} SKILL traces)`);
 
     // Fetch observations for each trace to get the model and agent
-    const tracesWithObservations = await Promise.all(
-      traces.map(async (t) => {
+    const tracesWithObservations = await pMap(
+      traces,
+      async (t) => {
         try {
           const obsUrl = `${baseUrl}/api/public/observations?traceId=${t.id}`;
           const obsResponse = await fetch(obsUrl, {
@@ -94,7 +96,8 @@ async function getUserMetrics(userId: string): Promise<TraceData[]> {
           console.error(`Error fetching observations for trace ${t.id}:`, e);
         }
         return { ...t, observations: [] };
-      })
+      },
+      { concurrency: 10 }
     );
 
     return tracesWithObservations.map((t) => {
