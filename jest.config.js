@@ -4,7 +4,8 @@ module.exports = {
   testEnvironment: "jsdom",
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
   moduleNameMapper: {
-    "^@/(.*)$": "<rootDir>/src/$1"
+    "^@/(.*)$": "<rootDir>/src/$1",
+    "^(\\.{1,2}/.*)\\.js$": "$1"
   },
   transform: {
     "^.+\\.(t|j)sx?$": ["ts-jest", {
@@ -14,6 +15,6 @@ module.exports = {
     }],
   },
   transformIgnorePatterns: [
-    "node_modules/(?!(next-auth|openid-client|jose|@panva/hkdf|preact|preact-render-to-string)/)"
+    "node_modules/(?!(next-auth|openid-client|jose|@panva/hkdf|preact|preact-render-to-string|@modelcontextprotocol)/)"
   ],
 };
