@@ -86,16 +86,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request: { params: { name
     try {
       const allSkills = new Set<string>();
       
-      for (const dir of searchDirs) {
-        try {
-          const files = await fs.readdir(dir);
-          files
-            .filter(file => file.endsWith(".md"))
-            .forEach(file => allSkills.add(path.basename(file, ".md")));
-        } catch {
-          // Skip if directory doesn't exist
-        }
-      }
+      await Promise.all(
+        searchDirs.map(async (dir) => {
+          try {
+            const files = await fs.readdir(dir);
+            files
+              .filter(file => file.endsWith(".md"))
+              .forEach(file => allSkills.add(path.basename(file, ".md")));
+          } catch {
+            // Skip if directory doesn't exist
+          }
+        })
+      );
       
       const skillFiles = Array.from(allSkills)
         .filter(skill => !isSkillTrace(undefined, skill))
