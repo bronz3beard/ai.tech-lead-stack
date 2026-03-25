@@ -2,9 +2,9 @@ import { Langfuse } from 'langfuse-node';
 import { langfuseLabel } from '@/lib/langfuse-labels';
 
 const langfuse = new Langfuse({
-  publicKey: process.env.LANGFUSE_PUBLIC_KEY || 'pk-lf-test',
-  secretKey: process.env.LANGFUSE_SECRET_KEY || 'sk-lf-test',
-  baseUrl: process.env.LANGFUSE_BASE_URL || 'http://localhost:3000',
+  publicKey: process.env.LANGFUSE_PUBLIC_KEY,
+  secretKey: process.env.LANGFUSE_SECRET_KEY,
+  baseUrl: process.env.LANGFUSE_BASE_URL,
 });
 
 export async function withAnalytics<T, U>(
