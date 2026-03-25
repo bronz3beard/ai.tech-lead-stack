@@ -4,6 +4,7 @@ import { BarChart, LineChart } from '@/components/ui/chart';
 import { langfuseLabel } from '@/lib/langfuse-labels';
 import { InsightsTable } from '@/components/dashboard/InsightsTable';
 import { TraceData } from '@/components/dashboard/DashboardContent';
+import { DashboardDisclaimer } from '@/components/dashboard/DashboardDisclaimer';
 
 export const revalidate = 60; // cached for 60 seconds
 
@@ -311,6 +312,9 @@ export default async function PublicDashboard({ searchParams }: PageProps) {
             <InsightsTable traces={metrics.traces} />
           </CardContent>
         </Card>
+
+        {/* Disclaimer Section */}
+        <DashboardDisclaimer />
       </div>
     </div>
   );

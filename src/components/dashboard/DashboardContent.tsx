@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, LineChart } from '@/components/ui/chart';
 import { ProjectSelector } from '@/components/dashboard/ProjectSelector';
 import { InsightsTable } from '@/components/dashboard/InsightsTable';
+import { DashboardDisclaimer } from '@/components/dashboard/DashboardDisclaimer';
 
 export type TraceData = {
   id: string;
@@ -243,6 +244,9 @@ export function DashboardContent({
             </CardContent>
           </Card>
         </div>
+
+        {/* Disclaimer Section */}
+        <DashboardDisclaimer />
       </div>
     </div>
   );
