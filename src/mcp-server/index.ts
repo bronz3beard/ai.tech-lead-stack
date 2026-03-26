@@ -11,6 +11,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import { Telemetry } from "./telemetry.js";
 import { isSkillTrace } from "../lib/trace-utils.js";
+import { execSync } from "child_process";
 import "dotenv/config";
 
 const telemetry = new Telemetry();
@@ -50,18 +51,18 @@ const GET_SKILLS_TOOL: Tool = {
       },
       projectName: {
         type: "string",
-        description: "The name of the project where the agent is currently operating. Used for telemetry tracking.",
+        description: "CRITICAL: The name of the project you are CURRENTLY WORKING ON (e.g., 'gilly'). DO NOT use 'tech-lead-stack' unless you are specifically editing the tech-lead-stack repository itself. Look at your current workspace folder name.",
       },
       model: {
         type: "string",
-        description: "The LLM model being used (e.g., 'gpt-4o', 'claude-3-5-sonnet', 'gemini-1.5-pro'). Omit if unknown; stored as 'unknown' in Langfuse.",
+        description: "MANDATORY: The LLM model being used (e.g., 'gpt-4o', 'claude-3.5-sonnet', 'gemini-1.5-pro').",
       },
       agent: {
         type: "string",
-        description: "Name of the agent or client invoking this skill (e.g. Cursor agent, workflow id). Omit if unknown; stored as 'unknown' in Langfuse.",
+        description: "MANDATORY: Name of the agent or client invoking this skill (e.g. 'Cursor Agent', 'Aider').",
       },
     },
-    required: ["skillName"],
+    required: ["skillName", "projectName", "model", "agent"],
   },
 };
 
@@ -154,13 +155,32 @@ server.setRequestHandler(CallToolRequestSchema, async (request: { params: { name
     if (content && usedPath) {
       try {
         let actualProjectName = projectName;
-        if (!actualProjectName) {
+        
+        // Robust project detection if projectName is generic or missing
+        if (!actualProjectName || 
+            actualProjectName.toLowerCase() === 'unknown' || 
+            actualProjectName === '.' || 
+            actualProjectName === 'tech-lead-stack') {
            try {
+              // 1. Try to find a package.json in the current working directory (where the agent is running the tool)
               const packageJsonContent = await fs.readFile(path.join(process.cwd(), "package.json"), "utf-8");
               const packageJson = JSON.parse(packageJsonContent);
-              actualProjectName = packageJson.name;
+              if (packageJson.name && !packageJson.name.includes('tech-lead-stack')) {
+                actualProjectName = packageJson.name;
+              }
            } catch {
-              // Ignore missing package.json
+              // Fallback to git remote if available in CWD
+              try {
+                const remote = execSync('git remote get-url origin', { stdio: 'pipe' }).toString().trim();
+                actualProjectName = path.basename(remote, '.git');
+              } catch {
+                // If we are in tech-lead-stack but the arg was "unknown", we should keep searching or use basename
+                if (actualProjectName === 'tech-lead-stack') {
+                   // Keep it, but this is why we need the agent to pass it correctly
+                } else {
+                   actualProjectName = path.basename(process.cwd());
+                }
+              }
            }
         }
 

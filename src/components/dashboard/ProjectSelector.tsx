@@ -17,6 +17,7 @@ export function ProjectSelector({
         value={selectedProject}
         onChange={onSelectProject}
         options={projects.map((p) => ({ label: p, value: p }))}
+        placeholder="All Projects"
       />
     </div>
   );

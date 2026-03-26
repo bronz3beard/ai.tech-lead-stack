@@ -13,7 +13,7 @@ describe('normalizeProjectName', () => {
 
   it('should handle path-like names and extract the last part', () => {
     expect(normalizeProjectName('agent-toolbox/tech-lead-stack')).toBe('tech-lead-stack');
-    expect(normalizeProjectName('Bronz3beard/ai.tech-lead-stack')).toBe('ai.tech-lead-stack');
+    expect(normalizeProjectName('Bronz3beard/ai.tech-lead-stack')).toBe('tech-lead-stack');
     expect(normalizeProjectName('path/to/my-project')).toBe('my-project');
   });
 

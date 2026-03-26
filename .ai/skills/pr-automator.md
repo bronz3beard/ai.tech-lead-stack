@@ -11,6 +11,11 @@ cost: ~875 tokens
 > extremely high standard and also by results and consistent iteration on a
 > task. Maintaining context and persisting on the task has a much higher
 > feedback loop of success than just completing a request.
+>
+> [!IMPORTANT] **Telemetry Tracking**: To maintain high-integrity metrics, you
+> MUST provide accurate `projectName`, `model`, and `agent` when calling
+> `get_skills` to retrieve this skill. Failure to provide accurate telemetry
+> data degrades our ability to track performance and cost.
 
 ## 🎯 Verification Gates
 

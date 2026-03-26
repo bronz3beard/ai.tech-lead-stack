@@ -8,7 +8,6 @@ import { langfuseLabel } from '@/lib/langfuse-labels';
 import { isSkillTrace, normalizeProjectName } from '@/lib/trace-utils';
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
-import pMap from 'p-map';
 
 interface LangfuseTrace {
   id: string;
@@ -42,7 +41,10 @@ interface LangfuseObservation {
   metadata?: Record<string, unknown>;
 }
 
-async function getUserMetrics(userId: string): Promise<TraceData[]> {
+async function getUserMetrics(
+  userId: string,
+  options: { limit?: number; from?: string; to?: string } = {}
+): Promise<TraceData[]> {
   const publicKey = process.env.LANGFUSE_PUBLIC_KEY;
   const secretKey = process.env.LANGFUSE_SECRET_KEY;
   const baseUrl = process.env.LANGFUSE_BASE_URL || 'https://cloud.langfuse.com';
@@ -56,52 +58,23 @@ async function getUserMetrics(userId: string): Promise<TraceData[]> {
 
   try {
     const queryParams = new URLSearchParams({ userId });
-    console.log(`Fetching all traces for user: ${userId}`);
+    if (options.from) queryParams.set('fromTimestamp', new Date(options.from).toISOString());
+    if (options.to) queryParams.set('toTimestamp', new Date(options.to).toISOString());
+
+    console.log(`Fetching traces for user: ${userId} with options:`, options);
 
     const allTraces = await fetchAllPages<LangfuseTrace>(
       baseUrl,
       '/api/public/traces',
       queryParams,
-      authHeader
+      authHeader,
+      options.limit
     );
 
-    // Filter out skeletal SKILL traces before processing
-    const traces = allTraces.filter(
-      (t) => !isSkillTrace(t.name, t.metadata?.skillName as string | undefined)
-    );
-
-    console.log(
-      `Successfully fetched ${traces.length} filtered traces for ${userId} (skipped ${allTraces.length - traces.length} SKILL traces)`
-    );
-
-    // Fetch observations for each trace to get the model and agent
-    const tracesWithObservations = await pMap(
-      traces,
-      async (t: LangfuseTrace) => {
-        try {
-          const obsUrl = `${baseUrl}/api/public/observations?traceId=${t.id}`;
-          const obsResponse = await fetch(obsUrl, {
-            headers: { Authorization: authHeader },
-            next: { revalidate: 60 },
-          });
-          if (obsResponse.ok) {
-            const obsData = await obsResponse.json();
-            return {
-              ...t,
-              observations: (obsData.data as LangfuseObservation[]) || [],
-            };
-          }
-        } catch (e) {
-          console.error(`Error fetching observations for trace ${t.id}:`, e);
-        }
-        return { ...t, observations: [] };
-      },
-      { concurrency: 10 }
-    );
-
-    return tracesWithObservations.map(
-      (t: LangfuseTrace & { observations: LangfuseObservation[] }) => {
-        // Extract project name from multiple potential sources
+    // Filter out skeletal SKILL traces & map to Dashboard format
+    return allTraces
+      .filter((t) => !isSkillTrace(t.name, t.metadata?.skillName as string | undefined))
+      .map((t) => {
         const metadata = t.metadata || {};
         const sources = [
           metadata.projectName,
@@ -113,41 +86,15 @@ async function getUserMetrics(userId: string): Promise<TraceData[]> {
 
         let bestProjectName = 'unknown';
         for (const val of sources) {
-          if (
-            typeof val === 'string' &&
-            val !== 'unknown' &&
-            val.trim() !== ''
-          ) {
+          if (typeof val === 'string' && val !== 'unknown' && val.trim() !== '') {
             bestProjectName = normalizeProjectName(val);
             break;
           }
         }
 
-        // Try to find model and agent in observations if not in metadata
-        let model = metadata.model as string | undefined;
-        let agent = metadata.agent as string | undefined;
-
-        if (t.observations && t.observations.length > 0) {
-          // Find the first observation that has a model (Langfuse observation types can be 'generation' or 'GENERATION')
-          const generation = t.observations.find(
-            (o: LangfuseObservation) =>
-              (o.type?.toLowerCase() === 'generation' ||
-                o.type === 'generation') &&
-              o.model
-          );
-          if (generation && !model) {
-            model = generation.model;
-          }
-          // Check for agent in observation metadata if still not found
-          if (!agent) {
-            for (const obs of t.observations as LangfuseObservation[]) {
-              if (obs.metadata?.agent) {
-                agent = obs.metadata.agent as string;
-                break;
-              }
-            }
-          }
-        }
+        // Optimized: Extraction from metadata instead of observations
+        const model = metadata.model as string | undefined;
+        const agent = metadata.agent as string | undefined;
 
         return {
           id: t.id,
@@ -160,26 +107,23 @@ async function getUserMetrics(userId: string): Promise<TraceData[]> {
           duration: t.duration,
           status: t.status,
           metadata: metadata,
-          // Langfuse sometimes puts usage at the top level or inside usage object
           totalCost: t.totalCost || 0,
           totalTokens: t.totalTokens || t.usage?.totalTokens || 0,
-          inputTokens:
-            t.inputTokens || t.usage?.inputTokens || t.usage?.promptTokens || 0,
-          outputTokens:
-            t.outputTokens ||
-            t.usage?.outputTokens ||
-            t.usage?.completionTokens ||
-            0,
+          inputTokens: t.inputTokens || t.usage?.inputTokens || t.usage?.promptTokens || 0,
+          outputTokens: t.outputTokens || t.usage?.outputTokens || t.usage?.completionTokens || 0,
         };
-      }
-    );
+      });
   } catch (error) {
     console.error('Error fetching metrics from Langfuse:', error);
     return [];
   }
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ limit?: string; from?: string; to?: string }>;
+}) {
   const session = await getServerSession(authOptions);
 
   if (!session || !session.user) {
@@ -191,7 +135,14 @@ export default async function DashboardPage() {
     redirect('/signin');
   }
 
-  const traces = await getUserMetrics(userEmail);
+  const { limit, from, to } = await searchParams;
+  const parsedLimit = limit === 'all' ? undefined : parseInt(limit || '50', 10);
+
+  const traces = await getUserMetrics(userEmail, {
+    limit: parsedLimit,
+    from,
+    to,
+  });
 
   return <DashboardContent traces={traces} titlePrefix="My Authenticated" />;
 }

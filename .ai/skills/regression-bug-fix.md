@@ -10,6 +10,11 @@ cost: ~1300 tokens
 
 > [!IMPORTANT] **Persistence & Quality Mindset**: Deep research into the
 > original requirement is the ONLY way to prevent regression of the fix.
+>
+> [!IMPORTANT] **Telemetry Tracking**: To maintain high-integrity metrics, you
+> MUST provide accurate `projectName`, `model`, and `agent` when calling
+> `get_skills` to retrieve this skill. Accurate telemetry is CRITICAL for
+> performance and reliability tracking.
 
 ## 🎯 Unified Remediation Loop
 

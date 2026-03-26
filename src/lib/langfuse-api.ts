@@ -14,6 +14,43 @@ export interface LangfusePaginatedResponse<T> {
   meta: LangfuseMeta;
 }
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Enhanced fetch with retry logic for 429 Too Many Requests.
+ */
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  maxRetries = 3,
+  initialDelay = 1000
+): Promise<Response> {
+  let lastError: Error | null = null;
+  
+  for (let i = 0; i <= maxRetries; i++) {
+    try {
+      const response = await fetch(url, options);
+      
+      if (response.status === 429) {
+        if (i === maxRetries) return response;
+        
+        const delay = initialDelay * Math.pow(2, i);
+        console.warn(`Langfuse 429 Rate Limit hit. Retrying in ${delay}ms... (Attempt ${i + 1}/${maxRetries})`);
+        await sleep(delay);
+        continue;
+      }
+      
+      return response;
+    } catch (error) {
+      lastError = error as Error;
+      if (i === maxRetries) throw error;
+      await sleep(initialDelay * Math.pow(2, i));
+    }
+  }
+  
+  throw lastError || new Error('Unknown fetch error');
+}
+
 /**
  * Fetches all pages from a Langfuse API endpoint that supports pagination.
  *
@@ -21,29 +58,36 @@ export interface LangfusePaginatedResponse<T> {
  * @param endpoint The endpoint to fetch from (e.g. /api/public/traces)
  * @param queryParams Any query parameters to append to the URL (e.g. userId=foo)
  * @param authHeader The Authorization header to use
+ * @param totalLimit Optional limit on the total number of items to fetch
  * @returns An array containing all items from all pages
  */
 export async function fetchAllPages<T>(
   baseUrl: string,
   endpoint: string,
   queryParams: URLSearchParams,
-  authHeader: string
+  authHeader: string,
+  totalLimit?: number
 ): Promise<T[]> {
   const allData: T[] = [];
   let currentPage = 1;
-  const limit = 100;
+  const batchSize = 100;
 
   while (true) {
     // Clone params to avoid mutating the original
     const params = new URLSearchParams(queryParams.toString());
     params.set('page', currentPage.toString());
-    params.set('limit', limit.toString());
+    
+    // Calculate how many items to fetch in this batch
+    let currentBatchLimit = batchSize;
+    if (totalLimit) {
+      currentBatchLimit = Math.min(batchSize, totalLimit - allData.length);
+      if (currentBatchLimit <= 0) break;
+    }
+    params.set('limit', currentBatchLimit.toString());
 
     const url = `${baseUrl}${endpoint}?${params.toString()}`;
 
-    // console.log(`Fetching Langfuse page ${currentPage}: ${url}`);
-
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       headers: {
         Authorization: authHeader,
       },
@@ -64,6 +108,11 @@ export async function fetchAllPages<T>(
         break;
       }
       allData.push(...json.data);
+      
+      // Check if we hit the total limit
+      if (totalLimit && allData.length >= totalLimit) {
+        break;
+      }
     } else {
       break;
     }
@@ -73,7 +122,10 @@ export async function fetchAllPages<T>(
     }
 
     currentPage++;
+    
+    // Add a small 100ms delay between pages to be gentle with Langfuse
+    await sleep(100);
   }
 
-  return allData;
+  return totalLimit ? allData.slice(0, totalLimit) : allData;
 }

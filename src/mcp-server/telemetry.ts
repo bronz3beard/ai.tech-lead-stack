@@ -86,20 +86,39 @@ export class Telemetry {
 
     const resolvedModel = langfuseLabel(model);
     const resolvedAgent = langfuseLabel(agent);
+    const normalizedProject = normalizeProjectName(projectName);
+
+    // Try to get user name for more context
+    let userName = 'unknown';
+    try {
+      userName = execSync('git config --global user.name', { stdio: 'pipe' })
+        .toString()
+        .trim();
+    } catch {
+      // Ignore errors
+    }
 
     const metadata: LangfuseMetadata = {
       skillName,
-      projectName: normalizeProjectName(projectName),
+      projectName: normalizedProject,
       environment: 'local',
       userEmail: userEmail,
+      userName: userName,
       model: resolvedModel,
       agent: resolvedAgent,
+      version: '1.0.0',
     };
+
+    // Log model override if it looks suspicious (e.g. gpt-4 when user says gemini)
+    if (resolvedModel.toLowerCase().includes('gpt-4')) {
+      console.error(`[Telemetry] Trace ${skillName} using model: ${resolvedModel}. If this is incorrect, check IDE settings.`);
+    }
 
     const trace = this.langfuse.trace({
       name: `skill:${skillName}`,
       userId: userEmail,
       metadata,
+      tags: [normalizedProject, resolvedModel, skillName],
     });
 
     try {
@@ -113,6 +132,10 @@ export class Telemetry {
         name: `generation:${skillName}`,
         model: resolvedModel,
         output: outputStr,
+        metadata: {
+          ...metadata,
+          project: normalizedProject,
+        },
         usage: {
           completionTokens: Math.ceil(outputStr.length / 4),
           promptTokens: 500,
@@ -139,8 +162,20 @@ export class Telemetry {
       });
       throw error;
     } finally {
-      // Flush events asynchronously
-      await this.langfuse.flushAsync();
+      // Flush events with retry logic to ensure data is sent even under load
+      for (let i = 0; i < 3; i++) {
+        try {
+          await this.langfuse.flushAsync();
+          break; // Success
+        } catch (error) {
+          if (i === 2) {
+            console.error(`[Telemetry] Final flush attempt failed for ${skillName}:`, error);
+          } else {
+            console.warn(`[Telemetry] Flush attempt ${i + 1} failed for ${skillName}, retrying...`);
+            await new Promise(r => setTimeout(r, 500 * (i + 1)));
+          }
+        }
+      }
     }
   }
 }

@@ -1,12 +1,15 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, LineChart } from '@/components/ui/chart';
 import { ProjectSelector } from '@/components/dashboard/ProjectSelector';
 import { InsightsTable } from '@/components/dashboard/InsightsTable';
 import { DashboardDisclaimer } from '@/components/dashboard/DashboardDisclaimer';
 import { WorkflowPhaseTracker } from '@/components/dashboard/WorkflowPhaseTracker';
+import { LimitSelector } from '@/components/dashboard/LimitSelector';
+import { DateRangePicker } from '@/components/dashboard/DateRangePicker';
 import { isSkillTrace, normalizeProjectName } from '@/lib/trace-utils';
 
 export type TraceData = {
@@ -33,7 +36,26 @@ export function DashboardContent({
   traces: TraceData[];
   titlePrefix: string;
 }) {
-  const [selectedProject, setSelectedProject] = useState<string>('');
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const selectedProject = searchParams.get('project') || '';
+  const currentLimit = searchParams.get('limit') || '50';
+  const fromDate = searchParams.get('from') || '';
+  const toDate = searchParams.get('to') || '';
+
+  const updateFilters = useCallback((updates: Record<string, string | null>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === null || value === '') {
+        params.delete(key);
+      } else {
+        params.set(key, value);
+      }
+    });
+    router.push(`${pathname}?${params.toString()}`);
+  }, [router, pathname, searchParams]);
 
   const projects = useMemo(() => {
     const projSet = new Set<string>();
@@ -43,6 +65,10 @@ export function DashboardContent({
         projSet.add(normalized);
       }
     });
+    // Ensure "gilly" is in the list if any trace metadata suggests it even if not in the current view
+    if (traces.some(t => String(t.metadata?.projectName).includes('gilly'))) {
+        projSet.add('gilly');
+    }
     return Array.from(projSet).sort();
   }, [traces]);
 
@@ -141,25 +167,42 @@ export function DashboardContent({
   const displayTitle = selectedProject ? selectedProject : 'All Projects';
 
   return (
-    <div className="flex flex-col min-h-screen bg-background p-8">
+    <div className="flex flex-col min-h-screen bg-background p-8 text-foreground">
       <div className="max-w-6xl mx-auto w-full space-y-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="space-y-2">
             <h1 className="text-4xl font-bold tracking-tight text-foreground">
               {titlePrefix} Dashboard
             </h1>
-            <p className="text-muted mt-2">
-              Viewing data for: <span className="font-semibold text-foreground">{displayTitle}</span>
+            <p className="text-muted text-lg">
+              Viewing telemetry data for: <span className="font-semibold text-emerald-500">{displayTitle}</span>
             </p>
           </div>
-          <ProjectSelector
-            projects={projects}
-            selectedProject={selectedProject}
-            onSelectProject={setSelectedProject}
-          />
+          <div className="flex flex-wrap items-end gap-4">
+             <DateRangePicker 
+                from={fromDate} 
+                to={toDate} 
+                onRangeChange={(from, to) => updateFilters({ from, to })} 
+             />
+             <div className="flex flex-col">
+                <label className="text-xs text-muted font-medium mb-1 pl-1">Limit</label>
+                <LimitSelector 
+                    limit={currentLimit} 
+                    onSelectLimit={(limit) => updateFilters({ limit })} 
+                />
+             </div>
+             <div className="flex flex-col">
+                <label className="text-xs text-muted font-medium mb-1 pl-1">Project</label>
+                <ProjectSelector
+                    projects={projects}
+                    selectedProject={selectedProject}
+                    onSelectProject={(project) => updateFilters({ project })}
+                />
+             </div>
+          </div>
         </div>
 
-        <Card className="border-none bg-emerald-500/5">
+        <Card className="border-none bg-emerald-500/5 ring-1 ring-emerald-500/20">
           <CardHeader className="pb-2 text-center">
             <CardTitle className="text-sm font-medium text-emerald-500 uppercase tracking-wider">
               Active Workflow Progress
@@ -171,99 +214,101 @@ export function DashboardContent({
         </Card>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
+          <Card className="bg-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-lg font-semibold text-foreground">
+              <CardTitle className="text-lg font-semibold">
                 Total Skills Run
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">
+              <div className="text-3xl font-bold">
                 {metrics.totalExecutions.toLocaleString()}
               </div>
+              <p className="text-xs text-muted mt-1">Cumulative across all runs</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-lg font-semibold text-foreground">
+              <CardTitle className="text-lg font-semibold">
                 Active Workflows
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">
+              <div className="text-3xl font-bold">
                 {metrics.activeWorkflows.toLocaleString()}
               </div>
+              <p className="text-xs text-muted mt-1">Unique session activities</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-lg font-semibold text-foreground">
+              <CardTitle className="text-lg font-semibold">
                 Total Est. Cost
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-emerald-500">
+              <div className="text-3xl font-bold text-emerald-500">
                 ${metrics.totalCost.toFixed(2)}
               </div>
+              <p className="text-xs text-muted mt-1">Calculated from LLM usage</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-lg font-semibold text-foreground">
+              <CardTitle className="text-lg font-semibold">
                 Project Health
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-foreground">
+              <div className="text-3xl font-bold">
                 {Math.round(metrics.averageAccuracy)}%
               </div>
+              <p className="text-xs text-muted mt-1">Success rate average</p>
             </CardContent>
           </Card>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-7">
-          <Card className="lg:col-span-7">
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-7">
+          <Card className="lg:col-span-12">
             <CardHeader>
-              <CardTitle className="text-lg font-semibold text-foreground">
-                Top Skills
+              <CardTitle className="text-lg font-semibold">
+                Top Performing Skills
               </CardTitle>
             </CardHeader>
-            <CardContent className="pl-2">
+            <CardContent className="pl-2 pb-6">
               <BarChart data={metrics.topSkills} />
             </CardContent>
           </Card>
 
-          <Card className="lg:col-span-7">
+          <Card className="lg:col-span-12">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg font-semibold text-foreground">
-                Traces by time
+              <CardTitle className="text-lg font-semibold">
+                Activity Timeline
               </CardTitle>
               <p className="text-base text-muted">
-                Visualizes the volume of agent activities (traces) executed over
-                time.
+                Trend of agent executions over the last {currentLimit === 'all' ? 'entire' : currentLimit} traces.
               </p>
             </CardHeader>
-            <CardContent className="pl-2">
+            <CardContent className="pl-2 pb-6">
               <LineChart data={metrics.tracesByTime} />
             </CardContent>
           </Card>
 
-          <Card className="lg:col-span-7">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg font-semibold text-foreground">
-                Analytics Insights
+          <Card className="lg:col-span-12 overflow-hidden border-none shadow-lg outline-1 outline-border">
+            <CardHeader className="pb-3 bg-muted/30">
+              <CardTitle className="text-lg font-semibold">
+                Detailed Trace Analytics
               </CardTitle>
-              <p className="text-base text-muted">
-                Detailed performance and token cost metrics for each skill.
+              <p className="text-sm text-muted">
+                Granular performance and token cost metrics for each execution.
               </p>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               <InsightsTable traces={filteredTraces} />
             </CardContent>
           </Card>
         </div>
 
-        {/* Disclaimer Section */}
         <DashboardDisclaimer />
       </div>
     </div>
