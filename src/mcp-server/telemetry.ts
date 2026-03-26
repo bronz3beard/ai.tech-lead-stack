@@ -1,7 +1,7 @@
 import { execSync } from 'child_process';
 import { Langfuse } from 'langfuse';
 import { langfuseLabel } from '../lib/langfuse-labels';
-import { isSkillTrace } from '../lib/trace-utils';
+import { isSkillTrace, normalizeProjectName } from '../lib/trace-utils';
 
 export interface LangfuseMetadata {
   skillName: string;
@@ -89,7 +89,7 @@ export class Telemetry {
 
     const metadata: LangfuseMetadata = {
       skillName,
-      projectName: projectName ?? 'unknown',
+      projectName: normalizeProjectName(projectName),
       environment: 'local',
       userEmail: userEmail,
       model: resolvedModel,

@@ -1,12 +1,13 @@
+import { TraceData } from '@/components/dashboard/DashboardContent';
+import { DashboardDisclaimer } from '@/components/dashboard/DashboardDisclaimer';
+import { InsightsTable } from '@/components/dashboard/InsightsTable';
 import { ProjectSelect, type Project } from '@/components/ProjectSelect';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, LineChart } from '@/components/ui/chart';
-import { langfuseLabel } from '@/lib/langfuse-labels';
-import { InsightsTable } from '@/components/dashboard/InsightsTable';
-import { TraceData } from '@/components/dashboard/DashboardContent';
-import { DashboardDisclaimer } from '@/components/dashboard/DashboardDisclaimer';
-import { isSkillTrace } from '@/lib/trace-utils';
 import { fetchAllPages } from '@/lib/langfuse-api';
+import { langfuseLabel } from '@/lib/langfuse-labels';
+import { isSkillTrace, normalizeProjectName } from '@/lib/trace-utils';
+import pMap from 'p-map';
 
 export const revalidate = 60; // cached for 60 seconds
 
@@ -50,6 +51,15 @@ interface LangfuseTrace {
   outputTokens?: number;
 }
 
+interface LangfuseObservation {
+  id: string;
+  traceId: string;
+  type: string;
+  name?: string;
+  model?: string;
+  metadata?: Record<string, unknown>;
+}
+
 async function getGlobalMetrics(projectId?: string) {
   const publicKey = process.env.LANGFUSE_PUBLIC_KEY;
   const secretKey = process.env.LANGFUSE_SECRET_KEY;
@@ -78,33 +88,87 @@ async function getGlobalMetrics(projectId?: string) {
       authHeader
     );
 
-    // 2. Aggregate available projects dynamically from traces metadata
+    // 2. Fetch observations for ALL traces to enable exhaustive metadata search
+    // Using pMap to handle concurrency reasonably
+    const tracesWithObservations = await pMap(
+      allTraces,
+      async (t: LangfuseTrace) => {
+        try {
+          const obsUrl = `${baseUrl}/api/public/observations?traceId=${t.id}`;
+          const obsResponse = await fetch(obsUrl, {
+            headers: { Authorization: authHeader },
+            next: { revalidate: 60 },
+          });
+          if (obsResponse.ok) {
+            const obsData = await obsResponse.json();
+            return {
+              ...t,
+              observations: (obsData.data as LangfuseObservation[]) || [],
+            };
+          }
+        } catch (e) {
+          console.error(`Error fetching observations for trace ${t.id}:`, e);
+        }
+        return { ...t, observations: [] };
+      },
+      { concurrency: 5 }
+    );
+
+    // 3. Aggregate available projects dynamically from traces AND observations metadata
     const projectSet = new Set<string>();
-    allTraces.forEach((t: LangfuseTrace) => {
-      const pId =
-        t.metadata?.projectId || t.metadata?.projectName || t.tags?.[0];
-      if (pId && pId !== 'unknown') projectSet.add(pId);
+    tracesWithObservations.forEach((t) => {
+      // Checked multiple potential sources for project identification across trace and observations
+      const sources = [
+        t.metadata?.projectName,
+        t.metadata?.projectId,
+        t.metadata?.project,
+        t.metadata?.repo,
+        ...(t.tags || []),
+        ...t.observations.map((o) => o.metadata?.projectName),
+        ...t.observations.map((o) => o.metadata?.projectId),
+        ...t.observations.map((o) => o.metadata?.project),
+      ];
+
+      for (const val of sources) {
+        if (typeof val === 'string' && val !== 'unknown' && val.trim() !== '') {
+          projectSet.add(normalizeProjectName(val));
+        }
+      }
     });
 
     const projects: Project[] = [
       { id: 'all', name: 'All Projects' },
-      ...Array.from(projectSet).map((id) => ({
-        id,
-        name: id.charAt(0).toUpperCase() + id.slice(1).replace(/-/g, ' '),
-      })),
+      ...Array.from(projectSet)
+        .map((id) => ({
+          id,
+          name: id.charAt(0).toUpperCase() + id.slice(1).replace(/-/g, ' '),
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
     ];
 
-    // 3. Filter traces if a specific project is selected, and ALWAYS filter out skeletal SKILL traces
-    const filteredTraces = allTraces.filter((t: LangfuseTrace) => {
+    // 4. Filter traces if a specific project is selected, and ALWAYS filter out skeletal SKILL traces
+    const filteredTraces = tracesWithObservations.filter((t) => {
       // Basic filtering for SKILL.md related traces
       if (isSkillTrace(t.name, t.metadata?.skillName)) return false;
 
       // Project-specific filtering
       if (!projectId || projectId === 'all') return true;
-      return (
-        t.metadata?.projectId === projectId ||
-        t.metadata?.projectName === projectId ||
-        t.tags?.includes(projectId)
+
+      const target = projectId.toLowerCase();
+      // Check multiple sources for a match across trace and observations
+      const sources = [
+        t.metadata?.projectName,
+        t.metadata?.projectId,
+        t.metadata?.project,
+        t.metadata?.repo,
+        ...(t.tags || []),
+        ...t.observations.map((o) => o.metadata?.projectName),
+        ...t.observations.map((o) => o.metadata?.projectId),
+        ...t.observations.map((o) => o.metadata?.project),
+      ];
+
+      return sources.some(
+        (val) => typeof val === 'string' && normalizeProjectName(val) === target
       );
     });
 
@@ -115,7 +179,9 @@ async function getGlobalMetrics(projectId?: string) {
         name: t.name || 'unnamed-trace',
         timestamp: t.timestamp,
         sessionId: t.sessionId,
-        projectName: (metadata.projectName as string) || (metadata.projectId as string) || (t.tags?.[0] as string) || 'unknown',
+        projectName: normalizeProjectName(
+          (metadata.projectName as string) || (metadata.projectId as string)
+        ),
         model: langfuseLabel(metadata.model),
         agent: langfuseLabel(metadata.agent),
         duration: t.duration,
@@ -207,13 +273,19 @@ export default async function PublicDashboard({ searchParams }: PageProps) {
   const selectedProject =
     metrics.projects.find((p) => p.id === projectId) || metrics.projects[0];
 
-  const totalCost = metrics.traces.reduce((sum, t) => sum + (t.totalCost || 0), 0);
+  const totalCost = metrics.traces.reduce(
+    (sum, t) => sum + (t.totalCost || 0),
+    0
+  );
 
   // Calculate average accuracy
-  const successfulTraces = metrics.traces.filter(t => !t.metadata?.error && t.status !== 'ERROR').length;
-  const averageAccuracy = metrics.totalExecutions > 0
-    ? (successfulTraces / metrics.totalExecutions) * 100
-    : 100;
+  const successfulTraces = metrics.traces.filter(
+    (t) => !t.metadata?.error && t.status !== 'ERROR'
+  ).length;
+  const averageAccuracy =
+    metrics.totalExecutions > 0
+      ? (successfulTraces / metrics.totalExecutions) * 100
+      : 100;
 
   return (
     <div className="flex flex-col min-h-screen bg-[#0f172a] text-slate-200 p-8 font-sans">

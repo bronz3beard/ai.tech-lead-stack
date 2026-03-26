@@ -7,7 +7,7 @@ import { ProjectSelector } from '@/components/dashboard/ProjectSelector';
 import { InsightsTable } from '@/components/dashboard/InsightsTable';
 import { DashboardDisclaimer } from '@/components/dashboard/DashboardDisclaimer';
 import { WorkflowPhaseTracker } from '@/components/dashboard/WorkflowPhaseTracker';
-import { isSkillTrace } from '@/lib/trace-utils';
+import { isSkillTrace, normalizeProjectName } from '@/lib/trace-utils';
 
 export type TraceData = {
   id: string;
@@ -38,8 +38,9 @@ export function DashboardContent({
   const projects = useMemo(() => {
     const projSet = new Set<string>();
     traces.forEach((t) => {
-      if (t.projectName && t.projectName !== 'unknown') {
-        projSet.add(t.projectName);
+      const normalized = normalizeProjectName(t.projectName);
+      if (normalized && normalized !== 'unknown') {
+        projSet.add(normalized);
       }
     });
     return Array.from(projSet).sort();
@@ -47,7 +48,8 @@ export function DashboardContent({
 
   const filteredTraces = useMemo(() => {
     if (!selectedProject) return traces;
-    return traces.filter((t) => t.projectName === selectedProject);
+    const target = selectedProject.toLowerCase();
+    return traces.filter((t) => normalizeProjectName(t.projectName) === target);
   }, [traces, selectedProject]);
 
   const metrics = useMemo(() => {
