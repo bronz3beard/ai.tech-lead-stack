@@ -115,7 +115,7 @@ async function getGlobalMetrics(projectId?: string) {
         name: t.name || 'unnamed-trace',
         timestamp: t.timestamp,
         sessionId: t.sessionId,
-        projectName: (metadata.projectName as string) || 'unknown',
+        projectName: (metadata.projectName as string) || (metadata.projectId as string) || (t.tags?.[0] as string) || 'unknown',
         model: langfuseLabel(metadata.model),
         agent: langfuseLabel(metadata.agent),
         duration: t.duration,

@@ -60,7 +60,12 @@ export async function fetchAllPages<T>(
     const json = (await response.json()) as LangfusePaginatedResponse<T>;
 
     if (json.data && Array.isArray(json.data)) {
+      if (json.data.length === 0) {
+        break;
+      }
       allData.push(...json.data);
+    } else {
+      break;
     }
 
     if (!json.meta || json.meta.page >= json.meta.totalPages) {

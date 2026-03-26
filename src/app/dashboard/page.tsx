@@ -124,7 +124,7 @@ async function getUserMetrics(userId: string): Promise<TraceData[]> {
         timestamp: t.timestamp,
         sessionId: t.sessionId,
         // Ensure projectName is extracted correctly from metadata
-        projectName: (metadata.projectName as string) || 'unknown',
+        projectName: (metadata.projectName as string) || (metadata.projectId as string) || (t.tags?.[0] as string) || 'unknown',
         model: langfuseLabel(model),
         agent: langfuseLabel(agent),
         duration: t.duration,
