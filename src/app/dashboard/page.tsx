@@ -29,6 +29,7 @@ interface LangfuseTrace {
   totalTokens?: number;
   inputTokens?: number;
   outputTokens?: number;
+  tags?: string[];
   observations?: LangfuseObservation[];
 }
 
