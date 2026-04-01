@@ -52,7 +52,10 @@ GitHub.
    - If `runCodeReview` is `true`, execute `.ai/skills/code-review-checklist.md`
      FIRST.
    - You MUST ensure all checklist items pass or are being addressed before
-     proceeding to PR creation. Add the generated file to the PR body.
+     proceeding to PR creation.
+   - **MANDATORY**: Write the filled-out checklist results to
+     `.ai/evidence/pre-commit-review.md`. Inform the user that they can inspect
+     this file.
    - If severe issues are found, PAUSE and ask the user if they still want to
      proceed with the PR automation.
    - **IMPORTANT**: Keep the filled-out checklist in your working memory to
@@ -83,9 +86,10 @@ GitHub.
    - **Summary**: A high-level "Why" and "What." Map this to the template's
      "Description" or similar section.
    - **Code Review Evidence**:
-     - **MANDATORY**: If `runCodeReview` was `true`, you MUST include the
-       filled-out `.ai/skills/code-review-checklist.md` (Checkboxes [x]) in a
-       new section at the top of the body called `## Pre-Commit QA Evidence 📋`.
+     - **MANDATORY**: If `runCodeReview` was `true`, you MUST replace the
+       `{{code-review-checklist-evidence}}` placeholder in the template with the
+       exact content of `.ai/evidence/pre-commit-review.md`. Ensure all
+       checkboxes [x] reflect the actual review outcome.
    - **Technical Changes**: Use the template's requested semantics (e.g.,
      add/update/fix) for the technical breakdown.
    - **Checklist**: Fill out all checkboxes and placeholders (e.g., task IDs,
@@ -106,8 +110,9 @@ GitHub.
    - **Option A (Automated)**: Execute the GitHub CLI with the generated
      metadata:
      `gh pr create --draft --title "[Title]" --body-file ".github/.pr_body_temp.md" --base "[Discovered Base Branch]" --assignee "@me" --label "[Comma-separated labels]" --reviewer "[Comma-separated reviewers if found]"`
-     _After successful creation, delete the temporary file:_
+     _After successful creation, delete the temporary files:_
      `rm .github/.pr_body_temp.md`
+     `rm .ai/evidence/pre-commit-review.md` (only if `runCodeReview` was true)
    - **Option B (Copy/Paste)**: Output the full Markdown for the user to copy.
 
 ## Requirements

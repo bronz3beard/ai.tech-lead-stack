@@ -44,3 +44,7 @@ use the below semantics for listing what is in this PR
 
 - Ready for release: (Yes/No)
 - Needs additional work: (Yes/No)
+
+## AI Code Review Evidence
+
+- [ ] {{code-review-checklist-evidence}}
