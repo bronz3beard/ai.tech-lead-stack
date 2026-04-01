@@ -2,7 +2,9 @@
 name: pr-automator
 description: Automates the creation of GitHub Pull Requests with full context.
 parameters:
-  - runCodeReview: (boolean) If true, performs a code review using the code-review-checklist skill before creating the PR. Defaults to false.
+  - runCodeReview:
+      (boolean) If true, performs a code review using the code-review-checklist
+      skill before creating the PR. Defaults to false.
 cost: ~875 tokens
 ---
 
@@ -50,9 +52,11 @@ GitHub.
    - If `runCodeReview` is `true`, execute `.ai/skills/code-review-checklist.md`
      FIRST.
    - You MUST ensure all checklist items pass or are being addressed before
-     proceeding to PR creation.
+     proceeding to PR creation. Add the generated file to the PR body.
    - If severe issues are found, PAUSE and ask the user if they still want to
      proceed with the PR automation.
+   - **IMPORTANT**: Keep the filled-out checklist in your working memory to
+     include it as evidence in the PR drafting stage.
 1. **Context & Evidence Gathering**:
    - **Base Branch Discovery**: Determine the correct base branch (e.g., `main`,
      `develop`, or a release branch like `v24.0.0`) that this feature was
@@ -78,6 +82,10 @@ GitHub.
      schema. Do not omit any sections from the template.
    - **Summary**: A high-level "Why" and "What." Map this to the template's
      "Description" or similar section.
+   - **Code Review Evidence**:
+     - **MANDATORY**: If `runCodeReview` was `true`, you MUST include the
+       filled-out `.ai/skills/code-review-checklist.md` (Checkboxes [x]) in a
+       new section at the top of the body called `## Pre-Commit QA Evidence 📋`.
    - **Technical Changes**: Use the template's requested semantics (e.g.,
      add/update/fix) for the technical breakdown.
    - **Checklist**: Fill out all checkboxes and placeholders (e.g., task IDs,
