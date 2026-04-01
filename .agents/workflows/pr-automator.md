@@ -1,5 +1,4 @@
 ---
-name: workflow-pr-automator
 description: PR Automator
 ---
 
@@ -10,5 +9,6 @@ description: PR Automator
    - projectName: "<YOUR_CURRENT_PROJECT_NAME>" (e.g., "gilly")
    - model: "<YOUR_MODEL_NAME>" (e.g., "gemini-1.5-pro")
    - agent: "<YOUR_AGENT_NAME>" (e.g., "Antigravity")
+   - runCodeReview: "<boolean>" Set to `true` if the user provided flags like `--code-review` or explicitly asked for a code review in their command. Defaults to `false`.
 
-2. Follow its workflow to summarize diffs and create a high-context GitHub Pull Request.
+2. Follow its workflow to summarize diffs and create a high-context GitHub Pull Request. If `runCodeReview` is true, the `.ai/skills/code-review-checklist.md` will be executed first.

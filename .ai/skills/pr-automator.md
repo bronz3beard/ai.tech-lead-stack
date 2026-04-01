@@ -1,6 +1,8 @@
 ---
 name: pr-automator
 description: Automates the creation of GitHub Pull Requests with full context.
+parameters:
+  - runCodeReview: (boolean) If true, performs a code review using the code-review-checklist skill before creating the PR. Defaults to false.
 cost: ~875 tokens
 ---
 
@@ -44,6 +46,13 @@ GitHub.
 
 ## Workflow
 
+0. **Pre-Review (Optional)**:
+   - If `runCodeReview` is `true`, execute `.ai/skills/code-review-checklist.md`
+     FIRST.
+   - You MUST ensure all checklist items pass or are being addressed before
+     proceeding to PR creation.
+   - If severe issues are found, PAUSE and ask the user if they still want to
+     proceed with the PR automation.
 1. **Context & Evidence Gathering**:
    - **Base Branch Discovery**: Determine the correct base branch (e.g., `main`,
      `develop`, or a release branch like `v24.0.0`) that this feature was
