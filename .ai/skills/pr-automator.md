@@ -87,9 +87,12 @@ GitHub.
      "Description" or similar section.
    - **Code Review Evidence**:
      - **MANDATORY**: If `runCodeReview` was `true`, you MUST replace the
-       `{{code-review-checklist-evidence}}` placeholder in the template with the
-       exact content of `.ai/evidence/pre-commit-review.md`. Ensure all
-       checkboxes [x] reflect the actual review outcome.
+       `{{code-review-checklist-evidence}}` placeholder in the template with a
+       **High-Density Audit Report**. This must include:
+       1. The completed checklist from `.ai/evidence/pre-commit-review.md`.
+       2. A clear **🛠 Audit Status: PASS/FAIL** section.
+       3. A brief summary of the audit focus.
+       **EXCLUDE** the raw `## 🛠 Outcome Actions` instruction block.
    - **Technical Changes**: Use the template's requested semantics (e.g.,
      add/update/fix) for the technical breakdown.
    - **Checklist**: Fill out all checkboxes and placeholders (e.g., task IDs,
