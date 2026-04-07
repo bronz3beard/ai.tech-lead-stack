@@ -3,13 +3,14 @@ name: code-review-checklist
 description:
   Lightweight Pre-Commit Review Checklist. Focuses on Spec Compliance and Rapid
   Verification before GitHub submission.
-cost: ~600 tokens
+cost: ~650 tokens
 ---
 
 # Pre-Commit QA Checklist (The Fast Review)
 
-> [!TIP] **Speed + Accuracy**: Use this checklist to catch 80% of issues before
-> they reach the official PR stage.
+> [!TIP] **Methodology Alignment**: Use this checklist to catch 80% of issues
+> before they reach the official PR stage. Always follow **MinimumCD** (small
+> batches) and **G-Stack Ethos** (User Sovereignty).
 
 ## 📋 Quality Gates
 
@@ -17,22 +18,26 @@ cost: ~600 tokens
 
 - [ ] **Accurate:** Does the code exactly match the requirements?
 - [ ] **Edge Cases:** Are empty states and error boundaries handled?
-- [ ] **Cleanup:** Are all `console.log` and debug comments removed?
+- [ ] **Cleanup:** Are all debug logs and temporary comments removed?
 
-### 2. G-Stack & Structural alignment
+### 2. Ecosystem & Methodology Alignment
 
-- [ ] **Next.js:** Uses Server Components where possible.
-- [ ] **React:** Refs passed as props (React 19).
-- [ ] **Types:** Zero `any` casts (use `Zod` for validation).
-- [ ] **Styles:** Tailwind classes use complete strings.
+- [ ] **Architecture:** Follows the primary architectural patterns of the
+      detected framework (e.g., Server Components for Next.js, Dependency
+      Injection for .NET, etc.).
+- [ ] **Safety:** Input validation implemented globally (e.g., Zod, JSON Schema,
+      Built-in Type Guards).
+- [ ] **Consistency:** Naming and file structure match the project's established
+      standard.
+- [ ] **DRY/KISS:** Logic is simple, clear, and avoids premature abstraction.
 
 ### 3. Verification Evidence
 
-- [ ] **Tests:** Unit/Integration tests pass.
-- [ ] **Output:** Verification evidence (e.g., screenshot, terminal logs) is
-      ready.
+- [ ] **Tests:** Unit/Integration tests pass for the changed logic.
+- [ ] **Evidence:** Verification evidence (e.g., screenshot, terminal logs,
+      trace files) is captured in the artifacts directory.
 
 ## 🛠 Outcome Actions
 
-- **On Pass:** Proceed to `rtk pr create`.
+- **Suggested:** Proceed to create a PR (e.g., `rtk run create-pr`) if required.
 - **On Fail:** Fix issues and re-run this checklist.

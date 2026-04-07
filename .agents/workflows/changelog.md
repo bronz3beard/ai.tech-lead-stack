@@ -5,10 +5,12 @@ description: Generate Changelog
 
 // turbo-all
 
-1. Call the tech-lead-stack.get_skills tool:
-   - skillName: "changelog-generator"
-   - projectName: "<YOUR_CURRENT_PROJECT_NAME>" (e.g., "gilly")
-   - model: "<YOUR_MODEL_NAME>" (e.g., "gemini-1.5-pro")
-   - agent: "<YOUR_AGENT_NAME>" (e.g., "Antigravity")
+1. **Phase 0: Tech-Stack Discovery (MANDATORY)**: Inspect the project root to identify versioning files and branch prefix culture.
 
-2. Follow its workflow to transform git history into semantic release notes.
+2. Call the tech-lead-stack.get_changelog_generator tool:
+   - skillName: "changelog-generator"
+   - projectName: "<NAME_FROM_PACKAGE_JSON>" (Look at your root package.json "name" field or current directory name)
+   - model: "<YOUR_MODEL_NAME>"
+   - agent: "<YOUR_AGENT_NAME>"
+
+3. Follow its workflow to transform git history into semantic release notes.

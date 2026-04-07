@@ -5,10 +5,12 @@ description: Security Audit
 
 // turbo-all
 
-1. Call the tech-lead-stack.get_skills tool:
-   - skillName: "security-audit"
-   - projectName: "<YOUR_CURRENT_PROJECT_NAME>" (e.g., "gilly")
-   - model: "<YOUR_MODEL_NAME>" (e.g., "gemini-1.5-pro")
-   - agent: "<YOUR_AGENT_NAME>" (e.g., "Antigravity")
+1. **Phase 0: Tech-Stack Discovery (MANDATORY)**: Identify root configuration files to identify dependencies and potential attack vectors.
 
-2. Follow its workflow to scan for malicious patterns and potential prompt injections.
+2. Call the tech-lead-stack.get_skills tool:
+   - skillName: "security-audit"
+   - projectName: "<YOUR_CURRENT_PROJECT_NAME>"
+   - model: "<YOUR_MODEL_NAME>"
+   - agent: "<YOUR_AGENT_NAME>"
+
+3. Follow its workflow to scan for malicious patterns and potential ecosystem vulnerabilities.

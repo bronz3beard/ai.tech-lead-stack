@@ -2,110 +2,96 @@
 name: codebase-onboarding-intelligence
 description:
   Exhaustive discovery auditor for developer onboarding. Extracts tech stack,
-  git culture, environment setup, and implementation patterns.
-cost: ~960 tokens
+  environment setup, and implementation patterns.
+cost: ~1100 tokens
 ---
 
 # Codebase Onboarding Intelligence (The Master Discovery)
 
-> [!IMPORTANT] **Persistence & Quality Mindset**: There is no reward for
-> completion. The reward comes from persistence on resolving the issue to an
-> extremely high standard and also by results and consistent iteration on a
-> task. Maintaining context and persisting on the task has a much higher
-> feedback loop of success than just completing a request.
+> [!IMPORTANT] **Diagnosis before Advice**: Every onboarding begins with **Phase
+> 0: Tech-Stack Discovery**. The auditor must identify the primary engine and
+> configuration patterns before deep-diving into vitals. Follow **G-Stack
+> Ethos**.
 
 ## 🎯 Verification Gates
 
+### Phase 0: Tech-Stack Discovery (MANDATORY)
+
+- **Action:** Identify root configuration files (`package.json`,
+  `pyproject.toml`, `csproj`, etc.).
+- **Goal:** Determine the core language, framework, and dependency management to
+  contextualize all subsequent gates.
+
 ### Gate 1: Stack & Documentation (The Source)
 
-- **Positive (Signal):** Detects exact versions; provides **Specific
-  Implementation Links**.
-- **Negative (Noise):** Generic homepage links; missing environment-specific
-  setup docs.
-- **Action:** Scrape `.env.example`, `README`, and `CONTRIBUTING.md` for
-  internal deep-links.
+- **Positive (Signal):** Detects exact versions; provides specific
+  implementation links from `README` or `CONTRIBUTING` docs.
+- **Action:** Scrape `.env.example`, `CONTRIBUTING.md`, and manifest files.
 
 ### Gate 2: Local Vitals & Environment (The First Build)
 
 - **Positive (Signal):** Identifies `dev` scripts, Docker configs, and database
-  migration/seeding commands.
-- **Negative (Noise):** Missing local secrets management strategy (e.g., where
-  to find the real `.env`).
-- **Action:** Identify "Time-to-First-Hello-World" by mapping setup steps
-  (Install -> Migrate -> Seed -> Start).
+  migration commands.
+- **Action:** Map the "Time-to-First-Hello-World" path.
 
 ### Gate 3: Git & Workflow Culture (The Rules)
 
-- **Branch Management:** Scan for `Trunk-based` vs `GitFlow`. Identify Merge
-  Strategy (`Rebase` vs `Merge`).
-- **Naming Conventions:** Detect branch regex (e.g., `feat/`, `fix/`,
-  `user/task-id`).
-- **Commit Structure:** Detect **Prefixes** (`feat:`, `fix:`) and
-  **Title/Body/Footer** structure.
+- **Positive (Signal):** Identifies branch strategy (Trunk-based vs GitFlow),
+  naming regex, and commit prefix conventions.
 
 ### Gate 4: Implementation Patterns (The "How-To")
 
-- **Architecture:** Detect **API-First** vs **UI-First**. Identify UI pattern
-  (Atomic, Page-based, etc.).
-- **Shared Code:** Locate the "Source of Truth" for Global Types, Helpers, and
-  Design System tokens.
+- **Positive (Signal):** Detects architectural style (API-First vs Monolith), UI
+  patterns, and location of "Source of Truth" for types/utilities.
+
+---
 
 ## 🔍 Mandatory Extraction Checklist
 
 ### 1. Technology DNA & Setup
 
 - [ ] **Main Stack:** Languages, Frameworks, Runtimes.
-- [ ] **Local Run:** Exactly how to start the app and run migrations/seeds.
-- [ ] **Secrets:** How are dev secrets shared (1Password, `.env.vault`, manual
-      copy)?
+- [ ] **Local Run:** Entry points for dev, build, and test.
+- [ ] **Secrets:** Discovery of how development secrets are managed.
 
 ### 2. Architectural Principles
 
-- [ ] **SOLID/Clean Code:** Enforcement patterns for `clean-code.md`.
-- [ ] **Error/State:** Standardized try/catch wrappers and Server vs. Local
-      state management.
+- [ ] **SOLID/Clean Code:** Detected enforcement patterns.
+- [ ] **Error/State:** Standardized patterns for error handling and state.
 
-### 3. Git, DevOps & Comm Culture
+### 3. Git & DevOps Culture
 
-- [ ] **Workflow:** Strategy name + Naming regex + Commit format
-      (Title/Body/Footer).
-- [ ] **CI/CD:** What scripts run on push? (Referencing `.github/workflows`).
-- [ ] **Communication:** Where does the team talk? (Slack, ClickUp, GitHub
-      Comments).
+- [ ] **Workflow:** Strategy + Branch Naming + Commit Format.
+- [ ] **CI/CD:** Overview of scripts triggered in `.github/` or `.gitlab/`.
+
+---
 
 ## 🛠 Execution Workflow
 
-| Step              | Discovery Action                                                  |
-| :---------------- | :---------------------------------------------------------------- | ------------------------------------------- |
-| **Culture Audit** | `./.ai/rtk-run run git-parse` (Extracts real branch/commit data). |
-| **Local Audit**   | `cat package.json                                                 | grep -A 10 "scripts"` (Finds entry points). |
-| **Import Audit**  | `grep -r "import" src/` (Maps shared code).                       |
+1. **Ecosystem Audit**: `ls -F` and `cat` root config files.
+2. **Culture Audit**: `rtk run git-parse` to extract branch/commit trends.
+3. **Local Audit**: Inspect `scripts` or `Taskfile` for entry points.
+4. **Pattern Audit**: `grep` for common imports/abstractions.
 
 ## 📦 The "Day One" Onboarding Report
 
 ### 🏗️ Tech Stack & Implementation Docs
 
-- **[Technology Name]**: [Version] | [Link to Specific Implementation Docs]
+- **[Technology]**: [Version] | [Implementation Note]
 
 ### 🚀 Getting Started (Local Environment)
 
 - **Start Command**: `[Command]`
-- **DB Setup**: [How to migrate and seed data]
-- **Secrets**: [Where to get the .env file]
+- **DB Setup**: [Migration/Seed instructions]
+- **Secrets**: [Discovery source]
 
 ### 🌳 Git & Workflow Culture
 
-- **Branch Strategy**: [Trunk-based / GitFlow] | [Rebase / Merge]
-- **Branch Naming**: `regex-pattern`
-- **Commit Format**: [Title/Body/Footer structure + Prefix list]
+- **Branch Strategy**: [Type] | [Naming Pattern]
+- **Commit Format**: [Prefix conventions]
 
 ### 🎨 Patterns & Shared Code
 
-- **UI Implementation**: [How to build a UI component to match]
-- **Shared Utilities**: Located in `[Path]`
-- **API vs UI First**: This repo is [Type] because [Reasoning]
-
-### 💬 Team & Best Practices
-
-- **Comm Channels**: [Slack/ClickUp/Discord]
-- **Do's & Don'ts**: [List of project-specific standards found in code]
+- **Architecture**: [Type] | [Description]
+- **Shared Utilities**: [Path]
+- **Enforcement**: [How standards are maintained]

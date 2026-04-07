@@ -29,7 +29,9 @@
       "security-scan": "cat .ai/skills/security-audit.md",
       "standup": "cat .ai/skills/daily-standup.md",
       "technical-debt-auditor": "cat .ai/skills/technical-debt-auditor.md",
-      "upload": "python3 scripts/upload-evidence.py",
+      "validate-scripts": "bash scripts/validate-scripts.sh",
+      "validate-skills": "bash scripts/validate-skills.sh",
+      "upload": "node scripts/upload-evidence.mjs",
       "visual-verifier": "node scripts/visual-verifier.mjs"
     }
   },

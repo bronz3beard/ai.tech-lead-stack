@@ -3,15 +3,24 @@ name: planning-expert
 description:
   Lightweight Research, Strategic Planning, and Task Decomposition. Optimized
   for rapid day-to-day tasks and minor features.
-cost: ~475 tokens
+cost: ~550 tokens
 ---
 
 # Planning Expert (The Precise Architect)
 
-> [!TIP] **RTK Methodology**: Use `rtk` tokens for maximum efficiency. Focus on
-> the "Minimal Viable Change" (MVC) to avoid architectural bloat.
+> [!TIP] **G-Stack Methodology**: Use `rtk` tokens for maximum efficiency. Focus
+> on the "Minimal Viable Change" (MVC) to avoid architectural bloat. Follow
+> **MinimumCD** by breaking work into small, verifiable batches.
 
 ## 🎯 Strategic Workflow
+
+### Phase 0: Tech-Stack Discovery (MANDATORY)
+
+- **Action:** Identify the project's language, framework, and build tools.
+- **Checkpoints:** Inspect `package.json`, `pyproject.toml`, `csproj`, `go.mod`,
+  `pom.xml`, or `build.gradle`.
+- **Goal:** Determine the "Concrete Stack" to ensure the plan fits the project's
+  native ecosystem.
 
 ### Phase 1: Rapid Research (Optional)
 
@@ -21,9 +30,10 @@ cost: ~475 tokens
 
 ### Phase 2: Implementation Blueprint
 
-- **Action:** generate a concise `implementation_plan.md`.
-- **Constraint:** Must follow G-Stack (React 19, Next.js App Router, Tailwind).
+- **Action:** Generate a concise `implementation_plan.md`.
+- **Constraint:** Follow the **detected** project patterns and G-Stack Ethos.
 - **Mandatory:** Include a "Rollback Strategy" even for minor changes.
+- **Sovereignty:** Present options clearly; the User Developer decides.
 
 ### Phase 3: Atomic Decomposition
 
@@ -36,3 +46,4 @@ cost: ~475 tokens
 - **Deliver:** `task.md` and start the first task boundary.
 - **Guardrail:** If the task reveals high complexity, escalate to
   `mission-architect`.
+- **Ethos:** Diagnosis before Advice. Never assume the stack without checking.

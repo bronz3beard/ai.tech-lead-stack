@@ -29,7 +29,7 @@ jest.mock("../../lib/trace-utils.js", () => ({
 }));
 
 const mockWithAnalytics = jest.fn().mockImplementation(
-  async (_skill, _proj, _mod, _agt, cb) => await cb()
+  async (_skill, _proj, _mod, _agt, _cost, cb) => await cb()
 );
 
 jest.mock("../telemetry.js", () => {
@@ -119,6 +119,7 @@ describe("MCP Server", () => {
         "test-project",
         "gpt-4",
         "test-agent",
+        "unknown",
         expect.any(Function)
       );
     });
@@ -139,9 +140,10 @@ describe("MCP Server", () => {
       expect(result.isError).toBe(false);
       expect(mockWithAnalytics).toHaveBeenCalledWith(
         "test-skill",
-        "fallback-project",
+        "tech-lead-stack",
         undefined,
         undefined,
+        "unknown",
         expect.any(Function)
       );
     });

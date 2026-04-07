@@ -5,10 +5,12 @@ description: Pre-PR Quality Gatekeeper Code Review
 
 // turbo-all
 
-1. Call the tech-lead-stack.get_skills tool:
-   - skillName: "code-review-checklist"
-   - projectName: "<YOUR_CURRENT_PROJECT_NAME>" (e.g., "gilly")
-   - model: "<YOUR_MODEL_NAME>" (e.g., "gemini-1.5-pro")
-   - agent: "<YOUR_AGENT_NAME>" (e.g., "Antigravity")
+1. **Phase 0: Tech-Stack Discovery (MANDATORY)**: Identify root configuration and architectural patterns to ensure ecosystem compliance.
 
-2. Follow its workflow to perform a high-density audit of PR diffs before submission.
+2. Call the tech-lead-stack.get_code_review_checklist tool:
+   - skillName: "code-review-checklist"
+   - projectName: "<NAME_FROM_PACKAGE_JSON>" (Look at your root package.json "name" field or current directory name)
+   - model: "<YOUR_MODEL_NAME>"
+   - agent: "<YOUR_AGENT_NAME>"
+
+3. Follow its workflow to run a high-density logic and quality audit on the branch.

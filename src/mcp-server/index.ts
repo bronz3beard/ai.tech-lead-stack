@@ -1,5 +1,11 @@
 #!/usr/bin/env node
 
+/**
+ * Tech-Lead Stack MCP Server
+ * 
+ * Refactored to follow SOLID principles (SRP, OCP, DIP).
+ */
+
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -7,14 +13,20 @@ import {
   ListToolsRequestSchema,
   Tool,
 } from "@modelcontextprotocol/sdk/types.js";
-import * as fs from "fs/promises";
 import * as path from "path";
-import { Telemetry } from "./telemetry.js";
-import { isSkillTrace } from "../lib/trace-utils.js";
-import { execSync } from "child_process";
 import "dotenv/config";
 
+// New Services
+import { Telemetry } from "./telemetry.js";
+import { FileSystemService } from "./fs-service.js";
+import { Handlers } from "./handlers.js";
+
+const repoRoot = path.resolve(__dirname, "../../");
+
+// Initialize Services
 const telemetry = new Telemetry();
+const fsService = new FileSystemService(repoRoot);
+const handlers = new Handlers(fsService, telemetry);
 
 const server = new Server(
   {
@@ -23,44 +35,32 @@ const server = new Server(
   },
   {
     capabilities: {
-      tools: {},
+      tools: {
+        listChanged: true,
+      },
     },
   }
 );
 
-const repoSkillsDir = path.resolve(__dirname, "../../.ai/skills");
-
+/**
+ * Tool Definitions
+ */
 const LIST_SKILLS_TOOL: Tool = {
   name: "list_skills",
-  description: "Lists all available architectural skills and workflows. Checks both the project-local .ai/skills and the tech-lead-stack source repository.",
-  inputSchema: {
-    type: "object",
-    properties: {},
-  },
+  description: "MANDATORY START: Lists ALL available Tech-Lead Stack architecture skills and workflows.",
+  inputSchema: { type: "object", properties: {} },
 };
 
 const GET_SKILLS_TOOL: Tool = {
   name: "get_skills",
-  description: "Reads the content of one or more skill markdown files. Checks project-local .ai/skills first, then falls back to the tech-lead-stack source repository.",
+  description: "Reads the content of one or more skill markdown files.",
   inputSchema: {
     type: "object",
     properties: {
-      skillName: {
-        type: "string",
-        description: "The name of the skill (without the .md extension), e.g., 'planning-expert'.",
-      },
-      projectName: {
-        type: "string",
-        description: "CRITICAL: The name of the project you are CURRENTLY WORKING ON (e.g., 'gilly'). DO NOT use 'tech-lead-stack' unless you are specifically editing the tech-lead-stack repository itself. Look at your current workspace folder name.",
-      },
-      model: {
-        type: "string",
-        description: "MANDATORY: The LLM model being used (e.g., 'gpt-4o', 'claude-3.5-sonnet', 'gemini-1.5-pro').",
-      },
-      agent: {
-        type: "string",
-        description: "MANDATORY: Name of the agent or client invoking this skill (e.g. 'Cursor Agent', 'Aider').",
-      },
+      skillName: { type: "string" },
+      projectName: { type: "string" },
+      model: { type: "string" },
+      agent: { type: "string" },
     },
     required: ["skillName", "projectName", "model", "agent"],
   },
@@ -69,169 +69,47 @@ const GET_SKILLS_TOOL: Tool = {
 const GET_SKILL_TOOL: Tool = {
   ...GET_SKILLS_TOOL,
   name: "get_skill",
-  description: "Alias for get_skills. Reads the content of a skill markdown file.",
+  description: "CORE EXECUTION: Reads a specific skill (e.g. 'planning-expert').",
 };
 
-server.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: [LIST_SKILLS_TOOL, GET_SKILLS_TOOL, GET_SKILL_TOOL],
-}));
+/**
+ * Handlers: Tool Listing
+ */
+server.setRequestHandler(ListToolsRequestSchema, async () => {
+  const skills = await fsService.getDynamicSkills();
+  const skillToToolName = (skill: string) => `get_${skill.replace(/-/g, "_")}`;
 
-server.setRequestHandler(CallToolRequestSchema, async (request: { params: { name: string; arguments?: Record<string, unknown> } }) => {
+  const dynamicTools: Tool[] = Array.from(skills.entries()).map(([name, meta]) => ({
+    name: skillToToolName(name),
+    description: `[SKILL] ${meta.description} (Standard Cost: ${meta.cost})`,
+    inputSchema: GET_SKILLS_TOOL.inputSchema,
+  }));
+
+  return {
+    tools: [LIST_SKILLS_TOOL, GET_SKILLS_TOOL, GET_SKILL_TOOL, ...dynamicTools],
+  };
+});
+
+/**
+ * Handlers: Tool Execution
+ */
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
-  // Resolve directories
-  const localSkillsDir = path.join(process.cwd(), ".ai", "skills");
-  const searchDirs = [localSkillsDir, repoSkillsDir];
-
   if (name === "list_skills") {
-    try {
-      const allSkills = new Set<string>();
-      
-      // Concurrently read all directories to speed up I/O
-      // We use Promise.all to map over directories and wait for all fs.readdir calls to complete in parallel
-      await Promise.all(
-        searchDirs.map(async (dir) => {
-          try {
-            const files = await fs.readdir(dir);
-            // Only consider markdown files as valid skills
-            files
-              .filter(file => file.endsWith(".md"))
-              .forEach(file => allSkills.add(path.basename(file, ".md")));
-          } catch {
-            // Skip if directory doesn't exist or is unreadable (e.g. project missing local .ai/skills folder)
-          }
-        })
-      );
-      
-      const skillFiles = Array.from(allSkills)
-        .filter(skill => !isSkillTrace(undefined, skill))
-        .sort();
-      
-      return {
-        content: [
-          {
-            type: "text",
-            text: `Available skills (found in ${searchDirs.join(", ")}):\n${skillFiles.map(s => `- ${s}`).join("\n")}`,
-          },
-        ],
-        isError: false,
-      };
-    } catch (error: unknown) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: `Error listing skills: ${error instanceof Error ? error.message : String(error)}`,
-          },
-        ],
-        isError: true,
-      };
-    }
+    return await handlers.handleListSkills();
   }
 
-  if (name === "get_skills" || name === "get_skill") {
-    const { skillName, projectName, model, agent } = args as {
-      skillName: string;
-      projectName?: string;
-      model?: string;
-      agent?: string;
-    };
-
-    const safeSkillName = path.basename(skillName, ".md");
-    let content: string | null = null;
-    let usedPath: string | null = null;
-
-    for (const dir of searchDirs) {
-      const skillPath = path.join(dir, `${safeSkillName}.md`);
-      try {
-        content = await fs.readFile(skillPath, "utf-8");
-        usedPath = skillPath;
-        break; // Found it!
-      } catch {
-        // Continue to fallback
-      }
-    }
-
-    if (content && usedPath) {
-      try {
-        let actualProjectName = projectName;
-        
-        // Robust project detection if projectName is generic or missing
-        if (!actualProjectName || 
-            actualProjectName.toLowerCase() === 'unknown' || 
-            actualProjectName === '.' || 
-            actualProjectName === 'tech-lead-stack') {
-           try {
-              // 1. Try to find a package.json in the current working directory (where the agent is running the tool)
-              const packageJsonContent = await fs.readFile(path.join(process.cwd(), "package.json"), "utf-8");
-              const packageJson = JSON.parse(packageJsonContent);
-              if (packageJson.name && !packageJson.name.includes('tech-lead-stack')) {
-                actualProjectName = packageJson.name;
-              }
-           } catch {
-              // Fallback to git remote if available in CWD
-              try {
-                const remote = execSync('git remote get-url origin', { stdio: 'pipe' }).toString().trim();
-                actualProjectName = path.basename(remote, '.git');
-              } catch {
-                // If we are in tech-lead-stack but the arg was "unknown", we should keep searching or use basename
-                if (actualProjectName === 'tech-lead-stack') {
-                   // Keep it, but this is why we need the agent to pass it correctly
-                } else {
-                   actualProjectName = path.basename(process.cwd());
-                }
-              }
-           }
-        }
-
-        const shouldSkipAnalytics = isSkillTrace(undefined, safeSkillName);
-        
-        const fileContent = shouldSkipAnalytics 
-          ? await content!
-          : await telemetry.withAnalytics(
-              safeSkillName,
-              actualProjectName,
-              model,
-              agent,
-              async () => content!
-            );
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: fileContent,
-            },
-          ],
-          isError: false,
-        };
-      } catch (error: unknown) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error processing skill analytics: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-          isError: true,
-        };
-      }
-    }
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Error: Skill file "${safeSkillName}" not found in any of: ${searchDirs.join(", ")}. Use list_skills to see available skills.`,
-        },
-      ],
-      isError: true,
-    };
+  if (name === "get_skills" || name === "get_skill" || name.startsWith("get_")) {
+    return await handlers.handleGetSkill(name, args || {});
   }
 
   throw new Error(`Unknown tool: ${name}`);
 });
 
+/**
+ * Server Lifecycle
+ */
 async function runServer() {
   const transport = new StdioServerTransport();
   await server.connect(transport);

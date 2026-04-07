@@ -12,6 +12,7 @@ jest.mock('child_process', () => ({
 
 // Mock trace-utils
 jest.mock('../../lib/trace-utils', () => ({
+  ...jest.requireActual('../../lib/trace-utils'),
   isSkillTrace: jest.fn().mockReturnValue(false),
 }));
 
@@ -72,6 +73,7 @@ describe('Telemetry', () => {
         'test-project',
         'test-model',
         'test-agent',
+        undefined,
         mockCallback
       );
 
@@ -106,6 +108,7 @@ describe('Telemetry', () => {
           'test-project',
           'test-model',
           'test-agent',
+          undefined,
           mockCallback
         )
       ).rejects.toThrow('Skill execution failed');
@@ -137,6 +140,7 @@ describe('Telemetry', () => {
           'test-project',
           'test-model',
           'test-agent',
+          undefined,
           mockCallback
         )
       ).rejects.toEqual('String error');

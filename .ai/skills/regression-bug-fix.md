@@ -3,20 +3,23 @@ name: regression-bug-fix
 description:
   Unified Remediation Engine for resolving Design Review (DR), QA, and
   Regression feedback.
-cost: ~1300 tokens
+cost: ~1350 tokens
 ---
 
 # Regression & Feedback Fix (The Remedy Engine)
 
-> [!IMPORTANT] **Persistence & Quality Mindset**: Deep research into the
-> original requirement is the ONLY way to prevent regression of the fix.
->
-> [!IMPORTANT] **Telemetry Tracking**: To maintain high-integrity metrics, you
-> MUST provide accurate `projectName`, `model`, and `agent` when calling
-> `get_skills` to retrieve this skill. Accurate telemetry is CRITICAL for
-> performance and reliability tracking.
+> [!IMPORTANT] **Diagnosis before Advice**: Every fix begins with **Tech-Stack
+> Discovery**. Deep research into the original requirement is the ONLY way to
+> prevent regression of the fix. Follow **G-Stack Ethos**.
 
 ## 🎯 Unified Remediation Loop
+
+### Phase 0: Tech-Stack Discovery (MANDATORY)
+
+- **Action:** Identify root configuration files (`package.json`, `csproj`,
+  etc.).
+- **Goal:** Ensure the fix is natively compatible with the project's
+  architectural patterns.
 
 ### Step 1: Impact Analysis
 
@@ -25,10 +28,11 @@ cost: ~1300 tokens
   Requirement."
 - **Outcome:** Minimal `remediation_plan.md`.
 
-### Step 2: Implementation (G-Stack Alignment)
+### Step 2: Implementation (Methodology Alignment)
 
-- **Action:** Apply fixes using standard G-Stack tokens.
-- **Constraint:** Use `rtk` to minimize context noise.
+- **Action:** Apply fixes using standard **RTK tokens**.
+- **Constraint:** Adhere to detected ecosystem patterns (e.g., proper error
+  handling for the framework).
 
 ### Step 3: Regression Test (Chain: code-review-checklist)
 

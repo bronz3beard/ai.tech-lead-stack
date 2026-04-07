@@ -87,6 +87,35 @@ lead-init
 
 ---
 
+## 🧠 The G-Stack Methodology
+
+The "Tech-Lead Stack" is built upon the **G-Stack Methodology**, a
+technology-agnostic engineering framework inspired by the **garrytan/gstack**
+ethos and **MinimumCD** principles.
+
+### Core Tenets:
+
+1. **Diagnosis before Advice**: Every skill begins with a **Tech-Stack Discovery
+   (Phase 0)** phase. The agent must understand the project's language,
+   framework, and constraints (by inspecting `package.json`, `pyproject.toml`,
+   `csproj`, etc.) before proposing a plan.
+2. **User Sovereignty**: The AI provides high-fidelity recommendations, but the
+   human is the final decision-maker. We favor "AI Recommends, User Decides"
+   over black-box automation.
+3. **MinimumCD Alignment**: We prioritize small, atomic batches of work (<100
+   lines per task), continuous automated verification, and early detection of
+   regression risks.
+4. **Clean Context & RTK Execution**: We use dedicated RTK tools to maintain
+   "Context Hygiene" and ensure every action is repeatable and auditable.
+
+> [!NOTE] **G-Stack is a Methodology, not a Stack**: While the name implies a
+> specific technology set, the Tech-Lead Stack treats "G-Stack" as an
+> engineering philosophy centered on modularity, diagnosis-first planning, and
+> robust verification. It is designed to work seamlessly with C#, Python,
+> JavaScript, Java, Go, and any other ecosystem.
+
+---
+
 ## How to use in any project
 
 ### 3. Usage Options
@@ -97,7 +126,8 @@ If using a web-based agent (Claude.ai, ChatGPT) or starting a fresh session
 without workspace access:
 
 > "Analyze the skills in /path/to/lead-stack/.ai/skills/. You are now a Tech
-> Lead Agent equipped with these workflows. Use rtk for all tool executions."
+> Lead Agent equipped with these workflows. Use ./.ai/rtk-run run <tool> for all
+> tool executions."
 
 #### Option B: The Symlink (Best for Antigravity/Cursor/Claude Code)
 
@@ -191,6 +221,25 @@ Antigravity requires the MCP server to execute tools (like `rtk`).
 
 You can now invoke these workflows in the Agent chat by typing `/` followed by
 the workflow name.
+
+---
+
+name: workflow-clean-code-audit description: Clean Code Audit
+
+---
+
+// turbo
+
+1. **Phase 0: Tech-Stack Discovery (MANDATORY)**: Inspect the project root to
+   identify the primary language and framework.
+
+2. Call the tech-lead-stack.get_skills tool:
+   - skillName: "clean-code"
+   - projectName: "<YOUR_CURRENT_PROJECT_NAME>"
+   - model: "<YOUR_MODEL_NAME>"
+   - agent: "<YOUR_AGENT_NAME>"
+
+3. Follow its workflow to audit architecture and recommend SOLID improvements.
 
 ---
 
@@ -352,20 +401,66 @@ tech-lead-stack/
 
 ---
 
+## 🛠 Technical Overview: Skill Discovery & Priority
+
+To maintain **User Sovereignty** and ensure **Context Hygiene**, the Tech-Lead Stack does not simply read static files. Access to all skills is brokered through the **MCP Server**, which enforces a strict priority of discovery:
+
+1.  **Project-Local Override**: `.ai/skills/` in your current working directory.
+2.  **Global Fallback**: `.ai/skills/` in the `tech-lead-stack` repository.
+
+### Why Go Through the MCP?
+
+- **Customization**: Teams can "fork" a skill for a specific project without modifying the global repository.
+- **Auditability**: Every skill retrieval is wrapped in a **Langfuse Trace** (Telemetry) to track which model, agent, and project are executing specific logic.
+- **Cost Control**: The server captures and reports the "Budgeted Cost" of each skill to prevent uncontrolled LLM spend.
+
+### Priority Logic Snippet:
+
+```typescript
+// src/mcp-server/fs-service.ts
+
+async readSkill(safeSkillName: string) {
+  // Define Search Paths: Local Project has priority over Global Repo
+  const localSkillsDir = path.join(process.cwd(), ".ai/skills");
+  const searchDirs = [localSkillsDir, this.repoSkillsDir];
+
+  for (const dir of searchDirs) {
+    const skillPath = path.join(dir, `${safeSkillName}.md`);
+    try {
+      // Returns the first match found (Local Override logic)
+      const content = await fs.readFile(skillPath, "utf-8");
+      return { content, path: skillPath };
+    } catch {
+      // Continue to Fallback
+    }
+  }
+}
+```
+
+---
+
 ## Available Skills, what they do, how they do it , and what they cost
 
-| Skill                          | Description                                                                                         | How it works                                                                                                    | Use Case                                                                                       | Token Cost   |
-| :----------------------------- | :-------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------- | :----------- |
-| **`mission-architect`**        | Master Blueprint Engine. Orchestrates Strategy -> Research -> Plan -> Deliver for complex features. | Strategic extraction from roadmaps, deep codebase audit, and multi-stage planning via `planning-expert`.        | Designing and executing a major architectural change or multi-file feature.                    | ~1200 tokens |
-| **`planning-expert`**          | Lightweight Research, Strategic Planning, and Task Decomposition for daily coding tasks.            | Rapid codebase scan followed by an atomic G-Stack blueprint and commit-ready task list.                         | Breaking down a standard Jira ticket or bug fix into test-driven steps.                        | ~475 tokens  |
-| **`regression-bug-fix`**       | Unified remediation engine for resolving QA, Design Review (DR), and Regression feedback.           | Maps feedback to code impact, generates a localized remediation plan, and verifies the fix against regressions. | Fixing "Login button misaligned" or "API returning 500" after a QA pass.                       | ~1300 tokens |
-| **`code-review-checklist`**    | High-density pre-commit quality auditor for verifying functionality and G-Stack standards.          | Analyzes local diffs against 3 gates (Spec, SOLID, A11y), ensuring zero `any` types and strict compliance.      | Rapid local verification before running `rtk pr create`.                                       | ~600 tokens  |
-| **`agent-optimizer`**          | Precision tool for maintaining maximum Token-Efficiency and Context Density.                        | Enforces `rtk` wrappers and maintains context hygiene to ensure peak agent performance.                         | Optimizing your active session when context becomes noisy or token usage spans multiple files. | ~500 tokens  |
-| **`clean-code`**               | Architectural auditor enforcing SOLID principles and programmatic standards (KISS, DRY, YAGNI).     | Scans for "God Objects" and tight coupling. Recommends strategy patterns and colocation of code.                | Checking a new feature branch before merging to prevent technical debt.                        | ~880 tokens  |
-| **`security-audit`**           | Cross-platform security scanner detecting malware, prompt injection, and exfiltration.              | Scans skills, scripts, and inputs for malicious patterns (`curl \| bash`, `eval()`).                            | Running on agent-generated scripts to ensure no backdoors are introduced.                      | ~495 tokens  |
-| **`pr-automator`**             | Automates G-Stack Pull Requests with synthesized diffs and verification evidence.                   | Fetches visual proof (screenshots) and maps code changes to the original Strategic Mission.                     | Finalizing a feature branch into a professional, evidence-backed PR.                           | ~875 tokens  |
-| **`visual-verifier`**          | Captures before/after screen evidence for visual smoke testing.                                     | Runs local app via Playwright and captures Desktop/Mobile screenshots for the PR body.                          | Proving that a CSS fix works as intended across different viewports.                           | ~375 tokens  |
-| **`changelog-generator`**      | Transforms Git history into user-facing release notes with strict noise filtering.                  | Ingests `git log`, groups by semantic commit type, filters noise, and formats to Markdown.                      | Generating clean release notes for stakeholders.                                               | ~670 tokens  |
-| **`daily-standup`**            | Generates a daily status update by analyzing 48h of git activity and task progress.                 | Categorizes commits, assess blockers, and generates a rolling report using a professional standup template.     | Automating your daily update or summarizing work for a sync meeting.                           | ~500 tokens  |
-| **`product-strategist`**       | Strategic roadmap auditor validating market positioning and Impact vs. Effort.                      | Scans metrics and positioning to ensure current implementation work maps to high-ROI customer goals.            | Auditing a proposed feature list against the core product vision.                              | ~750 tokens  |
-| **`feature-design-assistant`** | Architectural discovery engine for pre-implementation prototyping.                                  | Discovers existing patterns and generates technical specs before the first line of code is written.             | High-level ideation for a new service or module.                                               | ~700 tokens  |
+## Available Skills, what they do, how they do it , and what they cost
+
+| Skill                          | Description                                                                                         | How it works                                                                                                    | Use Case                                                                                       | Est. Context Footprint |
+| :----------------------------- | :-------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------- | :--------------------- |
+| **`mission-architect`**        | Master Blueprint Engine. Orchestrates Strategy -> Research -> Plan -> Deliver for complex features. | Strategic extraction from roadmaps, deep codebase audit, and multi-stage planning via `planning-expert`.        | Designing and executing a major architectural change or multi-file feature.                    | ~1300 tokens           |
+| **`planning-expert`**          | Lightweight Research, Strategic Planning, and Task Decomposition for daily coding tasks.            | Rapid codebase scan followed by an atomic G-Stack blueprint and commit-ready task list.                         | Breaking down a standard Jira ticket or bug fix into test-driven steps.                        | ~550 tokens            |
+| **`regression-bug-fix`**       | Unified remediation engine for resolving QA, Design Review (DR), and Regression feedback.           | Maps feedback to code impact, generates a localized remediation plan, and verifies the fix against regressions. | Fixing "Login button misaligned" or "API returning 500" after a QA pass.                       | ~1350 tokens           |
+| **`code-review-checklist`**    | High-density pre-commit quality auditor for verifying functionality and G-Stack standards.          | Analyzes local diffs against 3 gates (Spec, SOLID, A11y), ensuring zero `any` types and strict compliance.      | Rapid local verification before running `./.ai/rtk-run run create-pr`.                         | ~650 tokens            |
+| **`agent-optimizer`**          | Precision tool for maintaining maximum Token-Efficiency and Context Density.                        | Enforces `./.ai/rtk-run` wrappers and maintains context hygiene to ensure peak agent performance.               | Optimizing your active session when context becomes noisy or token usage spans multiple files. | ~550 tokens            |
+| **`clean-code`**               | Architectural auditor enforcing SOLID principles and programmatic standards (KISS, DRY, YAGNI).     | Scans for "God Objects" and tight coupling. Recommends strategy patterns and colocation of code.                | Checking a new feature branch before merging to prevent technical debt.                        | ~950 tokens            |
+| **`security-audit`**           | Cross-platform security scanner detecting malware, prompt injection, and exfiltration.              | Scans skills, scripts, and inputs for malicious patterns (`curl \| bash`, `eval()`).                            | Running on agent-generated scripts to ensure no backdoors are introduced.                      | ~550 tokens            |
+| **`pr-automator`**             | Automates G-Stack Pull Requests with synthesized diffs and verification evidence.                   | Fetches visual proof (screenshots) and maps code changes to the original Strategic Mission.                     | Finalizing a feature branch into a professional, evidence-backed PR.                           | ~950 tokens            |
+| **`visual-verifier`**          | Captures before/after screen evidence for visual smoke testing.                                     | Runs local app via Playwright and captures Desktop/Mobile screenshots for the PR body.                          | Proving that a CSS fix works as intended across different viewports.                           | ~450 tokens            |
+| **`changelog-generator`**      | Transforms Git history into user-facing release notes with strict noise filtering.                  | Ingests `git log`, groups by semantic commit type, filters noise, and formats to Markdown.                      | Generating clean release notes for stakeholders.                                               | ~750 tokens            |
+| **`daily-standup`**            | Generates a daily status update by analyzing 48h of git activity and task progress.                 | Categorizes commits, assess blockers, and generates a rolling report using a professional standup template.     | Automating your daily update or summarizing work for a sync meeting.                           | ~550 tokens            |
+| **`product-strategist`**       | Strategic roadmap auditor validating market positioning and Impact vs. Effort.                      | Scans metrics and positioning to ensure current implementation work maps to high-ROI customer goals.            | Auditing a proposed feature list against the core product vision.                              | ~850 tokens            |
+| **`feature-design-assistant`** | Architectural discovery engine for pre-implementation prototyping.                                  | Discovers existing patterns and generates technical specs before the first line of code is written.             | High-level ideation for a new service or module.                                               | ~800 tokens            |
+
+> [!NOTE] The **Est. Context Footprint** listed above refers to the budgeted
+> tokens required to load the skill's instructions into the agent's context.
+> Live execution costs may vary depending on the LLM model and project size, but
+> are tracked accurately via Langfuse telemetry to provide baseline reliability
+> across the entire developer workforce.

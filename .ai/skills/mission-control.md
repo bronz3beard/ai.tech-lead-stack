@@ -4,78 +4,63 @@ description:
   High-integrity pre-flight diagnostic to verify environment, tools, and skill
   dependencies.
 capabilities: [filesystem_access, rtk_execution, shell_access]
-cost: ~615 tokens
+cost: ~650 tokens
 ---
 
 # Mission Control (Pre-Flight Check)
 
-> [!IMPORTANT] **Persistence & Quality Mindset**: There is no reward for
-> completion. The reward comes from persistence on resolving the issue to an
-> extremely high standard and also by results and consistent iteration on a
-> task. Maintaining context and persisting on the task has a much higher
-> feedback loop of success than just completing a request.
+> [!IMPORTANT] **Persistence & Methodology**: The reward comes from persistence
+> on resolving the issue to an extremely high standard. Every mission begins
+> with verifying the **G-Stack Environment**.
 
 ## 🎯 Verification Gates
 
 ### Gate 1: Environment Readiness
 
-- **Positive (GO):** Found valid `.env`, authenticated GitHub CLI (`gh`), and
-  accessible browser profile path.
-- **Negative (ABORT):** Missing `.env` variables or `gh auth status` fails.
+- **Positive (GO):** Found valid `.env`, authenticated tool CLIs (e.g., `gh`),
+  and essential project configuration files.
+- **Negative (ABORT):** Missing `.env` variables or auth failures.
 - **Action:** Immediately halt processes and print the exact bash command the
   user needs to run to fix it.
 
-### Gate 2: Agent Skill Integrity
+### Gate 2: Tech-Stack Discovery (Ecosystem Detection)
+
+- **Action:** Detect the primary project language and build system
+  (`package.json`, `csproj`, `go.mod`, etc.).
+- **Validation:** Ensure the detected stack is supported by the available RTK
+  tools.
+
+### Gate 3: Agent Skill Integrity
 
 - **Positive (GO):** All mandatory `.ai/skills/*.md` files are readable and
-  `rtk list` successfully maps to scripts.
-- **Negative (ABORT):** Core skills missing, or `rtk.tools` configuration in
-  `package.json` is broken/missing.
-- **Action:** Halt the mission-control scan and instruct the user to run the
-  `install.sh --link .` reset.
+  `rtk run list` successfully maps to scripts.
+- **Negative (ABORT):** Core skills missing, or `rtk.tools` configuration is
+  broken.
 
-## Objective
-
-To ensure the local environment is fully operational and that the "Agent Brain"
-has all required skill modules loaded to prevent orchestration failures.
+---
 
 ## Workflow Execution
 
 ### 1. Skill Discovery (The Brain)
 
 Verify that all core skill modules are present in the `.ai/skills/` directory.
-The agent must "read" these into context before proceeding:
-
-- [ ] `planning-expert.md`
-- [ ] `quality-gatekeeper.md`
-- [ ] `pr-automator.md`
-- [ ] `visual-verifier.md`
-- [ ] `qa-remediation.md` (Orchestrator)
 
 ### 2. Environment Integrity (The ID)
 
-- **.env Verification**: Check for `.env` in the toolbox root.
-- **Path Validation**: Verify `CHROME_PROFILE_PATH` exists on the local
-  filesystem.
-- **Auth Status**: Run `gh auth status` to ensure a valid GitHub session.
+- **Environment Verification**: Check for `.env` or required secrets.
+- **Auth Status**: Run `gh auth status` or equivalent for the project's VCS.
 
 ### 3. Execution Layer (The Hands)
 
-- **RTK Check**: Run `rtk list` and verify the mapping for:
-  - `eval` -> `scripts/autoeval-check.js`
-  - `create-pr` -> `scripts/gh-pr-create.sh`
-  - `upload` -> `scripts/upload-evidence.py`
-  - `cleanup` -> `scripts/cleanup.sh`
+- **RTK Check**: Run `rtk run list` and verify the mapping for core scripts.
 
 ### 4. Dependency Audit (The Vitals)
 
-- **Python**: Check if `playwright` and `dotenv` are importable.
-- **Playwright**: Check if the Chromium binary is installed
-  (`npx playwright install --dry-run`).
+- **Runtime**: Verify the primary runtime version (Node, Python, .NET, etc.).
+- **Tools**: Check if required CLI tools (Playwright, Git, etc.) are installed.
 
 ## Outcome
 
-- **GO**: "All systems operational. Skills mapped. Tools verified. Mission is a
-  GO."
-- **ABORT**: "Pre-flight failure detected in [Section Name]. Please run
-  `lead-init` or address the following: [List of missing items]."
+- **GO**: "All systems operational. Ecosystem detected. Mission is a GO."
+- **ABORT**: "Pre-flight failure detected. Please run lead-init or address
+  missing items."

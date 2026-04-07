@@ -1,13 +1,15 @@
 ---
 name: tech-lead-stack-skills
 description: Precision Edition skill index for the Tech Lead Stack.
+cost: ~tokens
 ---
 
 # Tech Lead Stack Skills (Precision Edition)
 
 > [!IMPORTANT] This index defines the "Precision Toolbox." It is organized into
 > **Developer-Facing Tools** (for direct invocation) and **Agent-Internal Core**
-> (used by the AI to maintain architectural fidelity).
+> (used by the AI to maintain architectural fidelity). All skills follow the
+> **G-Stack Methodology**: Diagnosis before Advice.
 
 ## 🛠 Developer-Facing Toolbox
 
@@ -22,11 +24,11 @@ description: Precision Edition skill index for the Tech Lead Stack.
 - [[code-review-checklist]] : Pre-commit QA gate for developers.
 - [[agent-optimizer]] : Token-efficiency and Context density manager.
 - [[pr-automator]] : Context-aware PR generation.
-- [[visual-verifier]] : Multi-platform smoke testing and media upload.
+- [[visual-verifier]] : Multi-platform smoke testing and media captured.
 
 ### Specialized Logic
 
-- [[clean-code]] : SOLID patterns and G-Stack alignment.
+- [[clean-code]] : SOLID patterns and Methodology alignment.
 - [[security-audit]] : Production-ready security screening.
 - [[product-strategist]] : Evaluates product strategy and alignment.
 - [[feature-design-assistant]] : Discovery and architectural design engine.
@@ -41,3 +43,4 @@ description: Precision Edition skill index for the Tech Lead Stack.
 - [[mission-control]] : Pre-flight diagnostics and MinimumCD verification.
 - [[technical-debt-auditor]] : Identifies and evaluates technical debt.
 - [[codebase-onboarding-intelligence]] : Global onboarding and context logic.
+- [[style-logic-exporter]] : Design token extraction for code alignment.

@@ -5,10 +5,12 @@ description: Daily Standup Report
 
 // turbo-all
 
-1. Call the tech-lead-stack.get_skills tool:
-   - skillName: "daily-standup"
-   - projectName: "<YOUR_CURRENT_PROJECT_NAME>" (e.g., "gilly")
-   - model: "<YOUR_MODEL_NAME>" (e.g., "gemini-1.5-pro")
-   - agent: "<YOUR_AGENT_NAME>" (e.g., "Antigravity")
+1. **Phase 0: Tech-Stack Discovery (MANDATORY)**: Identify the project root configuration files to determine the project name and primary branch history.
 
-2. Follow its workflow to generate a rolling 2-day standup report from git activity.
+2. Call the tech-lead-stack.get_skills tool:
+   - skillName: "daily-standup"
+   - projectName: "<YOUR_CURRENT_PROJECT_NAME>"
+   - model: "<YOUR_MODEL_NAME>"
+   - agent: "<YOUR_AGENT_NAME>"
+
+3. Follow its workflow to generate a rolling 2-day standup report from git activity.

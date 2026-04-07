@@ -2,8 +2,8 @@
 name: changelog-generator
 description:
   High-density semantic changelog processor. Transforms Git history into
-  user-facing release notes with strict noise filtering.
-cost: ~670 tokens
+  user-facing release notes.
+cost: ~750 tokens
 ---
 
 # Changelog Generator (Semantic Processor)
@@ -12,63 +12,62 @@ cost: ~670 tokens
 > completion. The reward comes from persistence on resolving the issue to an
 > extremely high standard and also by results and consistent iteration on a
 > task. Maintaining context and persisting on the task has a much higher
-> feedback loop of success than just completing a request.
+> feedback loop of success than just completing a request. [!IMPORTANT]
+> **Diagnosis before Advice**: Every generation begins with **Tech-Stack
+> Discovery**. Identify the project's versioning file (`package.json`,
+> `VERSION`, etc.) and semantic prefix culture before processing. Follow
+> **G-Stack Ethos**.
 
 ## 🎯 Verification Gates
 
-### Gate 1: Commit Noise Filtering (Positive/Negative Scan)
+### Phase 0: Tech-Stack Discovery (MANDATORY)
+
+- **Action:** Identify root configuration and versioning files.
+- **Goal:** Determine the project's versioning strategy (SemVer, CalVer) and
+  detected commit prefix conventions.
+
+### Gate 1: Commit Noise Filtering
 
 - **Positive (Elevate):** Commits starting with `feat:`, `fix:`, `perf:`, or
-  containing user-impact keywords (e.g., "Interface," "Speed," "Dashboard").
+  containing user-impact keywords.
 - **Negative (Discard):** Commits starting with `chore:`, `refactor:`, `test:`,
-  `docs:`, or messages like "wip," "checkpoint," "cleanup."
-- **Action:** Explicitly strip all Negative Outcome commits from the final
-  output.
+  `docs:`, or generic messages.
 
 ### Gate 2: Technical Translation
 
 - **Positive Outcome (Pass):** Technical terms are mapped to benefits (e.g.,
-  "Implemented WebSocket" → "Real-time updates").
-- **Negative Outcome (Fail):** Output contains internal jargon, database table
-  names, or developer-only context.
-- **Action:** If Negative, force a re-translation focused on the "Value
-  Proposition" from `product-strategist.md`.
+  "Refactored Auth" → "Faster, more secure login").
+- **Action:** Focus on the "Value Proposition" relevant to the project's goals.
 
 ### Gate 3: Formatting & Structure
 
 - **Positive Outcome (Pass):** Adheres to "Keep a Changelog" standards; uses
-  Emojis for quick scannability; groups by Category.
-- **Negative Outcome (Fail):** Single list of bullets; lacks version headers;
-  inconsistent formatting.
-- **Action:** Re-format using the standardized Markdown template provided below.
+  Emojis and grouping.
+
+---
 
 ## 🔍 Critical Patterns to Detect
 
 ### 1. Breaking Changes
 
 - **Pattern:** Commits containing `BREAKING CHANGE:` or `!`.
-- **Action:** Move to the top under a 🚨 **Breaking Changes** header with
-  remediation instructions.
+- **Action:** Move to a dedicated 🚨 **Breaking Changes** header.
 
 ### 2. Contributor Attribution
 
-- **Action:** (Optional) Map commit hashes to GitHub profiles if the `gh` CLI is
-  available.
+- **Action:** Map commit hashes to profiles if the VCS CLI is available.
 
-## 🛠 Execution Workflow (Pattern Mapping)
+---
 
-### Step 1: Git Ingestion
+## 🛠 Execution Workflow
 
-- Run `git log --oneline --since="7 days ago"` (or specific range).
-- Group by semantic commit type (Conventional Commits).
-
-### Step 2: Semantic Categorization
-
-| Category            | Keywords / Triggers                          |
-| :------------------ | :------------------------------------------- |
-| **✨ Features**     | `feat`, `new`, `added`                       |
-| **🔧 Improvements** | `perf`, `refactor` (if user-impactful), `ui` |
-| **🐛 Fixes**        | `fix`, `resolved`, `patched`                 |
+1. **Git Ingestion**:
+   - Run `git log --oneline --since="7 days ago"` (or specific range).
+2. **Semantic Categorization**:
+   - Map prefixes (feat, fix, perf, refactor, poc, docs, test, chore) to
+     human-readable categories.
+3. **Drafting**:
+   - Summarize work using the template below.
 
 ## 📦 Deliverable Template
 

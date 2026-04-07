@@ -1,71 +1,69 @@
 ---
 name: style-logic-exporter
 description:
-  Extracts design tokens (colors, spacing, radii) and style logic from code for
-  Figma translation.
-cost: ~500 tokens
+  Extracts design tokens and style logic from code for design-to-code alignment.
+cost: ~550 tokens
 ---
 
 # Style Logic Exporter (The Design Bridge)
 
 > [!TIP] **Figma-First Logic**: This skill bridges the gap between raw
 > CSS/Tailwind and Figma Make prompts. Focus on extracting re-usable tokens over
-> one-off styles.
+> one-off styles. [!IMPORTANT] **Diagnosis before Advice**: Every extraction
+> begins with **Tech-Stack Discovery**. Identify the project's styling engine
+> (Tailwind, CSS Modules, Styled Components, etc.) before analyzing patterns.
+> Follow **G-Stack Ethos**.
 
 ## 🎯 Logic Extraction Workflow
+
+### Phase 0: Tech-Stack Discovery (MANDATORY)
+
+- **Action:** Scan root configuration files for styling dependencies.
+- **Goal:** Identify the styling engine and primary configuration
+  source-of-truth.
 
 ### Phase 1: Style & Component Discovery
 
 - **Action:** Scan the codebase for style definitions AND component
   architecture.
-- **Priority:** Proactively seek out isolated design systems (e.g., libraries,
-  monorepo packages), Storybook configurations (`.storybook/`), and primary
-  `components/` directories before deep-diving into individual CSS files.
-- **Targets:** `globals.css`, `tailwind.config.{js,ts,mjs}`, Storybook configs,
-  dedicated UI packages/folders, and component-level `main.css` files.
-- **Outcome:** List of files and directories containing the source of truth for
-  the design system and component logic.
+- **Priority:** Seek out design systems, Storybook configs, and primary UI
+  directories.
+- **Targets:** Config files (e.g., `tailwind.config`, `theme.ts`), global CSS
+  entry points, and component-level style files.
 
 ### Phase 2: Pattern Identification
 
-- **Action:** Identify the most frequent and standardized values across the
-  files, focusing heavily on utility class usage.
+- **Action:** Identify standardized values across the codebase.
 - **Heuristics:**
-  - **Tailwind Syntax:** Track the most common utility prefixes (e.g.,
-    `text-primary-*`, `bg-slate-*`, `rounded-*`, `p-*`, `m-*`).
-  - **Component Composition:** Analyze how utility classes are grouped to build
-    larger UI elements (e.g., identifying standard button styles, card layouts,
-    and typical flex/grid row compositions).
-  - **Colors:** Identify hardcoded Hex codes vs. CSS variables vs. Tailwind
-    theme colors.
-  - **Radius/Spacing:** Map standard Tailwind steps (e.g., `p-4` = 16px) to
-    their pixel equivalents for the designer.
-  - **Forbidden Patterns:** Find inconsistent or "anti-pattern" styles (e.g.,
-    inline styles `style={{...}}`, arbitrary Tailwind values like `w-[31px]`).
+  - **Syntax Compliance:** Track the most common utility prefixes or property
+    patterns (e.g., `text-primary-*`, `--clr-brand`, `styled.div`).
+  - **Composition:** Analyze how atomic styles are grouped to build UI elements
+    (Cards, Buttons, Layouts).
+  - **Scale Scaling:** Map spacing, radius, and typography scales to their
+    implementation equivalents.
+  - **Anti-Patterns:** Identify inline styles or arbitrary values that avoid the
+    system.
 
-### Phase 3: Figma Translation
+### Phase 3: Documentation Translation
 
-- **Action:** Format the extracted logic into a concise instruction block for a
-  designer.
-- **Standard:** Use the "Figma Make" compatible format below.
+- **Action:** Format the extracted logic into a concise instruction block.
+- **Outcome:** A "Design System Instruction Block" for a designer or architect.
 
 ## 🛠 Outcome Actions
 
-Output a "Figma Make Instruction Block":
+Output a "System Specification Block":
 
-"Designer, use these values in your Figma Make prompts to match the codebase:
+"Designer/Developer, use these system values to match the codebase:
 
-- Brand Colors: [List Hex] (Mapped to Tailwind: e.g., bg-primary-500)
-- Standard Radius: [Value in px] (Mapped to Tailwind: e.g., rounded-md)
-- Spacing Scale: [e.g., 8px base] (Mapped to Tailwind: e.g., gap-2, p-4)
-- Common Compositions: [e.g., Cards usually use 'p-4 rounded-lg border
-  border-gray-200']
-- Forbidden Patterns: [e.g., Avoid custom hex codes, avoid shadows larger than
-  'shadow-md']"
+- Brand Colors: [List Values] (Mapped to: [Ecosystem Property])
+- Standard Radius: [Value] (Mapped to: [Ecosystem Property])
+- Spacing Scale: [Scale] (Mapped to: [Ecosystem Property])
+- Common Compositions: [Standards for Cards/Buttons]
+- System Deviations: [What to avoid]"
 
 ## 🔍 Critical Patterns to Detect
 
-- **G-Stack Compliance:** If Tailwind is present, prioritize Tailwind's config
-  as the source of truth.
-- **Normalization:** Convert HSL/RGB to Hex if required by the designer's
-  workflow.
+- **Source of Truth:** Prioritize the project's primary config (e.g., Detected
+  Config File) over ad-hoc component styles.
+- **Normalization:** Convert units (px, rem, hsl) to the project's preferred
+  format.

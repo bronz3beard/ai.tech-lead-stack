@@ -3,57 +3,56 @@ name: clean-code
 description:
   High-density architectural auditor. Enforces SOLID as the primary structural
   framework and pragmatic standards (KISS, DRY, YAGNI) for implementation.
-cost: ~880 tokens
+cost: ~950 tokens
 ---
 
 # Clean Code & SOLID Auditor
 
-> [!IMPORTANT] **Persistence & Quality Mindset**: There is no reward for
-> completion. The reward comes from persistence on resolving the issue to an
-> extremely high standard and also by results and consistent iteration on a
-> task. Maintaining context and persisting on the task has a much higher
-> feedback loop of success than just completing a request.
+> [!IMPORTANT] **G-Stack Methodology**: Every audit begins with **Tech-Stack
+> Discovery**. The auditor must understand the project's native constraints
+> before applying SOLID principles. Follow **MinimumCD** by prioritizing small,
+> verifiable logic blocks. There is no reward for completion. The reward comes
+> from persistence on resolving the issue to an extremely high standard and also
+> by results and consistent iteration on a task.
 
 ## 🎯 Verification Gates (SOLID Framework)
+
+### Phase 0: Tech-Stack Discovery (MANDATORY)
+
+- **Action:** Identify language-specific SOLID patterns (e.g., Interfaces in
+  Java/C#, Composition in Go/Rust, Protocols in Swift).
+- **Goal:** Ensure the audit is context-aware and respects the project's
+  architectural style.
 
 ### Gate 1: S - Single Responsibility (SRP)
 
 - **Positive (Signal):** Each function/class has one reason to change; logic is
-  encapsulated by domain. Functions are 5-10 lines.
+  encapsulated by domain. Functions are concise (typically 5-20 lines).
 - **Negative (Noise):** "God Objects"; mixing UI, state, and API logic; deep
   nesting (>2 levels); side effects in pure functions.
-- **Action:** If Negative, trigger `Decomposition Workflow` to split logic into
-  atomic components.
 
 ### Gate 2: O & L - Open/Closed & Liskov Substitution (OCP/LSP)
 
 - **Positive (Verified):** Code is extendable via composition/interfaces without
-  modifying source; subclasses replace parents seamlessly without breaking
-  contracts.
+  modifying source; subclasses/implementations replace parents seamlessly
+  without breaking contracts.
 - **Negative (Risk):** Massive `if/else` or `switch` chains for type handling;
-  methods throwing "Not Implemented" in subclasses.
-- **Action:** Refactor using the **Strategy Pattern** or **Polymorphism** to
-  ensure extensibility.
+  methods throwing "Not Implemented" errors.
 
 ### Gate 3: I & D - Interface Segregation & Dependency Inversion (ISP/DIP)
 
-- **Positive Outcome (Pass):** Interfaces are granular (clients don't depend on
-  unused methods); high-level modules depend on abstractions (Dependency
+- **Positive Outcome (Pass):** Interfaces are granular; high-level modules
+  depend on abstractions rather than concrete implementations (Dependency
   Injection).
 - **Negative Outcome (Fail):** "Fat" interfaces; hardcoded `new` instances in
   constructors; tight coupling to specific drivers or third-party APIs.
-- **Action:** Implement **Dependency Injection** and split interfaces into
-  specific, granular contracts.
 
 ### Gate 4: Pragmatic Logic (KISS, DRY, YAGNI)
 
 - **Positive (Verified):** Zero duplicated logic; simplest solution that works;
-  intent-revealing names (`isActive` vs `flag`); related code is colocated.
+  intent-revealing names; related code is colocated.
 - **Negative (Ambiguous):** Over-engineering (Factories for < 2 objects); magic
-  numbers; abbreviations (`ptr`, `idx`); "Helper" files for one-liners.
-- **Action:** Inline over-engineered logic, replace magic numbers with Named
-  Constants, and choose **duplication over unnecessary abstraction** if the
-  abstraction adds complexity.
+  numbers; abbreviations; "Helper" files for one-liners.
 
 ## 🔍 Critical Patterns to Detect
 
@@ -66,17 +65,16 @@ cost: ~880 tokens
 ### 2. Structural Integrity Check
 
 - **Detect:** Unreachable code, circular dependencies, and misplaced files.
-- **Action:** Run `scripts/verify-stack.sh` and block completion if
-  linting/types fail.
+- **Action:** Run the project's native `lint` or `test` commands via `rtk run`.
 
 ## 🛠 Execution Layer (RTK Tool Mapping)
 
-| Agent Role    | RTK Validation Command            |
-| ------------- | --------------------------------- |
-| **Tech Lead** | `./.ai/rtk-run run gatekeeper`    |
-| **Security**  | `./.ai/rtk-run run security-scan` |
-| **Quality**   | `./.ai/rtk-run run eval`          |
-| **Any Role**  | `python3 scripts/verify-stack.sh` |
+| Agent Role    | RTK Validation Command  |
+| ------------- | ----------------------- |
+| **Tech Lead** | `rtk run gatekeeper`    |
+| **Security**  | `rtk run security-scan` |
+| **Quality**   | `rtk run eval`          |
+| **Any Role**  | `rtk run validate`      |
 
 ## 🔴 Script Output Handling (READ → SUMMARIZE → ASK)
 
