@@ -39,10 +39,11 @@ cost: ~1200 tokens
 ### Gate 2: Evidence & Quality Formatting
 
 - **Positive (Verified):** UI changes have local screenshots uploaded to GitHub
-  storage via `visual-verifier` and `upload-to-github.mjs`.
+  storage via `rtk run visual-verifier` and `rtk run github-upload`.
 - **Negative (Risk):** Required fields in the detected PR template are blank,
   especially the "Screenshots" section if UI was touched.
-- **Action:** Ensure all checklist items are addressed based on diff data.
+- **Action:** If an internal tool fails, **STOP** and ask the user. Do not
+  research noise. Ensure all checklist items are addressed based on diff data.
 
 ---
 
@@ -68,8 +69,11 @@ cost: ~1200 tokens
    - **MANDATORY**: If UI changes are detected, run `rtk run visual-verifier` to
      capture **Desktop**, **Tablet**, and **Mobile** screenshots.
    - **Upload**: For each captured screenshot, run
-     `node scripts/upload-to-github.mjs <REPO_URL> <FILE_PATH>` to get the
-     remote GitHub asset URL.
+     `rtk run github-upload <REPO_URL> <FILE_PATH>` to get the remote GitHub
+     asset URL.
+   - **MANDATORY**: If `github-upload` fails with "command not found" or "no
+     such file", do NOT search the filesystem. **STOP** and report to the user
+     that the Tech-Lead Stack uploader is missing.
    - **Metadata**:
      - Run `gh label list --json name` to fetch available repository labels.
      - Determine appropriate reviewers.

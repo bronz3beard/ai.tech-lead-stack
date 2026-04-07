@@ -58,8 +58,10 @@ also by results and consistent iteration on a task.
      - **Mobile**: 375x667
 3. **Execution & Proof of Work**:
    - Capture screenshots using the specified resolutions.
-   - Use `node scripts/upload-to-github.mjs <REPO_URL> <FILE_PATH>` to upload
-     captured screenshots to GitHub storage and retrieve permanent Markdown
-     URLs.
+   - Use `rtk run github-upload <REPO_URL> <FILE_PATH>` to upload captured
+     screenshots to GitHub storage and retrieve permanent Markdown URLs.
+   - **MANDATORY**: If `github-upload` fails with "command not found" or "no
+     such file", do NOT search the filesystem. **STOP** and report to the user
+     that the Tech-Lead Stack uploader is missing.
 4. **Validation**: Confirm "Smoke Test Passed" once visual parity is confirmed
    across all viewports.
