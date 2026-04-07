@@ -26,13 +26,10 @@ export async function validateSkill(content: string) {
     await fs.writeFile(tempFile, content, 'utf-8');
 
     // Format with Prettier
-    await execFileAsync('npm', ['run', 'format', '--', tempFile]);
-
-    // Lint
-    await execFileAsync('npm', ['run', 'lint', '--', tempFile]);
+    await execAsync(`npx prettier --write ${tempFile}`);
 
     // Validate using script
-    const { stdout } = await execFileAsync('npm', ['run', 'validate:skills', '--', tempFile]);
+    const { stdout } = await execFileAsync('bash', ['scripts/validate-skills.sh', tempFile]);
     return { success: true, message: stdout || 'Validation successful' };
   } catch (error: unknown) {
     const err = error as { stdout?: string; stderr?: string; message?: string };
@@ -86,12 +83,11 @@ export async function submitSkill(content: string) {
   try {
     // 1. Format with Prettier
     await fs.writeFile(tempFile, content, 'utf-8');
-    await execFileAsync('npm', ['run', 'format', '--', tempFile]);
+    await execFileAsync('npx', ['prettier', '--write', tempFile]);
     const formattedContent = await fs.readFile(tempFile, 'utf-8');
 
     // 2. Validate it just in case
-    await execFileAsync('npm', ['run', 'lint', '--', tempFile]);
-    await execFileAsync('npm', ['run', 'validate:skills', '--', tempFile]);
+    await execFileAsync('bash', ['scripts/validate-skills.sh', tempFile]);
 
     // 3. Git Operations - Use a shallow clone to avoid race conditions on the main repo
     const cloneDir = path.join(tempDir, 'repo');

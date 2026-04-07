@@ -14,10 +14,9 @@ export default async function NewSkillPage() {
 
   let initialTemplate = '';
   try {
-    const templatePath = path.join(process.cwd(), '.ai', 'skills', 'SKILL.md');
+    const templatePath = path.join(process.cwd(), 'templates', 'SKILL_TEMPLATE.md');
     initialTemplate = await fs.readFile(templatePath, 'utf-8');
-  } catch (error) {
-    console.error('Failed to read SKILL.md template:', error);
+  } catch {
     // Provide a fallback template if the file is missing
     initialTemplate = `---
 name: new-skill
@@ -27,14 +26,17 @@ cost: ~tokens
 
 # New Skill
 
-## Context
-Provide context here.
-
 > [!IMPORTANT]
-> All skills follow the **G-Stack Methodology**: Diagnosis before Advice.
+> All skills must follow the **G-Stack Methodology**: Diagnosis before Advice.
 
-## Instructions
-Provide instructions here. Ensure MinimumCD automated test strategies are included.
+## Phase 0: Tech-Stack Discovery & Diagnosis
+*Before providing any advice, list steps to diagnose the current state and tech stack.*
+
+## Phase 1: Action & Implementation
+*Describe the exact steps to implement the fix or feature.*
+
+## MinimumCD & Quality Verification
+*List the automated test strategies required to verify this skill's output.*
 `;
   }
 

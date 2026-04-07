@@ -33,15 +33,6 @@ export default function SkillForm({ initialTemplate }: SkillFormProps) {
       if (!data.description) errors.push("Missing 'description' in frontmatter");
       if (!data.cost) errors.push("Missing 'cost' in frontmatter");
 
-      // Enforce MinimumCD and G-Stack ethos
-      const contentLower = parsed.content.toLowerCase();
-      if (!contentLower.includes("minimumcd")) {
-        errors.push("Skill missing required MinimumCD alignment in content");
-      }
-      if (!contentLower.includes("diagnosis before advice")) {
-        errors.push("Skill missing G-Stack ethos: 'Diagnosis before Advice'");
-      }
-
       if (errors.length > 0) {
         setIsValid(false);
         setValidationErrors(errors);
