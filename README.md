@@ -403,16 +403,22 @@ tech-lead-stack/
 
 ## 🛠 Technical Overview: Skill Discovery & Priority
 
-To maintain **User Sovereignty** and ensure **Context Hygiene**, the Tech-Lead Stack does not simply read static files. Access to all skills is brokered through the **MCP Server**, which enforces a strict priority of discovery:
+To maintain **User Sovereignty** and ensure **Context Hygiene**, the Tech-Lead
+Stack does not simply read static files. Access to all skills is brokered
+through the **MCP Server**, which enforces a strict priority of discovery:
 
 1.  **Project-Local Override**: `.ai/skills/` in your current working directory.
 2.  **Global Fallback**: `.ai/skills/` in the `tech-lead-stack` repository.
 
 ### Why Go Through the MCP?
 
-- **Customization**: Teams can "fork" a skill for a specific project without modifying the global repository.
-- **Auditability**: Every skill retrieval is wrapped in a **Langfuse Trace** (Telemetry) to track which model, agent, and project are executing specific logic.
-- **Cost Control**: The server captures and reports the "Budgeted Cost" of each skill to prevent uncontrolled LLM spend.
+- **Customization**: Teams can "fork" a skill for a specific project without
+  modifying the global repository.
+- **Auditability**: Every skill retrieval is wrapped in a **Langfuse Trace**
+  (Telemetry) to track which model, agent, and project are executing specific
+  logic.
+- **Cost Control**: The server captures and reports the "Budgeted Cost" of each
+  skill to prevent uncontrolled LLM spend.
 
 ### Priority Logic Snippet:
 

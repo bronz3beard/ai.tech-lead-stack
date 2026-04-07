@@ -3,7 +3,7 @@
  * @file upload-evidence.mjs
  * @description Uploads media (screenshots/videos) to ClickUp using Playwright.
  * Simulates human-like interaction patterns to avoid bot detection.
- * 
+ *
  * @tool evidence-uploader
  * @param {string} taskUrl - The full ClickUp Task URL (e.g., https://app.clickup.com/t/...)
  * @param {string} filePath - Absolute or relative path to the local media file.
@@ -25,7 +25,8 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 // Default Chrome profile path for persistent sessions (preserving login state)
-const CHROME_PROFILE_PATH = process.env.CHROME_PROFILE_PATH || 
+const CHROME_PROFILE_PATH =
+  process.env.CHROME_PROFILE_PATH ||
   path.join(os.homedir(), 'Library/Application Support/Google/Chrome');
 
 /**
@@ -36,7 +37,7 @@ const CHROME_PROFILE_PATH = process.env.CHROME_PROFILE_PATH ||
  */
 async function humanDelay(minMs = 500, maxMs = 1500) {
   const ms = Math.floor(Math.random() * (maxMs - minMs + 1) + minMs);
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -49,10 +50,12 @@ function askQuestion(query) {
     input: process.stdin,
     output: process.stdout,
   });
-  return new Promise(resolve => rl.question(query, ans => {
-    rl.close();
-    resolve(ans);
-  }));
+  return new Promise((resolve) =>
+    rl.question(query, (ans) => {
+      rl.close();
+      resolve(ans);
+    })
+  );
 }
 
 /**
@@ -68,20 +71,23 @@ async function uploadAsUser(taskUrl, filePath) {
   }
 
   console.log(`🚀 Launching browser with profile: ${CHROME_PROFILE_PATH}`);
-  
+
   // Launch persistent context to reuse existing login cookies/state
-  const browserContext = await chromium.launchPersistentContext(CHROME_PROFILE_PATH, {
-    headless: true, // Run in background
-    viewport: { width: 1280, height: 800 },
-    args: [
-      '--profile-directory=Default',
-      '--disable-blink-features=AutomationControlled' // Helps bypass basic bot detection
-    ],
-  });
+  const browserContext = await chromium.launchPersistentContext(
+    CHROME_PROFILE_PATH,
+    {
+      headless: true, // Run in background
+      viewport: { width: 1280, height: 800 },
+      args: [
+        '--profile-directory=Default',
+        '--disable-blink-features=AutomationControlled', // Helps bypass basic bot detection
+      ],
+    }
+  );
 
   try {
     const page = await browserContext.newPage();
-    
+
     // 1. Randomized Navigation and Intro
     await humanDelay(1000, 3000);
     console.log(`🎬 Navigating to task: ${taskUrl}`);
@@ -90,7 +96,9 @@ async function uploadAsUser(taskUrl, filePath) {
     // 2. "Looking" for the comment box (Human-like wait)
     // Ensures the dynamic elements are fully loaded before interaction
     console.log('🔍 Waiting for comment box...');
-    await page.waitForSelector('[data-test="comment-view__editor"]', { timeout: 30000 });
+    await page.waitForSelector('[data-test="comment-view__editor"]', {
+      timeout: 30000,
+    });
     await humanDelay(2000, 4000);
 
     // 3. Interactive Upload
@@ -98,18 +106,19 @@ async function uploadAsUser(taskUrl, filePath) {
     console.log('📁 Selecting file...');
     const [fileChooser] = await Promise.all([
       page.waitForEvent('filechooser'),
-      page.click('[data-test="comment-view__attachment-button"]')
+      page.click('[data-test="comment-view__attachment-button"]'),
     ]);
     await fileChooser.setFiles(filePath);
-    
+
     // Allow time for the file to be processed/buffered by ClickUp's internal storage
     await humanDelay(4000, 7000);
 
     // 4. Typing the comment with human-like variability
     console.log('✍️ Typing comment...');
-    const commentText = 'Smoke test evidence attached via Agent workflow. Verified on Desktop and Mobile.';
+    const commentText =
+      'Smoke test evidence attached via Agent workflow. Verified on Desktop and Mobile.';
     const editorSelector = '[data-test="comment-view__editor"]';
-    
+
     // Focus the editor
     await page.click(editorSelector);
     // Type character by character with randomized delays for realistic input simulation
@@ -120,9 +129,14 @@ async function uploadAsUser(taskUrl, filePath) {
     // Short pause before submitting
     await humanDelay(1000, 2000);
     await page.keyboard.press('Enter');
-    
+
     // Report success to the caller (usually an Agent)
-    console.log(JSON.stringify({ status: 'success', message: 'Evidence posted successfully.' }));
+    console.log(
+      JSON.stringify({
+        status: 'success',
+        message: 'Evidence posted successfully.',
+      })
+    );
   } catch (error) {
     // Report detailed error for agent-led remediation
     console.error(JSON.stringify({ status: 'failed', error: error.message }));
@@ -148,7 +162,11 @@ async function uploadAsUser(taskUrl, filePath) {
 
   // Final validation before execution
   if (!taskUrl || !filePath) {
-    console.error(JSON.stringify({ error: 'Missing parameters: taskUrl and filePath required.' }));
+    console.error(
+      JSON.stringify({
+        error: 'Missing parameters: taskUrl and filePath required.',
+      })
+    );
     process.exit(1);
   }
 

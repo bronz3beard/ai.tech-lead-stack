@@ -39,8 +39,8 @@
     "test": "jest",
     "setup-browsers": "npx playwright install chromium",
     "postinstall": "prisma generate && npm run setup-browsers",
-    "format": "npx prettier --write \".ai/skills/*.md\" \"scripts/*.js\" \"README.md\"",
-    "format:check": "npx prettier --check \".ai/skills/*.md\" \"scripts/*.js\" \"README.md\"",
+    "format": "npx prettier --write \".ai/skills/*.md\" \"scripts/*.{js,mjs}\" \"README.md\"",
+    "format:check": "npx prettier --check \".ai/skills/*.md\" \"scripts/*.{js,mjs}\" \"README.md\"",
     "lint": "npx markdownlint-cli \".ai/skills/*.md\"",
     "lint:fix": "npx markdownlint-cli --fix \".ai/skills/*.md\" && npm run format",
     "validate:skills": "bash scripts/validate-skills.sh",
@@ -126,7 +126,7 @@
     "scripts/*": [
       "bash scripts/validate-scripts.sh"
     ],
-    "scripts/*.js": [
+    "scripts/*.{js,mjs}": [
       "npx prettier --write"
     ]
   }

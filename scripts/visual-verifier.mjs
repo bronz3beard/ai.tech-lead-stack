@@ -3,7 +3,7 @@
  * @description Captures multi-viewport screenshots of target URLs using Playwright.
  * Designed for visual regression testing and evidence gathering in AI-led workflows.
  * Supports automatic Playwright installation and auth-redirect detection.
- * 
+ *
  * @tool visual-verifier
  * @usage node scripts/visual-verifier.mjs [url1 url2 ...] [--no-check]
  * @params
@@ -54,7 +54,9 @@ async function captureScreenshots(url, options = {}) {
   if (!skipCheck) {
     const isAlive = await checkUrl(url);
     if (!isAlive) {
-      console.warn(`⚠️  Warning: URL ${url} might not be reachable. Proceeding anyway with Playwright.`);
+      console.warn(
+        `⚠️  Warning: URL ${url} might not be reachable. Proceeding anyway with Playwright.`
+      );
     }
   }
 
@@ -64,13 +66,19 @@ async function captureScreenshots(url, options = {}) {
     browser = await chromium.launch({ headless: true });
   } catch {
     // Auto-recovery: If Playwright binaries are missing, attempt installation
-    console.warn(`\n⚠️  Playwright browser not found. Attempting to install automatically...`);
+    console.warn(
+      `\n⚠️  Playwright browser not found. Attempting to install automatically...`
+    );
     try {
       execSync('npx playwright install chromium', { stdio: 'inherit' });
       browser = await chromium.launch({ headless: true });
     } catch (installError) {
-      console.error(`❌ Error: Could not launch or install Playwright: ${installError.message}`);
-      console.error(`👉 Potential Fix: 'npm run setup-browsers' manually on your host machine.`);
+      console.error(
+        `❌ Error: Could not launch or install Playwright: ${installError.message}`
+      );
+      console.error(
+        `👉 Potential Fix: 'npm run setup-browsers' manually on your host machine.`
+      );
       return;
     }
   }
@@ -79,7 +87,7 @@ async function captureScreenshots(url, options = {}) {
   const configs = [
     { name: 'desktop', width: 1920, height: 1080 },
     { name: 'tablet', width: 768, height: 1024 },
-    { name: 'mobile', ...devices['iPhone 14'] }
+    { name: 'mobile', ...devices['iPhone 14'] },
   ];
 
   console.log(`📸 Starting screenshot capture for: ${url}`);
@@ -87,34 +95,48 @@ async function captureScreenshots(url, options = {}) {
   for (const config of configs) {
     // Create an isolated browser context for each viewport
     const context = await browser.newContext({
-      viewport: config.width ? { width: config.width, height: config.height } : config.viewport,
-      userAgent: config.userAgent
+      viewport: config.width
+        ? { width: config.width, height: config.height }
+        : config.viewport,
+      userAgent: config.userAgent,
     });
     const page = await context.newPage();
 
     try {
       // Navigate to the target page and wait for initial load
       await page.goto(url, { waitUntil: 'load', timeout: 60000 });
-      
+
       // Wait for network activity to settle (best effort)
-      await page.waitForLoadState('networkidle').catch(() => 
-        console.log('  Wait for networkidle timed out, proceeding anyway...')
-      );
-      
+      await page
+        .waitForLoadState('networkidle')
+        .catch(() =>
+          console.log('  Wait for networkidle timed out, proceeding anyway...')
+        );
+
       // Allow additional time for dynamic animations or client-side hydration to finish
       await page.waitForTimeout(2000);
 
       // Detection: Check if the final URL differs significantly from the target (Auth wall)
       const finalUrl = page.url();
       const isAuthRedirect = (urlPath, finalUrlPath) => {
-        const authKeywords = ['login', 'signin', 'auth', 'authorize', 'session'];
-        return authKeywords.some(kw => 
-          !urlPath.toLowerCase().includes(kw) && finalUrlPath.toLowerCase().includes(kw)
+        const authKeywords = [
+          'login',
+          'signin',
+          'auth',
+          'authorize',
+          'session',
+        ];
+        return authKeywords.some(
+          (kw) =>
+            !urlPath.toLowerCase().includes(kw) &&
+            finalUrlPath.toLowerCase().includes(kw)
         );
       };
 
       if (isAuthRedirect(url, finalUrl)) {
-        console.warn(`\n⚠️  WARNING: Requested ${url} but ended up at ${finalUrl}. Auth Wall likely detected.`);
+        console.warn(
+          `\n⚠️  WARNING: Requested ${url} but ended up at ${finalUrl}. Auth Wall likely detected.`
+        );
       }
 
       // Generate a descriptive filename based on the URL and viewport type
@@ -126,7 +148,9 @@ async function captureScreenshots(url, options = {}) {
       await page.screenshot({ path: filePath, fullPage: true });
       console.log(`✅ Captured ${config.name} screenshot: ${filePath}`);
     } catch (error) {
-      console.error(`❌ Failed to capture ${config.name} screenshot: ${error.message}`);
+      console.error(
+        `❌ Failed to capture ${config.name} screenshot: ${error.message}`
+      );
     } finally {
       // Always cleanup the context
       await context.close();
@@ -143,7 +167,7 @@ async function captureScreenshots(url, options = {}) {
 // -----------------------------------------------------------------------------
 const args = process.argv.slice(2);
 const skipCheck = args.includes('--no-check');
-const targetUrls = args.filter(a => !a.startsWith('--'));
+const targetUrls = args.filter((a) => !a.startsWith('--'));
 
 // Default to localhost if no URLs are provided
 if (targetUrls.length === 0) {
@@ -156,4 +180,3 @@ if (targetUrls.length === 0) {
     await captureScreenshots(url, { skipCheck }).catch(console.error);
   }
 })();
-

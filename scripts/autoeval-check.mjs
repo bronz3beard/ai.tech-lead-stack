@@ -3,7 +3,7 @@
  * @file autoeval-check.mjs
  * @description Automated quality evaluation script for Tech-Lead Stack.
  * Performs basic linting and test execution to ensure MinimumCD standards.
- * 
+ *
  * @tool quality-check
  * @returns {JSON} Evaluation results including score, violations, and pass status.
  */
@@ -49,7 +49,7 @@ function run() {
 
     // Standard output in JSON for easy agent consumption and token efficiency
     console.log(JSON.stringify(results));
-    
+
     // Exit with appropriate code to signal success/failure to the caller
     process.exit(results.passed ? 0 : 1);
   } catch (err) {
