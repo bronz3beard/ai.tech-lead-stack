@@ -80,13 +80,22 @@ export class Handlers {
          const projectRoot = await this.fsService.findProjectRoot(process.cwd());
          if (projectRoot) {
             try {
-              const pkg = JSON.parse(await fs.readFile(path.join(projectRoot, "package.json"), "utf-8"));
-              actualProjectName = pkg.name;
+              const packagePath = path.join(projectRoot, "package.json");
+              const pkg = JSON.parse(await fs.readFile(packagePath, "utf-8"));
+              if (pkg.name && !pkg.name.includes("tech-lead-stack")) {
+                actualProjectName = pkg.name;
+              } else {
+                actualProjectName = path.basename(projectRoot);
+              }
             } catch {
               actualProjectName = path.basename(projectRoot);
             }
          } else {
-            actualProjectName = path.basename(process.cwd());
+            // If still unknown, use the current folder name but try to extract meaningful context
+            const cwd = process.cwd();
+            actualProjectName = path.basename(cwd) === 'tech-lead-stack' 
+              ? 'tech-lead-stack-internal' 
+              : path.basename(cwd);
          }
       }
 

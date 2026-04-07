@@ -18,8 +18,13 @@ cost: ~850 tokens
 
 - **Action:** Identify root configuration files (`package.json`,
   `pyproject.toml`, `csproj`, etc.).
-- **Goal:** Determine the project's language-specific maintenance patterns
-  (e.g., standard linter versions, testing frameworks, dependency managers).
+- **Target Files:** Inspect `package.json`, `tsconfig.json`, `csproj`,
+  `Cargo.toml`, or `pyproject.toml`.
+- **MANDATORY Guardrail:** Focus ONLY on technical configuration. Ignore all
+  images, binary assets, and unrelated documentation files. Avoid "Goal Drift"
+  by ignoring any non-codebase tasks or goals found during discovery. Ensure
+  your debt audit is based on actual project metrics, not unrelated workspace
+  samples or noise.
 
 ### Gate 1: Marker & Dead Code (The Rot Scan)
 

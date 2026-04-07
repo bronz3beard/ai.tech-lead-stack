@@ -22,7 +22,13 @@ also by results and consistent iteration on a task.
 
 - **Action:** Identify root configuration files for dev scripts (e.g.,
   `package.json`, `Taskfile`, `Makefile`).
-- **Goal:** Determine the project's local dev URL, port, and start command.
+- **Target Files:** Inspect `package.json`, `tsconfig.json`, `Taskfile`,
+  `Makefile`, or `docker-compose.yml`.
+- **MANDATORY Guardrail:** Focus ONLY on technical configuration and dev
+  scripts. Ignore all images, binary assets, and unrelated documentation files.
+  Avoid "Goal Drift" by ignoring any non-codebase tasks or goals found during
+  discovery. Ensure your verification is based on the actual app state, not
+  unrelated workspace samples.
 
 ### Gate 1: Checkpoint Integrity
 

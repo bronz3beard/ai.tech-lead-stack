@@ -39,8 +39,8 @@ export class FileSystemService {
   /**
    * Retrieves all available skills from both the local project and the global repository.
    */
-  async getDynamicSkills(): Promise<Map<string, { description: string; cost: string }>> {
-    const dynamicSkills = new Map<string, { description: string; cost: string }>();
+  async getDynamicSkills(): Promise<Map<string, { description: string; cost: string; internal: boolean }>> {
+    const dynamicSkills = new Map<string, { description: string; cost: string; internal: boolean }>();
     const localSkillsDir = path.join(process.cwd(), ".ai", "skills");
     const searchDirs = [localSkillsDir, this.repoSkillsDir];
 
@@ -55,12 +55,15 @@ export class FileSystemService {
                 const content = await fs.readFile(path.join(dir, file), "utf-8");
                 const matchDescription = content.match(/description:\s*(.*)/);
                 const matchCost = content.match(/cost:\s*(.*)/);
+                const matchInternal = content.match(/internal:\s*(true|false)/);
+                
                 dynamicSkills.set(name, {
                   description: matchDescription ? matchDescription[1].trim() : "Reads the content of this skill.",
                   cost: matchCost ? matchCost[1].trim() : "unknown",
+                  internal: matchInternal ? matchInternal[1] === "true" : false,
                 });
               } catch {
-                dynamicSkills.set(name, { description: `Skill: ${name}`, cost: "unknown" });
+                dynamicSkills.set(name, { description: `Skill: ${name}`, cost: "unknown", internal: false });
               }
             }
           }

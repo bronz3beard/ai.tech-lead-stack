@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, LineChart } from '@/components/ui/chart';
 import { fetchAllPages } from '@/lib/langfuse-api';
 import { langfuseLabel } from '@/lib/langfuse-labels';
-import { isSkillTrace, normalizeProjectName, isActiveSkill } from '@/lib/trace-utils';
+import { isSkillTrace, normalizeProjectName, isActiveSkill, normalizeSkillName } from '@/lib/trace-utils';
 
 export const revalidate = 60; // cached for 60 seconds
 
@@ -78,7 +78,7 @@ async function getGlobalMetrics(projectId?: string) {
       '/api/public/traces',
       queryParams,
       authHeader,
-      500 // Limit to 500 to keep it performing well while being exhaustive
+      2000 // Increased limit to 2000 to be more exhaustive across multiple projects
     );
 
     // 2. Skill Validation (isActiveSkill is imported from trace-utils)
@@ -131,14 +131,16 @@ async function getGlobalMetrics(projectId?: string) {
       };
     }).filter(trace => {
         // Strict Skill Filtering
-        let skillName = 'unknown';
+        let rawSkillName = 'unknown';
         if (trace.name && trace.name.startsWith('skill:')) {
-          skillName = trace.name.replace('skill:', '');
+          rawSkillName = trace.name.replace('skill:', '');
         } else if (trace.metadata?.skillName) {
-          skillName = trace.metadata.skillName as string;
+          rawSkillName = trace.metadata.skillName as string;
         } else if (trace.name) {
-          skillName = trace.name;
+          rawSkillName = trace.name;
         }
+        
+        const skillName = normalizeSkillName(rawSkillName);
 
         // Broadened Skill Validation
         return isActiveSkill(skillName) && !isSkillTrace(trace.name, skillName);
@@ -172,14 +174,16 @@ async function getGlobalMetrics(projectId?: string) {
 
     finalTraces.forEach((trace) => {
       // Aggregate by skill
-      let skillName = 'unknown';
+      let rawSkillName = 'unknown';
       if (trace.name && trace.name.startsWith('skill:')) {
-        skillName = trace.name.replace('skill:', '');
+        rawSkillName = trace.name.replace('skill:', '');
       } else if (trace.metadata?.skillName) {
-        skillName = trace.metadata.skillName as string;
+        rawSkillName = trace.metadata.skillName as string;
       } else if (trace.name) {
-        skillName = trace.name;
+        rawSkillName = trace.name;
       }
+
+      const skillName = normalizeSkillName(rawSkillName);
 
       skillCounts[skillName] = (skillCounts[skillName] || 0) + 1;
 
