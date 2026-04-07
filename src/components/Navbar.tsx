@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { Globe, LayoutDashboard, LogIn, LogOut, Menu, X } from 'lucide-react';
+import { Globe, LayoutDashboard, Hammer, LogIn, LogOut, Menu, X } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -14,6 +14,12 @@ const navigation = [
     name: 'User Dashboard',
     href: '/dashboard',
     icon: LayoutDashboard,
+    protected: true,
+  },
+  {
+    name: 'Forge Skill',
+    href: '/skills/new',
+    icon: Hammer,
     protected: true,
   },
 ];

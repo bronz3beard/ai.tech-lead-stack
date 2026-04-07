@@ -20,12 +20,13 @@ export const authOptions: AuthOptions = {
     GithubProvider({
       clientId: process.env.GITHUB_ID!,
       clientSecret: process.env.GITHUB_SECRET!,
-      allowDangerousEmailAccountLinking: true,
+      allowDangerousEmailAccountLinking: false,
       authorization: {
         params: {
           // GitHub has no `user:profile` scope. `read:user` includes public profile + `avatar_url`.
           // `user:email` is for primary/private emails via the emails API.
-          scope: 'read:user user:email',
+          // `repo` is for repository access to create PRs.
+          scope: 'read:user user:email repo',
         },
       },
     }),
