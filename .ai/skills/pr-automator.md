@@ -1,6 +1,10 @@
 ---
 name: pr-automator
 description: Automates the creation of Pull Requests with full context.
+parameters:
+  - runCodeReview:
+      (boolean) If true, performs a code review using the code-review-checklist
+      skill before creating the PR. Defaults to false.
 cost: ~1200 tokens
 ---
 
@@ -40,6 +44,18 @@ cost: ~1200 tokens
 
 ## 🛠 Workflow
 
+0. **Pre-Review (Optional)**:
+   - If `runCodeReview` is `true`, execute `.ai/skills/code-review-checklist.md`
+     FIRST.
+   - You MUST ensure all checklist items pass or are being addressed before
+     proceeding to PR creation.
+   - **MANDATORY**: Write the filled-out checklist results to
+     `.ai/evidence/pre-commit-review.md`. Inform the user that they can inspect
+     this file.
+   - If severe issues are found, PAUSE and ask the user if they still want to
+     proceed with the PR automation.
+   - **IMPORTANT**: Keep the filled-out checklist in your working memory to
+     include it as evidence in the PR drafting stage.
 1. **Context & Evidence Gathering**:
    - **Base Branch Discovery**: Determine the correct base branch.
    - **UI Change Detection**: Run `git diff --name-only <base>...HEAD` to check
@@ -67,12 +83,28 @@ cost: ~1200 tokens
      | ![Desktop](URL1) | ![Tablet](URL2) | ![Mobile](URL3) |
      ```
 
+   - **Summary**: A high-level "Why" and "What." Map this to the template's
+     "Description" or similar section.
+   - **Code Review Evidence**:
+     - **MANDATORY**: If `runCodeReview` was `true`, you MUST replace the
+       `{{code-review-checklist-evidence}}` placeholder in the template with a
+       **High-Density Audit Report**. This must include:
+       1. The completed checklist from `.ai/evidence/pre-commit-review.md`.
+       2. A clear **🛠 Audit Status: PASS/FAIL** section.
+       3. A brief summary of the audit focus. **EXCLUDE** the raw
+          `## 🛠 Outcome Actions` instruction block.
+   - **Technical Changes**: Use the template's requested semantics (e.g.,
+     add/update/fix) for the technical breakdown.
    - **Checklist**: Fill all checkboxes based on metadata.
 
 3. **Action (Draft Mode)**:
    - **MANDATORY**: Create the PR in **Draft Mode** (`gh pr create --draft`).
    - Output the PR link to the user for final manual transition to "Ready for
      Review".
+
+   _After successful creation, delete the temporary files:_
+   - `rm .github/.pr_body_temp.md`
+   - `rm .ai/evidence/pre-commit-review.md` (only if `runCodeReview` was true)
 
 ## Requirements
 

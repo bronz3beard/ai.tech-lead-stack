@@ -31,7 +31,8 @@ use the below semantics for listing what is in this PR
 > If required please add a screenshots or video/.gif recording of your local
 > smoke testing These can also be added as a comment to your ClickUp ticket
 >
-> **Tip**: Use `./.ai/rtk-run run visual-verifier <URL>` to capture Desktop/Mobile screenshots.
+> **Tip**: Use `./.ai/rtk-run run visual-verifier <URL>` to capture
+> Desktop/Mobile screenshots.
 
 ## Testing
 
@@ -46,3 +47,7 @@ use the below semantics for listing what is in this PR
 
 - Ready for release: (Yes/No)
 - Needs additional work: (Yes/No)
+
+## AI Code Review Evidence
+
+- [ ] {{code-review-checklist-evidence}}
