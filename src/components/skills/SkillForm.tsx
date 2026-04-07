@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import 'easymde/dist/easymde.min.css';
 import matter from 'gray-matter';
 import EasyMDE from 'easymde';
-import { submitSkill, validateSkill } from '@/app/skills/new/skill-actions';
+import { submitSkill, validateSkill } from '@/app/api/skills/actions';
 
 const SimpleMdeReact = dynamic(() => import('react-simplemde-editor'), {
   ssr: false,
