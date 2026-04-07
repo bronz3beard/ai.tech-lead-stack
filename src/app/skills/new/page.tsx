@@ -30,8 +30,11 @@ cost: ~tokens
 ## Context
 Provide context here.
 
+> [!IMPORTANT]
+> All skills follow the **G-Stack Methodology**: Diagnosis before Advice.
+
 ## Instructions
-Provide instructions here.
+Provide instructions here. Ensure MinimumCD automated test strategies are included.
 `;
   }
 
