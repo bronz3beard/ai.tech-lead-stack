@@ -31,7 +31,17 @@ cost: ~650 tokens
       standard.
 - [ ] **DRY/KISS:** Logic is simple, clear, and avoids premature abstraction.
 
-### 3. Verification Evidence
+### 3. Accessibility (A11y) Smoke Test
+
+- [ ] **Semantics:** No interactive `div` elements used where `button` or `a`
+      should exist.
+- [ ] **Readability:** All images have `alt` text (empty `alt=""` for
+      decorative).
+- [ ] **Focus:** Interactive elements have visible focus rings and consistent
+      tab-order.
+- [ ] **Labels:** Form inputs have associated `<label>` tags or `aria-label`.
+
+### 4. Verification Evidence
 
 - [ ] **Tests:** Unit/Integration tests pass for the changed logic.
 - [ ] **Evidence:** Verification evidence (e.g., screenshot, terminal logs,
