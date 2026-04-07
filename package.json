@@ -9,6 +9,7 @@
   },
   "rtk": {
     "tools": {
+      "accessibility-scan": "cat .ai/skills/accessibility-auditor.md",
       "bridge": "cat .ai/skills/strategy-to-execution.md",
       "changelog": "cat .ai/skills/changelog-generator.md",
       "clean-code": "cat .ai/skills/clean-code.md",
@@ -30,6 +31,7 @@
       "standup": "cat .ai/skills/daily-standup.md",
       "technical-debt-auditor": "cat .ai/skills/technical-debt-auditor.md",
       "upload": "python3 scripts/upload-evidence.py",
+      "verification-gate": "cat .ai/skills/verification-gate.md",
       "visual-verifier": "node scripts/visual-verifier.mjs"
     }
   },

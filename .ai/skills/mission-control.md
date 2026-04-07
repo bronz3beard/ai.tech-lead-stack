@@ -47,6 +47,7 @@ Verify that all core skill modules are present in the `.ai/skills/` directory.
 The agent must "read" these into context before proceeding:
 
 - [ ] `planning-expert.md`
+- [ ] `accessibility-auditor.md`
 - [ ] `quality-gatekeeper.md`
 - [ ] `pr-automator.md`
 - [ ] `visual-verifier.md`
