@@ -1,6 +1,6 @@
 import { Langfuse } from 'langfuse';
 import { langfuseLabel } from '../lib/langfuse-labels';
-import { isSkillTrace, normalizeProjectName } from '../lib/trace-utils';
+import { isSkillTrace, normalizeProjectName, normalizeSkillName } from '../lib/trace-utils';
 import { UserResolver } from './user-resolver';
 
 export interface LangfuseMetadata {
@@ -63,7 +63,9 @@ export class Telemetry implements ITelemetry {
     skillCost: string | undefined,
     executeCallback: () => Promise<T>
   ): Promise<T> {
-    if (!this.isConfigured || !this.langfuse || isSkillTrace(undefined, skillName)) {
+    const normalizedSkill = normalizeSkillName(skillName);
+    
+    if (!this.isConfigured || !this.langfuse || isSkillTrace(undefined, normalizedSkill)) {
       return executeCallback();
     }
 
@@ -74,7 +76,7 @@ export class Telemetry implements ITelemetry {
     const normalizedProject = normalizeProjectName(projectName);
 
     const metadata: LangfuseMetadata = {
-      skillName,
+      skillName: normalizedSkill,
       projectName: normalizedProject,
       environment: 'local',
       userEmail,
@@ -91,10 +93,10 @@ export class Telemetry implements ITelemetry {
     }
 
     const trace = this.langfuse.trace({
-      name: `skill:${skillName}`,
+      name: `skill:${normalizedSkill}`,
       userId: userEmail,
       metadata,
-      tags: [normalizedProject, resolvedModel, skillName],
+      tags: [normalizedProject, resolvedModel, normalizedSkill],
     });
 
     try {
@@ -102,7 +104,7 @@ export class Telemetry implements ITelemetry {
       const outputStr = typeof result === 'string' ? result : JSON.stringify(result);
 
       trace.generation({
-        name: `generation:${skillName}`,
+        name: `generation:${normalizedSkill}`,
         model: resolvedModel,
         output: outputStr,
         metadata: { ...metadata, project: normalizedProject },

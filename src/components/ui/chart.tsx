@@ -40,6 +40,7 @@ export function BarChart({
             fontSize={18}
             tickLine={false}
             axisLine={false}
+            interval={0}
           />
           <YAxis
             stroke="#94a3b8"

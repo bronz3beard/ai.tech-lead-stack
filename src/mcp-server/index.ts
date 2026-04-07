@@ -79,11 +79,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   const skills = await fsService.getDynamicSkills();
   const skillToToolName = (skill: string) => `get_${skill.replace(/-/g, "_")}`;
 
-  const dynamicTools: Tool[] = Array.from(skills.entries()).map(([name, meta]) => ({
-    name: skillToToolName(name),
-    description: `[SKILL] ${meta.description} (Standard Cost: ${meta.cost})`,
-    inputSchema: GET_SKILLS_TOOL.inputSchema,
-  }));
+  const dynamicTools: Tool[] = Array.from(skills.entries())
+    .filter(([, meta]) => !meta.internal)
+    .map(([name, meta]) => ({
+      name: skillToToolName(name),
+      description: `[SKILL] ${meta.description} (Standard Cost: ${meta.cost})`,
+      inputSchema: GET_SKILLS_TOOL.inputSchema,
+    }));
 
   return {
     tools: [LIST_SKILLS_TOOL, GET_SKILLS_TOOL, GET_SKILL_TOOL, ...dynamicTools],

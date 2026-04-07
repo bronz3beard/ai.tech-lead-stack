@@ -26,6 +26,23 @@ export function normalizeProjectName(name: string | undefined): string {
 }
 
 /**
+ * Normalizes a skill name to kebab-case for consistent tracing and lookups.
+ * 
+ * @param name - The raw skill name (e.g., "Planning Expert", "planningExpert")
+ * @returns The normalized skill name (e.g., "planning-expert")
+ */
+export function normalizeSkillName(name: string | undefined): string {
+  if (!name || name.trim() === '') return 'unknown';
+
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/\.md$/, '')
+    .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with dashes
+    .replace(/^-+|-+$/g, '');   // Trim leading/trailing dashes
+}
+
+/**
  * Checks if a skill name is active and should be tracked.
  * 
  * Any skill that is not explicitly identified as a "system/meta-trace" via
@@ -37,9 +54,9 @@ export function normalizeProjectName(name: string | undefined): string {
 export function isActiveSkill(skillName: string | undefined): boolean {
   if (!skillName) return false;
   
-  const normalized = skillName.toLowerCase().trim().replace(/\.md$/, '');
+  const normalized = normalizeSkillName(skillName);
   
-  // Dynamic Sync: Any skill accessible via MCP that passes isSkillTrace is active.
+  // Broad Validation: If it's not a known system/skeletal trace, it's active.
   return !isSkillTrace(undefined, normalized);
 }
 
@@ -54,17 +71,15 @@ export function isActiveSkill(skillName: string | undefined): boolean {
  * @returns True if the trace is a system/meta trace and should be hidden.
  */
 export function isSkillTrace(name?: string, skillName?: string): boolean {
-  const normalizedName = (name || '').toLowerCase().trim();
-  const normalizedSkillName = (skillName || '').toLowerCase().trim();
+  const normalizedName = normalizeSkillName(name);
+  const normalizedSkill = normalizeSkillName(skillName);
 
-  // Relaxed filtering: only block if explicitly "unknown" or skeletal
-  if (normalizedName === 'unknown' || normalizedSkillName === 'unknown') {
-    return true;
-  }
+  // Filter out meta-skill patterns and strictly unknown traces
+  if (name && normalizedName === 'unknown') return true;
+  if (skillName && normalizedSkill === 'unknown') return true;
 
-  // Filter out meta-skill patterns
-  const forbidden = ['skill', 'skill.md', 'skill:skill', 'generation:skill', 'skill:skill.md', 'generation:skill.md'];
-  if (forbidden.includes(normalizedName) || forbidden.includes(normalizedSkillName)) {
+  const forbidden = ['skill', 'skill-md', 'skill-skill', 'generation-skill'];
+  if (forbidden.includes(normalizedName) || forbidden.includes(normalizedSkill)) {
     return true;
   }
 

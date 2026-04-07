@@ -11,7 +11,7 @@ import {
 import { Tooltip } from '@/components/ui/tooltip';
 import { useMemo } from 'react';
 import { TraceData } from './DashboardContent';
-import { isSkillTrace } from '@/lib/trace-utils';
+import { isSkillTrace, normalizeSkillName } from '@/lib/trace-utils';
 
 const FALLBACK_TOKEN_COST: Record<string, number> = {
   'agent-optimizer': 500,
@@ -28,6 +28,7 @@ const FALLBACK_TOKEN_COST: Record<string, number> = {
   'product-strategist': 750,
   'regression-bug-fix': 1300,
   'security-audit': 495,
+  'style-logic-exporter': 650,
   'technical-debt-auditor': 760,
   'verification-auditor': 1400,
   'visual-verifier': 375,
@@ -51,17 +52,19 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
     > = {};
 
     for (const trace of traces) {
-      let skillName = 'unknown';
+      let rawSkillName = 'unknown';
       if (trace.name && trace.name.startsWith('skill:')) {
-        skillName = trace.name.replace('skill:', '');
+        rawSkillName = trace.name.replace('skill:', '');
       } else if (
         trace.name === 'skill_execution' &&
         typeof trace.metadata?.skillName === 'string'
       ) {
-        skillName = trace.metadata.skillName;
+        rawSkillName = trace.metadata.skillName;
       } else if (trace.name) {
-        skillName = trace.name;
+        rawSkillName = trace.name;
       }
+
+      const skillName = normalizeSkillName(rawSkillName);
 
       // Secondary filter to ignore skeletal skill traces
       if (isSkillTrace(trace.name, skillName)) continue;

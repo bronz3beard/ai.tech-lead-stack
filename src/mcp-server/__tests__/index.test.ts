@@ -140,7 +140,7 @@ describe("MCP Server", () => {
       expect(result.isError).toBe(false);
       expect(mockWithAnalytics).toHaveBeenCalledWith(
         "test-skill",
-        "tech-lead-stack",
+        "tech-lead-stack-internal",
         undefined,
         undefined,
         "unknown",

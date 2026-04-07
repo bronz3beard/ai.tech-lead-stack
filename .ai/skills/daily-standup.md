@@ -24,7 +24,13 @@ cost: ~550 tokens
 
 - **Action:** Identify root configuration files (`package.json`, `csproj`, etc.)
   and primary branch (e.g., `main`, `master`, `develop`).
-- **Goal:** Determine the ecosystem context to better categorize activity.
+- **Target Files:** Inspect `package.json`, `tsconfig.json`, `csproj`,
+  `Cargo.toml`, or `pyproject.toml`.
+- **MANDATORY Guardrail:** Focus ONLY on technical configuration and git
+  activity. Ignore all images, binary assets, and unrelated documentation files.
+  Avoid "Goal Drift" by ignoring any non-codebase tasks or goals found during
+  discovery. Ensure your standup report is based on actual git commits, not
+  unrelated workspace noise.
 
 ### Gate 1: Activity Significance
 

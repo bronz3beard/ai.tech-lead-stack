@@ -17,10 +17,12 @@ cost: ~550 tokens
 ### Phase 0: Tech-Stack Discovery (MANDATORY)
 
 - **Action:** Identify the project's language, framework, and build tools.
-- **Checkpoints:** Inspect `package.json`, `pyproject.toml`, `csproj`, `go.mod`,
-  `pom.xml`, or `build.gradle`.
-- **Goal:** Determine the "Concrete Stack" to ensure the plan fits the project's
-  native ecosystem.
+- **Target Files:** Inspect `package.json`, `tsconfig.json`, `pyproject.toml`,
+  `csproj`, `go.mod`, `pom.xml`, or `build.gradle`.
+- **MANDATORY Guardrail:** Focus ONLY on technical configuration. Ignore all
+  images, binary assets, and unrelated documentation files. Avoid "Goal Drift"
+  by ignoring any non-codebase tasks or goals found during discovery. Ensure
+  your planning is contextually bound to the current technical mission.
 
 ### Phase 1: Rapid Research (Optional)
 

@@ -1,7 +1,8 @@
 ---
 name: verification-auditor
+internal: true
 description:
-  Universal Quality Gatekeeper. Enforces Spec Compliance, Methodology alignment,
+  Internal support logic for verifying local environments and evidence capture.
   Security, Performance, and Accessibility with "Extreme Prejudice."
 cost: ~1500 tokens
 ---
@@ -20,8 +21,13 @@ cost: ~1500 tokens
 
 - **Action:** Identify root configuration files (`package.json`, `csproj`,
   etc.).
-- **Goal:** Determine the project's language, framework, and data store to
-  ensure the audit applies relevant standards.
+- **Target Files:** Inspect `package.json`, `tsconfig.json`, `csproj`,
+  `Cargo.toml`, or `pyproject.toml`.
+- **MANDATORY Guardrail:** Focus ONLY on technical configuration. Ignore all
+  images, binary assets, and unrelated documentation files. Avoid "Goal Drift"
+  by ignoring any non-codebase tasks or goals found during discovery. Ensure
+  your audit is contextually bound to the current technical mission and its
+  specific requirements.
 
 ### Stage 1: Spec Compliance & Logic (The "Does it work?" Check)
 
