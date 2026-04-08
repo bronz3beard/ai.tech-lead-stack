@@ -9,6 +9,7 @@ automated testing.
 
 - [🚀 Quick Start](#-quick-start)
 - [How to use in any project](#how-to-use-in-any-project)
+- [Branching Strategy](#branching-strategy)
 - [Antigravity Setup](#antigravity-setup)
 - [Cursor Setup](#cursor-setup)
 - [🧹 Resetting a Project](#-resetting-a-project)
@@ -49,6 +50,14 @@ This stack includes a helper script to run agent-specific tasks defined in
 
 * **Firecrawl API**: (Optional) For the `planning-expert` to read external
   links.
+
+---
+
+## Branching Strategy
+
+This repository enforces **Trunk Based Development** with a rebase-first workflow and squash-and-merge PRs.
+
+For detailed day-to-day workflow examples and guidelines for both developers and AI agents, please refer to the [Branch Management Strategy](./BRANCH_MANAGEMENT.md) document.
 
 ---
 
