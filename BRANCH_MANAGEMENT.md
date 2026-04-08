@@ -48,7 +48,9 @@ git rebase origin/main
 ### 4. Push and Open a Pull Request
 Once your work is ready and rebased, push your branch to the remote repository. Since we rebase, you might need to force push if you have rewritten history:
 ```bash
-# Using --force-with-lease is safer than --force
+# Using --force-with-lease is safer than --force because it prevents you from accidentally
+# overwriting someone else's commits if they have pushed to the same branch in the meantime.
+# For more information, read: https://git-scm.com/docs/git-push#Documentation/git-push.txt---force-with-lease
 git push origin feature/my-awesome-feature --force-with-lease
 ```
 Open a Pull Request (PR) against `main`.
