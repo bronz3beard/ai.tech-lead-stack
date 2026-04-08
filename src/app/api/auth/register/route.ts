@@ -6,6 +6,7 @@ import { z } from "zod";
 const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
+  role: z.enum(["DESIGNER", "QA", "PM"]).optional().default("PM"),
 });
 
 export async function POST(req: Request) {
@@ -20,40 +21,34 @@ export async function POST(req: Request) {
       );
     }
 
-    const { email, password } = parsed.data;
+    const { email, password, role } = parsed.data;
 
-    // Check if user already exists
+    if (!email.endsWith("@tots.agency")) {
+      return NextResponse.json(
+        { message: "Invalid email domain. Only @tots.agency is allowed." },
+        { status: 403 }
+      );
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const password_hash = await bcrypt.hash(password, salt);
+
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
 
-    if (existingUser) {
-      return NextResponse.json(
-        { message: "User already exists" },
-        { status: 400 }
-      );
+    if (!existingUser) {
+        await prisma.user.create({
+          data: {
+            email,
+            password_hash,
+            role,
+          },
+        });
     }
 
-    // Hash the password
-    const salt = await bcrypt.genSalt(10);
-    const password_hash = await bcrypt.hash(password, salt);
-
-    // Create the user
-    const newUser = await prisma.user.create({
-      data: {
-        email,
-        password_hash,
-      },
-      select: {
-        id: true,
-        email: true,
-        createdAt: true,
-        // Exclude password_hash
-      },
-    });
-
     return NextResponse.json(
-      { message: "User created successfully", user: newUser },
+      { message: "User created successfully" },
       { status: 201 }
     );
   } catch (error) {

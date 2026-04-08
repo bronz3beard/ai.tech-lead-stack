@@ -12,6 +12,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { useState, useEffect } from 'react';
 
 const DEFAULT_COLORS = [
   '#60a5fa', // Soft Blue
@@ -30,6 +31,16 @@ export function BarChart({
   data: { name: string; total: number }[];
   colors?: string[];
 }) {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return <div className="w-full h-[350px]" />;
+  }
+
   return (
     <div className="w-full h-[350px] relative overflow-visible">
       <ResponsiveContainer width="100%" height="100%">
@@ -37,10 +48,14 @@ export function BarChart({
           <XAxis
             dataKey="name"
             stroke="#94a3b8"
-            fontSize={18}
+            fontSize={12}
             tickLine={false}
             axisLine={false}
             interval={0}
+            angle={-45}
+            textAnchor="end"
+            height={80}
+            dx={-10}
           />
           <YAxis
             stroke="#94a3b8"
@@ -75,6 +90,16 @@ export function LineChart({
 }: {
   data: { name: string; total: number }[];
 }) {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return <div className="w-full h-[350px]" />;
+  }
+
   return (
     <div className="w-full h-[350px] relative overflow-visible">
       <ResponsiveContainer width="100%" height="100%">
@@ -87,10 +112,14 @@ export function LineChart({
           <XAxis
             dataKey="name"
             stroke="#94a3b8"
-            fontSize={16}
+            fontSize={12}
             tickLine={false}
             axisLine={false}
             padding={{ left: 10, right: 10 }}
+            angle={-45}
+            textAnchor="end"
+            height={80}
+            dx={-10}
           />
           <YAxis
             stroke="#94a3b8"
