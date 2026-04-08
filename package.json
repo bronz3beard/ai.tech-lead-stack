@@ -19,7 +19,6 @@
       "daily-standup": "cat .ai/skills/daily-standup.md",
       "eval": "node scripts/autoeval-check.mjs",
       "feature-design-assistant": "cat .ai/skills/feature-design-assistant.md",
-      "github-upload": "node scripts/upload-to-github.mjs",
       "mission-architect": "cat .ai/skills/mission-architect.md",
       "planning-expert": "cat .ai/skills/planning-expert.md",
       "pr-automator": "cat .ai/skills/pr-automator.md",

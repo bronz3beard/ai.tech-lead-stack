@@ -4,12 +4,14 @@
 # Description: Automates the creation of GitHub Pull Requests using the GitHub CLI (gh).
 #              Designed to be called by AI agents via the RTK (Run Tool Kit).
 # 
-# Usage: ./scripts/gh-pr-create.sh "<title>" "<body>" "[base_branch]"
+# Usage: ./scripts/gh-pr-create.sh "<title>" "<body>" "[base_branch]" "[assignee]" "[labels]"
 #
 # Parameters:
-#   1: title - The title of the PR (Required)
-#   2: body  - The markdown-formatted description of the PR (Required)
-#   3: base  - The target base branch (Optional, defaults to 'main')
+#   1: title    - The title of the PR (Required)
+#   2: body     - The markdown-formatted description of the PR (Required)
+#   3: base     - The target base branch (Optional, defaults to 'main')
+#   4: assignee - The GitHub username to assign (Optional)
+#   5: labels   - Comma-separated list of labels to apply (Optional)
 #
 # Requirements:
 #   - GitHub CLI (gh) installed and authenticated.
@@ -22,6 +24,8 @@ set -e
 TITLE="${1:-}"
 BODY="${2:-}"
 BASE="${3:-main}"
+ASSIGNEE="${4:-}"
+LABELS="${5:-}"
 
 # Validate mandatory arguments
 if [ -z "$TITLE" ] || [ -z "$BODY" ]; then
@@ -30,9 +34,24 @@ if [ -z "$TITLE" ] || [ -z "$BODY" ]; then
     exit 1
 fi
 
-# Execute GitHub CLI to create the PR
-# Strategy: Creates the PR as a 'draft' by default to allow for final verification
-gh pr create --title "$TITLE" --body "$BODY" --draft --base "$BASE"
+echo "🚀 Creating draft PR: $TITLE"
+
+# Build the base command
+CMD=(gh pr create --title "$TITLE" --body "$BODY" --draft --base "$BASE")
+
+# Append optional flags if provided
+if [ -n "$ASSIGNEE" ]; then
+    echo "👤 Assigning to: $ASSIGNEE"
+    CMD+=("--assignee" "$ASSIGNEE")
+fi
+
+if [ -n "$LABELS" ]; then
+    echo "🏷️ Applying labels: $LABELS"
+    CMD+=("--label" "$LABELS")
+fi
+
+# Execute GitHub CLI
+"${CMD[@]}"
 
 # Final status reporting
 if [ $? -eq 0 ]; then

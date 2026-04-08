@@ -24,6 +24,7 @@ PATHS_TO_CLEAN=(
     "scripts"
     "rtk.json"
     ".github/PULL_REQUEST_TEMPLATE.md"
+    ".github/evidence"
 )
 
 # Iterate through defined paths and remove them if they meet specific criteria

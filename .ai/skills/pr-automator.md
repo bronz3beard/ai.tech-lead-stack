@@ -38,12 +38,12 @@ cost: ~1200 tokens
 
 ### Gate 2: Evidence & Quality Formatting
 
-- **Positive (Verified):** UI changes have local screenshots uploaded to GitHub
-  storage via `rtk run visual-verifier` and `rtk run github-upload`.
+- **Positive (Verified):** UI changes have screenshots committed to the
+  dedicated **`pr/evidence-[project-name]`** branch for persistence.
 - **Negative (Risk):** Required fields in the detected PR template are blank,
   especially the "Screenshots" section if UI was touched.
-- **Action:** If an internal tool fails, **STOP** and ask the user. Do not
-  research noise. Ensure all checklist items are addressed based on diff data.
+- **Action:** If Git operations fail, **STOP** and ask the user. Ensure all
+  checklist items are addressed based on diff data.
 
 ---
 
@@ -63,19 +63,27 @@ cost: ~1200 tokens
      include it as evidence in the PR drafting stage.
 1. **Context & Evidence Gathering**:
    - **Base Branch Discovery**: Determine the correct base branch.
+   - **Project Name Discovery**: Identify the project name from `package.json`
+     or root folder.
+   - **Assignee Discovery**: Run `gh api user -q .login` to identify the PR
+     author.
    - **UI Change Detection**: Run `git diff --name-only <base>...HEAD` to check
      for changes in `*.tsx`, `*.jsx`, `*.css`, `*.scss`, `*.html`, or
      `tailwind.config.*`.
-   - **MANDATORY**: If UI changes are detected, run `rtk run visual-verifier` to
-     capture **Desktop**, **Tablet**, and **Mobile** screenshots.
-   - **Upload**: For each captured screenshot, run
-     `rtk run github-upload <REPO_URL> <FILE_PATH>` to get the remote GitHub
-     asset URL.
-   - **MANDATORY**: If `github-upload` fails with "command not found" or "no
-     such file", do NOT search the filesystem. **STOP** and report to the user
-     that the Tech-Lead Stack uploader is missing.
+   - **MANDATORY**: If UI changes are detected:
+     1. Run `rtk run visual-verifier` to capture screenshots.
+     2. Identify/Create the evidence branch: **`pr/evidence-[project-name]`**.
+     3. **Upload via Git**:
+        - `git checkout pr/evidence-[project-name]` (create if missing).
+        - Move screenshots to `screenshots/<feature-branch>/`.
+        - `git add . && git commit -m "docs(evidence): capture for <feature-branch>"`.
+        - `git push origin pr/evidence-[project-name]`.
+        - **Construct URLs**:
+          `https://raw.githubusercontent.com/<OWNER>/<REPO>/pr/evidence-[project-name]/screenshots/<feature-branch>/<viewport>.png`
+     4. Switch back to the original feature branch.
    - **Metadata**:
      - Run `gh label list --json name` to fetch available repository labels.
+     - Select appropriate labels (e.g., `bug`, `enhancement`) based on the diff.
      - Determine appropriate reviewers.
      - **MANDATORY**: Exclude the PR author from the `## FYI 🙋` section.
    - **Template**: Search `.github/`, `.gitlab/`, or root for
@@ -106,13 +114,15 @@ cost: ~1200 tokens
    - **Checklist**: Fill all checkboxes based on metadata.
 
 3. **Action (Draft Mode)**:
-   - **MANDATORY**: Create the PR in **Draft Mode** (`gh pr create --draft`).
+   - **MANDATORY**: Create the PR in **Draft Mode** using the `create-pr` tool
+     with the discovered **assignee** and **labels**.
    - Output the PR link to the user for final manual transition to "Ready for
      Review".
 
    _After successful creation, delete the temporary files:_
    - `rm .github/.pr_body_temp.md`
    - `rm .ai/evidence/pre-commit-review.md` (only if `runCodeReview` was true)
+   - `rm -rf .github/evidence/` (MANDATORY cleanup of local screenshots)
 
 ## Requirements
 
