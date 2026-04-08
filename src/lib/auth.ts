@@ -21,15 +21,15 @@ export const authOptions: AuthOptions = {
   secret: process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET,
   providers: [
     GithubProvider({
-      clientId: process.env.GITHUB_ID!,
-      clientSecret: process.env.GITHUB_SECRET!,
+      clientId: process.env.GITHUB_ID || '',
+      clientSecret: process.env.GITHUB_SECRET || '',
       allowDangerousEmailAccountLinking: false,
       authorization: {
         params: {
           scope: 'read:user user:email repo',
         },
       },
-      profile(profile: GithubProfile) {
+      profile(profile) {
         return {
           id: profile.id.toString(),
           name: profile.name ?? profile.login,
