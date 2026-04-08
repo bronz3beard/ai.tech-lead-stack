@@ -36,7 +36,8 @@ also by results and consistent iteration on a task.
   **Desktop**, **Tablet**, and **Mobile** resolutions.
 - **Negative (Unverified):** Screenshots capture a 404/blank page.
 - **Action:** Ensure the app is running (using the detected dev command) AND
-  authenticated. Run `rtk run visual-verifier [URL]` to capture evidence.
+  authenticated. Attempt `rtk run visual-verifier [URL]` first; if that tool
+  is unavailable, use the **Antigravity Fallback** (Step 3 in workflow below).
 
 ### Gate 2: Workflow Continuity
 
@@ -50,18 +51,24 @@ also by results and consistent iteration on a task.
 ## Workflow
 
 1. **Local Test**: Run the app locally using the project's detected dev script.
-2. **Capture**:
+2. **Capture** (Primary — RTK):
    - Run `rtk run visual-verifier [URL1] [URL2] ...` from the project root.
    - **MANDATORY Resolutions**:
      - **Desktop**: 1920x1080
      - **Tablet**: 768x1024
      - **Mobile**: 375x667
-3. **Execution & Proof of Work**:
-   - Capture screenshots using the specified resolutions.
-   - Use `rtk run github-upload <REPO_URL> <FILE_PATH>` to upload captured
-     screenshots to GitHub storage and retrieve permanent Markdown URLs.
-   - **MANDATORY**: If `github-upload` fails with "command not found" or "no
-     such file", do NOT search the filesystem. **STOP** and report to the user
-     that the Tech-Lead Stack uploader is missing.
-4. **Validation**: Confirm "Smoke Test Passed" once visual parity is confirmed
-   across all viewports.
+3. **Capture** (Fallback — Antigravity `browser_subagent`):
+   - If `rtk run visual-verifier` is unavailable or returns "command not found",
+     do **NOT STOP**. Use `browser_subagent` to navigate to each URL and capture
+     screenshots at the three mandatory resolutions. Save outputs to
+     `.github/evidence/<feature-branch>/`.
+4. **Upload — Git Evidence Branch** (replaces `rtk run github-upload`):
+   - Check out (or create) the branch `pr/evidence-<project-name>`.
+   - Copy screenshots into `screenshots/<feature-branch>/`.
+   - `git add . && git commit -m "docs(evidence): capture for <feature-branch>"`
+   - `git push origin pr/evidence-<project-name>`
+   - Construct permanent raw URLs:
+     `https://raw.githubusercontent.com/<OWNER>/<REPO>/pr/evidence-<project-name>/screenshots/<feature-branch>/<viewport>.png`
+   - Switch back to the original feature branch.
+5. **Validation**: Confirm "Smoke Test Passed" once visual parity is confirmed
+   across all viewports and raw URLs resolve successfully.

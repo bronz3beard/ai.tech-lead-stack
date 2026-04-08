@@ -114,10 +114,24 @@ cost: ~1200 tokens
    - **Checklist**: Fill all checkboxes based on metadata.
 
 3. **Action (Draft Mode)**:
-   - **MANDATORY**: Create the PR in **Draft Mode** using the `create-pr` tool
-     with the discovered **assignee** and **labels**.
-   - Output the PR link to the user for final manual transition to "Ready for
-     Review".
+   - **MANDATORY**: Create the PR in **Draft Mode** using the **`gh` CLI**
+     directly. Do NOT wait for a "create-pr" tool — it does not exist. Execute
+     the following command from the project root (substitute all placeholders):
+
+     ```bash
+     gh pr create \
+       --draft \
+       --title "<TITLE>" \
+       --body-file .github/.pr_body_temp.md \
+       --base <BASE_BRANCH> \
+       --assignee <GH_LOGIN> \
+       --label "<LABEL1>" \
+       --label "<LABEL2>"
+     ```
+
+   - **Fallback**: If `--body-file` is not supported, use `--body "$(cat .github/.pr_body_temp.md)"`.
+   - Output the PR link returned by `gh pr create` to the user for final manual
+     transition to "Ready for Review".
 
    _After successful creation, delete the temporary files:_
    - `rm .github/.pr_body_temp.md`
