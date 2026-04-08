@@ -253,7 +253,7 @@ export default async function PublicDashboard({ searchParams }: PageProps) {
       : 100;
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#0f172a] text-slate-200 p-8 font-sans">
+    <div className="flex flex-col min-h-full bg-[#0f172a] text-slate-200 p-8 font-sans">
       <div className="max-w-7xl mx-auto w-full space-y-12">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">

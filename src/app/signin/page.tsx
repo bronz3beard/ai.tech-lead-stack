@@ -140,7 +140,7 @@ function SignInContent() {
 
 export default function SignInPage() {
   return (
-    <div className="flex flex-col min-h-screen items-center justify-center bg-background p-4">
+    <div className="flex flex-col min-h-full items-center justify-center bg-background p-4">
       <Suspense
         fallback={
           <Card className="w-full max-w-md">

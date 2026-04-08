@@ -45,6 +45,18 @@ export async function POST(req: Request) {
 
     let currentChatId = chatId;
 
+    // Validate the project exists and belongs to the signed-in user
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, ownerId: user.id },
+    });
+
+    if (!project) {
+      return NextResponse.json(
+        { message: 'Project not found or you do not have access to it. Please connect a GitHub repository first.' },
+        { status: 403 },
+      );
+    }
+
     // Create a new chat if none exists
     if (!currentChatId) {
        const newChat = await prisma.chat.create({
@@ -60,8 +72,8 @@ export async function POST(req: Request) {
     // Determine Model Provider
     let model;
 
-    if (user.claudApiKey) {
-      const anthropic = createAnthropic({ apiKey: user.claudApiKey });
+    if (user.claudeApiKey) {
+      const anthropic = createAnthropic({ apiKey: user.claudeApiKey });
       model = anthropic("claude-3-haiku-20240307");
     } else if (user.openaiApiKey) {
       const openai = createOpenAI({ apiKey: user.openaiApiKey });
@@ -112,22 +124,27 @@ export async function POST(req: Request) {
        if (workflowContent) {
            // We found a workflow, we need to instruct the LLM to follow it.
            // Append the workflow instructions to the prompt as a system message
-           const systemInstruction = `You are a Tech Lead Agent. You have been asked to execute a workflow. The workflow instructions are as follows:\n\n${workflowContent}\n\nPlease analyze the user's intent and follow the workflow steps. Respond directly to the user.`;
+           const chatGuardInstruction = `
+### SECURITY GUARD: PROJECT READ-ONLY MODE
+You are in a strictly READ-ONLY analysis environment at the "/chat" URL.
+1. NEVER output a tool call, command, or script that could modify any files in the workspace.
+2. NEVER suggest actions that would change the state of the project.
+3. You are permitted to: Examine code, identify patterns, provide snippets for explanation, and offer architectural advice.
+4. If a workflow or user prompt asks you to "Execute", "Write", "Modify", "Fix", or "Delete", interpret this ONLY as "Analyze and Propose" – but DO NOT perform the action.
+5. All underlying file-editing tools are PHYSICALLY DISABLED in this interface. 
+`;
+
+           const systemInstruction = `${chatGuardInstruction}\n\nYou are a Tech Lead Agent. You have been asked to execute a workflow. The workflow instructions are as follows:\n\n${workflowContent}\n\nPlease analyze the user's intent and follow the workflow steps as an analysis protocol. Respond directly to the user.`;
+
 
            const workflowMessages = [
                { role: 'system' as const, content: systemInstruction, id: 'sys-1' },
                ...messages
            ];
 
-           // Simulate adding the repoUrl to the context for standard chat processing
-           let repoContextStr = "";
-           const project = await prisma.project.findUnique({
-             where: { id: projectId }
-           });
-
-           if (project && project.repoUrl) {
-              repoContextStr = `\n\nProject Repository: ${project.repoUrl}`;
-              workflowMessages[0].content += repoContextStr;
+           // Add project repo URL to system context
+           if (project.repoUrl) {
+              workflowMessages[0].content += `\n\nProject Repository: ${project.repoUrl}`;
            }
 
            const result = await streamText({
@@ -168,15 +185,21 @@ export async function POST(req: Request) {
     }
 
     // Normal chat stream
-    const normalMessages = [...messages];
-    const project = await prisma.project.findUnique({
-      where: { id: projectId }
-    });
-    if (project && project.repoUrl && normalMessages.length > 0) {
-      // Prepend context to the first message if needed, or add a system message
-      const sysMsg = { role: 'system' as const, content: `Project Repository: ${project.repoUrl}`, id: 'sys-repo' };
-      normalMessages.unshift(sysMsg);
-    }
+    const chatGuardInstruction = `
+### SECURITY GUARD: PROJECT READ-ONLY MODE
+You are in a strictly READ-ONLY analysis environment at the "/chat" URL.
+1. NEVER output a tool call, command, or script that could modify any files in the workspace.
+2. NEVER suggest actions that would change the state of the project.
+3. You are permitted to: Examine code, identify patterns, provide snippets for explanation, and offer architectural advice.
+4. If a workflow or user prompt asks you to "Execute", "Write", "Modify", "Fix", or "Delete", interpret this ONLY as "Analyze and Propose" – but DO NOT perform the action.
+5. All underlying file-editing tools are PHYSICALLY DISABLED in this interface. 
+`;
+
+    const projectContext = project.repoUrl ? `\nProject Repository: ${project.repoUrl}` : "";
+    const normalMessages = [
+      { role: 'system' as const, content: `${chatGuardInstruction}${projectContext}`, id: 'sys-guard' },
+      ...messages
+    ];
 
     const result = await streamText({
       model: model,
@@ -199,7 +222,7 @@ export async function POST(req: Request) {
     });
 
   } catch (error: unknown) {
-    // console.error("Chat API error:", error);
+    console.error("Chat API error:", error);
     const errMessage = error instanceof Error ? error.message : String(error);
     if (errMessage.includes("quota")) {
       return NextResponse.json({

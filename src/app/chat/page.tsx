@@ -45,7 +45,7 @@ export default function ChatPage() {
   }, [chatId, setMessages]);
 
   return (
-    <div className="flex h-screen bg-zinc-950 text-zinc-100">
+    <div className="flex h-full bg-zinc-950 text-zinc-100 overflow-hidden">
       <ChatSidebar
         projectId={projectId}
         setProjectId={setProjectId}

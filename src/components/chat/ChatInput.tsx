@@ -111,8 +111,10 @@ export default function ChatInput({
           <Send className="h-4 w-4" />
         </button>
       </form>
-      <div className="text-center mt-2">
-         <span className="text-[10px] text-zinc-500">Press Shift+Enter for new line. AI can make mistakes. Check important info.</span>
+      <div className="text-center mt-2 flex items-center justify-center space-x-2">
+         <span className="text-[10px] text-zinc-600 font-mono uppercase">Read-Only Mode</span>
+         <span className="text-zinc-700">•</span>
+         <span className="text-[10px] text-zinc-500 italic">AI can make mistakes. Focus is code analysis only.</span>
       </div>
     </div>
   );
