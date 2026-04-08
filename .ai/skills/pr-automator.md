@@ -67,43 +67,43 @@ cost: ~1200 tokens
      or root folder.
    - **Assignee Discovery**: Run `gh api user -q .login` to identify the PR
      author.
-   - **UI Change Detection**: Run `git diff --name-only <base>...HEAD` to check
-     for changes in `*.tsx`, `*.jsx`, `*.css`, `*.scss`, `*.html`, or
-     `tailwind.config.*`. Partition results into two buckets:
-     - **Component files**: `*.tsx`, `*.jsx`
-     - **Style files**: `*.css`, `*.scss`, `*.html`, `tailwind.config.*`
-   - **Rendered Import Check (MANDATORY — run before triggering visual
-     verifier)**: For every changed **component file**, verify it is actually
-     consumed in the rendered app tree:
-     1. Extract the component's exported name (e.g. `UnsavedChangesConfirmation`
-        from `unsaved-changes-confirmation.tsx`).
-     2. Run a grep across the source tree, **excluding** the file itself, its
-        own tests, and barrel `index` re-exports:
+   - **UI Change Detection** — follow these steps **in order**. Do not skip
+     ahead.
 
-        ```bash
-        grep -r --include="*.tsx" --include="*.ts" \
-          "ComponentName" src/ \
-          | grep -v "component-file-name" \
-          | grep -v "\.test\." | grep -v "\.spec\." \
-          | grep -v "index\."
-        ```
+     **Step A — Run the diff:**
 
-     3. **Zero results → Unrendered Addition**: the component exists in the diff
-        but is not imported anywhere in the rendered tree.
-        - **Skip visual verification for this file.**
-        - Add this callout to the PR body:
-          > ⚠️ `<filename>` was added but is not yet imported in the app tree.
-          > Visual verification skipped — no rendered surface to capture.
-     4. **One or more results → Rendered**: proceed to visual verification for
-        this component.
+     ```bash
+     git diff --name-only <base>...HEAD
+     ```
 
-   - **Decision Gate**:
-     - If **no** component file passes the Rendered Import Check **AND** there
-       are **no** style-file changes → skip visual verifier entirely. Apply the
-       `no-ui-impact` label to the PR.
-     - If **any** component file is rendered **OR** any style file changed →
-       proceed to the visual verifier steps below.
-   - **MANDATORY**: If confirmed rendered UI changes exist:
+     Collect changed files that match `*.tsx`, `*.jsx`, `*.css`, `*.scss`,
+     `*.html`, or `tailwind.config.*`.
+
+     **Step B — For EVERY `.tsx` / `.jsx` file: run the import check BEFORE
+     doing anything else:**
+
+     ```bash
+     # Replace <ComponentName> with the PascalCase export and <file> with the filename
+     grep -rl "<ComponentName>" src/ --include="*.tsx" --include="*.ts" \
+       | grep -v "<file>" \
+       | grep -vE "\.(test|spec)\." \
+       | grep -v "index\."
+     ```
+
+     - **Output is empty** → component is **unrendered** (added but not used).
+       - ✅ **SKIP visual verification for this file entirely.**
+       - Add to PR body:
+         `> ⚠️ filename added but not yet imported — visual verification skipped.`
+     - **Output has matches** → component is **rendered**. Mark it for capture.
+
+     **Step C — Decision:**
+
+     | Condition                                                                       | Action                                                             |
+     | ------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+     | All `.tsx`/`.jsx` files are unrendered AND no `.css`/`.scss`/`tailwind` changed | **SKIP visual verifier. Label PR `no-ui-impact`. Go to Metadata.** |
+     | Any `.tsx`/`.jsx` is rendered OR any `.css`/`.scss`/`tailwind` changed          | **Proceed to Step D.**                                             |
+
+     **Step D — Capture (only reached if Step C says "Proceed"):**
      1. Run `rtk run visual-verifier` to capture screenshots.
      2. Identify/Create the evidence branch: **`pr/evidence-[project-name]`**.
      3. **Upload via Git**:
@@ -114,6 +114,7 @@ cost: ~1200 tokens
         - **Construct URLs**:
           `https://raw.githubusercontent.com/<OWNER>/<REPO>/pr/evidence-[project-name]/screenshots/<feature-branch>/<viewport>.png`
      4. Switch back to the original feature branch.
+
    - **Metadata**:
      - Run `gh label list --json name` to fetch available repository labels.
      - Select appropriate labels (e.g., `bug`, `enhancement`) based on the diff.
