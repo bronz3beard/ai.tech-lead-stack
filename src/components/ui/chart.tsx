@@ -32,7 +32,7 @@ export function BarChart({
 }) {
   return (
     <div className="w-full h-[350px] relative overflow-visible">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <RechartsBarChart data={data}>
           <XAxis
             dataKey="name"
@@ -77,7 +77,7 @@ export function LineChart({
 }) {
   return (
     <div className="w-full h-[350px] relative overflow-visible">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <RechartsLineChart data={data}>
           <CartesianGrid
             strokeDasharray="3 3"
