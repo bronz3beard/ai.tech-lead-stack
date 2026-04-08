@@ -69,8 +69,41 @@ cost: ~1200 tokens
      author.
    - **UI Change Detection**: Run `git diff --name-only <base>...HEAD` to check
      for changes in `*.tsx`, `*.jsx`, `*.css`, `*.scss`, `*.html`, or
-     `tailwind.config.*`.
-   - **MANDATORY**: If UI changes are detected:
+     `tailwind.config.*`. Partition results into two buckets:
+     - **Component files**: `*.tsx`, `*.jsx`
+     - **Style files**: `*.css`, `*.scss`, `*.html`, `tailwind.config.*`
+   - **Rendered Import Check (MANDATORY — run before triggering visual
+     verifier)**: For every changed **component file**, verify it is actually
+     consumed in the rendered app tree:
+     1. Extract the component's exported name (e.g. `UnsavedChangesConfirmation`
+        from `unsaved-changes-confirmation.tsx`).
+     2. Run a grep across the source tree, **excluding** the file itself, its
+        own tests, and barrel `index` re-exports:
+
+        ```bash
+        grep -r --include="*.tsx" --include="*.ts" \
+          "ComponentName" src/ \
+          | grep -v "component-file-name" \
+          | grep -v "\.test\." | grep -v "\.spec\." \
+          | grep -v "index\."
+        ```
+
+     3. **Zero results → Unrendered Addition**: the component exists in the diff
+        but is not imported anywhere in the rendered tree.
+        - **Skip visual verification for this file.**
+        - Add this callout to the PR body:
+          > ⚠️ `<filename>` was added but is not yet imported in the app tree.
+          > Visual verification skipped — no rendered surface to capture.
+     4. **One or more results → Rendered**: proceed to visual verification for
+        this component.
+
+   - **Decision Gate**:
+     - If **no** component file passes the Rendered Import Check **AND** there
+       are **no** style-file changes → skip visual verifier entirely. Apply the
+       `no-ui-impact` label to the PR.
+     - If **any** component file is rendered **OR** any style file changed →
+       proceed to the visual verifier steps below.
+   - **MANDATORY**: If confirmed rendered UI changes exist:
      1. Run `rtk run visual-verifier` to capture screenshots.
      2. Identify/Create the evidence branch: **`pr/evidence-[project-name]`**.
      3. **Upload via Git**:
@@ -88,6 +121,7 @@ cost: ~1200 tokens
      - **MANDATORY**: Exclude the PR author from the `## FYI 🙋` section.
    - **Template**: Search `.github/`, `.gitlab/`, or root for
      `PULL_REQUEST_TEMPLATE`.
+
 2. **Drafting**:
    - **Strict Adherence**: Use the discovered template as the MANDATORY schema.
    - **Screenshots Section**: Locating the `## Screenshots` or similar section
@@ -129,7 +163,8 @@ cost: ~1200 tokens
        --label "<LABEL2>"
      ```
 
-   - **Fallback**: If `--body-file` is not supported, use `--body "$(cat .github/.pr_body_temp.md)"`.
+   - **Fallback**: If `--body-file` is not supported, use
+     `--body "$(cat .github/.pr_body_temp.md)"`.
    - Output the PR link returned by `gh pr create` to the user for final manual
      transition to "Ready for Review".
 
