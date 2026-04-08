@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Command } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { getWorkflowsForRole } from "@/lib/workflow-roles";
 
 interface ChatInputProps {
   input: string;
@@ -17,17 +19,14 @@ export default function ChatInput({
   const [showWorkflows, setShowWorkflows] = useState(false);
   const [workflows, setWorkflows] = useState<string[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { data: session } = useSession();
 
   useEffect(() => {
-    const mockWorkflows = [
-      "audit-tech-debt",
-      "planning-expert",
-      "mission-architect",
-      "regression-bug-fix",
-      "code-review-checklist"
-    ];
-    setWorkflows(mockWorkflows);
-  }, []);
+    if (session?.user && (session.user as any).role) {
+       const userWorkflows = getWorkflowsForRole((session.user as any).role);
+       setWorkflows(userWorkflows);
+    }
+  }, [session]);
 
   useEffect(() => {
     if (input.startsWith("/")) {

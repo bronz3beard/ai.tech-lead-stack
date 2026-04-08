@@ -6,6 +6,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { prisma } from "@/lib/prisma";
+import { canAccessWorkflow } from "@/lib/workflow-roles";
 import * as path from "path";
 import * as fs from "fs/promises";
 
@@ -92,6 +93,19 @@ export async function POST(req: Request) {
     if (userMessage.content.startsWith("/")) {
        const command = userMessage.content.substring(1).trim().split(" ")[0];
        const workflowName = command.replace(/^get_/, "").replace(/_/g, "-");
+
+       // Verify Role Access
+       if (!canAccessWorkflow(user.role, workflowName)) {
+           const deniedMessage = `Access Denied: The '${workflowName}' workflow is restricted and not available to the ${user.role} role.`;
+           await prisma.message.create({
+               data: {
+                   chatId: currentChatId,
+                   role: "assistant",
+                   content: deniedMessage,
+               }
+           });
+           return NextResponse.json({ message: deniedMessage }, { status: 403 });
+       }
 
        const workflowContent = await readWorkflow(workflowName);
 
