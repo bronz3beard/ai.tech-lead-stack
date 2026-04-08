@@ -1,0 +1,109 @@
+
+> @bronz3beard/tech-lead-stack@1.0.0 dev
+> prisma generate && next dev
+
+Loaded Prisma config from prisma.config.ts.
+
+Prisma schema loaded from prisma/schema.prisma.
+warn Preview feature "driverAdapters" is deprecated. The functionality can be used without specifying it as a preview feature.
+
+✔ Generated Prisma Client (v7.7.0) to ./node_modules/.pnpm/@prisma+client@7.7.0_prisma@7.7.0_@types+react-dom@19.2.3_@types+react@19.2.14__@types+_c59191c4feebce653dec790451749887/node_modules/@prisma/client in 528ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+
+ ⚠ Port 3000 is in use by an unknown process, using available port 3001 instead.
+   ▲ Next.js 15.5.14
+   - Local:        http://localhost:3001
+   - Network:      http://192.168.0.2:3001
+   - Experiments (use with caution):
+     ✓ useCache
+
+ ✓ Starting...
+ ✓ Ready in 3.9s
+ ○ Compiling / ...
+ ✓ Compiled / in 18.6s (1852 modules)
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+ GET / 200 in 22027ms
+ ○ Compiling /api/auth/[...nextauth] ...
+ ✓ Compiled /api/auth/[...nextauth] in 4.7s (2082 modules)
+[next-auth][warn][NEXTAUTH_URL]
+https://next-auth.js.org/warnings#nextauth_url
+[next-auth][warn][NO_SECRET]
+https://next-auth.js.org/warnings#no_secret
+ ○ Compiling /register ...
+ ✓ Compiled /register in 912ms (2075 modules)
+ GET /register 200 in 1535ms
+[next-auth][warn][NEXTAUTH_URL]
+https://next-auth.js.org/warnings#nextauth_url
+[next-auth][warn][NO_SECRET]
+https://next-auth.js.org/warnings#no_secret
+ GET /api/auth/session 200 in 198ms
+ ○ Compiling /api/auth/register ...
+ ✓ Compiled /api/auth/register in 1705ms (2165 modules)
+Registration error: Error [PrismaClientKnownRequestError]:
+Invalid `prisma.user.findUnique()` invocation:
+
+
+Can't reach database server at base
+    at async POST (src/app/api/auth/register/route.ts:36:26)
+  34 |     const password_hash = await bcrypt.hash(password, salt);
+  35 |
+> 36 |     const existingUser = await prisma.user.findUnique({
+     |                          ^
+  37 |       where: { email },
+  38 |     });
+  39 | {
+  code: 'P1001',
+  meta: [Object],
+  clientVersion: '7.7.0'
+}
+ POST /api/auth/register 500 in 2877ms
+ ○ Compiling /signin ...
+ ✓ Compiled /signin in 1280ms (2174 modules)
+ GET /signin 200 in 1759ms
+[next-auth][warn][NEXTAUTH_URL]
+https://next-auth.js.org/warnings#nextauth_url
+[next-auth][warn][NO_SECRET]
+https://next-auth.js.org/warnings#no_secret
+ GET /api/auth/session 200 in 110ms
+ ✓ Compiled in 1635ms (1343 modules)
+ GET /register 200 in 614ms
+ ○ Compiling /api/auth/register ...
+ ✓ Compiled /api/auth/register in 762ms (768 modules)
+ ✓ Compiled (858 modules)
+[next-auth][warn][NEXTAUTH_URL]
+https://next-auth.js.org/warnings#nextauth_url
+[next-auth][warn][NO_SECRET]
+https://next-auth.js.org/warnings#no_secret
+ GET /api/auth/session 200 in 1727ms
+Registration error: Error [PrismaClientKnownRequestError]:
+Invalid `prisma.user.findUnique()` invocation:
+
+
+Can't reach database server at base
+    at async POST (src/app/api/auth/register/route.ts:36:26)
+  34 |     const password_hash = await bcrypt.hash(password, salt);
+  35 |
+> 36 |     const existingUser = await prisma.user.findUnique({
+     |                          ^
+  37 |       where: { email },
+  38 |     });
+  39 | {
+  code: 'P1001',
+  meta: [Object],
+  clientVersion: '7.7.0'
+}
+ POST /api/auth/register 500 in 1843ms
+ GET /signin 200 in 784ms
+ GET /api/auth/session 200 in 46ms
+ GET /api/auth/providers 200 in 23ms
+ GET /api/auth/csrf 200 in 21ms
+ POST /api/auth/callback/credentials 401 in 32ms
