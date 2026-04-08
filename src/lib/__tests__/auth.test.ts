@@ -1,26 +1,13 @@
 import { authOptions } from '../auth';
 
-jest.mock('@prisma/client', () => {
-  return {
-    PrismaClient: jest.fn().mockImplementation(() => ({
-      user: {
-        findUnique: jest.fn(),
-      },
-    })),
-  };
-});
-
-jest.mock('@next-auth/prisma-adapter', () => ({
-  PrismaAdapter: jest.fn(),
-}));
-
 describe('authOptions', () => {
-  it('should have GithubProvider configured', () => {
-    expect(authOptions.providers.length).toBe(1);
+  it('should have GithubProvider and CredentialsProvider configured', () => {
+    expect(authOptions.providers.length).toBe(2);
     expect(authOptions.providers[0].id).toBe('github');
+    expect(authOptions.providers[1].id).toBe('credentials');
   });
 
-  it('should use database sessions with Prisma adapter', () => {
-    expect(authOptions.session?.strategy).toBe('database');
+  it('should use jwt sessions', () => {
+    expect(authOptions.session?.strategy).toBe('jwt');
   });
 });

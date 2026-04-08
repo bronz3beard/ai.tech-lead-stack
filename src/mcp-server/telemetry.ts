@@ -10,6 +10,7 @@ export interface LangfuseMetadata {
   environment: 'dev' | 'prod' | 'local';
   userEmail?: string;
   userName?: string;
+  userRole?: string;
   model?: string;
   agent?: string;
   error?: string;
@@ -25,7 +26,8 @@ export interface ITelemetry {
     model: string | undefined,
     agent: string | undefined,
     skillCost: string | undefined,
-    executeCallback: () => Promise<T>
+    executeCallback: () => Promise<T>,
+    overrides?: { userEmail?: string, userRole?: string }
   ): Promise<T>;
 }
 
@@ -61,7 +63,8 @@ export class Telemetry implements ITelemetry {
     model: string | undefined,
     agent: string | undefined,
     skillCost: string | undefined,
-    executeCallback: () => Promise<T>
+    executeCallback: () => Promise<T>,
+    overrides?: { userEmail?: string, userRole?: string }
   ): Promise<T> {
     const normalizedSkill = normalizeSkillName(skillName);
     
@@ -69,7 +72,8 @@ export class Telemetry implements ITelemetry {
       return executeCallback();
     }
 
-    const userEmail = this.userResolver.getUserEmail();
+    const userEmail = overrides?.userEmail || this.userResolver.getUserEmail();
+    const userRole = overrides?.userRole || 'DEVELOPER'; // Defaulting to DEVELOPER if not provided via API override
     const userName = this.userResolver.getUserName();
     const resolvedModel = langfuseLabel(model);
     const resolvedAgent = langfuseLabel(agent);
@@ -81,6 +85,7 @@ export class Telemetry implements ITelemetry {
       environment: 'local',
       userEmail,
       userName,
+      userRole,
       model: resolvedModel,
       agent: resolvedAgent,
       version: '1.0.0',
@@ -96,7 +101,7 @@ export class Telemetry implements ITelemetry {
       name: `skill:${normalizedSkill}`,
       userId: userEmail,
       metadata,
-      tags: [normalizedProject, resolvedModel, normalizedSkill],
+      tags: [normalizedProject, resolvedModel, normalizedSkill, userRole],
     });
 
     try {
