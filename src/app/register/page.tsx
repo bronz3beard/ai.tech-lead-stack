@@ -4,13 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-const roles = ["DEVELOPER", "DESIGNER", "QA", "PM"] as const;
+const roles = ["PM", "DESIGNER", "QA"] as const;
 
 export default function RegisterPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<typeof roles[number]>("DEVELOPER");
+  const [role, setRole] = useState<typeof roles[number]>("PM");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 

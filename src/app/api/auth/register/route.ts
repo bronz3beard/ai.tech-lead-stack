@@ -6,7 +6,7 @@ import { z } from "zod";
 const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
-  role: z.enum(["DESIGNER", "QA", "PM", "DEVELOPER"]).optional().default("DEVELOPER"),
+  role: z.enum(["DESIGNER", "QA", "PM"]).optional().default("PM"),
 });
 
 export async function POST(req: Request) {
