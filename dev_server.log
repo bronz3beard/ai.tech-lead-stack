@@ -107,3 +107,5 @@ Can't reach database server at base
  GET /api/auth/providers 200 in 23ms
  GET /api/auth/csrf 200 in 21ms
  POST /api/auth/callback/credentials 401 in 32ms
+ ✓ Compiled in 14.5s (822 modules)
+ ✓ Compiled in 1916ms (822 modules)

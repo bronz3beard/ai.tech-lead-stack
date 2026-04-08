@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Command } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { getWorkflowsForRole } from "@/lib/workflow-roles";
+import { getWorkflowsForRole, WorkflowInfo } from "@/lib/workflow-roles";
 
 interface ChatInputProps {
   input: string;
@@ -17,7 +17,7 @@ export default function ChatInput({
   isLoading,
 }: ChatInputProps) {
   const [showWorkflows, setShowWorkflows] = useState(false);
-  const [workflows, setWorkflows] = useState<string[]>([]);
+  const [workflows, setWorkflows] = useState<WorkflowInfo[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { data: session } = useSession();
 
@@ -72,14 +72,15 @@ export default function ChatInput({
            </div>
            <ul>
               {workflows
-                 .filter(w => `/${w}`.startsWith(input.split(' ')[0]))
+                 .filter(w => `/${w.name}`.startsWith(input.split(' ')[0]))
                  .map(w => (
                  <li
-                   key={w}
-                   className="px-4 py-2 hover:bg-zinc-700 cursor-pointer text-sm text-zinc-200"
-                   onClick={() => insertWorkflow(w)}
+                   key={w.name}
+                   className="px-4 py-2 flex items-center hover:bg-zinc-700 cursor-pointer text-sm text-zinc-200"
+                   onClick={() => insertWorkflow(w.name)}
                  >
-                    <span className="font-mono text-indigo-400 mr-2">/{w}</span>
+                    <span className="font-mono text-indigo-400 mr-4 shrink-0 w-[200px]">/{w.name}</span>
+                    <span className="text-zinc-500 text-xs truncate">{w.description}</span>
                  </li>
               ))}
            </ul>
