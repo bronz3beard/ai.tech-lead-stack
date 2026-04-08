@@ -1,5 +1,5 @@
 ---
-name: workflow-clean-code-audit
+name: clean-code-audit
 description: Clean Code Audit
 ---
 

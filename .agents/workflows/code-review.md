@@ -1,5 +1,5 @@
 ---
-name: workflow-code-review
+name: code-review
 description: Pre-PR Quality Gatekeeper Code Review
 ---
 

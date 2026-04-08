@@ -3,6 +3,7 @@
 
 # Core skills (.ai/skills)
 accessibility-auditor|.ai/skills/accessibility-auditor.md
+ask|.ai/skills/ask.md
 changelog-generator|.ai/skills/changelog-generator.md
 clean-code|.ai/skills/clean-code.md
 code-review-checklist|.ai/skills/code-review-checklist.md
@@ -21,6 +22,7 @@ visual-verifier|.ai/skills/visual-verifier.md
 
 # Antigravity-style workflows (.agents/workflows) — distinct names to avoid clashing with skills
 workflow-accessibility-audit|.agents/workflows/accessibility-audit.md
+workflow-ask|.agents/workflows/ask.md
 workflow-audit-tech-debt|.agents/workflows/audit-tech-debt.md
 workflow-changelog|.agents/workflows/changelog.md
 workflow-clean-code-audit|.agents/workflows/clean-code-audit.md

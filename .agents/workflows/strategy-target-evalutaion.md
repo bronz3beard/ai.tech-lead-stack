@@ -1,5 +1,5 @@
 ---
-name: workflow-strategy-target-evalutaion
+name: strategy-target-evalutaion
 description: Product Strategy Audit
 ---
 

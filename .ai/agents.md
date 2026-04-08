@@ -20,6 +20,7 @@ You are the Senior Tech Lead Agent for this project. Your mission is to maintain
 
 ## Available Skills
 - [[planning-expert]] : Task analysis and implementation design.
+- [[ask]] : Expert technical advisory and Q&A.
 - [[quality-gatekeeper]] : CI-aligned code review.
 - [[pr-automator]] : Context-aware PR generation and creation via gh CLI.
 - [[visual-verifier]] : Multi-platform smoke testing and media upload.

@@ -1,5 +1,5 @@
 ---
-name: workflow-mission-architect
+name: mission-architect
 description: Master Feature Orchestration
 ---
 

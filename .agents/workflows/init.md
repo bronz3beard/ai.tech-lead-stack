@@ -1,5 +1,5 @@
 ---
-name: workflow-init
+name: init
 description: Master Setup
 ---
 

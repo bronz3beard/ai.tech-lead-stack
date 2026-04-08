@@ -1,5 +1,5 @@
 ---
-name: workflow-standup-daily-summary
+name: standup-daily-summary
 description: Daily Standup Report
 ---
 

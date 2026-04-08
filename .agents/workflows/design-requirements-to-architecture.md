@@ -1,5 +1,5 @@
 ---
-name: workflow-design-requirements-to-architecture
+name: design-requirements-to-architecture
 description: Feature Design Assistant
 ---
 

@@ -1,5 +1,5 @@
 ---
-name: workflow-changelog
+name: changelog
 description: Generate Changelog
 ---
 

@@ -1,5 +1,5 @@
 ---
-name: workflow-verify-changes
+name: verify-changes
 description: Visual Smoke Test
 ---
 

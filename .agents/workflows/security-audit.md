@@ -1,5 +1,5 @@
 ---
-name: workflow-security-audit
+name: security-audit
 description: Security Audit
 ---
 

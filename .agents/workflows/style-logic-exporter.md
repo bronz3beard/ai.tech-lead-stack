@@ -1,5 +1,5 @@
 ---
-name: workflow-style-logic-exporter
+name: style-logic-exporter
 description: Extract style logic and tokens for Figma
 ---
 

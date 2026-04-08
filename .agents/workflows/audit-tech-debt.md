@@ -1,5 +1,5 @@
 ---
-name: workflow-audit-tech-debt
+name: audit-tech-debt
 description: Technical Debt Audit
 ---
 

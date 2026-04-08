@@ -1,5 +1,5 @@
 ---
-name: workflow-regression-bug-fix
+name: regression-bug-fix
 description: Unified Feedback & Regression Fix
 ---
 
