@@ -1,0 +1,12 @@
+--- schema.prisma
++++ schema.prisma
+@@ -37,6 +37,9 @@
+   image         String?
+   password_hash String?
+   role          Role      @default(DEVELOPER)
++  firstName     String?
++  lastName      String?
++  preferredModel String?  @default("gemini")
+   claudeApiKey  String?   @map("claudApiKey")
+   openaiApiKey  String?
+   geminiApiKey  String?
