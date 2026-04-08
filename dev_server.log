@@ -109,3 +109,4 @@ Can't reach database server at base
  POST /api/auth/callback/credentials 401 in 32ms
  ✓ Compiled in 14.5s (822 modules)
  ✓ Compiled in 1916ms (822 modules)
+ ✓ Compiled in 7.7s (1343 modules)

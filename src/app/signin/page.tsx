@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Github } from 'lucide-react';
 import { signIn } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { Suspense, useRef, useState } from 'react';
 
 function SignInContent() {
@@ -123,8 +124,8 @@ function SignInContent() {
           )}
         </button>
 
-        <div className="text-center mt-2 text-sm text-zinc-400">
-           Need an account? <a href="/register" className="text-indigo-400 hover:underline">Register here</a>
+        <div className="text-center mt-4 text-sm text-zinc-400">
+           Need an account? <Link href="/register" className="font-semibold text-indigo-400 hover:text-indigo-300 hover:underline transition-colors">Register here</Link>
         </div>
 
         {error || paramError ? (
