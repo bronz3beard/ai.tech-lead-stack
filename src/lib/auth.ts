@@ -1,9 +1,9 @@
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
-import { AuthOptions, DefaultSession } from 'next-auth';
-import GithubProvider, { GithubProfile } from 'next-auth/providers/github';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import { prisma } from './prisma';
 import bcrypt from 'bcryptjs';
+import { AuthOptions, DefaultSession } from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import GithubProvider, { GithubProfile } from 'next-auth/providers/github';
+import { prisma } from './prisma';
 
 declare module 'next-auth' {
   interface Session extends DefaultSession {
@@ -17,8 +17,9 @@ declare module 'next-auth' {
 }
 
 export const authOptions: AuthOptions = {
+  debug: process.env.NODE_ENV === 'development',
   adapter: PrismaAdapter(prisma),
-  secret: process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
   providers: [
     GithubProvider({
       clientId: process.env.GITHUB_ID || '',
@@ -58,7 +59,10 @@ export const authOptions: AuthOptions = {
           return null;
         }
 
-        const isPasswordValid = await bcrypt.compare(credentials.password, user.password_hash);
+        const isPasswordValid = await bcrypt.compare(
+          credentials.password,
+          user.password_hash
+        );
 
         if (!isPasswordValid) {
           return null;
@@ -81,40 +85,54 @@ export const authOptions: AuthOptions = {
   },
   events: {
     async signIn({ user, profile }) {
-      if (!profile || typeof profile !== 'object') return;
-      const p = profile as { name?: string | null; image?: string | null };
-      if (p.image == null && p.name == null) return;
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          ...(p.image != null ? { image: p.image } : {}),
-          ...(p.name != null ? { name: p.name } : {}),
-        },
-      });
+      try {
+        if (!profile || typeof profile !== 'object') return;
+        const p = profile as { name?: string | null; image?: string | null };
+        if (p.image == null && p.name == null) return;
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            ...(p.image != null ? { image: p.image } : {}),
+            ...(p.name != null ? { name: p.name } : {}),
+          },
+        });
+      } catch (error) {
+        console.error('SignIn Event Error:', error);
+      }
     },
   },
   callbacks: {
     async jwt({ token, user, profile, account }) {
-      if (user) {
-        token.id = user.id;
-        token.role = (user as { role?: string }).role || 'DEVELOPER';
+      try {
+        if (user) {
+          token.id = user.id;
+          token.role = (user as { role?: string }).role || 'DEVELOPER';
+        }
+        if (profile && account?.provider === 'github') {
+          const githubProfile = profile as GithubProfile;
+          token.name = githubProfile.name || githubProfile.login;
+          token.image = githubProfile.avatar_url;
+        }
+        return token;
+      } catch (error) {
+        console.error('JWT Callback Error:', error);
+        return token;
       }
-      if (profile && account?.provider === 'github') {
-        const githubProfile = profile as GithubProfile;
-        token.name = githubProfile.name || githubProfile.login;
-        token.image = githubProfile.avatar_url;
-      }
-      return token;
     },
     async session({ session, token }) {
-      if (token && session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
-        session.user.name = token.name as string | null | undefined;
-        session.user.email = token.email as string | null | undefined;
-        session.user.image = token.image as string | null | undefined;
+      try {
+        if (token && session.user) {
+          session.user.id = token.id as string;
+          session.user.role = token.role as string;
+          session.user.name = token.name as string | null | undefined;
+          session.user.email = token.email as string | null | undefined;
+          session.user.image = token.image as string | null | undefined;
+        }
+        return session;
+      } catch (error) {
+        console.error('Session Callback Error:', error);
+        return session;
       }
-      return session;
     },
   },
 };

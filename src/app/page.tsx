@@ -7,6 +7,7 @@ import { BarChart, LineChart } from '@/components/ui/chart';
 import { fetchAllPages } from '@/lib/langfuse-api';
 import { langfuseLabel } from '@/lib/langfuse-labels';
 import { isSkillTrace, normalizeProjectName, isActiveSkill, normalizeSkillName } from '@/lib/trace-utils';
+import pMap from 'p-map';
 
 export const revalidate = 60; // cached for 60 seconds
 
@@ -32,6 +33,9 @@ interface LangfuseUsage {
   outputTokens?: number;
   promptTokens?: number;
   completionTokens?: number;
+  input?: number;
+  output?: number;
+  total?: number;
 }
 
 interface LangfuseTrace {
@@ -48,6 +52,21 @@ interface LangfuseTrace {
   totalTokens?: number;
   inputTokens?: number;
   outputTokens?: number;
+}
+
+interface LangfuseObservation {
+  id: string;
+  traceId: string;
+  type: string;
+  name?: string;
+  model?: string;
+  metadata?: Record<string, unknown>;
+  usage?: LangfuseUsage;
+  calculatedTotalCost?: number;
+}
+
+interface TraceWithObservations extends LangfuseTrace {
+  observations: LangfuseObservation[];
 }
 
 
@@ -81,31 +100,86 @@ async function getGlobalMetrics(projectId?: string) {
       2000 // Increased limit to 2000 to be more exhaustive across multiple projects
     );
 
+    // Fetch Observations per-trace safely using pMap to prevent 422/429
+    const tracesWithObservations = await pMap(
+      allTraces,
+      async (t: LangfuseTrace) => {
+        try {
+          // Fetch observations strictly tied to this trace to satisfy Langfuse query limits
+          const obsParams = new URLSearchParams({ traceId: t.id, type: 'GENERATION' });
+          const obsData = await fetchAllPages<LangfuseObservation>(
+            baseUrl,
+            '/api/public/observations',
+            obsParams,
+            authHeader,
+            100 // Typically traces don't exceed 100 observations
+          );
+          return { ...t, observations: obsData };
+        } catch (e) {
+          console.error(`Error fetching observations for trace ${t.id}:`, e);
+          return { ...t, observations: [] };
+        }
+      },
+      { concurrency: 5 } // Strict concurrency prevents 429
+    );
+
     // 2. Skill Validation (isActiveSkill is imported from trace-utils)
 
     // 3. Process traces and aggregate available projects
     const projectSet = new Set<string>();
     
-    // We no longer fetch observations separately to avoid 429 and improve speed
-    // Most semantic metadata (projectName, model, agent) is now stored in trace metadata
+    // We now fetch observations in bulk efficiently to avoid 429 and improve speed
     
     // 4. Map and Filter traces
-    const mappedTraces: TraceData[] = allTraces.map((t) => {
+    const mappedTraces: TraceData[] = tracesWithObservations.map((t) => {
       const metadata = t.metadata || {};
       
       // Exhaustive search for project identity across metadata
-      const rawProj = 
-        metadata.projectName || 
-        metadata.projectId || 
-        metadata.project || 
-        metadata.repo || 
-        metadata.repository ||
-        metadata.app ||
-        metadata.domain;
+      const sources = [
+        metadata.projectName, 
+        metadata.projectId, 
+        metadata.project, 
+        metadata.repo, 
+        metadata.repository,
+        metadata.app,
+        metadata.domain,
+        ...(t.tags || []),
+        ...t.observations.map(o => o.metadata?.projectName),
+        ...t.observations.map(o => o.metadata?.projectId),
+        ...t.observations.map(o => o.metadata?.project),
+        ...t.observations.map(o => o.metadata?.repo),
+      ];
+      
+      let rawProj: string | unknown = 'unknown';
+      for (const val of sources) {
+        if (typeof val === 'string' && val.trim() !== '') {
+          rawProj = val;
+          break; // take first valid match
+        }
+      }
         
       const normalizedProj = normalizeProjectName(String(rawProj || 'unknown'));
       if (normalizedProj !== 'unknown') {
         projectSet.add(normalizedProj);
+      }
+
+      // Calculate aggregated metrics from observations if needed
+      let totalCost = t.totalCost || 0;
+      let totalTokens = t.totalTokens || t.usage?.totalTokens || t.usage?.total || 0;
+      let inputTokens = t.inputTokens || t.usage?.inputTokens || t.usage?.promptTokens || t.usage?.input || 0;
+      let outputTokens = t.outputTokens || t.usage?.outputTokens || t.usage?.completionTokens || t.usage?.output || 0;
+
+      if (t.observations && t.observations.length > 0) {
+        t.observations.forEach(obs => {
+          if (obs.usage) {
+            totalTokens += obs.usage.total || obs.usage.totalTokens || 0;
+            inputTokens += obs.usage.input || obs.usage.promptTokens || obs.usage.inputTokens || 0;
+            outputTokens += obs.usage.output || obs.usage.completionTokens || obs.usage.outputTokens || 0;
+          }
+          if (obs.calculatedTotalCost) {
+            totalCost += obs.calculatedTotalCost;
+          }
+        });
       }
 
       return {
@@ -119,15 +193,10 @@ async function getGlobalMetrics(projectId?: string) {
         duration: t.duration,
         status: t.status,
         metadata: metadata,
-        totalCost: t.totalCost || 0,
-        totalTokens: t.totalTokens || t.usage?.totalTokens || 0,
-        inputTokens:
-          t.inputTokens || t.usage?.inputTokens || t.usage?.promptTokens || 0,
-        outputTokens:
-          t.outputTokens ||
-          t.usage?.outputTokens ||
-          t.usage?.completionTokens ||
-          0,
+        totalCost,
+        totalTokens,
+        inputTokens,
+        outputTokens,
       };
     }).filter(trace => {
         // Strict Skill Filtering
