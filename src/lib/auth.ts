@@ -27,7 +27,7 @@ export const authOptions: AuthOptions = {
       allowDangerousEmailAccountLinking: false,
       authorization: {
         params: {
-          scope: 'read:user user:email repo',
+          scope: 'read:user user:email repo read:org',
         },
       },
       profile(profile) {

@@ -83,10 +83,10 @@ export async function POST(req: Request) {
 
     if (preferredModel === 'claude' && user.claudeApiKey) {
       const anthropic = createAnthropic({ apiKey: decrypt(user.claudeApiKey) });
-      model = anthropic("claude-3-5-haiku-20241022");
+      model = anthropic("claude-opus-4.6");
     } else if (preferredModel === 'openai' && user.openaiApiKey) {
       const openai = createOpenAI({ apiKey: decrypt(user.openaiApiKey) });
-      model = openai("gpt-4o-mini");
+      model = openai("gpt-5.4");
     } else {
       const geminiKey = user.geminiApiKey ? decrypt(user.geminiApiKey) : process.env.GEMINI_API_KEY;
       if (!geminiKey) {
@@ -95,7 +95,7 @@ export async function POST(req: Request) {
         }, { status: 400 });
       }
       const google = createGoogleGenerativeAI({ apiKey: geminiKey });
-      model = google("gemini-1.5-flash");
+      model = google("gemini-3.1-pro");
     }
 
     if (project.ownerId && project.ownerId !== user.id) {
