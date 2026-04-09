@@ -22,9 +22,12 @@ cost: 1
    default to a "Research Agent" (`firecrawl_agent`) unless the task
    specifically requires external documentation retrieval.
 3. **Missing Stack Tools**: If a required internal tool (prefixed with
-   `rtk run`) is missing or fails with "file not found", do NOT search the
-   filesystem, local `scripts/` folders, or the web for it. **STOP** and report
-   the error to the user.
+   `get_skills` or `rtk run`) is missing or fails with "file not found":
+   - **MANDATORY**: Check MCP configuration to ensure the server is connected.
+   - **MANDATORY**: consult `CLAUDE.md` for the stack-specific `rtk-run`
+     equivalent.
+   - **STOP**: If both fail, report the connectivity/file error to the user. Do
+     NOT search the filesystem or web for fallbacks.
 4. **Vision Prompting**: Do NOT "identify objects in images" captured by
    verification tools unless you are debugging a specific UI alignment/rendering
    issue.

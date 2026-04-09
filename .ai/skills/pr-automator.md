@@ -20,6 +20,12 @@ cost: ~1200 tokens
 
 ### Phase 0: Tech-Stack Discovery (MANDATORY)
 
+- **Skill Usage Enforcement:**
+  - **Check MCP Configuration:** Ensure the MCP server providing `get_skills` is
+    connected.
+  - **Reference CLAUDE.md:** Consult `CLAUDE.md` for stack-specific `rtk-run`
+    commands.
+
 - **Action:** Identify root configuration and VCS settings (`.github`,
   `.gitlab`, `package.json`, etc.).
 - **Target Files:** Inspect `package.json`, `tsconfig.json`, `.github/`, or root

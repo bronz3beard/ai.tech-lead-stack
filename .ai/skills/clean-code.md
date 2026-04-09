@@ -19,6 +19,12 @@ cost: ~950 tokens
 
 ### Phase 0: Tech-Stack Discovery (MANDATORY)
 
+- **Skill Usage Enforcement:**
+  - **Check MCP Configuration:** Ensure the MCP server providing `get_skills` is
+    connected.
+  - **Reference CLAUDE.md:** Consult `CLAUDE.md` for stack-specific `rtk-run`
+    commands.
+
 - **Action:** Identify language-specific SOLID patterns (e.g., Interfaces in
   Java/C#, Composition in Go/Rust, Protocols in Swift).
 - **Target Files:** Inspect `package.json`, `tsconfig.json`, `csproj`,

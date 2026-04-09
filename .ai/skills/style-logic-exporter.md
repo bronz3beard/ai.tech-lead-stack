@@ -18,6 +18,12 @@ cost: ~550 tokens
 
 ### Phase 0: Tech-Stack Discovery (MANDATORY)
 
+- **Skill Usage Enforcement:**
+  - **Check MCP Configuration:** Ensure the MCP server providing `get_skills` is
+    connected.
+  - **Reference CLAUDE.md:** Consult `CLAUDE.md` for stack-specific `rtk-run`
+    commands.
+
 - **Action:** Scan root configuration files for styling dependencies.
 - **Target Files:** Inspect `package.json`, `tailwind.config.*`,
   `next.config.*`, `postcss.config.*`, or `theme.ts`.

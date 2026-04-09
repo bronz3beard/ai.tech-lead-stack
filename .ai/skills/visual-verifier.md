@@ -20,6 +20,12 @@ also by results and consistent iteration on a task.
 
 ### Phase 0: Tech-Stack Discovery (MANDATORY)
 
+- **Skill Usage Enforcement:**
+  - **Check MCP Configuration:** Ensure the MCP server providing `get_skills` is
+    connected.
+  - **Reference CLAUDE.md:** Consult `CLAUDE.md` for stack-specific `rtk-run`
+    commands.
+
 - **Action:** Identify root configuration files for dev scripts (e.g.,
   `package.json`, `Taskfile`, `Makefile`).
 - **Target Files:** Inspect `package.json`, `tsconfig.json`, `Taskfile`,
@@ -36,8 +42,8 @@ also by results and consistent iteration on a task.
   **Desktop**, **Tablet**, and **Mobile** resolutions.
 - **Negative (Unverified):** Screenshots capture a 404/blank page.
 - **Action:** Ensure the app is running (using the detected dev command) AND
-  authenticated. Attempt `rtk run visual-verifier [URL]` first; if that tool
-  is unavailable, use the **Antigravity Fallback** (Step 3 in workflow below).
+  authenticated. Attempt `rtk run visual-verifier [URL]` first; if that tool is
+  unavailable, use the **Antigravity Fallback** (Step 3 in workflow below).
 
 ### Gate 2: Workflow Continuity
 

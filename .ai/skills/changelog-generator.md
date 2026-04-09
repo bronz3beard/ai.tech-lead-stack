@@ -22,6 +22,12 @@ cost: ~750 tokens
 
 ### Phase 0: Tech-Stack Discovery (MANDATORY)
 
+- **Skill Usage Enforcement:**
+  - **Check MCP Configuration:** Ensure the MCP server providing `get_skills` is
+    connected.
+  - **Reference CLAUDE.md:** Consult `CLAUDE.md` for stack-specific `rtk-run`
+    commands.
+
 - **Action:** Identify root configuration and versioning files.
 - **Target Files:** Inspect `package.json`, `VERSION`, `cargo.toml`, or
   `pyproject.toml`.

@@ -17,6 +17,12 @@ cost: ~550 tokens
 
 ### Phase 0: Tech-Stack Discovery (MANDATORY)
 
+- **Skill Usage Enforcement:**
+  - **Check MCP Configuration:** Ensure the MCP server providing `get_skills` is
+    connected.
+  - **Reference CLAUDE.md:** Consult `CLAUDE.md` for stack-specific `rtk-run`
+    commands.
+
 - **Action:** Identify root configuration files to define the "Context
   Boundary."
 - **Target Files:** Inspect `package.json`, `tsconfig.json`, `csproj`,
