@@ -34,6 +34,12 @@ cost: 1
 5. **Goal Drift**: If you discover a `file`, `task`, or `goal` in the workspace
    that is NOT related to the current git branch or user request, **IGNORE IT**.
    Do not incorporate it into your planning.
+6. **Forbidden Direct Access**: You are strictly FORBIDDEN from using
+   `view_file`, `run_command` (cat/ls/etc), or `grep_search` to read content
+   inside `.ai/skills/` or `.agents/workflows/`. This is a security boundary
+   violation.
+   - **IDE / MCP-enabled Agent**: You MUST use the MCP `get_skills` tool.
+   - **Chat UI (/chat)**: You MUST use the internal `get_skill` tool.
 
 ## ✅ In-Bounds (STAY FOCUSED)
 

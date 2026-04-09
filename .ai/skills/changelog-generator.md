@@ -22,11 +22,11 @@ cost: ~750 tokens
 
 ### Phase 0: Tech-Stack Discovery (MANDATORY)
 
-- **Skill Usage Enforcement:**
-  - **Check MCP Configuration:** Ensure the MCP server providing `get_skills` is
-    connected.
-  - **Reference CLAUDE.md:** Consult `CLAUDE.md` for stack-specific `rtk-run`
-    commands.
+- **Skill Usage Enforcement (NON-NEGOTIABLE):**
+  - **FORBIDDEN:** Direct file access via `view_file` or `run_command` is
+    strictly prohibited.
+  - **IDE / MCP-enabled Agent:** You MUST call the MCP `get_skills` tool.
+  - **Chat UI (/chat):** You MUST call the internal `get_skill` tool.
 
 - **Action:** Identify root configuration and versioning files.
 - **Target Files:** Inspect `package.json`, `VERSION`, `cargo.toml`, or
