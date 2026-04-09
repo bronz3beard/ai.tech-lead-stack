@@ -28,7 +28,7 @@ describe("MCP Server", () => {
                 path: "mock/path.md"
             };
         }
-        return undefined; // Not found
+        return null; // Not found
     });
 
     mockTelemetry.withAnalytics.mockImplementation(async (name, project, model, agent, cost, callback) => {

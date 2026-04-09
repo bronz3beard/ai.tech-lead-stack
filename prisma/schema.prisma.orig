@@ -41,10 +41,7 @@ model User {
   image         String?
   password_hash String?
   role          Role      @default(DEVELOPER)
-  firstName     String?
-  lastName      String?
-  preferredModel String?  @default("gemini")
-  claudeApiKey  String?   @map("claudApiKey")
+  claudeApiKey  String?  @map("claudApiKey")
   openaiApiKey  String?
   geminiApiKey  String?
   createdAt     DateTime  @default(now())
@@ -72,17 +69,6 @@ model Project {
   createdAt      DateTime @default(now())
   chats          Chat[]
   owner          User?    @relation(fields: [ownerId], references: [id])
-  accessGrants   ProjectAccess[]
-}
-
-model ProjectAccess {
-  id        String   @id @default(cuid())
-  projectId String
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  role      Role
-  createdAt DateTime @default(now())
-
-  @@unique([projectId, role])
 }
 
 model Chat {

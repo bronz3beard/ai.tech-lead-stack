@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { Globe, LayoutDashboard, Hammer, MessageSquare, LogIn, LogOut, Menu, X } from 'lucide-react';
+import { Globe, LayoutDashboard, Hammer, MessageSquare, LogIn, LogOut, Menu, X, Settings } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -105,6 +105,13 @@ export function Navbar() {
                     </div>
                   )}
                 </div>
+                <Link
+                  href="/settings"
+                  className="text-muted-foreground hover:text-foreground p-2 rounded-md"
+                  title="Settings"
+                >
+                  <Settings className="w-5 h-5" />
+                </Link>
                 <button
                   onClick={() => signOut({ callbackUrl: '/' })}
                   className="text-muted-foreground hover:text-foreground p-2 rounded-md"
