@@ -17,7 +17,11 @@ import * as path from "path";
 import * as dotenv from "dotenv";
 
 const repoRoot = path.resolve(__dirname, "../../");
+const originalConsoleLog = console.log;
+console.log = () => {}; // Suppress dotenv tip that breaks MCP stdio JSON parsing
 dotenv.config({ path: path.join(repoRoot, ".env") });
+console.log = originalConsoleLog;
+
 import { Telemetry } from "./telemetry.js";
 import { FileSystemService } from "./fs-service.js";
 import { Handlers } from "./handlers.js";

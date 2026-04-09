@@ -87,12 +87,16 @@ export function isSkillTrace(name?: string, skillName?: string): boolean {
 
   const forbidden = ['skill', 'skill-md', 'skill-skill', 'generation-skill'];
   
-  // If the trace name is forbidden (like "skill"), only block it if the 
-  // specific skill identity (skillName) is also forbidden or missing.
+  // If the trace name is forbidden, block it if skill identity is also forbidden or missing.
   if (forbidden.includes(normalizedName)) {
     if (!skillName || normalizedSkill === 'unknown' || forbidden.includes(normalizedSkill)) {
       return true;
     }
+  }
+
+  // If the skill itself is a generic placeholder, it's a meta-trace regardless of the trace name
+  if (forbidden.includes(normalizedSkill)) {
+    return true;
   }
 
   return false;
