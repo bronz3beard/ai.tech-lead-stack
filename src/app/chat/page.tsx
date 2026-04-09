@@ -65,7 +65,7 @@ export default function ChatPage() {
         ) : (
           <>
              <div className="flex-1 overflow-y-auto p-4 md:p-8">
-               <ChatMessageList messages={messages} />
+               <ChatMessageList messages={messages} isLoading={isLoading} />
                {error && (
                  <div className="p-4 mt-4 bg-red-900/20 border border-red-500/50 rounded-lg text-red-400">
                     {error.message || "An error occurred."}

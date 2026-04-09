@@ -1,12 +1,14 @@
 import { Message } from "@ai-sdk/react";
 import ReactMarkdown from "react-markdown";
+import StreamingIndicator from "./StreamingIndicator";
 
 interface ChatMessageListProps {
   messages: Message[];
+  isLoading?: boolean;
 }
 
-export default function ChatMessageList({ messages }: ChatMessageListProps) {
-  if (messages.length === 0) {
+export default function ChatMessageList({ messages, isLoading }: ChatMessageListProps) {
+  if (messages.length === 0 && !isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center h-full">
          <div className="text-center text-zinc-500">
@@ -41,6 +43,10 @@ export default function ChatMessageList({ messages }: ChatMessageListProps) {
           </div>
         </div>
       ))}
+
+      {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
+        <StreamingIndicator />
+      )}
     </div>
   );
 }
