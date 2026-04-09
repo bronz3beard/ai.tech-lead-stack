@@ -6,7 +6,7 @@ description: Specialized audit for Web Accessibility (A11y).
 
 1. **Phase 0: Tech-Stack Discovery (MANDATORY)**: Identify the project root configuration files to understand architectural constraints.
 
-2. Call the tech-lead-stack.get_skills tool:
+2. Call the get_skills tool (which may be prefixed by the server name depending on your client):
    - skillName: "accessibility-auditor"
    - projectName: "<NAME_FROM_PACKAGE_JSON>"
    - model: "<YOUR_MODEL_NAME>"

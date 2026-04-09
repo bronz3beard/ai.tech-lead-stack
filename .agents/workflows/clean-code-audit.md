@@ -7,7 +7,7 @@ description: Clean Code Audit
 
 1. **Phase 0: Tech-Stack Discovery (MANDATORY)**: Inspect the project root to identify the primary language and framework.
 
-2. Call the tech-lead-stack.get_clean_code tool:
+2. Call the get_clean_code tool (which may be prefixed by the server name depending on your client):
    - skillName: "clean-code"
    - projectName: "<NAME_FROM_PACKAGE_JSON>" (Look at your root package.json "name" field or current directory name)
    - model: "<YOUR_MODEL_NAME>"

@@ -108,6 +108,18 @@ export const authOptions: AuthOptions = {
           token.id = user.id;
           token.role = (user as { role?: string }).role || 'DEVELOPER';
         }
+        
+        // When account is present, this is a fresh sign-in/OAuth redirect.
+        // We MUST manually update the access token in the DB because NextAuth
+        // doesn't always automatically persist fresh tokens for existing users
+        // when using the JWT session strategy.
+        if (account && account.provider === 'github' && account.access_token && token.id) {
+          await prisma.account.updateMany({
+            where: { userId: token.id as string, provider: 'github' },
+            data: { access_token: account.access_token },
+          });
+        }
+
         if (profile && account?.provider === 'github') {
           const githubProfile = profile as GithubProfile;
           token.name = githubProfile.name || githubProfile.login;

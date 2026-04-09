@@ -14,14 +14,13 @@ import {
   Tool,
 } from "@modelcontextprotocol/sdk/types.js";
 import * as path from "path";
-import "dotenv/config";
+import * as dotenv from "dotenv";
 
-// New Services
+const repoRoot = path.resolve(__dirname, "../../");
+dotenv.config({ path: path.join(repoRoot, ".env") });
 import { Telemetry } from "./telemetry.js";
 import { FileSystemService } from "./fs-service.js";
 import { Handlers } from "./handlers.js";
-
-const repoRoot = path.resolve(__dirname, "../../");
 
 // Initialize Services
 const telemetry = new Telemetry();

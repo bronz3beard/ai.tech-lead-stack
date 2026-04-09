@@ -13,7 +13,14 @@ export function normalizeProjectName(name: string | undefined): string {
 
   let normalized = name.toLowerCase().trim();
 
-  // Extract name component from common patterns
+  // If it's explicitly "all", keep it as "all" for dashboard scoping
+  if (normalized === 'all') return 'all';
+
+  // Specific project overrides for consistency
+  if (normalized.includes('gilly')) return 'gilly';
+  if (normalized.includes('tech-lead-stack')) return 'tech-lead-stack';
+
+  // Extract name component from common patterns (e.g., "@scope/name" -> "name")
   if (normalized.includes('/')) {
     normalized = normalized.split('/').pop() || normalized;
   }
@@ -21,7 +28,7 @@ export function normalizeProjectName(name: string | undefined): string {
   return normalized
     .replace(/^@/, '')
     .replace(/^ai\./, '')
-    .replace(/-(mcp|analytics)$/, '')
+    .replace(/-(mcp|analytics|llms|bridge|code-review)$/, '')
     .trim();
 }
 
@@ -74,13 +81,18 @@ export function isSkillTrace(name?: string, skillName?: string): boolean {
   const normalizedName = normalizeSkillName(name);
   const normalizedSkill = normalizeSkillName(skillName);
 
-  // Filter out meta-skill patterns and strictly unknown traces
-  if (name && normalizedName === 'unknown') return true;
-  if (skillName && normalizedSkill === 'unknown') return true;
+  // Strictly filter out truly unknown/empty identities
+  if (!name && !skillName) return true;
+  if (normalizedName === 'unknown' && normalizedSkill === 'unknown') return true;
 
   const forbidden = ['skill', 'skill-md', 'skill-skill', 'generation-skill'];
-  if (forbidden.includes(normalizedName) || forbidden.includes(normalizedSkill)) {
-    return true;
+  
+  // If the trace name is forbidden (like "skill"), only block it if the 
+  // specific skill identity (skillName) is also forbidden or missing.
+  if (forbidden.includes(normalizedName)) {
+    if (!skillName || normalizedSkill === 'unknown' || forbidden.includes(normalizedSkill)) {
+      return true;
+    }
   }
 
   return false;

@@ -31,11 +31,15 @@ async function fetchWithRetry(
     try {
       const response = await fetch(url, options);
       
+      // If we hit a 429, retry with exponential backoff + jitter
       if (response.status === 429) {
-        if (i === maxRetries) return response;
+        if (i === maxRetries) return response; // Final attempt, return the 429 for the caller to handle
         
-        const delay = initialDelay * Math.pow(2, i);
-        console.warn(`Langfuse 429 Rate Limit hit. Retrying in ${delay}ms... (Attempt ${i + 1}/${maxRetries})`);
+        // Exponential backoff with small random jitter
+        const jitter = Math.random() * 500;
+        const delay = (initialDelay * Math.pow(2, i)) + jitter;
+        
+        console.warn(`Langfuse 429 Rate Limit hit. Retrying in ${Math.round(delay)}ms... (Attempt ${i + 1}/${maxRetries})`);
         await sleep(delay);
         continue;
       }
@@ -53,13 +57,6 @@ async function fetchWithRetry(
 
 /**
  * Fetches all pages from a Langfuse API endpoint that supports pagination.
- *
- * @param baseUrl The base URL of the Langfuse API (e.g. https://cloud.langfuse.com)
- * @param endpoint The endpoint to fetch from (e.g. /api/public/traces)
- * @param queryParams Any query parameters to append to the URL (e.g. userId=foo)
- * @param authHeader The Authorization header to use
- * @param totalLimit Optional limit on the total number of items to fetch
- * @returns An array containing all items from all pages
  */
 export async function fetchAllPages<T>(
   baseUrl: string,
@@ -73,11 +70,9 @@ export async function fetchAllPages<T>(
   const batchSize = 100;
 
   while (true) {
-    // Clone params to avoid mutating the original
     const params = new URLSearchParams(queryParams.toString());
     params.set('page', currentPage.toString());
     
-    // Calculate how many items to fetch in this batch
     let currentBatchLimit = batchSize;
     if (totalLimit) {
       currentBatchLimit = Math.min(batchSize, totalLimit - allData.length);
@@ -94,11 +89,16 @@ export async function fetchAllPages<T>(
       next: { revalidate: 60 },
     });
 
+    // Special Case: 429 Rate Limit exceeded after all retries
+    if (response.status === 429) {
+      console.error(`Langfuse Hard Rate Limit Reached for ${endpoint}. Returning partial data (${allData.length} items).`);
+      return allData; // Return whatever we found so far instead of crashing the UI
+    }
+
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(
-        `Failed to fetch from Langfuse: ${response.status} ${response.statusText} - ${errorText}`
-      );
+      console.error(`Langfuse API Error: ${response.status} for ${endpoint}. returning partial data.`);
+      return allData; // Be resilient: return partial data instead of crashing
     }
 
     const json = (await response.json()) as LangfusePaginatedResponse<T>;
@@ -123,8 +123,8 @@ export async function fetchAllPages<T>(
 
     currentPage++;
     
-    // Add a small 100ms delay between pages to be gentle with Langfuse
-    await sleep(100);
+    // Add a 250ms delay between pages to be gentle with Langfuse
+    await sleep(250);
   }
 
   return totalLimit ? allData.slice(0, totalLimit) : allData;
