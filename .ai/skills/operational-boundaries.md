@@ -40,6 +40,10 @@ cost: 1
    violation.
    - **IDE / MCP-enabled Agent**: You MUST use the MCP `get_skills` tool.
    - **Chat UI (/chat)**: You MUST use the internal `get_skill` tool.
+7. **Sequential Integrity**: You are FORBIDDEN from attempting to solve a
+   technical request or searching the codebase (Phase 1) until the mandatory
+   "Phase 0: Skill Acquisition" step of the active workflow is completed and the
+   relevant skill logic is loaded into your context.
 
 ## ✅ In-Bounds (STAY FOCUSED)
 
