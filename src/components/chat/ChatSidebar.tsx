@@ -1,7 +1,14 @@
 'use client';
 
-import { Folder, Github, Loader2, MessageSquare, PlusCircle, Trash2 } from 'lucide-react';
-import { Message } from 'ai';
+import { Message } from '@ai-sdk/react';
+import {
+  Folder,
+  Github,
+  Loader2,
+  MessageSquare,
+  PlusCircle,
+  Trash2,
+} from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import GitHubRepoImportModal from './GitHubRepoImportModal';
 
@@ -42,7 +49,8 @@ export default function ChatSidebar({
 }: ChatSidebarProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [chats, setChats] = useState<Chat[]>([]);
-  const [projectFetchState, setProjectFetchState] = useState<ProjectFetchState>('loading');
+  const [projectFetchState, setProjectFetchState] =
+    useState<ProjectFetchState>('loading');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchProjects = useCallback(async () => {
@@ -118,7 +126,9 @@ export default function ChatSidebar({
 
           {/* Error state */}
           {projectFetchState === 'error' && (
-            <p className="text-xs text-red-400 py-1">Failed to load projects.</p>
+            <p className="text-xs text-red-400 py-1">
+              Failed to load projects.
+            </p>
           )}
 
           {/* Empty state — no projects registered yet */}
@@ -131,7 +141,9 @@ export default function ChatSidebar({
               <span className="text-xs text-center leading-relaxed">
                 No projects connected.
                 <br />
-                <span className="text-indigo-400 font-medium">Connect a GitHub repo</span>
+                <span className="text-indigo-400 font-medium">
+                  Connect a GitHub repo
+                </span>
               </span>
             </button>
           )}
@@ -177,7 +189,9 @@ export default function ChatSidebar({
             History
           </div>
           {chats.length === 0 ? (
-            <div className="text-zinc-600 text-xs italic px-2">No past chats.</div>
+            <div className="text-zinc-600 text-xs italic px-2">
+              No past chats.
+            </div>
           ) : (
             <div className="space-y-1">
               {chats.map((c) => (
