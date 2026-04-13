@@ -47,25 +47,42 @@ export class FileSystemService {
     for (const dir of searchDirs) {
       try {
         const files = await fs.readdir(dir);
-        for (const file of files) {
-          if (file.endsWith(".md")) {
+
+        const filePromises = files
+          .filter(file => file.endsWith(".md"))
+          .map(async (file) => {
             const name = path.basename(file, ".md");
-            if (!dynamicSkills.has(name)) {
-              try {
-                const content = await fs.readFile(path.join(dir, file), "utf-8");
-                const matchDescription = content.match(/description:\s*(.*)/);
-                const matchCost = content.match(/cost:\s*(.*)/);
-                const matchInternal = content.match(/internal:\s*(true|false)/);
-                
-                dynamicSkills.set(name, {
+            if (dynamicSkills.has(name)) {
+              return null;
+            }
+
+            try {
+              const content = await fs.readFile(path.join(dir, file), "utf-8");
+              const matchDescription = content.match(/description:\s*(.*)/);
+              const matchCost = content.match(/cost:\s*(.*)/);
+              const matchInternal = content.match(/internal:\s*(true|false)/);
+
+              return {
+                name,
+                value: {
                   description: matchDescription ? matchDescription[1].trim() : "Reads the content of this skill.",
                   cost: matchCost ? matchCost[1].trim() : "unknown",
                   internal: matchInternal ? matchInternal[1] === "true" : false,
-                });
-              } catch {
-                dynamicSkills.set(name, { description: `Skill: ${name}`, cost: "unknown", internal: false });
-              }
+                }
+              };
+            } catch {
+              return {
+                name,
+                value: { description: `Skill: ${name}`, cost: "unknown", internal: false }
+              };
             }
+          });
+
+        const results = await Promise.all(filePromises);
+
+        for (const result of results) {
+          if (result && !dynamicSkills.has(result.name)) {
+            dynamicSkills.set(result.name, result.value);
           }
         }
       } catch { /* skip */ }
