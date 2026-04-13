@@ -62,7 +62,7 @@ export async function POST(req: Request) {
     }
 
     const { provider, key } = parsed.data;
-    const encryptedKey = encrypt(key);
+    const encryptedKey = encrypt(key.trim());
 
     const updateData: Record<string, string> = {
       preferredModel: provider, // Automatically set as preferred when added

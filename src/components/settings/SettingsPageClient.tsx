@@ -29,7 +29,10 @@ export default function SettingsPageClient({ role }: SettingsPageClientProps) {
 
         <TabsContent value="api-keys" className="mt-6 space-y-6">
           <p className="text-sm text-muted-foreground mb-4">
-            Manage your API keys for different AI models. The system default will be used if no personal key is set.
+            Manage your API keys for different AI models. For Gemini, a key saved here takes priority over
+            GEMINI_API_KEY / GOOGLE_GENERATIVE_AI_API_KEY in the server environment unless you set
+            GEMINI_API_KEY_PRECEDENCE=env. Google&apos;s &quot;free_tier_requests&quot; quota errors still mean your
+            key is being used; enable billing on that Google AI project for higher limits.
           </p>
           <ApiKeyCard provider="gemini" label="Gemini (Google)" isSystemDefault />
           <ApiKeyCard provider="claude" label="Claude (Anthropic)" />

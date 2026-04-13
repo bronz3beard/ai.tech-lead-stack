@@ -35,6 +35,8 @@ const nextConfig: NextConfig = {
     ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
 
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    GOOGLE_GENERATIVE_AI_API_KEY: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+    GEMINI_API_KEY_PRECEDENCE: process.env.GEMINI_API_KEY_PRECEDENCE,
   },
 };
 

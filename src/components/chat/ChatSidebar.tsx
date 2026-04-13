@@ -1,6 +1,6 @@
 'use client';
 
-import { Message } from '@ai-sdk/react';
+import { UIMessage } from '@ai-sdk/react';
 import {
   Folder,
   Github,
@@ -29,7 +29,7 @@ interface ChatSidebarProps {
   setProjectId: (id: string | null) => void;
   chatId: string | null;
   setChatId: (id: string | null) => void;
-  setMessages: (messages: Message[]) => void;
+  setMessages: (messages: UIMessage[]) => void;
 }
 
 type ProjectFetchState = 'loading' | 'empty' | 'loaded' | 'error';
