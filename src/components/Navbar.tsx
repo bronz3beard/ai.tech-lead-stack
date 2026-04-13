@@ -1,7 +1,17 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { Globe, LayoutDashboard, Hammer, MessageSquare, LogIn, LogOut, Menu, X, Settings } from 'lucide-react';
+import {
+  Globe,
+  LayoutDashboard,
+  Hammer,
+  MessageSquare,
+  LogIn,
+  LogOut,
+  Menu,
+  X,
+  Settings,
+} from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -33,6 +43,143 @@ const navigation = [
 function avatarFallbackLetter(name?: string | null, email?: string | null) {
   const c = name?.trim()?.[0] ?? email?.trim()?.[0];
   return c ? c.toUpperCase() : '?';
+}
+
+function DesktopUserMenu({
+  session,
+  isAuthenticated,
+}: {
+  session: any;
+  isAuthenticated: boolean;
+}) {
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center space-x-4">
+        <Link
+          href="/signin"
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+        >
+          Sign In
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-3 mr-2">
+        <span className="text-sm font-medium text-foreground hidden md:inline">
+          {session?.user?.name}
+        </span>
+        {session?.user?.image ? (
+          <div className="h-8 w-8 rounded-full overflow-hidden border border-border shrink-0">
+            <Image
+              src={session.user.image}
+              alt={session.user.name || session.user.email || 'User'}
+              width={32}
+              height={32}
+              className="object-cover"
+              sizes="32px"
+            />
+          </div>
+        ) : (
+          <div
+            className="h-8 w-8 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs shrink-0"
+            aria-hidden
+          >
+            {avatarFallbackLetter(session?.user?.name, session?.user?.email)}
+          </div>
+        )}
+      </div>
+      <Link
+        href="/settings"
+        className="text-muted-foreground hover:text-foreground p-2 rounded-md"
+        title="Settings"
+      >
+        <Settings className="w-5 h-5" />
+      </Link>
+      <button
+        onClick={() => signOut({ callbackUrl: '/' })}
+        className="text-muted-foreground hover:text-foreground p-2 rounded-md"
+        title="Sign Out"
+      >
+        <LogOut className="w-5 h-5" />
+      </button>
+    </div>
+  );
+}
+
+function MobileUserMenu({
+  session,
+  isAuthenticated,
+  setMobileMenuOpen,
+}: {
+  session: any;
+  isAuthenticated: boolean;
+  setMobileMenuOpen: (open: boolean) => void;
+}) {
+  if (!isAuthenticated) {
+    return (
+      <div className="space-y-1">
+        <Link
+          href="/signin"
+          onClick={() => setMobileMenuOpen(false)}
+          className="block px-4 py-2 text-base font-medium text-muted-foreground hover:bg-muted/10 hover:text-foreground"
+        >
+          <div className="flex items-center">
+            <LogIn className="w-5 h-5 mr-3" />
+            Sign In
+          </div>
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1">
+      <div className="px-4 flex items-center mb-3">
+        {session?.user?.image ? (
+          <div className="h-10 w-10 rounded-full overflow-hidden border border-border shrink-0">
+            <Image
+              src={session.user.image}
+              alt={session.user.name || session.user.email || 'User'}
+              width={40}
+              height={40}
+              className="object-cover"
+              sizes="40px"
+            />
+          </div>
+        ) : (
+          <div
+            className="h-10 w-10 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold shrink-0"
+            aria-hidden
+          >
+            {avatarFallbackLetter(session?.user?.name, session?.user?.email)}
+          </div>
+        )}
+        <div className="ml-3">
+          <div className="text-base font-medium text-foreground">
+            {session?.user?.name}
+          </div>
+          <div className="text-sm font-medium text-muted-foreground">
+            {session?.user?.email}
+          </div>
+        </div>
+      </div>
+      <button
+        onClick={() => {
+          setMobileMenuOpen(false);
+          signOut();
+        }}
+        className="block w-full text-left px-4 py-2 text-base font-medium text-muted-foreground hover:bg-muted/10 hover:text-foreground"
+      >
+        <div className="flex items-center">
+          <LogOut className="w-5 h-5 mr-3" />
+          Sign Out
+        </div>
+      </button>
+    </div>
+  );
 }
 
 export function Navbar() {
@@ -76,60 +223,10 @@ export function Navbar() {
             </div>
           </div>
           <div className="hidden sm:ml-6 sm:flex sm:items-center space-x-4">
-            {isAuthenticated ? (
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-3 mr-2">
-                  <span className="text-sm font-medium text-foreground hidden md:inline">
-                    {session.user?.name}
-                  </span>
-                  {session.user?.image ? (
-                    <div className="h-8 w-8 rounded-full overflow-hidden border border-border shrink-0">
-                      <Image
-                        src={session.user.image}
-                        alt={session.user.name || session.user.email || 'User'}
-                        width={32}
-                        height={32}
-                        className="object-cover"
-                        sizes="32px"
-                      />
-                    </div>
-                  ) : (
-                    <div
-                      className="h-8 w-8 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs shrink-0"
-                      aria-hidden
-                    >
-                      {avatarFallbackLetter(
-                        session.user?.name,
-                        session.user?.email
-                      )}
-                    </div>
-                  )}
-                </div>
-                <Link
-                  href="/settings"
-                  className="text-muted-foreground hover:text-foreground p-2 rounded-md"
-                  title="Settings"
-                >
-                  <Settings className="w-5 h-5" />
-                </Link>
-                <button
-                  onClick={() => signOut({ callbackUrl: '/' })}
-                  className="text-muted-foreground hover:text-foreground p-2 rounded-md"
-                  title="Sign Out"
-                >
-                  <LogOut className="w-5 h-5" />
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center space-x-4">
-                <Link
-                  href="/signin"
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                >
-                  Sign In
-                </Link>
-              </div>
-            )}
+            <DesktopUserMenu
+              session={session}
+              isAuthenticated={isAuthenticated}
+            />
           </div>
           <div className="-mr-2 flex items-center sm:hidden">
             <button
@@ -171,67 +268,11 @@ export function Navbar() {
             ))}
           </div>
           <div className="pt-4 pb-3 border-t border-border">
-            {isAuthenticated ? (
-              <div className="space-y-1">
-                <div className="px-4 flex items-center mb-3">
-                  {session.user?.image ? (
-                    <div className="h-10 w-10 rounded-full overflow-hidden border border-border shrink-0">
-                      <Image
-                        src={session.user.image}
-                        alt={session.user.name || session.user.email || 'User'}
-                        width={40}
-                        height={40}
-                        className="object-cover"
-                        sizes="40px"
-                      />
-                    </div>
-                  ) : (
-                    <div
-                      className="h-10 w-10 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold shrink-0"
-                      aria-hidden
-                    >
-                      {avatarFallbackLetter(
-                        session.user?.name,
-                        session.user?.email
-                      )}
-                    </div>
-                  )}
-                  <div className="ml-3">
-                    <div className="text-base font-medium text-foreground">
-                      {session.user?.name}
-                    </div>
-                    <div className="text-sm font-medium text-muted-foreground">
-                      {session.user?.email}
-                    </div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    signOut();
-                  }}
-                  className="block w-full text-left px-4 py-2 text-base font-medium text-muted-foreground hover:bg-muted/10 hover:text-foreground"
-                >
-                  <div className="flex items-center">
-                    <LogOut className="w-5 h-5 mr-3" />
-                    Sign Out
-                  </div>
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-1">
-                <Link
-                  href="/signin"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block px-4 py-2 text-base font-medium text-muted-foreground hover:bg-muted/10 hover:text-foreground"
-                >
-                  <div className="flex items-center">
-                    <LogIn className="w-5 h-5 mr-3" />
-                    Sign In
-                  </div>
-                </Link>
-              </div>
-            )}
+            <MobileUserMenu
+              session={session}
+              isAuthenticated={isAuthenticated}
+              setMobileMenuOpen={setMobileMenuOpen}
+            />
           </div>
         </div>
       )}
