@@ -3,14 +3,13 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { exec, execFile } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
 import matter from 'gray-matter';
 
-const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
 
 export async function validateSkill(content: string) {
@@ -26,7 +25,7 @@ export async function validateSkill(content: string) {
     await fs.writeFile(tempFile, content, 'utf-8');
 
     // Format with Prettier
-    await execAsync(`npx prettier --write ${tempFile}`);
+    await execFileAsync('npx', ['prettier', '--write', tempFile]);
 
     // Validate using script
     const { stdout } = await execFileAsync('bash', ['scripts/validate-skills.sh', tempFile]);
@@ -93,7 +92,7 @@ export async function submitSkill(content: string) {
     const cloneDir = path.join(tempDir, 'repo');
 
     // We need the remote URL for the repo. Let's get it from the current repo
-    const remoteRes = await execAsync('git config --get remote.origin.url');
+    const remoteRes = await execFileAsync('git', ['config', '--get', 'remote.origin.url']);
     let remoteUrl = remoteRes.stdout.trim();
 
     // Inject token into URL for pushing and cloning
