@@ -20,15 +20,17 @@ You are in a strictly READ-ONLY analysis environment at the "/chat" URL.
 export const SYSTEM_INSTRUCTION_WORKFLOW_PREFIX = `You are a Tech Lead Agent. You have been asked to execute a workflow. The workflow instructions are as follows:`;
 
 /**
- * Limit for background analytical tool turns to prevent infinite loops and manage latency.
+ * Limit for background analytical tool turns.
+ * Set higher to facilitate complex multi-step research (e.g. tech debt audits).
  */
-export const MAX_ANALYTICAL_STEPS = 4;
+export const MAX_ANALYTICAL_STEPS = 20;
 
 /**
  * Model identifiers.
  */
 export const MODELS = {
   GEMINI: 'gemini-3-flash-preview',
+  FALLBACK_GEMINI: 'gemini-2.5-flash',
   CLAUDE: 'claude-opus-4.6',
   OPENAI: 'gpt-5.4',
 } as const;

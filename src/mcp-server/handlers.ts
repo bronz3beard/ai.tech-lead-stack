@@ -1,4 +1,4 @@
-import { FileSystemService } from "./fs-service.js";
+import { FileSystemService } from "../lib/skills/fs-service.js";
 import { Telemetry } from "./telemetry.js";
 import { isSkillTrace } from "../lib/trace-utils.js";
 import * as path from "path";

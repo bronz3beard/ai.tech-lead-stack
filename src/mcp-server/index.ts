@@ -23,7 +23,7 @@ dotenv.config({ path: path.join(repoRoot, ".env") });
 console.log = originalConsoleLog;
 
 import { Telemetry } from "./telemetry.js";
-import { FileSystemService } from "./fs-service.js";
+import { FileSystemService } from "../lib/skills/fs-service.js";
 import { Handlers } from "./handlers.js";
 
 // Initialize Services

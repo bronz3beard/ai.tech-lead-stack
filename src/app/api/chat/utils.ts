@@ -3,17 +3,70 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
 import { User } from '@prisma/client';
 import { tool } from 'ai';
-import * as fs from 'fs/promises';
-import * as nodePath from 'path';
 import { z } from 'zod';
 import { MODELS } from './constants';
+import { skillsService } from '@/lib/skills';
 
 /**
  * Strictly extracts a string message from an unknown error object.
+ * Handles nested JSON structures common in AI provider responses,
+ * specifically targeting the .data, .response, and .error fields.
  */
 export function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
-  return String(error);
+
+  const anyErr = error as any;
+  const message =
+    anyErr?.error?.message ||
+    anyErr?.message ||
+    anyErr?.data?.error?.message ||
+    anyErr?.response?.data?.error?.message ||
+    (typeof anyErr === 'object' ? JSON.stringify(anyErr) : String(anyErr));
+
+  return message;
+}
+
+/**
+ * Robustly detects if an error is a Gemini/AI quota or rate-limit error.
+ * Uses aggressive recursive scanning to catch keywords in any property.
+ */
+export function isQuotaError(err: any): boolean {
+  if (!err) return false;
+
+  // 1. Direct check on status/code properties
+  const status = Number(err.status || err.statusCode || err.code || err.error_code);
+  if (status === 429) return true;
+
+  // 2. String mapping check for common Resource Exhausted codes
+  const stringCode = String(err.code || err.status || '').toUpperCase();
+  if (
+    stringCode === 'RESOURCE_EXHAUSTED' ||
+    stringCode === 'RATE_LIMIT_EXCEEDED' ||
+    stringCode === 'FORBIDDEN' || // Sometimes used for tier limits
+    err.reason === 'resource_exhausted' ||
+    err.reason === 'RATE_LIMIT_EXCEEDED'
+  ) {
+    return true;
+  }
+
+  // 3. Deep heuristic check via stringification
+  // This catches cases where the error is wrapped or the detail is deep
+  const msg = getErrorMessage(err).toLowerCase();
+  const raw = typeof err === 'object' ? JSON.stringify(err).toLowerCase() : String(err).toLowerCase();
+
+  const keywords = [
+    '429',
+    'quota',
+    'limit',
+    'exceeded',
+    'rate_limit',
+    'rate limit',
+    'resource_exhausted',
+    'resource exhausted',
+    'too many requests',
+  ];
+
+  return keywords.some(k => msg.includes(k) || raw.includes(k));
 }
 
 /**
@@ -34,15 +87,8 @@ export function getEnvVar(name: string): string {
  */
 export async function readWorkflow(workflowName: string) {
   try {
-    const repoRoot = process.cwd();
-    const workflowPath = nodePath.join(
-      repoRoot,
-      '.agents',
-      'workflows',
-      `${workflowName}.md`
-    );
-    const content = await fs.readFile(workflowPath, 'utf-8');
-    return content;
+    const result = await skillsService.readSkill(workflowName, 'workflow');
+    return result?.content ?? null;
   } catch (err: unknown) {
     console.error(
       `Workflow read error for ${workflowName}:`,
@@ -76,116 +122,100 @@ function getGeminiKeyPrecedence(): 'user' | 'env' {
 }
 
 /**
- * Resolves the Gemini API key for chat: user DB vs environment, with explicit precedence rules.
- * Trims whitespace so pasted keys remain valid.
- *
- * Default precedence is **user** (saved key wins). If you store an old free-tier key in the DB but
- * put a billing-enabled key only in `.env`, requests still use the DB key until you delete it or
- * set GEMINI_API_KEY_PRECEDENCE=env.
- *
- * @param user - Prisma user row (may include geminiApiKey)
- * @param decrypt - decrypt() from @/lib/crypto
- * @returns The API key string to pass to the Google provider
- * @throws If no usable key exists
+ * Resolves the Gemini API keys available: user DB and environment.
+ * @returns Array of available keys [preferred, fallback]
  */
+export function resolveGeminiApiKeys(
+  user: Pick<User, 'geminiApiKey'>,
+  decrypt: (ciphertext: string) => string
+): string[] {
+  const envKey = readGeminiKeysFromEnv();
+  const stored = user.geminiApiKey?.trim();
+  let dbKey: string | null = null;
+
+  if (stored) {
+    const key = decrypt(stored).trim();
+    if (key) dbKey = key;
+  }
+
+  const precedence = getGeminiKeyPrecedence();
+  const keys: string[] = [];
+
+  const mask = (k: string) => `${k.substring(0, 4)}...${k.substring(k.length - 2)}`;
+
+  if (precedence === 'env') {
+    if (envKey) keys.push(envKey);
+    if (dbKey) keys.push(dbKey);
+  } else {
+    if (dbKey) keys.push(dbKey);
+    if (envKey) keys.push(envKey);
+  }
+
+  if (process.env.NODE_ENV === 'development' && keys.length > 0) {
+    console.info(
+      `[chat] Gemini: Found ${keys.length} key(s). Preferred: ${mask(keys[0])}`
+    );
+  }
+
+  if (keys.length === 0) {
+    throw new Error(
+      'No Gemini API key configured. Add one in Settings, or set GEMINI_API_KEY in your .env file.'
+    );
+  }
+
+  return keys;
+}
+
+// Deprecated alias for backward compatibility if needed, but we should update callers.
 export function resolveGeminiApiKey(
   user: Pick<User, 'geminiApiKey'>,
   decrypt: (ciphertext: string) => string
 ): string {
-  const envKey = readGeminiKeysFromEnv();
-  const stored = user.geminiApiKey?.trim();
-  let dbKey: string | null = null;
-  if (stored) {
-    const key = decrypt(stored).trim();
-    if (!key) {
-      throw new Error(
-        'Your saved Gemini API key is empty after decryption. Delete it in Settings and save it again.'
-      );
-    }
-    dbKey = key;
-  }
-
-  const precedence = getGeminiKeyPrecedence();
-
-  if (precedence === 'env') {
-    if (envKey) {
-      if (process.env.NODE_ENV === 'development') {
-        console.info(
-          '[chat] Gemini: using environment key (GEMINI_API_KEY_PRECEDENCE=env; DB key ignored if both set)'
-        );
-      }
-      return envKey;
-    }
-    if (dbKey) {
-      if (process.env.NODE_ENV === 'development') {
-        console.info(
-          '[chat] Gemini: env precedence set but no GEMINI_API_KEY/GOOGLE_GENERATIVE_AI_API_KEY; using user-stored key'
-        );
-      }
-      return dbKey;
-    }
-  } else {
-    if (dbKey) {
-      if (process.env.NODE_ENV === 'development') {
-        console.info(
-          '[chat] Gemini: using user-stored API key (set GEMINI_API_KEY_PRECEDENCE=env to prefer .env instead)'
-        );
-      }
-      return dbKey;
-    }
-    if (envKey) {
-      if (process.env.NODE_ENV === 'development') {
-        console.info(
-          '[chat] Gemini: using GEMINI_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY from environment'
-        );
-      }
-      return envKey;
-    }
-  }
-
-  throw new Error(
-    'No Gemini API key configured. Add one in Settings, or set GEMINI_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY.'
-  );
+  return resolveGeminiApiKeys(user, decrypt)[0];
 }
 
 /**
  * Factory for initializing the AI model based on user preference and API keys.
+ * Supports fallback rotation via modelId and keyIndex.
  */
-export async function initializeModel(user: User) {
+export async function initializeModel(user: User, modelId?: string, keyIndex = 0) {
   const preferredModel = user.preferredModel ?? 'gemini';
   const { decrypt } = await import('@/lib/crypto');
 
   if (preferredModel === 'claude') {
     if (!user.claudeApiKey?.trim()) {
       throw new Error(
-        'Claude is set as the default model, but no Claude API key is saved. Open Settings to add your key, or switch the default model to Gemini or OpenAI.'
+        'Claude is set as the default model, but no Claude API key is saved.'
       );
     }
     const anthropic = createAnthropic({
       apiKey: decrypt(user.claudeApiKey.trim()).trim(),
     });
-    return anthropic(MODELS.CLAUDE);
+    return anthropic(modelId ?? MODELS.CLAUDE);
   }
 
   if (preferredModel === 'openai') {
     if (!user.openaiApiKey?.trim()) {
       throw new Error(
-        'OpenAI is set as the default model, but no OpenAI API key is saved. Open Settings to add your key, or switch the default model.'
+        'OpenAI is set as the default model, but no OpenAI API key is saved.'
       );
     }
     const openai = createOpenAI({
       apiKey: decrypt(user.openaiApiKey.trim()).trim(),
     });
-    return openai(MODELS.OPENAI);
+    return openai(modelId ?? MODELS.OPENAI);
   }
 
-  const geminiKey = resolveGeminiApiKey(user, decrypt);
-  // Never pass an empty string: @ai-sdk/google loadApiKey treats "" as valid and sends a broken key.
-  if (!geminiKey) {
+  // Gemini specific logic with key rotation
+  const geminiKeys = resolveGeminiApiKeys(user, decrypt);
+  const targetKey = geminiKeys[keyIndex] || geminiKeys[0];
+
+  if (!targetKey) {
     throw new Error('Resolved Gemini API key was empty.');
   }
-  const google = createGoogleGenerativeAI({ apiKey: geminiKey });
-  return google(MODELS.GEMINI);
+
+  const google = createGoogleGenerativeAI({ apiKey: targetKey });
+  return google(modelId ?? MODELS.GEMINI);
 }
 
 /**
@@ -197,17 +227,16 @@ export function getChatTools() {
       description: 'Lists all available skills and workflows.',
       parameters: z.object({}),
       execute: async () => {
-        const skillsDir = nodePath.join(process.cwd(), '.ai', 'skills');
-        const workflowsDir = nodePath.join(
-          process.cwd(),
-          '.agents',
-          'workflows'
-        );
         try {
-          const [skills, workflows] = await Promise.all([
-            fs.readdir(skillsDir).catch(() => []),
-            fs.readdir(workflowsDir).catch(() => []),
-          ]);
+          const skillsMap = await skillsService.getDynamicSkills();
+          const skills: string[] = [];
+          const workflows: string[] = [];
+
+          skillsMap.forEach((meta, name) => {
+            if (meta.type === 'skill') skills.push(`${name}.md`);
+            else workflows.push(`${name}.md`);
+          });
+
           return { skills, workflows };
         } catch (e: unknown) {
           return { error: `Skills discovery failed: ${getErrorMessage(e)}` };
@@ -217,22 +246,24 @@ export function getChatTools() {
     get_skill: tool({
       description: 'Reads the specific content of a skill or workflow.',
       parameters: z.object({
-        name: z
-          .string()
-          .describe('The name of the skill or workflow file (without .md)'),
+        name: z.string().optional().describe('Skill/Workflow name'),
+        skillName: z.string().optional().describe('Skill/Workflow name (alias)'),
+        skill_id: z.string().optional().describe('Skill/Workflow name (alias 2)'),
         type: z.enum(['skill', 'workflow']).default('skill'),
       }),
-      execute: async ({ name, type }: { name: string; type: 'skill' | 'workflow' }) => {
-        const baseDir =
-          type === 'skill'
-            ? nodePath.join(process.cwd(), '.ai', 'skills')
-            : nodePath.join(process.cwd(), '.agents', 'workflows');
+      execute: async (args: any) => {
+        const name = args.name || args.skillName || args.skill_id;
+        const type = args.type || 'skill';
+        
+        if (!name) return { error: 'Missing skill name parameter (expected name, skillName, or skill_id)' };
+
         try {
-          const content = await fs.readFile(
-            nodePath.join(baseDir, `${name}.md`),
-            'utf-8'
-          );
-          return { content };
+          // Strip extension if provided by model
+          const safeName = name.replace(/\.md$/, '');
+          const result = await skillsService.readSkill(safeName, type);
+          
+          if (!result) return { error: `Skill or workflow '${name}' not found.` };
+          return { content: result.content };
         } catch (e: unknown) {
           return { error: `Lookup failed for ${name}: ${getErrorMessage(e)}` };
         }
@@ -241,16 +272,15 @@ export function getChatTools() {
     read_file: tool({
       description: 'Reads a file from the project for analysis.',
       parameters: z.object({
-        path: z
-          .string()
-          .describe('The relative path to the file from the project root'),
+        path: z.string().optional().describe('Relative path to the file'),
+        filepath: z.string().optional().describe('Relative path to the file (alias)'),
       }),
-      execute: async ({ path: filePath }: { path: string }) => {
+      execute: async (args: any) => {
+        const filePath = args.path || args.filepath;
+        if (!filePath) return { error: 'Missing file path parameter (expected path or filepath)' };
+
         try {
-          const content = await fs.readFile(
-            nodePath.join(process.cwd(), filePath),
-            'utf-8'
-          );
+          const content = await skillsService.readFile(filePath);
           return { content };
         } catch (e: unknown) {
           return {
