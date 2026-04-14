@@ -17,11 +17,19 @@ export interface TraceData {
   outputTokens?: number;
 }
 
-export async function getAnalytics(filters: { userId?: string; timeframe?: string }): Promise<TraceData[]> {
+export async function getAnalytics(filters: { 
+  userId?: string; 
+  timeframe?: string;
+  projectName?: string;
+}): Promise<TraceData[]> {
   const where: any = {};
 
   if (filters.userId) {
     where.userId = filters.userId;
+  }
+
+  if (filters.projectName) {
+    where.projectName = filters.projectName;
   }
 
   if (filters.timeframe && filters.timeframe !== 'all') {
@@ -68,8 +76,8 @@ export async function getAnalytics(filters: { userId?: string; timeframe?: strin
     id: event.id,
     name: event.skillName || 'unnamed-trace',
     timestamp: event.createdAt.toISOString(),
-    sessionId: event.langfuseTraceId || undefined, // Fallback
-    projectName: 'tech-lead-stack', // Extracted logic simplified for UI matching
+    sessionId: event.langfuseTraceId || undefined, 
+    projectName: event.projectName || 'tech-lead-stack', 
     model: event.model || 'unknown',
     agent: event.agent || 'unknown',
     duration: event.duration || undefined,

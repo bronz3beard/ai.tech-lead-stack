@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Check } from 'lucide-react';
+import { useState, useRef, useEffect, useTransition } from 'react';
+import { ChevronDown, Check, Loader2 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -36,6 +36,7 @@ export function ProjectSelect({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
 
   const selectedProject =
     projects.find((p) => p.id === selectedProjectId) || projects[0];
@@ -59,8 +60,11 @@ export function ProjectSelect({
   const handleSelect = (id: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('projectId', id);
-    router.push(`?${params.toString()}`);
-    setIsOpen(false);
+    
+    startTransition(() => {
+      router.push(`?${params.toString()}`);
+      setIsOpen(false);
+    });
   };
 
   return (
@@ -75,12 +79,16 @@ export function ProjectSelect({
           aria-expanded={isOpen}
         >
           <span className="flex items-center gap-2 truncate">
+            {isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            ) : null}
             {selectedProject?.name || 'All Projects'}
           </span>
           <ChevronDown
             className={cn(
               'ml-2 h-4 w-4 text-muted transition-transform duration-200',
-              isOpen && 'rotate-180'
+              isOpen && 'rotate-180',
+              isPending && 'opacity-50'
             )}
           />
         </button>

@@ -17,7 +17,7 @@ export function LimitSelector({
   ];
 
   return (
-    <div className="w-40">
+    <div className="w-full">
       <Select
         value={limit}
         onChange={onSelectLimit}

@@ -1,43 +1,65 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Github } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ArrowRight, Github, Loader2, Lock, LogIn, Mail } from 'lucide-react';
 import { signIn } from 'next-auth/react';
-import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Suspense, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 function SignInContent() {
   const searchParams = useSearchParams();
-  const paramError = searchParams.get('error') as unknown as string;
+  const paramError = searchParams.get('error');
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(paramError ? `Error: ${paramError}` : '');
-  const signInStarted = useRef(false);
-
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const signInStarted = useRef(false);
+
+  useEffect(() => {
+    if (paramError) {
+      toast.error('Authentication Error', {
+        description:
+          paramError === 'CredentialsSignin'
+            ? 'Invalid email or password. Please try again.'
+            : `Error: ${paramError}`,
+      });
+    }
+  }, [paramError]);
 
   const handleGitHubSignIn = async () => {
     if (signInStarted.current) return;
     signInStarted.current = true;
     setLoading(true);
-    setError('');
+
     try {
       await signIn('github', { callbackUrl: '/dashboard' });
-    } catch {
+    } catch (err) {
       signInStarted.current = false;
-      setError('Failed to sign in with GitHub. Please try again.');
       setLoading(false);
+      toast.error('GitHub Connection Failed', {
+        description:
+          'Could not initiate GitHub login. Please check your connection.',
+      });
     }
   };
 
   const handleCredentialsSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (signInStarted.current) return;
-    signInStarted.current = true;
+
     setLoading(true);
-    setError('');
+    signInStarted.current = true;
 
     try {
       const res = await signIn('credentials', {
@@ -48,91 +70,141 @@ function SignInContent() {
 
       if (res?.error) {
         signInStarted.current = false;
-        setError(res.error);
         setLoading(false);
+        toast.error('Sign In Failed', {
+          description:
+            res.error === 'CredentialsSignin'
+              ? 'Invalid email or password. Please try again.'
+              : res.error,
+        });
       } else {
-        // redirect to dashboard manually
-        window.location.href = '/dashboard';
+        toast.success('Welcome Back!', {
+          description: 'Authentication successful. Entering dashboard...',
+        });
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 800);
       }
-    } catch {
+    } catch (err) {
       signInStarted.current = false;
-      setError('Failed to sign in. Please try again.');
       setLoading(false);
+      toast.error('System Error', {
+        description: 'An unexpected error occurred during sign in.',
+      });
     }
   };
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle className="text-2xl text-center">Sign In</CardTitle>
+    <Card className="w-full max-w-md border-zinc-800 bg-zinc-900/40 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in duration-500">
+      <CardHeader className="space-y-1 text-center">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-500 ring-1 ring-indigo-500/20">
+          <LogIn className="h-6 w-6" />
+        </div>
+        <CardTitle className="text-3xl font-bold text-zinc-100">
+          Sign In
+        </CardTitle>
+        <CardDescription className="text-zinc-400">
+          Access your TechDash insights and analytics
+        </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <p className="text-center text-muted-foreground text-sm mb-4">
-          Welcome to TechDash. Please sign in to access your dashboard.
-        </p>
+      <CardContent className="space-y-6">
+        <form onSubmit={handleCredentialsSignIn} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email" className="text-zinc-300">
+              Email Address
+            </Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
+              <Input
+                id="email"
+                type="email"
+                placeholder="name@company.com"
+                required
+                className="bg-zinc-950/50 border-zinc-800 pl-10 text-zinc-100 placeholder:text-zinc-600 focus:ring-indigo-500"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+              />
+            </div>
+          </div>
 
-        <form onSubmit={handleCredentialsSignIn} className="flex flex-col gap-3 mb-2">
-          <input
-            name="email"
-            type="email"
-            required
-            placeholder="Email Address"
-            className="w-full rounded-md border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <input
-            name="password"
-            type="password"
-            required
-            placeholder="Password"
-            className="w-full rounded-md border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <button
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password" className="text-zinc-300">
+                Password
+              </Label>
+              <Link
+                href="#"
+                className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+              >
+                Forgot password?
+              </Link>
+            </div>
+            <div className="relative">
+              <Lock className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                required
+                className="bg-zinc-950/50 border-zinc-800 pl-10 text-zinc-100 placeholder:text-zinc-600 focus:ring-indigo-500"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+              />
+            </div>
+          </div>
+
+          <Button
             type="submit"
+            className="w-full bg-indigo-600 py-6 text-base font-semibold text-white hover:bg-indigo-700 transition-all active:scale-[0.98]"
             disabled={loading}
-            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
           >
-            Sign In with Email
-          </button>
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Validating...
+              </>
+            ) : (
+              <div className="flex items-center">
+                Sign In
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </div>
+            )}
+          </Button>
         </form>
 
-        <div className="relative my-2">
+        <div className="relative">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-zinc-800"></div>
           </div>
-          <div className="relative flex justify-center text-xs">
-            <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-[#111113] px-2 text-zinc-500">
+              Or continue with
+            </span>
           </div>
         </div>
 
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={handleGitHubSignIn}
           disabled={loading}
-          className="border hover:bg-gray-50/55 hover:text-black border-px rounded-xl cursor-pointer border-gray-300 inline-flex items-center justify-center text-base font-semibold ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-4 py-2 w-full"
+          className="w-full border-zinc-800 bg-transparent py-6 text-zinc-300 hover:bg-zinc-800 hover:text-white transition-all active:scale-[0.98]"
         >
-          {loading ? (
-            'Connecting...'
-          ) : (
-            <>
-              <Github className="w-6 h-6 mr-2" />
-              Continue with GitHub
-            </>
-          )}
-        </button>
+          <Github className="mr-2 h-5 w-5" />
+          GitHub Account
+        </Button>
 
-        <div className="text-center mt-4 text-sm text-zinc-400">
-           Need an account? <Link href="/register" className="font-semibold text-indigo-400 hover:text-indigo-300 hover:underline transition-colors">Register here</Link>
+        <div className="text-center text-sm">
+          <span className="text-zinc-400">New here? </span>
+          <Link
+            href="/register"
+            className="font-semibold text-indigo-400 hover:text-indigo-300 hover:underline transition-colors"
+          >
+            Create an account
+          </Link>
         </div>
-
-        {error || paramError ? (
-          <div className="text-sm text-destructive font-medium text-center mt-2">
-            {error || `Error: ${paramError}`}
-          </div>
-        ) : null}
       </CardContent>
     </Card>
   );
@@ -140,23 +212,28 @@ function SignInContent() {
 
 export default function SignInPage() {
   return (
-    <div className="flex flex-col min-h-full items-center justify-center bg-background p-4">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-zinc-950 px-4 py-12">
+      {/* Dynamic Background Elements */}
+      <div className="absolute top-0 -left-4 w-72 h-72 bg-indigo-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob" />
+      <div className="absolute top-0 -right-4 w-72 h-72 bg-purple-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000" />
+      <div className="absolute -bottom-8 left-20 w-72 h-72 bg-pink-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000" />
+
       <Suspense
         fallback={
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle className="text-2xl text-center">Sign In</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <p className="text-center text-muted-foreground text-sm mb-4">
-                Loading...
-              </p>
-            </CardContent>
-          </Card>
+          <div className="flex flex-col items-center gap-4 text-zinc-400">
+            <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+            <p className="text-sm font-medium animate-pulse">
+              Initializing Auth Module...
+            </p>
+          </div>
         }
       >
         <SignInContent />
       </Suspense>
+
+      <div className="absolute bottom-4 text-xs text-zinc-600 select-none">
+        Identity Management System • v1.0.0
+      </div>
     </div>
   );
 }

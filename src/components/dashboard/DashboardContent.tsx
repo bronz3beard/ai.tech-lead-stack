@@ -5,11 +5,13 @@ import { DateRangePicker } from '@/components/dashboard/DateRangePicker';
 import { InsightsTable } from '@/components/dashboard/InsightsTable';
 import { LimitSelector } from '@/components/dashboard/LimitSelector';
 import { ProjectSelector } from '@/components/dashboard/ProjectSelector';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, LineChart } from '@/components/ui/chart';
 import { isSkillTrace, normalizeProjectName } from '@/lib/trace-utils';
+import { SlidersHorizontal } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 export type TraceData = {
   id: string;
@@ -30,9 +32,11 @@ export type TraceData = {
 
 export function DashboardContent({
   traces,
+  projects,
   titlePrefix,
 }: {
   traces: TraceData[];
+  projects: { id: string; name: string; ownerId: string | null }[];
   titlePrefix: string;
 }) {
   const router = useRouter();
@@ -43,6 +47,16 @@ export function DashboardContent({
   const currentLimit = searchParams.get('limit') || '50';
   const fromDate = searchParams.get('from') || '';
   const toDate = searchParams.get('to') || '';
+
+  // Draft state — changes here do NOT trigger navigation until Apply is clicked
+  const [draftFrom, setDraftFrom] = useState(fromDate);
+  const [draftTo, setDraftTo] = useState(toDate);
+  const [draftLimit, setDraftLimit] = useState(currentLimit);
+
+  const handleApplyFilters = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    updateFilters({ from: draftFrom, to: draftTo, limit: draftLimit });
+  };
 
   const updateFilters = useCallback(
     (updates: Record<string, string | null>) => {
@@ -59,16 +73,9 @@ export function DashboardContent({
     [router, pathname, searchParams]
   );
 
-  const projects = useMemo(() => {
-    const projSet = new Set<string>();
-    traces.forEach((t) => {
-      const normalized = normalizeProjectName(t.projectName);
-      if (normalized && normalized !== 'unknown') {
-        projSet.add(normalized);
-      }
-    });
-    return Array.from(projSet).sort();
-  }, [traces]);
+  const projectNames = useMemo(() => {
+    return projects.map((p) => p.name).sort();
+  }, [projects]);
 
   const filteredTraces = useMemo(() => {
     if (!selectedProject) return traces;
@@ -167,8 +174,8 @@ export function DashboardContent({
   return (
     <div className="flex flex-col min-h-screen bg-background p-8 text-foreground">
       <div className="max-w-6xl mx-auto w-full space-y-8">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-2">
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+          <div className="self-end space-y-2">
             <h1 className="text-4xl font-bold tracking-tight text-foreground">
               {titlePrefix} Dashboard
             </h1>
@@ -179,30 +186,59 @@ export function DashboardContent({
               </span>
             </p>
           </div>
-          <div className="flex flex-wrap items-end gap-4">
-            <DateRangePicker
-              from={fromDate}
-              to={toDate}
-              onRangeChange={(from, to) => updateFilters({ from, to })}
-            />
-            <div className="flex flex-col">
-              <label className="text-xs text-muted font-medium mb-1 pl-1">
-                Limit
-              </label>
-              <LimitSelector
-                limit={currentLimit}
-                onSelectLimit={(limit) => updateFilters({ limit })}
+          <form
+            onSubmit={handleApplyFilters}
+            aria-label="Dashboard filters"
+            className="flex flex-col gap-2"
+          >
+            <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground ml-1">
+              Filters
+            </p>
+            <div className="flex flex-wrap items-end gap-3 bg-card/40 backdrop-blur-sm border border-border/60 rounded-xl px-4 py-3 shadow-sm">
+              <DateRangePicker
+                from={draftFrom}
+                to={draftTo}
+                onRangeChange={(from, to) => {
+                  setDraftFrom(from);
+                  setDraftTo(to);
+                }}
+                className="gap-3"
               />
+
+              <div className="flex flex-col w-full">
+                <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-1 ml-1">
+                  Limit
+                </label>
+                <LimitSelector
+                  limit={draftLimit}
+                  onSelectLimit={setDraftLimit}
+                />
+              </div>
+
+              <div className="flex flex-col justify-end pb-0.5 w-full">
+                <Button type="submit" size="lg" className="h-10 gap-2 px-5">
+                  <SlidersHorizontal className="h-4 w-4" />
+                  Apply
+                </Button>
+              </div>
             </div>
-            <div className="flex flex-col">
-              <label className="text-xs text-muted font-medium mb-1 pl-1">
-                Project
-              </label>
-              <ProjectSelector
-                projects={projects}
-                selectedProject={selectedProject}
-                onSelectProject={(project) => updateFilters({ project })}
-              />
+          </form>
+
+          <div className="flex flex-col">
+            <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-1 ml-1">
+              Project
+            </p>
+            <div className="h-52 flex items-start bg-card/40 backdrop-blur-sm border border-border/60 rounded-xl px-4 py-3 shadow-sm">
+              <div className="flex flex-col">
+                <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-1 ml-1">
+                  Select
+                </label>
+                <ProjectSelector
+                  projects={projectNames}
+                  selectedProject={selectedProject}
+                  onSelectProject={(project) => updateFilters({ project })}
+                />
+              </div>
             </div>
           </div>
         </div>

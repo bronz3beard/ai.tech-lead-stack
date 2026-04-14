@@ -14,7 +14,7 @@ export default async function NewSkillPage() {
 
   let initialTemplate = '';
   try {
-    const templatePath = path.join(process.cwd(), 'templates', 'SKILL_TEMPLATE.md');
+    const templatePath = path.join(/*turbopackIgnore: true*/ process.cwd(), 'templates', 'SKILL_TEMPLATE.md');
     initialTemplate = await fs.readFile(templatePath, 'utf-8');
   } catch {
     // Provide a fallback template if the file is missing

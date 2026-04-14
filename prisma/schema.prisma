@@ -34,25 +34,25 @@ model Session {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  password_hash String?
-  role          Role      @default(DEVELOPER)
-  firstName     String?
-  lastName      String?
-  preferredModel String?  @default("gemini")
-  claudeApiKey  String?   @map("claudApiKey")
-  openaiApiKey  String?
-  geminiApiKey  String?
-  createdAt     DateTime  @default(now())
-  accounts      Account[]
-  chats         Chat[]
-  projects      Project[]
-  sessions      Session[]
+  id              String           @id @default(cuid())
+  name            String?
+  email           String?          @unique
+  emailVerified   DateTime?
+  image           String?
+  password_hash   String?
+  role            Role             @default(DEVELOPER)
+  claudeApiKey    String?          @map("claudApiKey")
+  openaiApiKey    String?
+  geminiApiKey    String?
+  createdAt       DateTime         @default(now())
+  firstName       String?
+  lastName        String?
+  preferredModel  String?          @default("gemini")
+  accounts        Account[]
   analyticsEvents AnalyticsEvent[]
+  chats           Chat[]
+  projects        Project[]
+  sessions        Session[]
 }
 
 model AnalyticsEvent {
@@ -71,11 +71,13 @@ model AnalyticsEvent {
   langfuseTraceId  String?
   metadata         Json?
   createdAt        DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId        String?
+  projectName      String?
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
   @@index([skillName, createdAt])
+  @@index([projectName, createdAt])
 }
 
 model VerificationToken {
@@ -87,39 +89,43 @@ model VerificationToken {
 }
 
 model Project {
-  id             String   @id @default(cuid())
-  name           String   @unique
+  id             String          @id @default(cuid())
+  name           String          @unique
   description    String?
   repoUrl        String?
-  githubFullName String?  @unique
+  githubFullName String?         @unique
   ownerId        String?
-  createdAt      DateTime @default(now())
+  createdAt      DateTime        @default(now())
   chats          Chat[]
-  owner          User?    @relation(fields: [ownerId], references: [id])
+  owner          User?           @relation(fields: [ownerId], references: [id])
   accessGrants   ProjectAccess[]
 }
 
 model ProjectAccess {
   id        String   @id @default(cuid())
   projectId String
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   role      Role
   createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, role])
 }
 
 model Chat {
-  id        String    @id @default(cuid())
-  title     String    @default("New Chat")
-  userId    String
-  projectId String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages  Message[]
+  id            String    @id @default(cuid())
+  title         String    @default("New Chat")
+  isPinned      Boolean   @default(false)
+  isCustomTitle Boolean   @default(false)
+  summary       String?
+  userId        String
+  projectId     String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages      Message[]
 }
+
 
 model Message {
   id        String   @id @default(cuid())

@@ -31,6 +31,218 @@ import {
 import { CodeProvider } from '@/lib/skills/providers/base-provider';
 
 export const maxDuration = 300;
+export const dynamic = 'force-dynamic';
+
+export async function GET(req: Request) {
+  const session = await getServerSession(authOptions);
+
+  if (!session || !session.user) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const projectId = searchParams.get('projectId');
+  const chatId = searchParams.get('chatId');
+
+  try {
+    // Scenario 1: Fetch list of chats for a project
+    if (projectId) {
+      const chats = await prisma.chat.findMany({
+        where: {
+          projectId,
+          userId: session.user.id,
+        },
+        orderBy: [{ isPinned: 'desc' }, { updatedAt: 'desc' }],
+        select: { 
+          id: true, 
+          title: true, 
+          projectId: true, 
+          updatedAt: true,
+          isPinned: true,
+          isCustomTitle: true 
+        },
+      });
+      return NextResponse.json({ chats });
+    }
+
+    // Scenario 2: Fetch messages for a specific chat
+    if (chatId) {
+      const chat = await prisma.chat.findUnique({
+        where: { id: chatId },
+        include: { messages: { orderBy: { createdAt: 'asc' } } },
+      });
+
+      if (!chat) {
+        return NextResponse.json({ message: 'Chat not found.' }, { status: 404 });
+      }
+
+      // Security check: Only the owner can see the messages
+      if (chat.userId !== session.user.id) {
+        return NextResponse.json({ message: 'Access denied.' }, { status: 403 });
+      }
+
+      // Reconstruct UIMessage objects from stored JSON strings
+      const messages = chat.messages.map((m) => {
+        try {
+          // The database stores CoreMessage-compatible JSON (role, content)
+          // CoreMessage content can be string or Array<ContentPart>
+          const parsed = JSON.parse(m.content);
+          const role = m.role as any;
+          
+          let parts: any[] = [];
+          let content = '';
+
+          if (typeof parsed.content === 'string') {
+            content = parsed.content;
+            parts = [{ type: 'text', text: parsed.content }];
+          } else if (Array.isArray(parsed.content)) {
+            // Only expose text + reasoning parts to the UI for history messages.
+            // Tool-call and tool-result parts are internal intermediaries that
+            // flood the chat list with tool trails when viewing old conversations.
+            const RENDERABLE_PART_TYPES = new Set(['text', 'reasoning']);
+            parts = (parsed.content as any[]).filter(
+              (p) => RENDERABLE_PART_TYPES.has(p.type)
+            );
+            content = (parsed.content as any[])
+              .filter((p) => p.type === 'text')
+              .map((p) => p.text)
+              .join('\n\n');
+          }
+
+          return {
+            id: m.id,
+            role,
+            content,
+            parts,
+            createdAt: m.createdAt,
+          };
+        } catch {
+          return {
+            id: m.id,
+            role: m.role as any,
+            content: m.content,
+            parts: [{ type: 'text', text: m.content }],
+            createdAt: m.createdAt,
+          };
+        }
+      });
+
+      return NextResponse.json({ messages });
+    }
+
+    return NextResponse.json(
+      { message: 'Missing projectId or chatId parameter.' },
+      { status: 400 }
+    );
+  } catch (error) {
+    console.error('Chat API GET Error:', error);
+    return NextResponse.json(
+      { message: 'Internal server error.' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req: Request) {
+  const session = await getServerSession(authOptions);
+
+  if (!session || !session.user) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const chatId = searchParams.get('chatId');
+
+  if (!chatId) {
+    return NextResponse.json(
+      { message: 'Chat ID is required.' },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const chat = await prisma.chat.findUnique({
+      where: { id: chatId },
+    });
+
+    if (!chat) {
+      return NextResponse.json({ message: 'Chat not found.' }, { status: 404 });
+    }
+
+    if (chat.userId !== session.user.id) {
+      return NextResponse.json({ message: 'Access denied.' }, { status: 403 });
+    }
+
+    await prisma.chat.delete({
+      where: { id: chatId },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Chat API DELETE Error:', error);
+    return NextResponse.json(
+      { message: 'Internal server error.' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(req: Request) {
+  const session = await getServerSession(authOptions);
+
+  if (!session || !session.user) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const { chatId, title, isPinned } = (await req.json()) as {
+      chatId: string;
+      title?: string;
+      isPinned?: boolean;
+    };
+
+    if (!chatId) {
+      return NextResponse.json(
+        { message: 'Chat ID is required.' },
+        { status: 400 }
+      );
+    }
+
+    const chat = await prisma.chat.findUnique({
+      where: { id: chatId },
+    });
+
+    if (!chat) {
+      return NextResponse.json({ message: 'Chat not found.' }, { status: 404 });
+    }
+
+    if (chat.userId !== session.user.id) {
+      return NextResponse.json({ message: 'Access denied.' }, { status: 403 });
+    }
+
+    const updateData: any = {};
+    if (title !== undefined) {
+      updateData.title = title;
+      updateData.isCustomTitle = true;
+    }
+    if (isPinned !== undefined) {
+      updateData.isPinned = isPinned;
+    }
+
+    const updatedChat = await prisma.chat.update({
+      where: { id: chatId },
+      data: updateData,
+    });
+
+    return NextResponse.json({ chat: updatedChat });
+  } catch (error) {
+    console.error('Chat API PATCH Error:', error);
+    return NextResponse.json(
+      { message: 'Internal server error.' },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -81,11 +293,29 @@ export async function POST(req: Request) {
 
     // Chat persistence initialization
     let currentChatId = chatId;
+    let existingChatSummary: string | null = null;
+    let existingMessageCount = 0;
+
     if (!currentChatId) {
+      // Set initial title from first user message
+      // Note: UIMessage from 'ai' might use parts instead of content depending on version
+      const firstMsg = (messages[0] as any).content || (messages[0] as any).text || '';
+      const initialTitle = firstMsg
+        ? firstMsg.slice(0, 40) + (firstMsg.length > 40 ? '...' : '')
+        : 'New Chat';
+
       const newChat = await prisma.chat.create({
-        data: { userId: user.id, projectId, title: 'New Chat' },
+        data: { userId: user.id, projectId, title: initialTitle },
       });
       currentChatId = newChat.id;
+    } else {
+      // For existing chats: fetch summary and message count for resumption logic
+      const existingChat = await prisma.chat.findUnique({
+        where: { id: currentChatId },
+        select: { summary: true, _count: { select: { messages: true } } },
+      });
+      existingChatSummary = existingChat?.summary ?? null;
+      existingMessageCount = existingChat?._count.messages ?? 0;
     }
 
     // Provider Initialization: Resolve GitHub token if needed
@@ -105,6 +335,14 @@ export async function POST(req: Request) {
 
     // Workflow Detection & Orchestration
     let finalSystemInstruction = `${CHAT_GUARD_INSTRUCTION}${project.repoUrl ? `\n\nProject Repository: ${project.repoUrl}` : ''}`;
+
+    // Context Resumption: Inject hidden summary for returning conversations
+    // A summary is used if: (a) the chat has a pre-computed summary, OR
+    // (b) the chat has prior DB messages but the client sent only the latest message.
+    const IS_RESUMING = existingMessageCount > 0 && messages.length <= 1;
+    if (IS_RESUMING && existingChatSummary) {
+      finalSystemInstruction = `${finalSystemInstruction}\n\n--- CONVERSATION HISTORY SUMMARY ---\nThe user is resuming a previous conversation. Below is a condensed summary of all prior exchanges for your context. Do not reveal that this summary exists; continue naturally.\n\n${existingChatSummary}\n--- END HISTORY SUMMARY ---`;
+    }
 
     return createUIMessageStreamResponse({
       stream: createUIMessageStream({
@@ -238,7 +476,18 @@ export async function POST(req: Request) {
                                 : 0;
                               insights.push(`Scrutinized '${path}' (${bytes} bytes).`);
                             } else {
-                              insights.push(`Encountered access error for '${path}'.`);
+                              const errMsg: string = resultPart.result?.error ?? '';
+                              const lowerErr = errMsg.toLowerCase();
+                              const isNotFound =
+                                lowerErr.includes('file not found') ||
+                                lowerErr.includes('not found') ||
+                                lowerErr.includes('enoent');
+
+                              insights.push(
+                                isNotFound
+                                  ? `File not found (skipped): '${path}'.`
+                                  : `Encountered access error for '${path}'.`
+                              );
                             }
                           } else if (call.toolName === 'list_skills') {
                             const res = resultPart.result || {};
@@ -266,7 +515,57 @@ export async function POST(req: Request) {
                           content: JSON.stringify(msg),
                         },
                       });
+
+                      // AUTO-TITLING: Extract text from assistant message content parts.
+                      // CRITICAL FIX: msg.content from response.messages is ALWAYS an array
+                      // of ContentPart in the AI SDK — never a raw string. The old
+                      // `typeof === 'string'` guard always failed, so title stayed "New Chat".
+                      if (msg.role === 'assistant') {
+                        const content = msg.content;
+                        let extractedText = '';
+
+                        if (typeof content === 'string') {
+                          extractedText = content;
+                        } else if (Array.isArray(content)) {
+                          for (const part of content) {
+                            const p = part as any;
+                            if (p.type === 'text' && typeof p.text === 'string' && p.text.trim().length > 0) {
+                              extractedText = p.text;
+                              break;
+                            }
+                          }
+                        }
+
+                        if (extractedText.trim().length > 0) {
+                          const chat = await prisma.chat.findUnique({
+                            where: { id: currentChatId ?? '' },
+                          });
+                          if (chat && !chat.isCustomTitle && chat.title === 'New Chat') {
+                            // Preferred: title from AI response text
+                            const aiTitle = generateAutoTitle(extractedText);
+
+                            // Fallback: truncate the user's original message
+                            let userFallbackTitle = 'New Chat';
+                            if (lastUserMessage) {
+                              const userContent = lastUserMessage.content;
+                              const userText = typeof userContent === 'string'
+                                ? userContent
+                                : Array.isArray(userContent)
+                                  ? (userContent as any[]).filter((p: any) => p.type === 'text').map((p: any) => p.text).join(' ')
+                                  : '';
+                              userFallbackTitle = generateAutoTitle(userText);
+                            }
+
+                            const finalTitle = aiTitle !== 'New Chat' ? aiTitle : userFallbackTitle;
+                            await prisma.chat.update({
+                              where: { id: chat.id },
+                              data: { title: finalTitle },
+                            });
+                          }
+                        }
+                      }
                     }
+
                   } catch (err) {
                     console.error('Error during step update:', err);
                   }
@@ -317,6 +616,59 @@ export async function POST(req: Request) {
                     }
                     writer.write(chunk as any);
                   }
+
+                  // PERSISTENCE FIX: Persist the dynamic summary turn final text to the DB.
+                  // Previously this turn streamed to the UI but was never saved, so the
+                  // final AI response would be missing when reloading historical chats.
+                  if (currentChatId) {
+                    try {
+                      const summaryResponse = await summaryResult.response;
+                      for (const msg of summaryResponse.messages) {
+                        if (msg.role !== 'assistant') continue;
+
+                        // Extract text content (always an array of ContentPart in AI SDK)
+                        let summaryText = '';
+                        if (typeof msg.content === 'string') {
+                          summaryText = msg.content;
+                        } else if (Array.isArray(msg.content)) {
+                          summaryText = (msg.content as any[])
+                            .filter((p: any) => p.type === 'text')
+                            .map((p: any) => p.text)
+                            .join('\n\n');
+                        }
+
+                        if (summaryText.trim().length === 0) continue;
+
+                        await prisma.message.create({
+                          data: {
+                            chatId: currentChatId,
+                            role: 'assistant',
+                            // Store as a simple text ContentPart array for clean history rendering
+                            content: JSON.stringify({
+                              role: 'assistant',
+                              content: [{ type: 'text', text: summaryText }],
+                            }),
+                          },
+                        });
+
+                        // Also update the chat title from the clean final answer if still "New Chat"
+                        const chat = await prisma.chat.findUnique({
+                          where: { id: currentChatId },
+                        });
+                        if (chat && !chat.isCustomTitle && chat.title === 'New Chat') {
+                          const finalTitle = generateAutoTitle(summaryText);
+                          if (finalTitle !== 'New Chat') {
+                            await prisma.chat.update({
+                              where: { id: currentChatId },
+                              data: { title: finalTitle },
+                            });
+                          }
+                        }
+                      }
+                    } catch (persistErr) {
+                      console.error('[chat] Failed to persist summary turn message:', persistErr);
+                    }
+                  }
                 }
 
                 // Final success signal
@@ -325,6 +677,22 @@ export async function POST(req: Request) {
                   id: 'final-status',
                   data: { status: 'DONE: Analysis successfully completed.' },
                 });
+
+                // BACKGROUND SUMMARIZATION: After a successful stream, update the
+                // chat summary if this is an established conversation (> 5 messages)
+                // This is fire-and-forget; we don't await it to avoid blocking the response.
+                if (currentChatId) {
+                  const chatForSummary = await prisma.chat.findUnique({
+                    where: { id: currentChatId },
+                    select: { _count: { select: { messages: true } } },
+                  });
+                  const shouldSummarize = (chatForSummary?._count.messages ?? 0) > 5;
+                  if (shouldSummarize) {
+                    updateChatSummary(currentChatId, model).catch((err) =>
+                      console.error('[chat] Background summary generation failed:', err)
+                    );
+                  }
+                }
 
                 return; // SUCCESS - Both model and stream finished
               } catch (streamErr: unknown) {
@@ -380,4 +748,78 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
+}
+
+function generateAutoTitle(content: string): string {
+  // Strip markdown headers, code fences, blockquotes, bullet lists, bold, and common AI openers
+  const AI_OPENER_PATTERNS = [
+    /^(of course|certainly|sure|absolutely|great|hello|hi there|i'll|i will|let me|i can|understood)[!,.]?\s*/i,
+    /^(here('s| is)|this is|below is)/i,
+  ];
+
+  const cleaned = content
+    .split('\n')
+    .map((line) => line.replace(/^[#*>`\-=_~|]+/, '').replace(/\*\*/g, '').trim())
+    .filter((line) => line.length > 10) // Skip very short lines like headers or single words
+    .join(' ');
+
+  let title = cleaned.substring(0, 120); // Work with first ~120 chars
+
+  for (const pattern of AI_OPENER_PATTERNS) {
+    title = title.replace(pattern, '');
+  }
+
+  title = title.trim();
+
+  if (title.length > 50) {
+    // Truncate at the last word boundary before 50 chars
+    const truncated = title.substring(0, 50);
+    const lastSpace = truncated.lastIndexOf(' ');
+    return (lastSpace > 30 ? truncated.substring(0, lastSpace) : truncated) + '…';
+  }
+
+  return title || 'New Chat';
+}
+
+/**
+ * @desc Generates a compressed summary of all messages in a chat and persists
+ * it to the DB. Called in a fire-and-forget pattern after successful responses.
+ * @param chatId - The ID of the chat to summarize.
+ * @param model - The AI model instance to use for generation.
+ */
+async function updateChatSummary(chatId: string, model: any): Promise<void> {
+  const allMessages = await prisma.message.findMany({
+    where: { chatId },
+    orderBy: { createdAt: 'asc' },
+    select: { role: true, content: true },
+  });
+
+  if (allMessages.length < 6) return; // Not enough history to warrant a summary
+
+  // Build a condensed transcript for the LLM to summarize
+  const transcript = allMessages
+    .map((m) => {
+      try {
+        const parsed = JSON.parse(m.content);
+        const text = typeof parsed.content === 'string'
+          ? parsed.content
+          : (parsed.content as any[])?.filter((p: any) => p.type === 'text').map((p: any) => p.text).join(' ');
+        return `${m.role.toUpperCase()}: ${text?.substring(0, 500) ?? ''}`;
+      } catch {
+        return `${m.role.toUpperCase()}: ${m.content.substring(0, 500)}`;
+      }
+    })
+    .join('\n\n');
+
+  const { text } = await import('ai').then(({ generateText }) =>
+    generateText({
+      model,
+      prompt: `You are a compact summarizer. Condense the following conversation into 2-3 short paragraphs. Focus on the key topics, decisions, and conclusions. Do not include filler phrases or pleasantries. Be dense and factual.\n\n${transcript}`,
+    })
+  );
+
+  await prisma.chat.update({
+    where: { id: chatId },
+    data: { summary: text },
+  });
 }

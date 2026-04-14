@@ -4,304 +4,69 @@ import { InsightsTable } from '@/components/dashboard/InsightsTable';
 import { ProjectSelect, type Project } from '@/components/ProjectSelect';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, LineChart } from '@/components/ui/chart';
-import { fetchAllPages } from '@/lib/langfuse-api';
 import { langfuseLabel } from '@/lib/langfuse-labels';
-import { isSkillTrace, normalizeProjectName, isActiveSkill, normalizeSkillName } from '@/lib/trace-utils';
-import pMap from 'p-map';
+import { isSkillTrace, isActiveSkill, normalizeSkillName } from '@/lib/trace-utils';
+import { getAnalytics } from '@/lib/analytics-service';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 export const revalidate = 60; // cached for 60 seconds
 
-/**
- * Analytics types for Langfuse data processing
- */
-interface LangfuseMetadata {
-  skillName?: string;
-  projectId?: string;
-  projectName?: string;
-  environment?: string;
-  error?: string;
-  stack?: string;
-  duration?: number;
-  model?: string;
-  agent?: string;
-  [key: string]: string | number | boolean | undefined;
-}
-
-interface LangfuseUsage {
-  totalTokens?: number;
-  inputTokens?: number;
-  outputTokens?: number;
-  promptTokens?: number;
-  completionTokens?: number;
-  input?: number;
-  output?: number;
-  total?: number;
-}
-
-interface LangfuseTrace {
-  id: string;
-  name: string;
-  timestamp: string;
-  metadata?: LangfuseMetadata;
-  usage?: LangfuseUsage;
-  sessionId?: string;
-  totalCost?: number;
-  tags?: string[];
-  duration?: number;
-  status?: string;
-  totalTokens?: number;
-  inputTokens?: number;
-  outputTokens?: number;
-}
-
-interface LangfuseObservation {
-  id: string;
-  traceId: string;
-  type: string;
-  name?: string;
-  model?: string;
-  metadata?: Record<string, unknown>;
-  usage?: LangfuseUsage;
-  calculatedTotalCost?: number;
-}
-
-interface TraceWithObservations extends LangfuseTrace {
-  observations: LangfuseObservation[];
-}
 
 
-async function getGlobalMetrics(projectId?: string) {
-  const publicKey = process.env.LANGFUSE_PUBLIC_KEY;
-  const secretKey = process.env.LANGFUSE_SECRET_KEY;
-  const baseUrl = process.env.LANGFUSE_BASE_URL || 'https://cloud.langfuse.com';
-
-  if (!publicKey || !secretKey || publicKey === 'placeholder') {
-    return {
-      totalExecutions: 0,
-      activeWorkflows: 0,
-      projects: [{ id: 'all', name: 'All Projects' }],
-      topSkills: [],
-      tracesByTime: [],
-      traces: [],
-    };
-  }
-
-  const authHeader = `Basic ${Buffer.from(`${publicKey}:${secretKey}`).toString('base64')}`;
-
+async function getGlobalMetrics(projectId?: string, session?: any) {
   try {
-    // 1. Fetch ALL traces (up to 5000 for full historical accuracy)
-    const queryParams = new URLSearchParams();
-    const allTraces = await fetchAllPages<LangfuseTrace>(
-      baseUrl,
-      '/api/public/traces',
-      queryParams,
-      authHeader,
-      5000 // Increased limit for full "Source of Truth" coverage
-    );
-
-    let allObservations: LangfuseObservation[] = [];
-    if (allTraces.length > 0) {
-      // Get min and max dates - strictly filter out invalid timestamps
-      const timestamps = allTraces
-        .map((t) => new Date(t.timestamp).getTime())
-        .filter((t) => !isNaN(t));
-
-      if (timestamps.length > 0) {
-        const minTimestamp = Math.min(...timestamps);
-        const maxTimestamp = Math.max(...timestamps) + 1000;
-        
-        // Langfuse API rejects requests with date ranges that are too wide (422 error).
-        // We chunk the fetch into 7-day increments to satisfy the API while maintaining full coverage.
-        const CHUNK_SIZE_MS = 7 * 24 * 60 * 60 * 1000;
-        
-        for (let currentStart = minTimestamp; currentStart < maxTimestamp; currentStart += CHUNK_SIZE_MS) {
-          const currentEnd = Math.min(currentStart + CHUNK_SIZE_MS, maxTimestamp);
-          const fromDate = new Date(currentStart).toISOString();
-          const toDate = new Date(currentEnd).toISOString();
-
-          console.log(`Fetching observations chunk: ${fromDate} to ${toDate}`);
-
-          const obsParams = new URLSearchParams({
-            type: 'GENERATION',
-            fromTimestamp: fromDate,
-            toTimestamp: toDate,
-          });
-
-          const batch = await fetchAllPages<LangfuseObservation>(
-            baseUrl,
-            '/api/public/observations',
-            obsParams,
-            authHeader,
-            15000 // Total limit for observations (across all chunks if we hit it)
-          );
-          
-          allObservations.push(...batch);
-          
-          // Stop if we've reached the absolute maximum batch size we want to handle
-          if (allObservations.length >= 15000) break;
-        }
-      } else {
-        console.warn('No valid timestamps found in traces, skipping observations fetch.');
-      }
-    }
-
-    // Index observations for faster lookup
-    const obsMap = new Map<string, LangfuseObservation[]>();
-    allObservations.forEach((o) => {
-      if (!obsMap.has(o.traceId)) obsMap.set(o.traceId, []);
-      obsMap.get(o.traceId)!.push(o);
+    // 1. Fetch total analytics from Postgres - much faster!
+    // We fetch a larger batch for the global view to ensure historical accuracy
+    const allTraces = await getAnalytics({ 
+      timeframe: 'all',
+      projectName: projectId === 'all' ? undefined : projectId
     });
 
-    const projectSet = new Set<string>(); // Dynamically populated from traces and DB
-
-    const mappedTraces = allTraces.map((t) => {
-      const metadata = t.metadata || {};
-      const observations = obsMap.get(t.id) || [];
-
-      // GREEDY PROJECT IDENTIFICATION
-      // We scan EVERYTHING. If "gilly" appears anywhere, it's Gilly.
-      // This recovers mislabeled traces that defaulted to "tech-lead-stack" or null.
-      const allTextContext = JSON.stringify({
-        metadata,
-        tags: t.tags || [],
-        name: t.name || '',
-        oMetadata: observations.map((o) => o.metadata || {}),
-      }).toLowerCase();
-
-      let normalizedProj = 'unknown';
-
-      if (allTextContext.includes('gilly')) {
-        normalizedProj = 'gilly';
-      } else if (allTextContext.includes('tech-lead-stack')) {
-        normalizedProj = 'tech-lead-stack';
-      } else {
-        // Fallback to scan for any project identifier in metadata
-        const sources = [
-          metadata.projectName,
-          metadata.projectId,
-          metadata.project,
-          metadata.project_id,
-          metadata.repo,
-          metadata.repo_name,
-          metadata.repository,
-          metadata.repository_name,
-          metadata.app,
-          metadata.app_id,
-          ...(t.tags || []),
-          ...observations.map((o) => o.metadata?.projectName),
-          ...observations.map((o) => o.metadata?.projectId),
-          ...observations.map((o) => o.metadata?.project),
-          ...observations.map((o) => o.metadata?.repo),
-          ...observations.map((o) => o.metadata?.repository),
-        ];
-
-        for (const val of sources) {
-          if (
-            typeof val === 'string' &&
-            val.trim() !== '' &&
-            val !== 'unknown'
-          ) {
-            const normalized = normalizeProjectName(val);
-            if (normalized !== 'unknown') {
-              normalizedProj = normalized;
-              break;
-            }
-          }
-        }
-      }
-
-      if (normalizedProj !== 'unknown') {
-        projectSet.add(normalizedProj);
-      }
-
-      // Calculate aggregated metrics from observations
-      let totalCost = t.totalCost || 0;
-      let totalTokens =
-        t.totalTokens || t.usage?.totalTokens || t.usage?.total || 0;
-      let inputTokens =
-        t.inputTokens ||
-        t.usage?.inputTokens ||
-        t.usage?.promptTokens ||
-        t.usage?.input ||
-        0;
-      let outputTokens =
-        t.outputTokens ||
-        t.usage?.outputTokens ||
-        t.usage?.completionTokens ||
-        t.usage?.output ||
-        0;
-
-      observations.forEach((obs) => {
-        if (obs.usage) {
-          totalTokens += obs.usage.total || obs.usage.totalTokens || 0;
-          inputTokens +=
-            obs.usage.input ||
-            obs.usage.promptTokens ||
-            obs.usage.inputTokens ||
-            0;
-          outputTokens +=
-            obs.usage.output ||
-            obs.usage.completionTokens ||
-            obs.usage.outputTokens ||
-            0;
-        }
-        if (obs.calculatedTotalCost) {
-          totalCost += obs.calculatedTotalCost;
-        }
-      });
-
-      return {
-        id: t.id,
-        name: t.name || 'unnamed-trace',
-        timestamp: t.timestamp,
-        sessionId: t.sessionId,
-        projectName: normalizedProj,
-        model: langfuseLabel(metadata.model as string),
-        agent: langfuseLabel(metadata.agent as string),
-        duration: t.duration,
-        status: t.status,
-        metadata: metadata,
-        totalCost,
-        totalTokens,
-        inputTokens,
-        outputTokens,
-      };
-    });
-
-    const finalTraces = mappedTraces.filter((trace) => {
-      // 1. Project filtering (The user requested accurate project counts)
-      if (projectId !== 'all' && trace.projectName !== projectId) return false;
-
-      // 2. Skill filtering RELAXED for Global Dashboard
-      // If we are looking at a specific project, we show EVERYTHING for that project
-      // to ensure no "correct" data is hidden.
-      if (projectId !== 'all') return true;
-
-      // Default Global view: Filter out meta-skills
-      let rawSkillName = 'unknown';
-      if (trace.name && trace.name.startsWith('skill:')) {
-        rawSkillName = trace.name.replace('skill:', '');
-      } else if (trace.metadata?.skillName) {
-        rawSkillName = trace.metadata.skillName as string;
-      } else if (trace.name) {
-        rawSkillName = trace.name;
-      }
-
-      const skillName = normalizeSkillName(rawSkillName);
-      return isActiveSkill(skillName) && !isSkillTrace(trace.name, skillName);
+    // 2. Fetch projects from database to ensure all authorized projects are shown
+    const dbProjects = await prisma.project.findMany({
+      where: session?.user?.id ? {
+        OR: [
+          { ownerId: session.user.id },
+          { accessGrants: { some: { role: session.user.role as any } } }
+        ]
+      } : {},
+      select: { name: true },
+      orderBy: { name: 'asc' }
     });
 
     const projects: Project[] = [
       { id: 'all', name: 'All Projects' },
-      ...Array.from(projectSet)
-        .map((id) => ({
-          id,
-          name: id.charAt(0).toUpperCase() + id.slice(1).replace(/-/g, ' '),
-        }))
-        .sort((a, b) => a.name.localeCompare(b.name)),
+      ...dbProjects.map((p) => ({
+        id: p.name,
+        name: p.name.charAt(0).toUpperCase() + p.name.slice(1).replace(/-/g, ' '),
+      })),
     ];
 
-    // 5. Final aggregation (All projects and skill counts)
+    // Filtering logic for Global Dashboard vs Project view
+    const finalTraces = allTraces.filter((trace) => {
+      // 1. Project filtering 
+      if (projectId !== 'all' && trace.projectName !== projectId) return false;
+
+      // 2. Skill filtering for Global view - remove internal/meta skills
+      if (projectId === 'all') {
+        let rawSkillName = trace.name;
+        if (trace.name && trace.name.startsWith('skill:')) {
+          rawSkillName = trace.name.replace('skill:', '');
+        } else if (trace.metadata?.skillName) {
+          rawSkillName = trace.metadata.skillName as string;
+        }
+
+        const skillName = normalizeSkillName(rawSkillName);
+        return isActiveSkill(skillName) && !isSkillTrace(trace.name, skillName);
+      }
+      
+      return true;
+    });
+
+// Logic moved to fetch from DB above
+
     const totalExecutions = finalTraces.length;
     const sessionIds = new Set(
       finalTraces.map((t) => t.sessionId).filter(Boolean)
@@ -314,15 +79,12 @@ async function getGlobalMetrics(projectId?: string) {
 
     finalTraces.forEach((trace) => {
       // Aggregate by skill
-      let rawSkillName = 'unknown';
+      let rawSkillName = trace.name;
       if (trace.name && trace.name.startsWith('skill:')) {
         rawSkillName = trace.name.replace('skill:', '');
       } else if (trace.metadata?.skillName) {
         rawSkillName = trace.metadata.skillName as string;
-      } else if (trace.name) {
-        rawSkillName = trace.name;
       }
-
       const skillName = normalizeSkillName(rawSkillName);
 
       skillCounts[skillName] = (skillCounts[skillName] || 0) + 1;
@@ -338,7 +100,7 @@ async function getGlobalMetrics(projectId?: string) {
     const topSkills = Object.entries(skillCounts)
       .map(([name, total]) => ({ name, total }))
       .sort((a, b) => b.total - a.total)
-      .slice(0, 10); // Show more skills in public dashboard
+      .slice(0, 10);
 
     const tracesByTime = Object.entries(timeBuckets).map(([name, total]) => ({
       name,
@@ -355,7 +117,7 @@ async function getGlobalMetrics(projectId?: string) {
       traces: finalTraces,
     };
   } catch (error) {
-    console.error('Error fetching metrics from Langfuse:', error);
+    console.error('Error fetching metrics from Postgres:', error);
     return {
       totalExecutions: 0,
       activeWorkflows: 0,
@@ -373,7 +135,8 @@ interface PageProps {
 
 export default async function PublicDashboard({ searchParams }: PageProps) {
   const { projectId = 'all' } = await searchParams;
-  const metrics = await getGlobalMetrics(projectId);
+  const session = await getServerSession(authOptions);
+  const metrics = await getGlobalMetrics(projectId, session);
 
   const selectedProject =
     metrics.projects.find((p) => p.id === projectId) || metrics.projects[0];

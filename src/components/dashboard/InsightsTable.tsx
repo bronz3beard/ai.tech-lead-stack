@@ -166,11 +166,18 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
           ? `${Math.round(totalTokens).toLocaleString()}`
           : `~${Math.round(totalTokens).toLocaleString()}`;
 
+        const modelList = Array.from(stats.models).sort().join(', ') || 'unknown';
+        const isModelTruncated = modelList.length > 55;
+        const displayModel = isModelTruncated 
+          ? `${modelList.substring(0, 52)}...` 
+          : modelList;
+
         return {
           name,
           executions: stats.executions,
-          model: Array.from(stats.models).sort().join(', ') || 'unknown',
-          agent: Array.from(stats.agents).sort().join(', ') || 'unknown',
+          model: displayModel,
+          fullModel: modelList,
+          isModelTruncated,
           perRunCost: displayPerRunCost,
           totalCost: displayTotalCost,
           perRunTokens: displayPerRunTokens,
@@ -196,9 +203,8 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Skill Name</TableHead>
-          <TableHead>Model</TableHead>
-          <TableHead>Agent</TableHead>
+          <TableHead className="w-[180px]">Skill Name</TableHead>
+          <TableHead className="min-w-[200px]">Model</TableHead>
           <TableHead className="text-right">Executions</TableHead>
           <TableHead className="text-right">Avg Token usage (per run)</TableHead>
           <TableHead className="text-right">Total execution cost</TableHead>
@@ -211,8 +217,17 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
         {tableData.map((row) => (
           <TableRow key={row.name}>
             <TableCell className="font-medium">{row.name}</TableCell>
-            <TableCell>{row.model}</TableCell>
-            <TableCell>{row.agent}</TableCell>
+            <TableCell>
+              {row.isModelTruncated ? (
+                <Tooltip text={row.fullModel}>
+                   <span className="cursor-help border-b border-dotted border-muted-foreground/50">
+                    {row.model}
+                  </span>
+                </Tooltip>
+              ) : (
+                row.model
+              )}
+            </TableCell>
             <TableCell className="text-right">{row.executions}</TableCell>
             <TableCell className="text-right">
               {row.isFallbackTokens ? (

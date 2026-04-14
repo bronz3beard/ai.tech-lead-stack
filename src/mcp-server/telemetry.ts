@@ -2,6 +2,7 @@ import { Langfuse } from 'langfuse';
 import { langfuseLabel } from '../lib/langfuse-labels';
 import { isSkillTrace, normalizeProjectName, normalizeSkillName } from '../lib/trace-utils';
 import { UserResolver } from './user-resolver';
+import { prisma } from '../lib/prisma';
 
 export interface LangfuseMetadata {
   skillName: string;
@@ -67,6 +68,7 @@ export class Telemetry implements ITelemetry {
     overrides?: { userEmail?: string, userRole?: string }
   ): Promise<T> {
     const normalizedSkill = normalizeSkillName(skillName);
+    const startTime = Date.now();
     
     if (!this.isConfigured || !this.langfuse || isSkillTrace(undefined, normalizedSkill)) {
       return executeCallback();
@@ -89,7 +91,7 @@ export class Telemetry implements ITelemetry {
       model: resolvedModel,
       agent: resolvedAgent,
       version: '1.0.0',
-      cwd: process.cwd(),
+      cwd: /*turbopackIgnore: true*/ process.cwd(),
       budgetedCost: skillCost || 'unknown',
     };
 
@@ -104,9 +106,15 @@ export class Telemetry implements ITelemetry {
       tags: [normalizedProject, resolvedModel, normalizedSkill, userRole],
     });
 
+    let status = 'success';
+    let errorMessage: string | undefined;
+    let completionTokens = 0;
+    let promptTokens = Math.ceil(JSON.stringify(metadata).length / 4) + 100;
+
     try {
       const result = await executeCallback();
       const outputStr = typeof result === 'string' ? result : JSON.stringify(result);
+      completionTokens = Math.ceil(outputStr.length / 4);
 
       trace.generation({
         name: `generation:${normalizedSkill}`,
@@ -114,15 +122,16 @@ export class Telemetry implements ITelemetry {
         output: outputStr,
         metadata: { ...metadata, project: normalizedProject },
         usage: {
-          completionTokens: Math.ceil(outputStr.length / 4),
-          promptTokens: Math.ceil(JSON.stringify(metadata).length / 4) + 100,
+          completionTokens,
+          promptTokens,
         },
       });
 
       trace.update({ output: `Skill ${skillName} executed successfully.` });
       return result;
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      status = 'error';
+      errorMessage = error instanceof Error ? error.message : String(error);
       const errorStack = error instanceof Error ? error.stack : undefined;
 
       trace.update({
@@ -131,6 +140,40 @@ export class Telemetry implements ITelemetry {
       });
       throw error;
     } finally {
+      const duration = (Date.now() - startTime) / 1000;
+      
+      // Log to Postgres
+      if (userEmail && userEmail !== 'anonymous') {
+        try {
+          const userExists = await prisma.user.findUnique({
+            where: { email: userEmail },
+          });
+
+          if (userExists) {
+            await prisma.analyticsEvent.create({
+              data: {
+                skillName: normalizedSkill,
+                userId: userExists.id,
+                projectName: normalizedProject,
+                model: resolvedModel,
+                agent: resolvedAgent,
+                duration,
+                status: status.toUpperCase(),
+                error: errorMessage,
+                promptTokens,
+                completionTokens,
+                totalTokens: promptTokens + completionTokens,
+                totalCost: 0,
+                langfuseTraceId: trace.id,
+                metadata: { ...metadata, projectName: normalizedProject } as any,
+              },
+            });
+          }
+        } catch (dbError) {
+          console.error('[Telemetry] Failed to log analytics to Postgres:', dbError);
+        }
+      }
+
       await this.flushWithRetry(skillName);
     }
   }

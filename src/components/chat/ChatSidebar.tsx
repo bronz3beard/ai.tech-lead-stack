@@ -1,13 +1,17 @@
 'use client';
 
-import { UIMessage } from '@ai-sdk/react';
 import {
+  Check,
+  Edit2,
   Folder,
   Github,
   Loader2,
   MessageSquare,
+  Pin,
+  PinOff,
   PlusCircle,
   Trash2,
+  X,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import GitHubRepoImportModal from './GitHubRepoImportModal';
@@ -22,14 +26,26 @@ interface Chat {
   id: string;
   title: string;
   projectId: string;
+  isPinned: boolean;
 }
 
 interface ChatSidebarProps {
   projectId: string | null;
   setProjectId: (id: string | null) => void;
   chatId: string | null;
-  setChatId: (id: string | null) => void;
-  setMessages: (messages: UIMessage[]) => void;
+  /**
+   * Called when the user explicitly selects an existing chat from the sidebar.
+   * ChatPage uses this to update chatId AND increment the mountKey so ChatBody
+   * re-mounts to load the selected chat's history.
+   */
+  onSelectChat: (id: string) => void;
+  /**
+   * Called when the user clicks "New Chat" or changes project.
+   * ChatPage resets chatId to null AND increments mountKey.
+   */
+  onNewChat: () => void;
+  /** Incrementing this value causes the sidebar to re-fetch the chat list */
+  refreshKey?: number;
 }
 
 type ProjectFetchState = 'loading' | 'empty' | 'loaded' | 'error';
@@ -44,14 +60,17 @@ export default function ChatSidebar({
   projectId,
   setProjectId,
   chatId,
-  setChatId,
-  setMessages,
+  onSelectChat,
+  onNewChat,
+  refreshKey = 0,
 }: ChatSidebarProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [chats, setChats] = useState<Chat[]>([]);
   const [projectFetchState, setProjectFetchState] =
     useState<ProjectFetchState>('loading');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingChatId, setEditingChatId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
 
   const fetchProjects = useCallback(async () => {
     setProjectFetchState('loading');
@@ -70,19 +89,79 @@ export default function ChatSidebar({
     fetchProjects();
   }, [fetchProjects]);
 
-  // When projectId changes, clear chat history (future: fetch real history)
-  useEffect(() => {
-    setChats([]);
+  const fetchChats = useCallback(async () => {
+    if (!projectId) {
+      setChats([]);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/chat?projectId=${projectId}&t=${Date.now()}`, {
+        cache: 'no-store',
+      });
+      if (!res.ok) throw new Error('Failed to load chats.');
+      const data = (await res.json()) as { chats: Chat[] };
+      setChats(data.chats);
+    } catch (err) {
+      console.error('Error fetching chats:', err);
+    }
   }, [projectId]);
 
+  useEffect(() => {
+    fetchChats();
+  }, [fetchChats, refreshKey]);
+
+
   const startNewChat = () => {
-    setChatId(null);
-    setMessages([]);
+    onNewChat();
   };
 
-  const deleteChat = (id: string) => {
-    setChats((prev) => prev.filter((c) => c.id !== id));
-    if (chatId === id) startNewChat();
+  const deleteChat = async (id: string) => {
+    try {
+      const res = await fetch(`/api/chat?chatId=${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete chat.');
+      setChats((prev) => prev.filter((c) => c.id !== id));
+      if (chatId === id) startNewChat();
+    } catch (err) {
+      console.error('Error deleting chat:', err);
+    }
+  };
+
+  const togglePin = async (chat: Chat) => {
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId: chat.id, isPinned: !chat.isPinned }),
+      });
+      if (!res.ok) throw new Error('Failed to toggle pin.');
+      setChats((prev) =>
+        prev.map((c) => (c.id === chat.id ? { ...c, isPinned: !c.isPinned } : c))
+      );
+    } catch (err) {
+      console.error('Error toggling pin:', err);
+    }
+  };
+
+  const updateTitle = async (chatId: string, newTitle: string) => {
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId, title: newTitle }),
+      });
+      if (!res.ok) throw new Error('Failed to update title.');
+      setChats((prev) =>
+        prev.map((c) => (c.id === chatId ? { ...c, title: newTitle } : c))
+      );
+      setEditingChatId(null);
+    } catch (err) {
+      console.error('Error updating title:', err);
+    }
+  };
+
+  const startRename = (chat: Chat) => {
+    setEditingChatId(chat.id);
+    setEditTitle(chat.title);
   };
 
   const handleProjectImported = (project: Project) => {
@@ -97,7 +176,7 @@ export default function ChatSidebar({
 
   return (
     <>
-      <div className="w-64 bg-zinc-900 flex flex-col h-full border-r border-zinc-800">
+      <div className="w-80 bg-zinc-900 flex flex-col h-full border-r border-zinc-800">
         {/* Project selector */}
         <div className="p-4 space-y-3">
           <div className="flex items-center justify-between">
@@ -185,41 +264,74 @@ export default function ChatSidebar({
 
         {/* Chat history */}
         <div className="flex-1 overflow-y-auto p-2">
-          <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2 px-2">
-            History
-          </div>
           {chats.length === 0 ? (
-            <div className="text-zinc-600 text-xs italic px-2">
-              No past chats.
-            </div>
+            <>
+              <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2 px-2">
+                History
+              </div>
+              <div className="text-zinc-600 text-xs italic px-2">
+                No past chats.
+              </div>
+            </>
           ) : (
-            <div className="space-y-1">
-              {chats.map((c) => (
-                <div
-                  key={c.id}
-                  className={`group flex items-center justify-between p-2 rounded-md cursor-pointer text-sm ${
-                    chatId === c.id
-                      ? 'bg-zinc-800 text-white'
-                      : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200'
-                  }`}
-                  onClick={() => setChatId(c.id)}
-                >
-                  <div className="flex items-center space-x-2 truncate">
-                    <MessageSquare className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{c.title}</span>
+            <div className="space-y-4">
+              {/* Pinned section */}
+              {chats.some((c) => c.isPinned) && (
+                <div className="space-y-1">
+                  <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.15em] mb-2 px-2 flex items-center gap-2">
+                    <Pin className="h-3 w-3" />
+                    Pinned
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteChat(c.id);
-                    }}
-                    aria-label={`Delete chat: ${c.title}`}
-                    className="opacity-0 group-hover:opacity-100 hover:text-red-400 p-1 transition-opacity"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  {chats
+                    .filter((c) => c.isPinned)
+                    .map((c) => (
+                      <ChatItem
+                        key={c.id}
+                        chat={c}
+                        isActive={chatId === c.id}
+                        onSelect={() => onSelectChat(c.id)}
+                        onDelete={() => deleteChat(c.id)}
+                        onTogglePin={() => togglePin(c)}
+                        onRename={() => startRename(c)}
+                        isEditing={editingChatId === c.id}
+                        editTitle={editTitle}
+                        setEditTitle={setEditTitle}
+                        onSaveRename={() => updateTitle(c.id, editTitle)}
+                        onCancelRename={() => setEditingChatId(null)}
+                      />
+                    ))}
                 </div>
-              ))}
+              )}
+
+              {/* Recent section */}
+              <div className="space-y-1">
+                <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.15em] mb-2 px-2">
+                  Recent
+                </div>
+                {chats
+                  .filter((c) => !c.isPinned)
+                  .map((c) => (
+                    <ChatItem
+                      key={c.id}
+                      chat={c}
+                      isActive={chatId === c.id}
+                      onSelect={() => onSelectChat(c.id)}
+                      onDelete={() => deleteChat(c.id)}
+                      onTogglePin={() => togglePin(c)}
+                      onRename={() => startRename(c)}
+                      isEditing={editingChatId === c.id}
+                      editTitle={editTitle}
+                      setEditTitle={setEditTitle}
+                      onSaveRename={() => updateTitle(c.id, editTitle)}
+                      onCancelRename={() => setEditingChatId(null)}
+                    />
+                  ))}
+                {chats.filter((c) => !c.isPinned).length === 0 && (
+                  <div className="text-zinc-600 text-xs italic px-2">
+                    No recent chats.
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -241,5 +353,121 @@ export default function ChatSidebar({
         onProjectImported={handleProjectImported}
       />
     </>
+  );
+}
+
+function ChatItem({
+  chat,
+  isActive,
+  onSelect,
+  onDelete,
+  onTogglePin,
+  onRename,
+  isEditing,
+  editTitle,
+  setEditTitle,
+  onSaveRename,
+  onCancelRename,
+}: {
+  chat: Chat;
+  isActive: boolean;
+  onSelect: () => void;
+  onDelete: () => void;
+  onTogglePin: () => void;
+  onRename: () => void;
+  isEditing: boolean;
+  editTitle: string;
+  setEditTitle: (val: string) => void;
+  onSaveRename: () => void;
+  onCancelRename: () => void;
+}) {
+  return (
+    <div
+      className={`group flex items-center justify-between p-2 rounded-md cursor-pointer text-sm transition-all duration-200 ${
+        isActive
+          ? 'bg-zinc-800 text-white shadow-sm ring-1 ring-white/5'
+          : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200'
+      }`}
+      onClick={isEditing ? undefined : onSelect}
+    >
+      <div className="flex items-center space-x-2 truncate flex-1 pr-2">
+        <MessageSquare className="h-4 w-4 shrink-0 opacity-60" />
+        {isEditing ? (
+          <input
+            autoFocus
+            className="flex-1 bg-zinc-900 border border-indigo-500 rounded px-1 py-0.5 text-xs text-white focus:outline-none"
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') onSaveRename();
+              if (e.key === 'Escape') onCancelRename();
+            }}
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <span className="truncate">{chat.title}</span>
+        )}
+      </div>
+
+      <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+        {isEditing ? (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onSaveRename();
+              }}
+              className="hover:text-emerald-400 p-1"
+            >
+              <Check className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCancelRename();
+              }}
+              className="hover:text-red-400 p-1"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-0.5">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onTogglePin();
+              }}
+              title={chat.isPinned ? 'Unpin' : 'Pin'}
+              className={`p-1 transition-colors ${
+                chat.isPinned ? 'text-indigo-400 hover:text-indigo-300' : 'hover:text-zinc-200'
+              }`}
+            >
+              {chat.isPinned ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onRename();
+              }}
+              title="Rename"
+              className="hover:text-zinc-200 p-1"
+            >
+              <Edit2 className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+              title="Delete"
+              className="hover:text-red-400 p-1"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

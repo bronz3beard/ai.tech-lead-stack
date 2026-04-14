@@ -30,13 +30,42 @@ export default async function DashboardPage({
   const parsedLimit =
     limit === 'all' || !limit ? undefined : parseInt(limit, 10);
 
-  let timeframe: string | undefined = undefined;
-  if (limit && !['10', '20', '50', '100'].includes(limit)) timeframe = limit;
+  const timeframe: string | undefined =
+    limit && !['10', '20', '50', '100'].includes(limit) ? limit : undefined;
 
   const traces = await getAnalytics({
     userId: resolvedUserId,
     timeframe: timeframe,
   });
 
-  return <DashboardContent traces={traces} titlePrefix="My Authenticated" />;
+  // Fetch authorized projects from the database
+  const authorizedProjects = await prisma.project.findMany({
+    where: {
+      OR: [
+        { ownerId: resolvedUserId },
+        {
+          accessGrants: {
+            some: {
+              role: user?.role
+            },
+          },
+        },
+      ],
+    },
+    orderBy: { name: 'asc' },
+  });
+
+  const projects = authorizedProjects.map((p) => ({
+    id: p.id,
+    name: p.name,
+    ownerId: p.ownerId,
+  }));
+
+  return (
+    <DashboardContent
+      traces={traces}
+      projects={projects}
+      titlePrefix="My Authenticated"
+    />
+  );
 }

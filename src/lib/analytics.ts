@@ -10,7 +10,7 @@ const langfuse = new Langfuse({
 
 export async function withAnalytics<T, U>(
   skillName: string,
-  context: { userId?: string; model?: string; agent?: string },
+  context: { userId?: string; model?: string; agent?: string; projectId?: string; projectName?: string },
   skill: (input: T) => Promise<U>
 ) {
   return async (input: T): Promise<U> => {
@@ -20,7 +20,14 @@ export async function withAnalytics<T, U>(
     const trace = langfuse.trace({
       name: skillName,
       userId: context.userId || 'anonymous',
-      metadata: { input, model: resolvedModel, agent: resolvedAgent },
+      metadata: { 
+        input, 
+        model: resolvedModel, 
+        agent: resolvedAgent,
+        projectId: context.projectId,
+        projectName: context.projectName 
+      },
+      tags: context.projectName ? [context.projectName] : [],
     });
 
     const startTime = Date.now();
@@ -74,6 +81,8 @@ export async function withAnalytics<T, U>(
               data: {
                 skillName,
                 userId: userExists.id,
+                projectId: context.projectId,
+                projectName: context.projectName,
                 model: resolvedModel,
                 agent: resolvedAgent,
                 duration,
@@ -84,7 +93,12 @@ export async function withAnalytics<T, U>(
                 totalTokens,
                 totalCost,
                 langfuseTraceId: trace.id,
-                metadata: { input: input as any, model: resolvedModel, agent: resolvedAgent },
+                metadata: { 
+                  input: input as any, 
+                  model: resolvedModel, 
+                  agent: resolvedAgent,
+                  projectName: context.projectName 
+                },
               },
             });
           }

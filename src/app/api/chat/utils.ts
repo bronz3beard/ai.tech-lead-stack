@@ -284,8 +284,20 @@ export function getChatTools(provider: CodeProvider = skillsService) {
           const content = await provider.readFile(filePath);
           return { content };
         } catch (e: unknown) {
+          const msg = getErrorMessage(e).toLowerCase();
+          // Distinguish between "file does not exist" and a real access/permission failure.
+          // GitHub 404s and ENOENT both indicate the file simply isn't present at that path.
+          const isNotFound =
+            msg.includes('404') ||
+            msg.includes('not found') ||
+            msg.includes('enoent') ||
+            msg.includes('no such file') ||
+            msg.includes('directory not found');
+
           return {
-            error: `Read failed for ${filePath}: ${getErrorMessage(e)}`,
+            error: isNotFound
+              ? `File not found: ${filePath}`
+              : `Access error for ${filePath}: ${getErrorMessage(e)}`,
           };
         }
       },

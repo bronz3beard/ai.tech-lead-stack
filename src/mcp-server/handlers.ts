@@ -77,7 +77,7 @@ export class Handlers {
           actualProjectName === '.' || 
           actualProjectName === 'tech-lead-stack') {
          
-         const projectRoot = await this.fsService.findProjectRoot(process.cwd());
+         const projectRoot = await this.fsService.findProjectRoot(/*turbopackIgnore: true*/ process.cwd());
          if (projectRoot) {
             try {
               const packagePath = path.join(projectRoot, "package.json");
@@ -92,14 +92,14 @@ export class Handlers {
             }
          } else {
             // If still unknown, use the current folder name but try to extract meaningful context
-            const cwd = process.cwd();
+            const cwd = /*turbopackIgnore: true*/ process.cwd();
             actualProjectName = path.basename(cwd) === 'tech-lead-stack' 
               ? 'tech-lead-stack-internal' 
               : path.basename(cwd);
          }
       } else {
         // If projectName is provided, try to find its root to ensure we are in the right place
-        const projectRoot = await this.fsService.findProjectRoot(process.cwd());
+        const projectRoot = await this.fsService.findProjectRoot(/*turbopackIgnore: true*/ process.cwd());
         if (projectRoot) {
           try {
             const packagePath = path.join(projectRoot, "package.json");

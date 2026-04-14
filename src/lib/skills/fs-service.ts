@@ -23,7 +23,7 @@ export class FileSystemService implements CodeProvider {
     let current = startDir;
     while (current !== path.parse(current).root) {
       try {
-        const pkgPath = path.join(current, 'package.json');
+        const pkgPath = path.join(/*turbopackIgnore: true*/ current, 'package.json');
         await fs.access(pkgPath);
         const pkg = JSON.parse(await fs.readFile(pkgPath, 'utf-8'));
 
@@ -64,8 +64,8 @@ export class FileSystemService implements CodeProvider {
     >();
 
     // Check local project skills/workflows
-    const localSkillsDir = path.join(process.cwd(), '.ai', 'skills');
-    const localWorkflowsDir = path.join(process.cwd(), '.agents', 'workflows');
+    const localSkillsDir = path.join(/*turbopackIgnore: true*/ process.cwd(), '.ai', 'skills');
+    const localWorkflowsDir = path.join(/*turbopackIgnore: true*/ process.cwd(), '.agents', 'workflows');
 
     const searchConfigs = [
       { dir: localSkillsDir, type: 'skill' as const },
@@ -83,7 +83,7 @@ export class FileSystemService implements CodeProvider {
             if (!dynamicSkills.has(name)) {
               try {
                 const content = await fs.readFile(
-                  path.join(config.dir, file),
+                  path.join(/*turbopackIgnore: true*/ config.dir, file),
                   'utf-8'
                 );
                 const matchDescription = content.match(/description:\s*(.*)/);
@@ -125,8 +125,8 @@ export class FileSystemService implements CodeProvider {
   ): Promise<{ content: string; path: string } | null> {
     const localDir =
       type === 'skill'
-        ? path.join(process.cwd(), '.ai', 'skills')
-        : path.join(process.cwd(), '.agents', 'workflows');
+        ? path.join(/*turbopackIgnore: true*/ process.cwd(), '.ai', 'skills')
+        : path.join(/*turbopackIgnore: true*/ process.cwd(), '.agents', 'workflows');
 
     const repoDir =
       type === 'skill' ? this.repoSkillsDir : this.repoWorkflowsDir;
@@ -134,7 +134,7 @@ export class FileSystemService implements CodeProvider {
     const searchDirs = [localDir, repoDir];
 
     for (const dir of searchDirs) {
-      const fullPath = path.join(dir, `${safeName}.md`);
+      const fullPath = path.join(/*turbopackIgnore: true*/ dir, `${safeName}.md`);
       try {
         const content = await fs.readFile(fullPath, 'utf-8');
         return { content, path: fullPath };
@@ -149,7 +149,7 @@ export class FileSystemService implements CodeProvider {
    * Reads an arbitrary file from the project root.
    */
   async readFile(relativePath: string): Promise<string> {
-    const fullPath = path.join(process.cwd(), relativePath);
+    const fullPath = path.join(/*turbopackIgnore: true*/ process.cwd(), relativePath);
     return await fs.readFile(fullPath, 'utf-8');
   }
 
@@ -158,9 +158,9 @@ export class FileSystemService implements CodeProvider {
    */
   getSearchDirs(): string[] {
     return [
-      path.join(process.cwd(), '.ai', 'skills'),
+      path.join(/*turbopackIgnore: true*/ process.cwd(), '.ai', 'skills'),
       this.repoSkillsDir,
-      path.join(process.cwd(), '.agents', 'workflows'),
+      path.join(/*turbopackIgnore: true*/ process.cwd(), '.agents', 'workflows'),
       this.repoWorkflowsDir,
     ];
   }

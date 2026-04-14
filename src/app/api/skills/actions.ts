@@ -137,7 +137,7 @@ export async function submitSkill(content: string) {
 
     // execute gh-pr-create.sh, passing script as argument to bash
     // Note: gh-pr-create.sh script is in the main repo. Let's use the absolute path from process.cwd()
-    const scriptPath = path.join(process.cwd(), 'scripts', 'gh-pr-create.sh');
+    const scriptPath = path.join(/*turbopackIgnore: true*/ process.cwd(), 'scripts', 'gh-pr-create.sh');
     const { stdout: prStdout } = await execFileAsync('bash', [scriptPath, title, body, 'main'], {
       cwd: cloneDir, // Run in cloneDir so `gh` uses that repo context
       env: { ...process.env, GITHUB_TOKEN: token }
