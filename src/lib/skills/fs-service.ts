@@ -1,11 +1,12 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { CodeProvider } from './providers/base-provider';
 
 /**
  * FileSystemService handles all directory traversal and skill file discovery logic.
  * Shared between the Next.js Chat API and the MCP Server.
  */
-export class FileSystemService {
+export class FileSystemService implements CodeProvider {
   private repoSkillsDir: string;
   private repoWorkflowsDir: string;
 

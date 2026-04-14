@@ -97,6 +97,21 @@ export class Handlers {
               ? 'tech-lead-stack-internal' 
               : path.basename(cwd);
          }
+      } else {
+        // If projectName is provided, try to find its root to ensure we are in the right place
+        const projectRoot = await this.fsService.findProjectRoot(process.cwd());
+        if (projectRoot) {
+          try {
+            const packagePath = path.join(projectRoot, "package.json");
+            const pkg = JSON.parse(await fs.readFile(packagePath, "utf-8"));
+            // If the package name doesn't match the passed projectName, we might be misaligned
+            if (pkg.name !== actualProjectName && !actualProjectName.includes(pkg.name)) {
+               console.warn(`Project name mismatch: expected ${actualProjectName}, found ${pkg.name} at ${projectRoot}`);
+            }
+          } catch {
+            // fallback
+          }
+        }
       }
 
       const shouldSkipAnalytics = isSkillTrace(undefined, safeSkillName);

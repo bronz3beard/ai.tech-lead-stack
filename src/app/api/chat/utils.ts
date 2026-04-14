@@ -6,6 +6,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import { MODELS } from './constants';
 import { skillsService } from '@/lib/skills';
+import { CodeProvider } from '@/lib/skills/providers/base-provider';
 
 /**
  * Strictly extracts a string message from an unknown error object.
@@ -221,14 +222,14 @@ export async function initializeModel(user: User, modelId?: string, keyIndex = 0
 /**
  * Defines the toolset available to the AI agent during analytical and streaming turns.
  */
-export function getChatTools() {
+export function getChatTools(provider: CodeProvider = skillsService) {
   return {
     list_skills: tool({
       description: 'Lists all available skills and workflows.',
       parameters: z.object({}),
       execute: async () => {
         try {
-          const skillsMap = await skillsService.getDynamicSkills();
+          const skillsMap = await provider.getDynamicSkills();
           const skills: string[] = [];
           const workflows: string[] = [];
 
@@ -260,7 +261,7 @@ export function getChatTools() {
         try {
           // Strip extension if provided by model
           const safeName = name.replace(/\.md$/, '');
-          const result = await skillsService.readSkill(safeName, type);
+          const result = await provider.readSkill(safeName, type);
           
           if (!result) return { error: `Skill or workflow '${name}' not found.` };
           return { content: result.content };
@@ -280,7 +281,7 @@ export function getChatTools() {
         if (!filePath) return { error: 'Missing file path parameter (expected path or filepath)' };
 
         try {
-          const content = await skillsService.readFile(filePath);
+          const content = await provider.readFile(filePath);
           return { content };
         } catch (e: unknown) {
           return {
