@@ -101,24 +101,48 @@ async function getGlobalMetrics(projectId?: string) {
 
     let allObservations: LangfuseObservation[] = [];
     if (allTraces.length > 0) {
-      // Get min and max dates to satisfy Langfuse observation query requirements correctly
-      const timestamps = allTraces.map((t) => new Date(t.timestamp).getTime());
-      const minDate = new Date(Math.min(...timestamps)).toISOString();
-      const maxDate = new Date(Math.max(...timestamps) + 1000).toISOString();
+      // Get min and max dates - strictly filter out invalid timestamps
+      const timestamps = allTraces
+        .map((t) => new Date(t.timestamp).getTime())
+        .filter((t) => !isNaN(t));
 
-      const obsParams = new URLSearchParams({
-        type: 'GENERATION',
-        fromTimestamp: minDate,
-        toTimestamp: maxDate,
-      });
+      if (timestamps.length > 0) {
+        const minTimestamp = Math.min(...timestamps);
+        const maxTimestamp = Math.max(...timestamps) + 1000;
+        
+        // Langfuse API rejects requests with date ranges that are too wide (422 error).
+        // We chunk the fetch into 7-day increments to satisfy the API while maintaining full coverage.
+        const CHUNK_SIZE_MS = 7 * 24 * 60 * 60 * 1000;
+        
+        for (let currentStart = minTimestamp; currentStart < maxTimestamp; currentStart += CHUNK_SIZE_MS) {
+          const currentEnd = Math.min(currentStart + CHUNK_SIZE_MS, maxTimestamp);
+          const fromDate = new Date(currentStart).toISOString();
+          const toDate = new Date(currentEnd).toISOString();
 
-      allObservations = await fetchAllPages<LangfuseObservation>(
-        baseUrl,
-        '/api/public/observations',
-        obsParams,
-        authHeader,
-        15000 // Large batch for observations
-      );
+          console.log(`Fetching observations chunk: ${fromDate} to ${toDate}`);
+
+          const obsParams = new URLSearchParams({
+            type: 'GENERATION',
+            fromTimestamp: fromDate,
+            toTimestamp: toDate,
+          });
+
+          const batch = await fetchAllPages<LangfuseObservation>(
+            baseUrl,
+            '/api/public/observations',
+            obsParams,
+            authHeader,
+            15000 // Total limit for observations (across all chunks if we hit it)
+          );
+          
+          allObservations.push(...batch);
+          
+          // Stop if we've reached the absolute maximum batch size we want to handle
+          if (allObservations.length >= 15000) break;
+        }
+      } else {
+        console.warn('No valid timestamps found in traces, skipping observations fetch.');
+      }
     }
 
     // Index observations for faster lookup

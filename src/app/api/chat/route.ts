@@ -215,18 +215,49 @@ export async function POST(req: Request) {
                 maxRetries: 0, // Manual rotation handled here
                 stopWhen: stepCountIs(MAX_ANALYTICAL_STEPS),
                 onStepFinish: async (event) => {
-                  if (event.toolCalls && event.toolCalls.length > 0) {
-                    stepCount++;
-                    writer.write({
-                      type: 'data-custom',
-                      id: `step-${stepCount}`,
-                      data: {
-                        status: `Analytical Step ${stepCount}: Processing ${event.toolCalls.length} tool(s)...`,
-                      },
-                    });
-                  }
-
                   try {
+                    if (event.toolCalls && event.toolCalls.length > 0) {
+                      stepCount++;
+                      
+                      // Extract insights from tool results for real-time progress logging
+                      const insights: string[] = [];
+                      for (const call of event.toolCalls) {
+                        const callAny = call as any;
+                        const resultPart = event.toolResults.find(r => r.toolCallId === call.toolCallId) as any;
+                        if (resultPart) {
+                          const args = callAny.args || callAny.input || {};
+                          
+                          if (call.toolName === 'get_skill') {
+                            const name = args.name || args.skillName;
+                            insights.push(`Analyzed schema for '${name}' skill.`);
+                          } else if (call.toolName === 'read_file') {
+                            const path = args.path || args.filepath;
+                            if (resultPart.result && !resultPart.result.error) {
+                              const bytes = typeof resultPart.result.content === 'string' 
+                                ? resultPart.result.content.length 
+                                : 0;
+                              insights.push(`Scrutinized '${path}' (${bytes} bytes).`);
+                            } else {
+                              insights.push(`Encountered access error for '${path}'.`);
+                            }
+                          } else if (call.toolName === 'list_skills') {
+                            const res = resultPart.result || {};
+                            const count = (res.skills?.length || 0) + (res.workflows?.length || 0);
+                            insights.push(`Cataloged ${count} available skills and workflows.`);
+                          }
+                        }
+                      }
+
+                      writer.write({
+                        type: 'data-custom',
+                        id: `step-${stepCount}`,
+                        data: {
+                          status: `Analytical Step ${stepCount}: Researching...`,
+                          insights: insights.length > 0 ? insights : [`Processing ${event.toolCalls.length} tool(s)...`],
+                        },
+                      });
+                    }
+
                     for (const msg of event.response.messages) {
                       await prisma.message.create({
                         data: {
@@ -237,38 +268,55 @@ export async function POST(req: Request) {
                       });
                     }
                   } catch (err) {
-                    console.error('Error persisting step messages:', err);
+                    console.error('Error during step update:', err);
                   }
                 },
               });
 
               // Once the model finished analytical turns, relay the final summary streams
               const uiStream = result.toUIMessageStream();
-
-              // We check if the result contains text before streaming to handle the fallback check reliably.
-              const finalText = await result.text;
-              const hasEmittedText = finalText.trim().length > 0;
+              let textEmitted = false;
 
               try {
                 for await (const chunk of uiStream) {
+                  // Track if we got any text parts to handle the fallback notice reliably
+                  if (chunk.type === 'text-delta' && (chunk as any).delta?.trim()) {
+                    textEmitted = true;
+                  }
                   writer.write(chunk as any);
                 }
 
-                // FALLBACK: If the model finished but didn't produce a final summary text
-                // (which can happen if it hits the step limit or misinterprets instructions),
-                // we synthesize a completion notice so the user isn't left hanging.
-                if (!hasEmittedText) {
-                  writer.write({
-                    role: 'assistant',
-                    id: `fallback-${Date.now()}`,
-                    parts: [
-                      {
-                        type: 'text',
-                        text: `### Analysis Complete\n\nThe analytical process has finished after ${stepCount} steps. However, a detailed final report was not generated by the model in this turn. Please review the tool outputs above for raw details.`,
-                      },
+                // DYNAMIC SUMMARY TURN: If the model finished but didn't produce a final summary text
+                // (typically after hitting the step limit), we force a final turn with no tools 
+                // to synthesize all previous research into a final report.
+                if (!textEmitted) {
+                  console.info(`[chat] Analytical limit reached without report. Triggering dynamic summary turn...`);
+                  
+                  // Capture tool results and calls from the research phase
+                  const response = await result.response;
+                  const researchMessages = response.messages;
+
+                  const summaryResult = await streamText({
+                    model,
+                    system: finalSystemInstruction,
+                    messages: [
+                      ...convertedMessages,
+                      ...researchMessages,
+                      { 
+                        role: 'user', 
+                        content: 'FINAL DIRECTIVE: The analytical process has reached its step limit. Respond now with your exhaustive final summary and recommendations based on the tool outputs above. Do NOT use any more tools.' 
+                      }
                     ],
-                    content: 'Analysis Complete',
-                  } as any);
+                    // No tools provided here to force a text-only summary
+                  });
+
+                  // Stream the summary to the same writer
+                  for await (const chunk of summaryResult.toUIMessageStream()) {
+                    if (chunk.type === 'text-delta' && (chunk as any).delta?.trim()) {
+                      textEmitted = true;
+                    }
+                    writer.write(chunk as any);
+                  }
                 }
 
                 // Final success signal

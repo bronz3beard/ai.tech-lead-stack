@@ -41,6 +41,14 @@ export default function ChatMessageList({
     );
   }
 
+  // Collect all insights from the data stream to show a research timeline
+  const allInsights = data
+    ?.filter((d: any) => 
+      (d && typeof d === 'object' && d.insights) || 
+      (d?.data && typeof d.data === 'object' && d.data.insights)
+    )
+    .flatMap((d: any) => d.insights || d.data.insights) || [];
+
   // Get the most recent status from the data stream
   const currentStatus = data
     ?.filter((d: any) => 
@@ -72,8 +80,13 @@ export default function ChatMessageList({
     <div className="space-y-6 pb-4">
       {messages.map((message) => {
         // Collect text content from parts
+        const reasoningContent = message.parts
+          .filter((part: any) => part.type === 'reasoning')
+          .map((part: any) => part.reasoning || part.text)
+          .join('\n\n');
+
         const textContent = message.parts
-          .filter((part) => part.type === 'text' || part.type === 'reasoning')
+          .filter((part) => part.type === 'text')
           .map((part: any) => part.text)
           .join('\n\n');
 
@@ -82,7 +95,7 @@ export default function ChatMessageList({
         const toolResults = message.parts.filter((part) => part.type === 'tool-result');
 
         // Always render if there's any content or tool activity
-        const hasContent = textContent.trim().length > 0;
+        const hasContent = textContent.trim().length > 0 || reasoningContent.trim().length > 0;
         const hasTools = toolCalls.length > 0 || toolResults.length > 0;
 
         if (!hasContent && !hasTools) return null;
@@ -103,6 +116,17 @@ export default function ChatMessageList({
                 <div className="whitespace-pre-wrap text-sm leading-relaxed">{textContent}</div>
               ) : (
                 <div className="space-y-5">
+                  {/* Reasoning / Thinking Process */}
+                  {reasoningContent && (
+                    <div className="text-xs italic text-zinc-400 border-l-2 border-indigo-500/30 pl-3 py-1 bg-indigo-500/5 rounded-r-md">
+                      <div className="flex items-center gap-1.5 mb-1 text-[10px] uppercase tracking-wider font-semibold opacity-70">
+                        <Activity className="w-3 h-3 text-indigo-400" />
+                        Internal Reasoning
+                      </div>
+                      <ReactMarkdown>{reasoningContent}</ReactMarkdown>
+                    </div>
+                  )}
+
                   {/* Tool Call & Result Indicators */}
                   {hasTools && (
                     <div className="flex flex-col gap-2.5">
@@ -160,22 +184,42 @@ export default function ChatMessageList({
         <div className="space-y-4 pt-2">
           {statusText && (
             <div className="flex justify-start">
-              <div className="max-w-[85%] bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl px-5 py-4 flex items-start gap-4 shadow-lg backdrop-blur-sm">
-                <div className="mt-1">
-                  <div className="relative">
-                    <div className="w-2.5 h-2.5 bg-indigo-500 rounded-full animate-ping absolute" />
-                    <div className="w-2.5 h-2.5 bg-indigo-500 rounded-full relative shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
+              <div className="max-w-[85%] bg-gradient-to-r from-zinc-900 via-indigo-950/20 to-zinc-900 border border-indigo-500/20 rounded-2xl px-5 py-4 flex flex-col gap-3 shadow-lg shadow-indigo-500/5 backdrop-blur-sm">
+                <div className="flex items-start gap-4">
+                  <div className="mt-1">
+                    <div className="relative">
+                      <div className="w-2.5 h-2.5 bg-indigo-500 rounded-full animate-ping absolute" />
+                      <div className="w-2.5 h-2.5 bg-indigo-500 rounded-full relative shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.15em] mb-1 opacity-90 flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Activity className="w-3 h-3" />
+                        Neural Research Matrix
+                      </span>
+                      <span className="text-[9px] opacity-60 font-mono">STEP_MODE: ACTIVE</span>
+                    </div>
+                    <div className="text-sm text-zinc-100 font-medium leading-relaxed truncate">
+                      {statusText}
+                    </div>
                   </div>
                 </div>
-                <div className="flex-1">
-                  <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.1em] mb-1.5 opacity-80 flex items-center gap-2">
-                    <Activity className="w-3 h-3" />
-                    Neural Processing
+
+                {/* Research Insight Log */}
+                {allInsights.length > 0 && (
+                  <div className="ml-6.5 mt-1 border-l border-zinc-800/80 pl-4 space-y-2">
+                    {allInsights.map((insight, i) => (
+                      <div 
+                        key={`insight-${i}`} 
+                        className="flex items-center gap-2 text-[11px] text-zinc-400 group animate-in fade-in slide-in-from-left-2 duration-300"
+                      >
+                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500/40 group-last:bg-indigo-400 group-last:animate-pulse" />
+                        <span className="truncate group-last:text-zinc-300 group-last:font-medium">{insight}</span>
+                      </div>
+                    ))}
                   </div>
-                  <div className="text-sm text-zinc-100 font-medium leading-relaxed">
-                    {statusText}
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           )}

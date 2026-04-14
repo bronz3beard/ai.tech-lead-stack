@@ -98,6 +98,12 @@ export async function fetchAllPages<T>(
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`Langfuse API Error: ${response.status} for ${endpoint}. returning partial data.`);
+      try {
+        const errorDetail = JSON.parse(errorText);
+        console.error('Langfuse API Error Details:', JSON.stringify(errorDetail, null, 2));
+      } catch {
+        console.error('Langfuse API Error (raw text):', errorText);
+      }
       return allData; // Be resilient: return partial data instead of crashing
     }
 
