@@ -1,5 +1,6 @@
 import { Langfuse } from 'langfuse-node';
 import { langfuseLabel } from '@/lib/langfuse-labels';
+import { prisma } from '@/lib/prisma';
 
 const langfuse = new Langfuse({
   publicKey: process.env.LANGFUSE_PUBLIC_KEY,
@@ -22,10 +23,18 @@ export async function withAnalytics<T, U>(
       metadata: { input, model: resolvedModel, agent: resolvedAgent },
     });
 
+    const startTime = Date.now();
+    let status = 'success';
+    let errorMessage: string | undefined;
+    let completionTokens = 0;
+    let promptTokens = 500;
+
     try {
       const output = await skill(input);
       const outputStr =
         typeof output === 'string' ? output : JSON.stringify(output);
+
+      completionTokens = Math.ceil(outputStr.length / 4);
 
       // Track a generation to ensure Langfuse can calculate/display token costs
       trace.generation({
@@ -33,22 +42,56 @@ export async function withAnalytics<T, U>(
         model: resolvedModel,
         output: outputStr,
         usage: {
-          completionTokens: Math.ceil(outputStr.length / 4),
-          promptTokens: 500,
+          completionTokens,
+          promptTokens,
         },
       });
 
       trace.update({ output: outputStr });
       return output;
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      status = 'error';
+      errorMessage = error instanceof Error ? error.message : String(error);
       trace.update({
         metadata: { error: errorMessage },
       });
       throw error;
     } finally {
+      const duration = (Date.now() - startTime) / 1000;
       await langfuse.flushAsync();
+
+      const totalTokens = promptTokens + completionTokens;
+      const totalCost = 0;
+
+      if (context.userId && context.userId !== 'anonymous') {
+        try {
+          const userExists = await prisma.user.findUnique({
+            where: { email: context.userId },
+          });
+
+          if (userExists) {
+             await prisma.analyticsEvent.create({
+              data: {
+                skillName,
+                userId: userExists.id,
+                model: resolvedModel,
+                agent: resolvedAgent,
+                duration,
+                status,
+                error: errorMessage,
+                promptTokens,
+                completionTokens,
+                totalTokens,
+                totalCost,
+                langfuseTraceId: trace.id,
+                metadata: { input: input as any, model: resolvedModel, agent: resolvedAgent },
+              },
+            });
+          }
+        } catch (dbError) {
+          console.error('Failed to log analytics to Postgres:', dbError);
+        }
+      }
     }
   };
 }

@@ -52,6 +52,30 @@ model User {
   chats         Chat[]
   projects      Project[]
   sessions      Session[]
+  analyticsEvents AnalyticsEvent[]
+}
+
+model AnalyticsEvent {
+  id               String   @id @default(cuid())
+  skillName        String?
+  userId           String
+  model            String?
+  agent            String?
+  duration         Float?
+  status           String?
+  error            String?
+  promptTokens     Int?
+  completionTokens Int?
+  totalTokens      Int?
+  totalCost        Float?
+  langfuseTraceId  String?
+  metadata         Json?
+  createdAt        DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([skillName, createdAt])
 }
 
 model VerificationToken {

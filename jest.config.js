@@ -14,7 +14,8 @@ module.exports = {
         rootDir: ".",
 
         jsx: "react-jsx",
-      },
+        ignoreDeprecations: "6.0"
+      }
     }],
   },
   transformIgnorePatterns: [
