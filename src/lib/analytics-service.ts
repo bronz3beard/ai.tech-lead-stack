@@ -25,7 +25,10 @@ export async function getAnalytics(filters: {
   const where: any = {};
 
   if (filters.userId) {
-    where.userId = filters.userId;
+    where.OR = [
+      { userId: filters.userId },
+      { metadata: { path: ['userEmail'], equals: filters.userId } }
+    ];
   }
 
   if (filters.projectName) {
