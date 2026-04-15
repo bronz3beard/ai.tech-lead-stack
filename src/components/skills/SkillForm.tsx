@@ -6,6 +6,7 @@ import 'easymde/dist/easymde.min.css';
 import matter from 'gray-matter';
 import EasyMDE from 'easymde';
 import { submitSkill, validateSkill } from '@/app/api/skills/actions';
+import SkillAssistant from './SkillAssistant';
 
 const SimpleMdeReact = dynamic(() => import('react-simplemde-editor'), {
   ssr: false,
@@ -56,6 +57,11 @@ export default function SkillForm({ initialTemplate }: SkillFormProps) {
     setServerFeedback(null);
   };
 
+  const handleUpdateContent = (newContent: string) => {
+    setContent(newContent);
+    setServerFeedback(null);
+  }
+
   const handleServerValidate = async () => {
     setIsValidating(true);
     setServerFeedback(null);
@@ -101,58 +107,71 @@ export default function SkillForm({ initialTemplate }: SkillFormProps) {
   }, []);
 
   return (
-    <div className="space-y-6">
-      <div className="bg-card border border-border p-4 rounded-lg shadow-sm">
-        <h2 className="text-xl font-semibold mb-4 text-foreground">Frontmatter Status</h2>
-        {isValid ? (
-          <div className="flex items-center text-green-600 font-medium">
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-            ✅ Frontmatter valid
-          </div>
-        ) : (
-          <div className="text-red-500">
-            <div className="flex items-center font-medium mb-2">
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-              ❌ Invalid Frontmatter
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-12rem)] min-h-[600px]">
+      <div className="lg:col-span-2 flex flex-col space-y-4 overflow-y-auto">
+        <div className="bg-card border border-border p-4 rounded-lg shadow-sm shrink-0">
+          <h2 className="text-xl font-semibold mb-4 text-foreground">Frontmatter Status</h2>
+          {isValid ? (
+            <div className="flex items-center text-green-600 font-medium">
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+              ✅ Frontmatter valid
             </div>
-            <ul className="list-disc list-inside text-sm pl-2">
-              {validationErrors.map((err, i) => (
-                <li key={i}>{err}</li>
-              ))}
-            </ul>
+          ) : (
+            <div className="text-red-500">
+              <div className="flex items-center font-medium mb-2">
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                ❌ Invalid Frontmatter
+              </div>
+              <ul className="list-disc list-inside text-sm pl-2">
+                {validationErrors.map((err, i) => (
+                  <li key={i}>{err}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        <div className="border border-border rounded-lg overflow-hidden prose-editor flex-1 flex flex-col min-h-0">
+          <div className="flex-1 overflow-y-auto">
+            <SimpleMdeReact
+              value={content}
+              onChange={handleChange}
+              options={editorOptions}
+            />
+          </div>
+        </div>
+
+        {serverFeedback && (
+          <div className={`p-4 rounded-lg shrink-0 ${serverFeedback.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+            <pre className="whitespace-pre-wrap font-sans text-sm">{serverFeedback.message}</pre>
           </div>
         )}
-      </div>
 
-      <div className="border border-border rounded-lg overflow-hidden prose-editor">
-        <SimpleMdeReact
-          value={content}
-          onChange={handleChange}
-          options={editorOptions}
-        />
-      </div>
-
-      {serverFeedback && (
-        <div className={`p-4 rounded-lg ${serverFeedback.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
-          <pre className="whitespace-pre-wrap font-sans text-sm">{serverFeedback.message}</pre>
+        <div className="flex space-x-4 shrink-0 pb-4">
+          <button
+            onClick={handleServerValidate}
+            disabled={!isValid || isValidating || isSubmitting}
+            className="px-4 py-2 border border-border rounded-md shadow-sm text-sm font-medium text-foreground bg-card hover:bg-accent focus:outline-none disabled:opacity-50"
+          >
+            {isValidating ? 'Validating...' : 'Validate on Server'}
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={!isValid || isSubmitting || isValidating}
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none disabled:opacity-50"
+          >
+            {isSubmitting ? 'Submitting...' : 'Submit Draft PR'}
+          </button>
         </div>
-      )}
+      </div>
 
-      <div className="flex space-x-4">
-        <button
-          onClick={handleServerValidate}
-          disabled={!isValid || isValidating || isSubmitting}
-          className="px-4 py-2 border border-border rounded-md shadow-sm text-sm font-medium text-foreground bg-card hover:bg-accent focus:outline-none disabled:opacity-50"
-        >
-          {isValidating ? 'Validating...' : 'Validate on Server'}
-        </button>
-        <button
-          onClick={handleSubmit}
-          disabled={!isValid || isSubmitting || isValidating}
-          className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none disabled:opacity-50"
-        >
-          {isSubmitting ? 'Submitting...' : 'Submit Draft PR'}
-        </button>
+      <div className="hidden lg:block h-full">
+        <SkillAssistant currentContent={content} onUpdateContent={handleUpdateContent} />
+      </div>
+
+      {/* Mobile view of the assistant below the editor */}
+      <div className="lg:hidden h-[500px]">
+         <SkillAssistant currentContent={content} onUpdateContent={handleUpdateContent} />
       </div>
     </div>
   );
