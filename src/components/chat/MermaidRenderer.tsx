@@ -29,6 +29,7 @@ mermaid.initialize({
     nodeBorder: '#475569', // Slate 600
   },
   securityLevel: 'loose',
+  suppressErrorRendering: true,
 });
 
 export default function MermaidRenderer({ chart }: MermaidRendererProps) {
