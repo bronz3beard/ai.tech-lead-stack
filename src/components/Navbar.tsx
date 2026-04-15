@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Settings,
   X,
+  BookOpen,
 } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import Image from 'next/image';
@@ -20,6 +21,7 @@ import { useState } from 'react';
 
 const navigation = [
   { name: 'Global Dashboard', href: '/', icon: Globe },
+  { name: 'Interlink Skills', href: '/skills/roles', icon: BookOpen },
   {
     name: 'User Dashboard',
     href: '/dashboard',
