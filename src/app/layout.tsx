@@ -22,7 +22,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TechDash - Insight Dashboard",
+  title: "Interlink - Insight Dashboard",
   description: "Explore tech metrics and analytics with ease.",
 };
 

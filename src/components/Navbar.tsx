@@ -3,14 +3,14 @@
 import { cn } from '@/lib/utils';
 import {
   Globe,
-  LayoutDashboard,
   Hammer,
-  MessageSquare,
+  LayoutDashboard,
   LogIn,
   LogOut,
   Menu,
-  X,
+  MessageSquare,
   Settings,
+  X,
 } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import Image from 'next/image';
@@ -199,9 +199,9 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex">
-            <div className="flex-shrink-0 flex items-center">
+            <div className="shrink-0 flex items-center">
               <Link href="/" className="text-xl font-bold text-foreground">
-                <span className="text-blue-500">Tech</span>Dash
+                <span className="text-blue-500">Inter</span>link
               </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">

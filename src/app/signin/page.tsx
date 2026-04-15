@@ -104,7 +104,7 @@ function SignInContent() {
           Sign In
         </CardTitle>
         <CardDescription className="text-zinc-400">
-          Access your TechDash insights and analytics
+          Access your Interlink insights and analytics
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">

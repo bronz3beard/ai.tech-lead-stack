@@ -122,8 +122,8 @@ export async function submitSkill(content: string) {
     await execFileAsync('git', ['commit', '-m', `Add new skill: ${parsedName}`], { cwd: cloneDir });
 
     // Set up git user
-    await execFileAsync('git', ['config', 'user.email', 'bot@tech-dash.local'], { cwd: cloneDir });
-    await execFileAsync('git', ['config', 'user.name', 'TechDash Bot'], { cwd: cloneDir });
+    await execFileAsync('git', ['config', 'user.email', 'bot@interlink.local'], { cwd: cloneDir });
+    await execFileAsync('git', ['config', 'user.name', 'Interlink Bot'], { cwd: cloneDir });
 
     // Amend commit with author if needed, or just commit again since we just set the config
     // Actually, setting config before commit is better. Let's do that.
