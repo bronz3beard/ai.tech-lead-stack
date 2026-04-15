@@ -58,7 +58,7 @@ model User {
 model AnalyticsEvent {
   id               String   @id @default(cuid())
   skillName        String?
-  userId           String
+  userId           String?
   model            String?
   agent            String?
   duration         Float?
@@ -73,7 +73,7 @@ model AnalyticsEvent {
   createdAt        DateTime @default(now())
   projectId        String?
   projectName      String?
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
   @@index([skillName, createdAt])
