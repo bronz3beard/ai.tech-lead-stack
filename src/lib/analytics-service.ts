@@ -19,16 +19,21 @@ export interface TraceData {
 
 export async function getAnalytics(filters: { 
   userId?: string; 
+  userEmail?: string;
   timeframe?: string;
   projectName?: string;
+  limit?: number;
 }): Promise<TraceData[]> {
   const where: any = {};
 
-  if (filters.userId) {
-    where.OR = [
-      { userId: filters.userId },
-      { metadata: { path: ['userEmail'], equals: filters.userId } }
-    ];
+  if (filters.userId || filters.userEmail) {
+    where.OR = [];
+    if (filters.userId) {
+      where.OR.push({ userId: filters.userId });
+    }
+    if (filters.userEmail) {
+      where.OR.push({ metadata: { path: ['userEmail'], equals: filters.userEmail } });
+    }
   }
 
   if (filters.projectName) {
@@ -58,37 +63,41 @@ export async function getAnalytics(filters: {
       case 'day':
         fromDate.setDate(now.getDate() - 1);
         break;
-      default:
-        break; // Handles parsing if date ranges are passed directly via 'from' and 'to'
     }
 
-    // Fallback parsing for from / to values
-    if (!['1yr', '6mo', '3mo', '1mo', 'week', 'day'].includes(filters.timeframe)) {
-       // Ignore if not a preset timeframe
-    } else {
-       where.createdAt = { gte: fromDate };
+    // Only apply timeframe filter if it was a valid preset
+    if (['1yr', '6mo', '3mo', '1mo', 'week', 'day'].includes(filters.timeframe)) {
+      where.createdAt = { gte: fromDate };
     }
   }
 
   const events = await prisma.analyticsEvent.findMany({
     where,
     orderBy: { createdAt: 'desc' },
+    take: filters.limit,
   });
 
-  return events.map((event) => ({
-    id: event.id,
-    name: event.skillName || 'unnamed-trace',
-    timestamp: event.createdAt.toISOString(),
-    sessionId: event.langfuseTraceId || undefined, 
-    projectName: event.projectName || 'tech-lead-stack', 
-    model: event.model || 'unknown',
-    agent: event.agent || 'unknown',
-    duration: event.duration || undefined,
-    status: event.status || undefined,
-    metadata: (event.metadata as Record<string, unknown>) || {},
-    totalCost: event.totalCost || 0,
-    totalTokens: event.totalTokens || 0,
-    inputTokens: event.promptTokens || 0,
-    outputTokens: event.completionTokens || 0,
-  }));
+  return events.map((event) => {
+    const metadata = (event.metadata as Record<string, any>) || {};
+    
+    // Attribution Fallback Hierarchy: root projectName -> metadata.projectName -> metadata.projectId -> tag (none here) -> fallback
+    const projectName = event.projectName || metadata.projectName || metadata.projectId || 'tech-lead-stack';
+
+    return {
+      id: event.id,
+      name: event.skillName || 'unnamed-trace',
+      timestamp: event.createdAt.toISOString(),
+      sessionId: event.langfuseTraceId || undefined, 
+      projectName: projectName, 
+      model: event.model || 'unknown',
+      agent: event.agent || 'unknown',
+      duration: event.duration || undefined,
+      status: event.status || undefined,
+      metadata: metadata,
+      totalCost: event.totalCost || 0,
+      totalTokens: event.totalTokens || 0,
+      inputTokens: event.promptTokens || 0,
+      outputTokens: event.completionTokens || 0,
+    };
+  });
 }

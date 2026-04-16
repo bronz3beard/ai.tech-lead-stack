@@ -80,11 +80,15 @@ export function DashboardContent({
   const filteredTraces = useMemo(() => {
     if (!selectedProject) return traces;
     const target = selectedProject.toLowerCase();
+
+    // If "All Projects" is explicitly selected, return all traces.
+    if (target === 'all') return traces;
+
     return traces.filter((t) => normalizeProjectName(t.projectName) === target);
   }, [traces, selectedProject]);
 
   const metrics = useMemo(() => {
-    const totalExecutions = filteredTraces.length;
+    let totalExecutions = 0;
     let activeWorkflows = 0;
     const skillCounts: Record<string, number> = {};
     const timeBuckets: Record<string, number> = {};
@@ -113,6 +117,8 @@ export function DashboardContent({
       // Secondary filter to ignore skeletal skill traces
       if (isSkillTrace(trace.name, skillName)) continue;
 
+      // Only count valid skill executions for the KPI
+      totalExecutions++;
       skillCounts[skillName] = (skillCounts[skillName] || 0) + 1;
 
       // Track workflows

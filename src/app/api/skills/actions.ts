@@ -1,15 +1,15 @@
 'use server';
 
-import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { execFile } from 'child_process';
-import { promisify } from 'util';
 import fs from 'fs/promises';
-import path from 'path';
-import os from 'os';
 import matter from 'gray-matter';
+import { getServerSession } from 'next-auth';
 import { Octokit } from 'octokit';
+import os from 'os';
+import path from 'path';
+import { promisify } from 'util';
 
 const execFileAsync = promisify(execFile);
 
@@ -35,15 +35,29 @@ export async function validateSkill(content: string) {
   try {
     await fs.writeFile(tempFile, content, 'utf-8');
 
-    // Format with Prettier
-    await execFileAsync('npx', ['prettier', '--write', tempFile]);
+    // Format with Prettier using project config
+    const rootDir = process.cwd();
+    const prettierConfig = path.join(rootDir, '.prettierrc');
+    await execFileAsync('npx', [
+      'prettier',
+      '--write',
+      '--config',
+      prettierConfig,
+      tempFile,
+    ]);
 
     // Validate using script
-    const { stdout } = await execFileAsync('bash', ['scripts/validate-skills.sh', tempFile]);
+    const { stdout } = await execFileAsync('bash', [
+      'scripts/validate-skills.sh',
+      tempFile,
+    ]);
     return { success: true, message: stdout || 'Validation successful' };
   } catch (error: unknown) {
     const err = error as { stdout?: string; stderr?: string; message?: string };
-    return { success: false, message: err.stdout || err.stderr || err.message || 'Validation failed' };
+    return {
+      success: false,
+      message: err.stdout || err.stderr || err.message || 'Validation failed',
+    };
   } finally {
     // Cleanup
     try {
@@ -66,7 +80,11 @@ export async function submitSkill(content: string) {
   });
 
   if (!account?.access_token) {
-    return { success: false, message: 'GitHub account not linked or access token missing. Please sign in with GitHub.' };
+    return {
+      success: false,
+      message:
+        'GitHub account not linked or access token missing. Please sign in with GitHub.',
+    };
   }
 
   const token = account.access_token;
@@ -88,11 +106,36 @@ export async function submitSkill(content: string) {
   const branchName = `add-skill-${safeName}-${Date.now()}`;
   const fileName = `${safeName}.md`;
 
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'skill-submit-'));
+  const tempFile = path.join(tempDir, fileName);
+
   try {
-    // 1. Get Repo Information
-    const remoteRes = await execFileAsync('git', ['config', '--get', 'remote.origin.url']);
+    // 1. Format with Prettier using project config
+    const rootDir = process.cwd();
+    const prettierConfig = path.join(rootDir, '.prettierrc');
+    await fs.writeFile(tempFile, content, 'utf-8');
+    await execFileAsync('npx', [
+      'prettier',
+      '--write',
+      '--config',
+      prettierConfig,
+      tempFile,
+    ]);
+    const formattedContent = await fs.readFile(tempFile, 'utf-8');
+
+    // 2. Validate it just in case
+    await execFileAsync('bash', ['scripts/validate-skills.sh', tempFile]);
+
+    // 3. GitHub API Operations
+
+    // We need the remote URL for the repo. Let's get it from the current repo
+    const remoteRes = await execFileAsync('git', [
+      'config',
+      '--get',
+      'remote.origin.url',
+    ]);
     const remoteUrl = remoteRes.stdout.trim();
-    
+
     // Parse owner and repo from URL
     // Examples:
     // https://github.com/owner/repo.git
@@ -100,7 +143,9 @@ export async function submitSkill(content: string) {
     const cleanUrl = remoteUrl.trim().replace(/\.git$/, '');
     const match = cleanUrl.match(/github\.com[:/]([^/]+)\/(.+)$/);
     if (!match) {
-      throw new Error(`Could not parse GitHub owner/repo from remote URL: ${remoteUrl}`);
+      throw new Error(
+        `Could not parse GitHub owner/repo from remote URL: ${remoteUrl}`
+      );
     }
     const owner = match[1];
     const repo = match[2];
@@ -133,7 +178,7 @@ export async function submitSkill(content: string) {
       repo,
       path: skillPath,
       message: `Add new skill: ${parsedName}`,
-      content: Buffer.from(content).toString('base64'),
+      content: Buffer.from(formattedContent).toString('base64'),
       branch: branchName,
       committer: {
         name: 'Interlink Bot',
@@ -164,16 +209,26 @@ export async function submitSkill(content: string) {
       assignees: [githubUser],
     });
 
-    return { 
-      success: true, 
-      message: 'Draft PR created successfully!', 
-      prUrl: prData.html_url 
+    return {
+      success: true,
+      message: 'Draft PR created successfully!',
+      prUrl: prData.html_url,
     };
-
   } catch (error: unknown) {
     console.error('Submission failed:', error);
-    const err = error as { response?: { data?: { message?: string } }; message?: string };
-    const message = err.response?.data?.message || err.message || 'Submission failed';
+    const err = error as {
+      response?: { data?: { message?: string } };
+      message?: string;
+    };
+    const message =
+      err.response?.data?.message || err.message || 'Submission failed';
     return { success: false, message: `GitHub Error: ${message}` };
+  } finally {
+    // Cleanup temp dir
+    try {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    } catch (e) {
+      console.error('Failed to cleanup temp directory', e);
+    }
   }
 }

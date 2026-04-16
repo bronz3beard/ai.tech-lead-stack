@@ -275,13 +275,17 @@ export async function POST(req: Request) {
     }
 
     // Role-based Project Access Validation
+    const isPrivilegedRole = user.role === 'ADMIN' || user.role === 'DEVELOPER';
+
     const project = await prisma.project.findFirst({
       where: {
         id: projectId,
-        OR: [
-          { ownerId: user.id },
-          { accessGrants: { some: { role: user.role as Role } } },
-        ],
+        ...(isPrivilegedRole ? {} : {
+          OR: [
+            { ownerId: user.id },
+            { accessGrants: { some: { role: user.role as Role } } },
+          ],
+        }),
       },
     });
 

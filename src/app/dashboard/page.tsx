@@ -35,12 +35,16 @@ export default async function DashboardPage({
 
   const traces = await getAnalytics({
     userId: resolvedUserId,
+    userEmail: userEmail,
     timeframe: timeframe,
+    limit: parsedLimit,
   });
+
+  const isPrivilegedRole = user?.role === 'ADMIN' || user?.role === 'DEVELOPER';
 
   // Fetch authorized projects from the database
   const authorizedProjects = await prisma.project.findMany({
-    where: {
+    where: isPrivilegedRole ? {} : {
       OR: [
         { ownerId: resolvedUserId },
         {
