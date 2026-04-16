@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { normalizeProjectName } from './trace-utils';
 
 export interface TraceData {
   id: string;
@@ -50,7 +51,7 @@ export async function getAnalytics(filters: {
   }
 
   if (filters.projectName && filters.projectName !== 'all') {
-    where.projectName = filters.projectName;
+    where.projectName = normalizeProjectName(filters.projectName);
   }
 
   if (filters.timeframe && filters.timeframe !== 'all') {

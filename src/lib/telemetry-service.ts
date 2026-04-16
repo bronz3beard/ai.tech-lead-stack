@@ -3,6 +3,7 @@ import { langfuseLabel } from './langfuse-labels';
 import { prisma } from './prisma';
 import { normalizeProjectName, normalizeSkillName } from './trace-utils';
 
+
 export interface TelemetryMetadata {
   skillName: string;
   projectName: string;
@@ -20,20 +21,28 @@ export class TelemetryService {
   private static instance: TelemetryService;
   private langfuse: Langfuse | null = null;
   private isConfigured = false;
+  private publicKey: string | undefined;
+  private secretKey: string | undefined;
+  private baseUrl: string;
+
 
   private constructor() {
-    const publicKey = process.env.LANGFUSE_PUBLIC_KEY;
-    const secretKey = process.env.LANGFUSE_SECRET_KEY;
-    const baseUrl =
+    this.publicKey = process.env.LANGFUSE_PUBLIC_KEY;
+    this.secretKey = process.env.LANGFUSE_SECRET_KEY;
+    this.baseUrl =
       process.env.LANGFUSE_BASE_URL || 'https://cloud.langfuse.com';
 
     if (
-      publicKey &&
-      secretKey &&
-      publicKey !== 'placeholder' &&
-      secretKey !== 'placeholder'
+      this.publicKey &&
+      this.secretKey &&
+      this.publicKey !== 'placeholder' &&
+      this.secretKey !== 'placeholder'
     ) {
-      this.langfuse = new Langfuse({ publicKey, secretKey, baseUrl });
+      this.langfuse = new Langfuse({ 
+        publicKey: this.publicKey, 
+        secretKey: this.secretKey, 
+        baseUrl: this.baseUrl 
+      });
       this.isConfigured = true;
     }
   }
@@ -47,6 +56,7 @@ export class TelemetryService {
 
   /**
    * Records a skill execution event to both Langfuse and Postgres.
+   * Now attempts to enrich data from Langfuse using the trace status.
    */
   async recordEvent(params: {
     skillName: string;
@@ -61,6 +71,7 @@ export class TelemetryService {
     userEmail?: string;
     metadata?: Record<string, any>;
   }) {
+
     const normalizedSkill = normalizeSkillName(params.skillName);
     const normalizedProject = normalizeProjectName(params.projectName);
     const resolvedModel = langfuseLabel(params.model);
@@ -132,7 +143,7 @@ export class TelemetryService {
       const event = await prisma.analyticsEvent.create({
         data: {
           skillName: normalizedSkill,
-          userId: resolvedUserId, // null is allowed, undefined is not
+          userId: resolvedUserId,
           projectName: normalizedProject,
           model: resolvedModel,
           agent: resolvedAgent,
@@ -149,19 +160,157 @@ export class TelemetryService {
             userEmail: params.userEmail,
             projectName: normalizedProject,
             estimatedCost: totalCost,
-          } as any,
-        } as any, // Cast to any to bypass strict relation typing checks
+          }
+        }
       });
+
       console.log(
         `[Telemetry] Successfully recorded event: ${normalizedSkill} (ID: ${event.id}, Status: ${params.status})`
       );
+
+      // Async enrichment: Fetch actual usage from Langfuse if possible
+      if (langfuseTraceId) {
+        this.enrichEvent(event.id, langfuseTraceId).catch((err) => {
+          console.error('[Telemetry] Enrichment failed:', err);
+        });
+      }
+
+      return event;
     } catch (dbError) {
-      console.error(
-        '[Telemetry] Failed to log to Postgres:',
-        dbError
-      );
+      console.error('[Telemetry] Failed to log to Postgres:', dbError);
+      return null;
+    }
+  }
+
+  /**
+   * Fetches supplemental data from Langfuse API and updates the Postgres record.
+   * Falling back to previous estimation if Langfuse provides empty counts.
+   */
+  private async enrichEvent(eventId: string, traceId: string) {
+    if (!this.isConfigured || !this.publicKey || !this.secretKey) return;
+
+    try {
+      // Small delay to allow Langfuse processing (though most usage is sent in generation)
+      await new Promise((r) => setTimeout(r, 2000));
+
+      const authHeader = `Basic ${Buffer.from(`${this.publicKey}:${this.secretKey}`).toString('base64')}`;
+      const response = await fetch(`${this.baseUrl}/api/public/traces/${traceId}`, {
+        headers: { Authorization: authHeader },
+      });
+
+      if (!response.ok) return;
+
+      const traceDetails = await response.json();
+      
+      // Attempt to extract usage from any of the generations associated with this trace
+      // In a more complex scenario, we'd sum all generations, but for a skill trace, there's usually one primary.
+      const generations = traceDetails.observations?.filter((o: any) => o.type === 'GENERATION') || [];
+      
+      let enrichedPromptTokens = 0;
+      let enrichedCompletionTokens = 0;
+      let enrichedTotalCost = 0;
+
+      for (const gen of generations) {
+        enrichedPromptTokens += gen.usage?.promptTokens || 0;
+        enrichedCompletionTokens += gen.usage?.completionTokens || 0;
+        enrichedTotalCost += gen.usage?.totalCost || 0;
+      }
+
+      if (enrichedPromptTokens > 0 || enrichedCompletionTokens > 0) {
+        await prisma.analyticsEvent.update({
+          where: { id: eventId },
+          data: {
+            promptTokens: enrichedPromptTokens,
+            completionTokens: enrichedCompletionTokens,
+            totalTokens: enrichedPromptTokens + enrichedCompletionTokens,
+            totalCost: enrichedTotalCost > 0 ? enrichedTotalCost : undefined,
+            metadata: {
+              enrichedAt: new Date().toISOString(),
+              langfuseCost: enrichedTotalCost,
+            },
+          },
+        });
+        console.log(`[Telemetry] Enriched event ${eventId} with actual Langfuse data.`);
+      }
+    } catch (err) {
+      console.warn('[Telemetry] Enrichment suppressed:', err);
     }
   }
 }
 
+/**
+ * Higher-order utility to wrap skill execution with standardized telemetry.
+ * Unified version that replaces legacy withAnalytics.
+ */
+export async function withAnalytics<T, U>(
+  skillName: string,
+  context: {
+    userId?: string;
+    model?: string;
+    agent?: string;
+    projectId?: string;
+    projectName?: string;
+    metadata?: Record<string, any>;
+  },
+  skill: (input: T) => Promise<U>
+) {
+  return async (input: T): Promise<U> => {
+    const startTime = Date.now();
+    let status: 'SUCCESS' | 'ERROR' = 'SUCCESS';
+    let errorMessage: string | undefined;
+
+    try {
+      const output = await skill(input);
+      
+      // Fire-and-forget logging
+      const duration = (Date.now() - startTime) / 1000;
+      const outputStr = typeof output === 'string' ? output : JSON.stringify(output);
+      const completionTokens = Math.ceil(outputStr.length / 4);
+      const promptTokens = 500; // Baseline estimation
+
+      telemetryService.recordEvent({
+        skillName,
+        projectName: context.projectName || context.projectId,
+        model: context.model,
+        agent: context.agent,
+        duration,
+        status,
+        userEmail: context.userId,
+        promptTokens,
+        completionTokens,
+        metadata: {
+          ...context.metadata,
+          input: typeof input === 'object' ? input : { value: input },
+          source: 'chat-v2',
+        },
+      }).catch(err => console.error('[Telemetry] withAnalytics log failed:', err));
+
+      return output;
+    } catch (error) {
+      status = 'ERROR';
+      errorMessage = error instanceof Error ? error.message : String(error);
+      
+      const duration = (Date.now() - startTime) / 1000;
+      telemetryService.recordEvent({
+        skillName,
+        projectName: context.projectName || context.projectId,
+        model: context.model,
+        agent: context.agent,
+        duration,
+        status,
+        error: errorMessage,
+        userEmail: context.userId,
+        metadata: {
+          ...context.metadata,
+          input: typeof input === 'object' ? input : { value: input },
+          source: 'chat-v2-error',
+        },
+      }).catch(err => console.error('[Telemetry] withAnalytics error log failed:', err));
+
+      throw error;
+    }
+  };
+}
+
 export const telemetryService = TelemetryService.getInstance();
+

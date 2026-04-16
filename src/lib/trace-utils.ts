@@ -9,7 +9,7 @@
  * @returns The normalized project name (e.g., "tech-lead-stack")
  */
 export function normalizeProjectName(name: string | undefined): string {
-  if (!name || name === 'unknown' || name.trim() === '') return 'unknown';
+  if (!name || name === 'unknown' || name.trim() === '') return 'global';
 
   let normalized = name.toLowerCase().trim();
 
@@ -29,7 +29,8 @@ export function normalizeProjectName(name: string | undefined): string {
     .replace(/^@/, '')
     .replace(/^ai\./, '')
     .replace(/-(mcp|analytics|llms|bridge|code-review)$/, '')
-    .trim();
+    .replace(/[^a-z0-9]+/g, '-') // Convert spaces and special chars to dashes
+    .replace(/^-+|-+$/g, '');   // Trim leading/trailing dashes
 }
 
 /**
