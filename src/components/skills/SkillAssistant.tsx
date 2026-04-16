@@ -186,9 +186,21 @@ export default function SkillAssistant({
   const statusText = payloads
     .filter((p) => typeof p.status === 'string')
     .at(-1)?.status;
+  // Collect all insights from the data stream to show a research timeline.
+  // Filter out irrelevant local filesystem errors that occur in virtual environments.
+  const IRRELEVANT_PATTERNS = [
+    'Encountered access error for',
+    'Cataloged 0 available skills',
+    'File not found (skipped)',
+  ];
+
   const insights = payloads
     .filter((p) => Array.isArray(p.insights))
-    .flatMap((p) => p.insights || []);
+    .flatMap((p) => p.insights || [])
+    .map((insight) => {
+      const isIrrelevant = IRRELEVANT_PATTERNS.some((p) => insight.includes(p));
+      return isIrrelevant ? 'Thinking...' : insight;
+    });
 
   return (
     <div className="flex flex-col h-full bg-zinc-950 border-l border-border shadow-2xl relative overflow-hidden">

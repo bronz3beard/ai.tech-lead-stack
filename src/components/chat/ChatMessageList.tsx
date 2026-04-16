@@ -176,12 +176,23 @@ export default function ChatMessageList({
   // Normalise all items to a flat payload once, then derive derived values
   const payloads = data?.map(getStreamPayload) ?? [];
 
-  // Collect all insights from the data stream to show a research timeline
+  // Collect all insights from the data stream to show a research timeline.
+  // Filter out irrelevant local filesystem errors that occur in virtual environments.
+  const IRRELEVANT_PATTERNS = [
+    'Encountered access error for',
+    'Cataloged 0 available skills',
+    'File not found (skipped)',
+  ];
+
   const allInsights: string[] = payloads
     .filter((p): p is StreamDataPayload & { insights: string[] } =>
       Array.isArray(p.insights)
     )
-    .flatMap((p) => p.insights);
+    .flatMap((p) => p.insights)
+    .map((insight) => {
+      const isIrrelevant = IRRELEVANT_PATTERNS.some((p) => insight.includes(p));
+      return isIrrelevant ? 'Thinking...' : insight;
+    });
 
   // Get the most recent status from the data stream
   const statusText = payloads
