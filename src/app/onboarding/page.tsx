@@ -27,7 +27,7 @@ export default function OnboardingPage() {
             Empower Your Workflow with AI Agents
           </h1>
           <p className="text-xl md:text-2xl text-slate-400 leading-relaxed max-w-2xl mx-auto">
-            Interlink is your gateway to a new era of software engineering. We provide specialized AI "skills" that act as intelligent assistants for every member of your team.
+            Interlink is your gateway to high-performance engineering collaboration. We provide specialized AI "skills" that act as intelligent assistants for every member of your team, enabling seamless access to shared expertise and codebase intelligence.
           </p>
         </div>
       </section>
@@ -42,10 +42,10 @@ export default function OnboardingPage() {
             </h2>
             <div className="prose prose-invert prose-slate max-w-none text-lg text-slate-300 space-y-6">
               <p>
-                Imagine having a team of experts available 24/7 to help you plan features, review code, audit security, and automate tedious tasks. That's Interlink.
+                Imagine having specialized engineering experts available as needed to help you plan features, review code, audit security, and automate tedious tasks. That's Interlink.
               </p>
               <p>
-                We've built a library of <strong>Agent Skills</strong>—high-performance instructions that allow AI models (like Gemini, Claude, or GPT) to understand your project's specific needs and execute complex tasks with professional precision.
+                We've built a library of <strong>Agent Skills</strong>—high-performance instructions that allow AI models (like Gemini, Claude, or GPT) to understand your project's specific needs and execute complex tasks with professional precision. Beyond simple context, you are chatting directly with the application and its underlying engineering ethos, ensuring every interaction is grounded in your project's reality.
               </p>
             </div>
           </div>
@@ -75,10 +75,10 @@ export default function OnboardingPage() {
                 <div className="space-y-4">
                   <h3 className="text-2xl font-bold text-white">1. Agent Chat</h3>
                   <p className="text-slate-300 text-lg leading-relaxed">
-                    The Agent Chat is your command center. Instead of just "chatting" with an AI, you're interacting with an agent equipped with specialized skills. You can ask it to plan a new feature, find a bug, or explain a complex part of your code.
+                    The Agent Chat is your command center. Instead of just "chatting" with an AI, you're interacting with an agent equipped with specialized skills and direct access to your application. Plan features, find bugs, or explain complex logic with an assistant that truly knows your code.
                   </p>
                   <ul className="space-y-2">
-                    {['Directly communicate with AI agents', 'Invoke specific skills for targeted tasks', 'Get real-time feedback on your implementation'].map((item, i) => (
+                    {['Directly communicate with AI agents and the application itself', 'Invoke specific skills for targeted tasks', 'Bridge the gap between planning and execution'].map((item, i) => (
                       <li key={i} className="flex items-center gap-3 text-slate-400">
                         <CheckCircle2 className="w-5 h-5 text-blue-500/60" />
                         {item}
@@ -100,10 +100,10 @@ export default function OnboardingPage() {
                 <div className="space-y-4">
                   <h3 className="text-2xl font-bold text-white">2. Forging Skills</h3>
                   <p className="text-slate-300 text-lg leading-relaxed">
-                    Need a custom workflow? "Forge Skill" allows you to define new capabilities for your agents. You can create specialized instructions that encode your team's best practices, ensuring every AI-assisted task follows your unique standards.
+                    Need a custom workflow? "Forge Skill" allows you to define new capabilities for your agents. Create specialized instructions that encode your team's best practices, ensuring every AI-assisted task follows your unique standards and the proven methodologies of our stack.
                   </p>
                   <ul className="space-y-2">
-                    {['Create custom AI workflows', 'Standardize team best practices', 'Build a library of reusable agent behaviors'].map((item, i) => (
+                    {['Create custom AI skills (not just workflows)', 'Ensure alignment with G-Stack and MinimumCD methodologies', 'Standardize team best practices across the codebase'].map((item, i) => (
                       <li key={i} className="flex items-center gap-3 text-slate-400">
                         <CheckCircle2 className="w-5 h-5 text-indigo-500/60" />
                         {item}
@@ -120,16 +120,31 @@ export default function OnboardingPage() {
         <section className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-10 md:p-16 space-y-8 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/5 blur-[100px] -z-10" />
           <div className="space-y-4">
-            <h2 className="text-3xl font-bold text-white">The G-Stack Methodology</h2>
-            <p className="text-xl text-indigo-400 font-medium italic">"Diagnosis before Advice"</p>
+            <h2 className="text-3xl font-bold text-white flex flex-wrap items-center gap-x-4 gap-y-2">
+              Proven Engineering Methodologies
+              <span className="text-blue-500 font-medium">G-Stack</span>
+              <span className="text-slate-600 font-light">&</span>
+              <span className="text-emerald-500 font-medium">MinimumCD</span>
+            </h2>
+            <p className="text-xl text-indigo-400 font-medium italic">"Diagnosis before Advice & Small Batch Engineering"</p>
           </div>
           <div className="prose prose-invert prose-slate max-w-none text-lg text-slate-300 space-y-6">
             <p>
-              Our agents don't just guess. They follow the <strong>G-Stack Methodology</strong>. Before an agent recommends a change, it performs a <em>Phase 0: Tech-Stack Discovery</em>.
+              Our agents don't just guess. They follow the <strong>G-Stack Methodology</strong>. Before an agent recommends a change, it performs a <em>Phase 0: Tech-Stack Discovery</em>. This ensures the agent understands your project—identifying whether you're using React, Python, or Go—before it ever suggests a line of code.
             </p>
             <p>
-              This means the agent automatically inspects your project—identifying whether you're using React, Python, or Go—before it ever suggests a line of code. This ensures the advice you get is always relevant, safe, and professional.
+              Furthermore, we adhere strictly to <strong>MinimumCD</strong> principles, prioritizing small, atomic batches of work, continuous automated verification, and early detection of regression risks. This reduces complex delivery problems and ensures a stable codebase.
             </p>
+            <div className="flex flex-wrap gap-4 pt-2">
+              <a href="https://github.com/garrytan/gstack" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 text-sm transition-colors text-blue-400 font-medium">
+                Explore G-Stack
+                <ArrowRight className="w-4 h-4" />
+              </a>
+              <a href="https://minimumcd.org/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 text-sm transition-colors text-emerald-400 font-medium">
+                Learn MinimumCD
+                <ArrowRight className="w-4 h-4" />
+              </a>
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
             <div className="bg-slate-950/50 p-6 rounded-xl border border-slate-800">
@@ -142,9 +157,9 @@ export default function OnboardingPage() {
             <div className="bg-slate-950/50 p-6 rounded-xl border border-slate-800">
               <h4 className="font-bold text-white mb-2 flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                User Sovereignty
+                MinimumCD Compliant
               </h4>
-              <p className="text-slate-400 text-sm">The AI recommends, but you decide. You always remain the final decision-maker.</p>
+              <p className="text-slate-400 text-sm">Every change follows a rebase-first, squash-and-merge workflow for clean history.</p>
             </div>
           </div>
         </section>

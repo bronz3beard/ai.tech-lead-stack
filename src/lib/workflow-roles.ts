@@ -59,6 +59,7 @@ export interface WorkflowInfo {
 }
 
 export function canAccessWorkflow(role: string, workflowName: string): boolean {
+  if (role === "DEVELOPER" || role === "ADMIN") return true;
   if (workflowName === "ask") return true;
 
   const allowedRoles = WORKFLOW_ROLES[workflowName];
@@ -73,8 +74,10 @@ export function canAccessWorkflow(role: string, workflowName: string): boolean {
 
 export function getWorkflowsForRole(role: string): WorkflowInfo[] {
   const available: WorkflowInfo[] = [];
+  const isAllAccess = role === "DEVELOPER" || role === "ADMIN";
+
   for (const [workflow, roles] of Object.entries(WORKFLOW_ROLES)) {
-    if (roles.includes(role) || workflow === "ask") {
+    if (isAllAccess || roles.includes(role) || workflow === "ask") {
        available.push({
            name: workflow,
            description: WORKFLOW_DESCRIPTIONS[workflow] || "Execute workflow"
