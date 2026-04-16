@@ -34,19 +34,19 @@ if [ -z "$TITLE" ] || [ -z "$BODY" ]; then
     exit 1
 fi
 
-echo "🚀 Creating draft PR: $TITLE"
+echo "🚀 Creating draft PR: $TITLE" >&2
 
 # Build the base command
 CMD=(gh pr create --title "$TITLE" --body "$BODY" --draft --base "$BASE")
 
 # Append optional flags if provided
 if [ -n "$ASSIGNEE" ]; then
-    echo "👤 Assigning to: $ASSIGNEE"
+    echo "👤 Assigning to: $ASSIGNEE" >&2
     CMD+=("--assignee" "$ASSIGNEE")
 fi
 
 if [ -n "$LABELS" ]; then
-    echo "🏷️ Applying labels: $LABELS"
+    echo "🏷️ Applying labels: $LABELS" >&2
     CMD+=("--label" "$LABELS")
 fi
 

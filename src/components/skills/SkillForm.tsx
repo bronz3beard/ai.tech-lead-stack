@@ -26,6 +26,10 @@ export default function SkillForm({ initialTemplate }: SkillFormProps) {
     type: 'success' | 'error';
     message: string;
   } | null>(null);
+  const [submissionStatus, setSubmissionStatus] = useState<
+    'idle' | 'validating' | 'submitting' | 'success' | 'error'
+  >('idle');
+  const [prUrl, setPrUrl] = useState<string | null>(null);
 
   const validateFrontmatter = useCallback((mdContent: string) => {
     try {
@@ -59,11 +63,17 @@ export default function SkillForm({ initialTemplate }: SkillFormProps) {
   const handleChange = (value: string) => {
     setContent(value);
     setServerFeedback(null);
+    if (submissionStatus === 'success' || submissionStatus === 'error') {
+      setSubmissionStatus('idle');
+    }
   };
 
   const handleUpdateContent = (newContent: string) => {
     setContent(newContent);
     setServerFeedback(null);
+    if (submissionStatus === 'success' || submissionStatus === 'error') {
+      setSubmissionStatus('idle');
+    }
   };
 
   const handleServerValidate = async () => {
@@ -89,16 +99,39 @@ export default function SkillForm({ initialTemplate }: SkillFormProps) {
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
+    setSubmissionStatus('submitting');
     setServerFeedback(null);
+    setPrUrl(null);
+    
     try {
+      // Step 1: Server Validation
+      setServerFeedback({ type: 'success', message: 'Validating skill on server...' });
+      const valRes = await validateSkill(content);
+      if (!valRes.success) {
+        setSubmissionStatus('error');
+        setServerFeedback({ type: 'error', message: valRes.message });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Step 2: GitHub Submission
+      setServerFeedback({ type: 'success', message: 'Connecting to GitHub and creating Draft PR...' });
       const res = await submitSkill(content);
+      
       if (res.success) {
-        setServerFeedback({ type: 'success', message: res.message });
+        setSubmissionStatus('success');
+        setPrUrl(res.prUrl || null);
+        setServerFeedback({ 
+          type: 'success', 
+          message: res.message || 'Draft PR created successfully!' 
+        });
       } else {
+        setSubmissionStatus('error');
         setServerFeedback({ type: 'error', message: res.message });
       }
     } catch (e: unknown) {
       const err = e as Error;
+      setSubmissionStatus('error');
       setServerFeedback({
         type: 'error',
         message: err.message || 'Submission failed',
@@ -181,11 +214,48 @@ export default function SkillForm({ initialTemplate }: SkillFormProps) {
 
         {serverFeedback && (
           <div
-            className={`p-4 rounded-lg shrink-0 ${serverFeedback.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}
+            className={`p-4 rounded-lg shrink-0 ${
+              serverFeedback.type === 'success'
+                ? 'bg-green-50 text-green-700 border border-green-100'
+                : 'bg-red-50 text-red-700 border border-red-100'
+            }`}
           >
-            <pre className="whitespace-pre-wrap font-sans text-sm">
-              {serverFeedback.message}
-            </pre>
+            <div className="flex flex-col space-y-2">
+              <div className="flex items-center gap-2">
+                {isSubmitting && (
+                  <svg className="animate-spin h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                )}
+                <span className="text-sm font-medium">{serverFeedback.message}</span>
+              </div>
+              
+              {prUrl && (
+                <a
+                  href={prUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center text-sm font-semibold text-blue-600 hover:text-blue-800 w-fit"
+                >
+                  View Pull Request on GitHub
+                  <svg
+                    className="ml-1 w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                    ></path>
+                  </svg>
+                </a>
+              )}
+            </div>
           </div>
         )}
 
@@ -193,16 +263,26 @@ export default function SkillForm({ initialTemplate }: SkillFormProps) {
           <button
             onClick={handleServerValidate}
             disabled={!isValid || isValidating || isSubmitting}
-            className="px-4 py-2 border border-border rounded-md shadow-sm text-sm font-medium text-foreground bg-card hover:bg-accent focus:outline-none disabled:opacity-50"
+            className="px-4 py-2 border border-border rounded-md shadow-sm text-sm font-medium text-foreground bg-card hover:bg-accent focus:outline-none disabled:opacity-50 transition-colors"
           >
             {isValidating ? 'Validating...' : 'Validate on Server'}
           </button>
           <button
             onClick={handleSubmit}
             disabled={!isValid || isSubmitting || isValidating}
-            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none disabled:opacity-50"
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none disabled:opacity-50 transition-all flex items-center gap-2"
           >
-            {isSubmitting ? 'Submitting...' : 'Submit Draft PR'}
+            {isSubmitting ? (
+              <>
+                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Processing...
+              </>
+            ) : (
+              'Submit Draft PR'
+            )}
           </button>
         </div>
       </div>
