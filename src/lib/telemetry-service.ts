@@ -125,21 +125,31 @@ export class TelemetryService {
 
     // 2. Log to Postgres
     try {
+      console.log(`[Telemetry] Starting Postgres recording for skill: ${normalizedSkill}`);
+      
       let resolvedUserId: string | null = null;
       if (
         params.userEmail &&
         params.userEmail !== 'anonymous' &&
         params.userEmail !== 'unknown'
       ) {
-        const user = await prisma.user.findUnique({
-          where: { email: params.userEmail },
-          select: { id: true },
-        });
-        if (user) {
-          resolvedUserId = user.id;
+        try {
+          const user = await prisma.user.findUnique({
+            where: { email: params.userEmail },
+            select: { id: true },
+          });
+          if (user) {
+            resolvedUserId = user.id;
+            console.log(`[Telemetry] Resolved userId ${resolvedUserId} for email ${params.userEmail}`);
+          } else {
+            console.warn(`[Telemetry] No user found for email ${params.userEmail}`);
+          }
+        } catch (authError) {
+          console.error('[Telemetry] User lookup failed, continuing anonymously:', authError);
         }
       }
 
+      console.log(`[Telemetry] Creating AnalyticsEvent in DB...`);
       const event = await prisma.analyticsEvent.create({
         data: {
           skillName: normalizedSkill,
@@ -165,19 +175,24 @@ export class TelemetryService {
       });
 
       console.log(
-        `[Telemetry] Successfully recorded event: ${normalizedSkill} (ID: ${event.id}, Status: ${params.status})`
+        `[Telemetry] Successfully recorded event to DB: ${normalizedSkill} (ID: ${event.id}, Status: ${params.status})`
       );
 
       // Async enrichment: Fetch actual usage from Langfuse if possible
       if (langfuseTraceId) {
+        console.log(`[Telemetry] Triggering async enrichment for trace ${langfuseTraceId}...`);
         this.enrichEvent(event.id, langfuseTraceId).catch((err) => {
           console.error('[Telemetry] Enrichment failed:', err);
         });
       }
 
       return event;
-    } catch (dbError) {
-      console.error('[Telemetry] Failed to log to Postgres:', dbError);
+    } catch (dbError: any) {
+      console.error('[Telemetry] CRITICAL: Failed to log to Postgres:', dbError);
+      // Log more details if it's a Prisma error
+      if (dbError.code) {
+        console.error(`[Telemetry] Prisma Error Code: ${dbError.code}`);
+      }
       return null;
     }
   }

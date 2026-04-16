@@ -8,8 +8,10 @@
  * @param name - The raw project name (e.g., "@bronz3beard/tech-lead-stack")
  * @returns The normalized project name (e.g., "tech-lead-stack")
  */
-export function normalizeProjectName(name: string | undefined): string {
-  if (!name || name === 'unknown' || name.trim() === '') return 'global';
+export function normalizeProjectName(name: string | undefined | null): string {
+  if (!name || typeof name !== 'string' || name.toLowerCase().trim() === 'unknown' || name.trim() === '') {
+    return 'global';
+  }
 
   let normalized = name.toLowerCase().trim();
 
@@ -39,8 +41,8 @@ export function normalizeProjectName(name: string | undefined): string {
  * @param name - The raw skill name (e.g., "Planning Expert", "planningExpert")
  * @returns The normalized skill name (e.g., "planning-expert")
  */
-export function normalizeSkillName(name: string | undefined): string {
-  if (!name || name.trim() === '') return 'unknown';
+export function normalizeSkillName(name: string | undefined | null): string {
+  if (!name || typeof name !== 'string' || name.trim() === '') return 'unknown';
 
   return name
     .toLowerCase()

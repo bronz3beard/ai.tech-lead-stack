@@ -55,8 +55,8 @@ describe('TelemetryService', () => {
     expect(prisma.analyticsEvent.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          skillName: 'test-skill', // normalized
-          projectName: 'test-project', // normalized
+          skillName: 'test-skill', 
+          projectName: 'test-project', 
           status: 'SUCCESS',
         }),
       })

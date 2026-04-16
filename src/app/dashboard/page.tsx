@@ -1,5 +1,5 @@
 import { DashboardContent } from '@/components/dashboard/DashboardContent';
-import { getAnalytics } from '@/lib/analytics-service';
+import { getAnalytics, syncTracesFromLangfuse } from '@/lib/analytics-service';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
@@ -39,6 +39,11 @@ export default async function DashboardPage({
 
   const timeframe: string | undefined =
     limit && !['10', '20', '50', '100'].includes(limit) ? limit : undefined;
+
+  // Sync recent traces from Langfuse to ensure dashboard is up to date
+  // We do this server-side to resolve the "empty dashboard" issue
+  console.log('[Dashboard] Initializing data sync...');
+  await syncTracesFromLangfuse(20);
 
   const traces = await getAnalytics({
     userId: filterByUser ? resolvedUserId : undefined,
