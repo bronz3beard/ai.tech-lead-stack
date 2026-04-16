@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    name: Build, Lint and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Prisma
+        run: pnpm prisma generate
+
+      - name: Check Formatting
+        run: pnpm run format:check
+
+      - name: Lint (Skills)
+        run: pnpm run lint
+
+      - name: Lint (Next.js)
+        run: pnpm run lint:next
+
+      - name: Run Tests
+        run: pnpm test
+
+      - name: Validate AI Skills
+        run: pnpm run validate:skills
+
+      - name: Verify Script Permissions
+        run: pnpm run validate:scripts
+
+      - name: Build Project
+        run: pnpm run build

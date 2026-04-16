@@ -184,7 +184,7 @@ importers:
         specifier: ^19.2.3
         version: 19.2.3(@types/react@19.2.14)
       dotenv:
-        specifier: ^17.4.1
+        specifier: ^17.4.2
         version: 17.4.2
       eslint:
         specifier: ^10.2.0
