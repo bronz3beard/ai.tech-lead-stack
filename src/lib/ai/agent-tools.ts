@@ -218,14 +218,16 @@ export function createAgentTools(currentContent: string) {
 
     update_skill_template: tool({
       description:
-        'Proposes an update to the current skill content in the editor. Use this when the user asks for changes, or when correcting errors found by other tools.',
+        'Proposes a full refinement of the SPECIFIC skill currently under analysis. Use this to inject Phase 0, Phase 1, and Verification Gates into the existing logic. NEVER use "new-skill" or generic placeholders if the current draft already has content.',
       parameters: z.object({
         newContent: z
           .string()
-          .describe('The full updated markdown content for the skill.'),
+          .describe(
+            'The complete updated markdown content for the skill, preserving original logic while adding G-Stack/MinimumCD depth.'
+          ),
         explanation: z
           .string()
-          .describe('Short explanation of the changes made.'),
+          .describe('Short explanation of the architectural refinements made.'),
       }),
       execute: async (args: any) => {
         const { newContent, explanation } = args;

@@ -10,6 +10,8 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Copy,
+  Check,
   Layers,
   Loader2,
   Send,
@@ -159,12 +161,19 @@ export default function SkillAssistant({
 
   const handleAutoAnalyze = () => {
     if (isLoading) return;
+
+    // Extract metadata from frontmatter for a more relevant prompt
+    const nameMatch = currentContent.match(/^name:\s*(.+)$/m);
+    const descMatch = currentContent.match(/^description:\s*(.+)$/m);
+    const skillName = nameMatch ? nameMatch[1].trim() : 'this skill';
+    const skillDesc = descMatch ? descMatch[1].trim() : 'its core logic';
+
     setStreamData([]);
     sendMessage({
       parts: [
         {
           type: 'text',
-          text: 'Analyze my current skill draft and suggest improvements based on G-Stack and MinimumCD ethos.',
+          text: `I am working on the "${skillName}" skill. Conduct a deep architectural review of its ${skillDesc} logic and propose an augmented version that adds Phase 0 (Diagnosis) and Verification Gates while preserving its core functionality. It MUST follow the ethos and methodologies of G-Stack, MinimumCD, and existing high-integrity skills.`,
         },
       ],
     });
@@ -293,7 +302,19 @@ export default function SkillAssistant({
                       {/* Internal Reasoning */}
                       {hasReasoning && (
                         <div className="text-xs italic text-zinc-400 border-l-2 border-indigo-500/30 pl-3 py-1 bg-indigo-500/5 rounded-r-md">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              code: (props) => (
+                                <CodeBlock
+                                  {...props}
+                                  onApply={(c) =>
+                                    handleApplyFix(c, 'Updated skill template.')
+                                  }
+                                />
+                              ),
+                            }}
+                          >
                             {reasoningContent}
                           </ReactMarkdown>
                         </div>
@@ -354,7 +375,19 @@ export default function SkillAssistant({
                       {/* Main Text Response */}
                       {hasText && (
                         <div className="prose prose-sm prose-invert max-w-none text-zinc-200 leading-relaxed text-[13.5px]">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              code: (props) => (
+                                <CodeBlock
+                                  {...props}
+                                  onApply={(c) =>
+                                    handleApplyFix(c, 'Updated skill template.')
+                                  }
+                                />
+                              ),
+                            }}
+                          >
                             {textContent}
                           </ReactMarkdown>
                         </div>
@@ -618,6 +651,110 @@ function ToolResultBlock({
             )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// CodeBlock Component
+// ---------------------------------------------------------------------------
+
+function CodeBlock({
+  inline,
+  className,
+  children,
+  onApply,
+  ...props
+}: {
+  inline?: boolean;
+  className?: string;
+  children?: React.ReactNode;
+  onApply: (content: string) => void;
+  [key: string]: any;
+}) {
+  const [isCopied, setIsCopied] = useState(false);
+  const content = String(children || '').replace(/\n$/, '');
+  const { node, ...rest } = props;
+  const match = /language-(\w+)/.exec(className || '');
+  const language = match ? match[1] : '';
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(content);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
+  };
+
+  if (inline) {
+    return (
+      <code
+        className={cn(
+          'px-1.5 py-0.5 rounded-md bg-zinc-800 text-indigo-300 font-mono text-[12px]',
+          className
+        )}
+        {...rest}
+      >
+        {children}
+      </code>
+    );
+  }
+
+  // Heuristic for skill draft: markdown language + frontmatter markers
+  const isSkillDraft =
+    language === 'markdown' &&
+    content.includes('---') &&
+    content.includes('name:');
+
+  return (
+    <div className="relative group/code my-6 rounded-2xl overflow-hidden border border-zinc-800 bg-[#09090b]/50 backdrop-blur-xl shadow-2xl animate-in fade-in zoom-in-95 duration-500">
+      {/* Code Header */}
+      <div className="flex items-center justify-between px-4 py-2 bg-zinc-900/30 border-b border-zinc-800/50">
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-zinc-800" />
+            <div className="w-2.5 h-2.5 rounded-full bg-zinc-800" />
+            <div className="w-2.5 h-2.5 rounded-full bg-zinc-800" />
+          </div>
+          <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-[0.2em] ml-2">
+            {language || 'code'}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          {isSkillDraft && (
+            <button
+              onClick={() => onApply(content)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-[10px] font-bold transition-all border border-indigo-500/20 active:scale-95 group/btn"
+            >
+              <Zap className="w-3 h-3 fill-current group-hover/btn:animate-pulse" />
+              APPLY TO DRAFT
+            </button>
+          )}
+          <button
+            onClick={handleCopy}
+            className="p-1.5 px-3 rounded-xl hover:bg-zinc-800 text-zinc-400 hover:text-white transition-all flex items-center gap-2 text-[10px] font-bold active:scale-95"
+          >
+            {isCopied ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-500" />
+                <span className="text-emerald-500">COPIED</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5" />
+                <span>COPY</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Code Content */}
+      <pre className="p-5 text-[12.5px] font-mono leading-relaxed overflow-x-auto scrollbar-hide text-zinc-300">
+        <code className={cn('block', className)}>{children}</code>
+      </pre>
+
+      {/* Decorative Matrix Lines */}
+      <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 blur-[40px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-500/5 blur-[40px] rounded-full pointer-events-none" />
     </div>
   );
 }
