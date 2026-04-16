@@ -15,6 +15,7 @@ import {
 } from 'ai';
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
+import { Telemetry } from '@/mcp-server/telemetry';
 import {
   CHAT_GUARD_INSTRUCTION,
   MAX_ANALYTICAL_STEPS,
@@ -274,13 +275,17 @@ export async function POST(req: Request) {
     }
 
     // Role-based Project Access Validation
+    const isPrivilegedRole = user.role === 'ADMIN' || user.role === 'DEVELOPER';
+
     const project = await prisma.project.findFirst({
       where: {
         id: projectId,
-        OR: [
-          { ownerId: user.id },
-          { accessGrants: { some: { role: user.role as Role } } },
-        ],
+        ...(isPrivilegedRole ? {} : {
+          OR: [
+            { ownerId: user.id },
+            { accessGrants: { some: { role: user.role as Role } } },
+          ],
+        }),
       },
     });
 
@@ -317,6 +322,8 @@ export async function POST(req: Request) {
       existingChatSummary = existingChat?.summary ?? null;
       existingMessageCount = existingChat?._count.messages ?? 0;
     }
+
+    const telemetry = new Telemetry();
 
     // Provider Initialization: Resolve GitHub token if needed
     let provider = skillsService as unknown as CodeProvider;
@@ -395,7 +402,19 @@ export async function POST(req: Request) {
               return;
             }
 
-            const workflowContent = await readWorkflow(workflowName);
+            const workflowContent = await telemetry.withAnalytics(
+              workflowName,
+              project.name,
+              MODELS.GEMINI,
+              'pm-assistant',
+              '~1000 tokens',
+              async () => {
+                 const content = await readWorkflow(workflowName);
+                 return content;
+              },
+              { userEmail: user.email ?? undefined, userRole: user.role }
+            );
+
             if (workflowContent) {
               finalSystemInstruction = `${SYSTEM_INSTRUCTION_WORKFLOW_PREFIX}\n\n${workflowContent}\n\nIMPORTANT: Execute the workflow via tool calls. ONCE ALL TOOLS FINISH, YOU MUST PROVIDE AN EXHAUSTIVE FINAL REPORT summarizing all findings and recommendations. DO NOT exit without a text-based finale report.\n\n${finalSystemInstruction}`;
             }

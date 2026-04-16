@@ -22,8 +22,10 @@ export async function GET() {
     return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
   }
 
+  const isPrivilegedRole = session.user.role === 'ADMIN' || session.user.role === 'DEVELOPER';
+
   const projects = await prisma.project.findMany({
-    where: { ownerId: session.user.id },
+    where: isPrivilegedRole ? {} : { ownerId: session.user.id },
     select: {
       id: true,
       name: true,
@@ -34,7 +36,7 @@ export async function GET() {
         },
       },
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { name: 'asc' },
   });
 
   const formattedProjects = projects.map(p => ({

@@ -24,7 +24,7 @@ export const config = {
   matcher: [
     '/chat/:path*',
     '/dashboard/:path*',
-    '/skills/:path*',
+    '/skills/new/:path*',
     '/settings/:path*',
   ],
 };

@@ -25,13 +25,15 @@ async function getGlobalMetrics(projectId?: string, session?: any) {
     });
 
     // 2. Fetch projects from database to ensure all authorized projects are shown
+    const isPrivilegedRole = session?.user?.role === 'ADMIN' || session?.user?.role === 'DEVELOPER';
+
     const dbProjects = await prisma.project.findMany({
-      where: session?.user?.id ? {
+      where: session?.user?.id ? (isPrivilegedRole ? {} : {
         OR: [
           { ownerId: session.user.id },
           { accessGrants: { some: { role: session.user.role as any } } }
         ]
-      } : {},
+      }) : {},
       select: { name: true },
       orderBy: { name: 'asc' }
     });

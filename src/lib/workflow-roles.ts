@@ -14,6 +14,19 @@ export const WORKFLOW_ROLES: Record<string, string[]> = {
 
   // Developer Only
   "clean-code-audit": ["DEVELOPER"],
+
+  // PM Only
+  "pm-story-augmenter": ["PM"],
+  "pm-effort-estimator": ["PM"],
+  "pm-context-summarizer": ["PM"],
+  "pm-risk-detector": ["PM"],
+  "pm-action-item-mapper": ["PM"],
+  "pm-task-specifier": ["PM"],
+  "pm-backlog-auditor": ["PM"],
+  "pm-progress-translator": ["PM"],
+  "pm-newsletter-generator": ["PM"],
+  "pm-design-system-auditor": ["PM"],
+  "pm-release-note-drafter": ["PM"],
 };
 
 export const WORKFLOW_DESCRIPTIONS: Record<string, string> = {
@@ -27,6 +40,17 @@ export const WORKFLOW_DESCRIPTIONS: Record<string, string> = {
   "standup-daily-summary": "Analyze git activity for daily reports",
   "strategy-target-evalutaion": "High-density product strategy and roadmap audit",
   "style-logic-exporter": "Extract design tokens and styles for Figma/Code alignment",
+  "pm-story-augmenter": "Enhance user stories with technical depth and edge-case detection",
+  "pm-effort-estimator": "Estimate development effort based on codebase history and complexity",
+  "pm-context-summarizer": "Summarize recent technical progress and blockers for non-technical briefings",
+  "pm-risk-detector": "Identify technical risks and bottlenecks that could impact upcoming deadlines",
+  "pm-action-item-mapper": "Translate meeting notes into actionable technical tasks linked to code",
+  "pm-task-specifier": "Draft high-fidelity technical specifications for new features",
+  "pm-backlog-auditor": "Validate project backlog for logical consistency and feasibility",
+  "pm-progress-translator": "Translate complex technical achievements into clear client updates",
+  "pm-newsletter-generator": "Generate product-focused updates and highlights from recent code changes",
+  "pm-design-system-auditor": "Check code implementation against design system standards and consistency",
+  "pm-release-note-drafter": "Automatically draft user-centric release notes from merged features",
 };
 
 export interface WorkflowInfo {
