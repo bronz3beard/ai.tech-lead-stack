@@ -86,11 +86,13 @@ interface StreamDataPayload {
 interface SkillAssistantProps {
   currentContent: string;
   onUpdateContent: (content: string) => void;
+  projectName?: string;
 }
 
 export default function SkillAssistant({
   currentContent,
   onUpdateContent,
+  projectName,
 }: SkillAssistantProps) {
   const [input, setInput] = useState('');
   const [streamData, setStreamData] = useState<any[]>([]);
@@ -102,9 +104,10 @@ export default function SkillAssistant({
         api: '/api/skills/chat',
         body: {
           currentContent,
+          projectName,
         },
       }),
-    [currentContent]
+    [currentContent, projectName]
   );
 
   const { messages, status, sendMessage, error, setMessages } = useChat({

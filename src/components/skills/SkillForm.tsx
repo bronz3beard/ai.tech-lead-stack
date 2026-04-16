@@ -14,9 +14,10 @@ const SimpleMdeReact = dynamic(() => import('react-simplemde-editor'), {
 
 interface SkillFormProps {
   initialTemplate: string;
+  projectName?: string;
 }
 
-export default function SkillForm({ initialTemplate }: SkillFormProps) {
+export default function SkillForm({ initialTemplate, projectName }: SkillFormProps) {
   const [content, setContent] = useState(initialTemplate);
   const [isValid, setIsValid] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -291,6 +292,7 @@ export default function SkillForm({ initialTemplate }: SkillFormProps) {
         <SkillAssistant
           currentContent={content}
           onUpdateContent={handleUpdateContent}
+          projectName={projectName}
         />
       </div>
 
@@ -298,6 +300,7 @@ export default function SkillForm({ initialTemplate }: SkillFormProps) {
         <SkillAssistant
           currentContent={content}
           onUpdateContent={handleUpdateContent}
+          projectName={projectName}
         />
       </div>
     </div>

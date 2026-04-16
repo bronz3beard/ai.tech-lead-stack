@@ -88,7 +88,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { messages, currentContent } = await req.json();
+    const { messages, currentContent, projectName } = await req.json();
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
@@ -165,7 +165,7 @@ export async function POST(req: Request) {
                     
                     await telemetryService.recordEvent({
                       skillName: call.toolName,
-                      projectName: 'Skill Assistant',
+                      projectName: projectName ?? 'Skill Assistant',
                       model: aiProvider.modelId,
                       agent: 'Skill Assistant',
                       duration,

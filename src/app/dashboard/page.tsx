@@ -1,11 +1,9 @@
-import {
-  DashboardContent,
-} from '@/components/dashboard/DashboardContent';
-import { authOptions } from '@/lib/auth';
+import { DashboardContent } from '@/components/dashboard/DashboardContent';
 import { getAnalytics } from '@/lib/analytics-service';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
-import { prisma } from '@/lib/prisma';
 
 export interface DashboardSearchParams {
   limit?: string;
@@ -46,6 +44,7 @@ export default async function DashboardPage({
     userId: filterByUser ? resolvedUserId : undefined,
     userEmail: filterByUser ? userEmail : undefined,
     timeframe: timeframe,
+    projectName: project,
     limit: parsedLimit,
   });
 
@@ -64,7 +63,7 @@ export default async function DashboardPage({
     <DashboardContent
       traces={traces}
       projects={projects}
-      titlePrefix={filterByUser ? "My Authenticated" : "Global Telemetry"}
+      titlePrefix={filterByUser ? 'My Authenticated' : 'Global Telemetry'}
     />
   );
 }
