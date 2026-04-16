@@ -12,6 +12,7 @@ import {
   Settings,
   X,
   BookOpen,
+  Sparkles,
 } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import Image from 'next/image';
@@ -22,6 +23,7 @@ import { useState } from 'react';
 const navigation = [
   { name: 'Global Dashboard', href: '/', icon: Globe },
   { name: 'Interlink Skills', href: '/skills/roles', icon: BookOpen },
+  { name: 'How it Works', href: '/onboarding', icon: Sparkles },
   {
     name: 'User Dashboard',
     href: '/dashboard',
