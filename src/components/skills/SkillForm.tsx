@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import dynamic from 'next/dynamic';
+import { submitSkill, validateSkill } from '@/app/api/skills/actions';
+import EasyMDE from 'easymde';
 import 'easymde/dist/easymde.min.css';
 import matter from 'gray-matter';
-import EasyMDE from 'easymde';
-import { submitSkill, validateSkill } from '@/app/api/skills/actions';
+import dynamic from 'next/dynamic';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import SkillAssistant from './SkillAssistant';
 
 const SimpleMdeReact = dynamic(() => import('react-simplemde-editor'), {
@@ -22,7 +22,10 @@ export default function SkillForm({ initialTemplate }: SkillFormProps) {
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
-  const [serverFeedback, setServerFeedback] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  const [serverFeedback, setServerFeedback] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
 
   const validateFrontmatter = useCallback((mdContent: string) => {
     try {
@@ -31,7 +34,8 @@ export default function SkillForm({ initialTemplate }: SkillFormProps) {
       const data = parsed.data;
 
       if (!data.name) errors.push("Missing 'name' in frontmatter");
-      if (!data.description) errors.push("Missing 'description' in frontmatter");
+      if (!data.description)
+        errors.push("Missing 'description' in frontmatter");
       if (!data.cost) errors.push("Missing 'cost' in frontmatter");
 
       if (errors.length > 0) {
@@ -60,7 +64,7 @@ export default function SkillForm({ initialTemplate }: SkillFormProps) {
   const handleUpdateContent = (newContent: string) => {
     setContent(newContent);
     setServerFeedback(null);
-  }
+  };
 
   const handleServerValidate = async () => {
     setIsValidating(true);
@@ -74,7 +78,10 @@ export default function SkillForm({ initialTemplate }: SkillFormProps) {
       }
     } catch (e: unknown) {
       const err = e as Error;
-      setServerFeedback({ type: 'error', message: err.message || 'Validation failed' });
+      setServerFeedback({
+        type: 'error',
+        message: err.message || 'Validation failed',
+      });
     } finally {
       setIsValidating(false);
     }
@@ -92,7 +99,10 @@ export default function SkillForm({ initialTemplate }: SkillFormProps) {
       }
     } catch (e: unknown) {
       const err = e as Error;
-      setServerFeedback({ type: 'error', message: err.message || 'Submission failed' });
+      setServerFeedback({
+        type: 'error',
+        message: err.message || 'Submission failed',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -107,19 +117,47 @@ export default function SkillForm({ initialTemplate }: SkillFormProps) {
   }, []);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-12rem)] min-h-[600px]">
-      <div className="lg:col-span-2 flex flex-col space-y-4 overflow-y-auto">
+    <div className="flex md:flex-nowrap flex-wrap gap-6 h-[calc(100vh-12rem)] min-h-[600px] w-full">
+      <div className="flex flex-col space-y-4 overflow-y-auto ">
         <div className="bg-card border border-border p-4 rounded-lg shadow-sm shrink-0">
-          <h2 className="text-xl font-semibold mb-4 text-foreground">Frontmatter Status</h2>
+          <h2 className="text-xl font-semibold mb-4 text-foreground">
+            Frontmatter Status
+          </h2>
           {isValid ? (
             <div className="flex items-center text-green-600 font-medium">
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+              <svg
+                className="w-5 h-5 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M5 13l4 4L19 7"
+                ></path>
+              </svg>
               ✅ Frontmatter valid
             </div>
           ) : (
             <div className="text-red-500">
               <div className="flex items-center font-medium mb-2">
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <svg
+                  className="w-5 h-5 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  ></path>
+                </svg>
                 ❌ Invalid Frontmatter
               </div>
               <ul className="list-disc list-inside text-sm pl-2">
@@ -131,7 +169,7 @@ export default function SkillForm({ initialTemplate }: SkillFormProps) {
           )}
         </div>
 
-        <div className="border border-border rounded-lg overflow-hidden prose-editor flex-1 flex flex-col min-h-0">
+        <div className="w-full border border-border rounded-lg overflow-hidden prose-editor flex-1 flex flex-col min-h-0">
           <div className="flex-1 overflow-y-auto">
             <SimpleMdeReact
               value={content}
@@ -142,8 +180,12 @@ export default function SkillForm({ initialTemplate }: SkillFormProps) {
         </div>
 
         {serverFeedback && (
-          <div className={`p-4 rounded-lg shrink-0 ${serverFeedback.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
-            <pre className="whitespace-pre-wrap font-sans text-sm">{serverFeedback.message}</pre>
+          <div
+            className={`p-4 rounded-lg shrink-0 ${serverFeedback.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}
+          >
+            <pre className="whitespace-pre-wrap font-sans text-sm">
+              {serverFeedback.message}
+            </pre>
           </div>
         )}
 
@@ -165,13 +207,18 @@ export default function SkillForm({ initialTemplate }: SkillFormProps) {
         </div>
       </div>
 
-      <div className="hidden lg:block h-full">
-        <SkillAssistant currentContent={content} onUpdateContent={handleUpdateContent} />
+      <div className="hidden lg:block h-full w-1/3">
+        <SkillAssistant
+          currentContent={content}
+          onUpdateContent={handleUpdateContent}
+        />
       </div>
 
-      {/* Mobile view of the assistant below the editor */}
       <div className="lg:hidden h-[500px]">
-         <SkillAssistant currentContent={content} onUpdateContent={handleUpdateContent} />
+        <SkillAssistant
+          currentContent={content}
+          onUpdateContent={handleUpdateContent}
+        />
       </div>
     </div>
   );
