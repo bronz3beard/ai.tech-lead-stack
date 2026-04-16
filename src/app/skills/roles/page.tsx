@@ -68,6 +68,106 @@ const rolesData: RoleSection[] = [
           'Highlighting dependencies on external vendors that might delay the launch.',
         ],
       },
+      {
+        id: 'pm-effort-estimator',
+        name: 'PM Effort Estimator',
+        description: 'Estimate development effort based on codebase history and complexity.',
+        useCases: [
+          'Predicting the time required to implement a new payment gateway.',
+          'Assessing the historical complexity of similar features to refine story points.',
+          'Identifying overly complex tasks that should be broken down before estimation.',
+        ],
+      },
+      {
+        id: 'pm-context-summarizer',
+        name: 'PM Context Summarizer',
+        description: 'Summarize recent technical progress and blockers for non-technical briefings.',
+        useCases: [
+          'Creating a high-level progress report for executive stakeholders.',
+          'Translating a complex database migration issue into a clear business impact statement.',
+          'Summarizing the root cause of a recent outage for a customer communication.',
+        ],
+      },
+      {
+        id: 'pm-action-item-mapper',
+        name: 'PM Action Item Mapper',
+        description: 'Translate meeting notes into actionable technical tasks linked to code.',
+        useCases: [
+          'Converting a brainstorming session transcript into Jira tickets.',
+          'Identifying clear technical deliverables from a customer feedback call.',
+          'Mapping product requirements documents directly to architectural components.',
+        ],
+      },
+      {
+        id: 'pm-task-specifier',
+        name: 'PM Task Specifier',
+        description: 'Draft high-fidelity technical specifications for new features.',
+        useCases: [
+          'Writing detailed API payload requirements for a new endpoint.',
+          'Defining database schema changes needed for a new user profile feature.',
+          'Specifying error handling and edge cases for a third-party integration.',
+        ],
+      },
+      {
+        id: 'pm-progress-translator',
+        name: 'PM Progress Translator',
+        description: 'Translate complex technical achievements into clear client updates.',
+        useCases: [
+          'Explaining a microservices architecture migration in terms of improved reliability for clients.',
+          'Rewriting release notes from backend optimization to highlight faster load times for users.',
+          'Communicating a security patch as a proactive data protection measure to enterprise customers.',
+        ],
+      },
+      {
+        id: 'pm-newsletter-generator',
+        name: 'PM Newsletter Generator',
+        description: 'Generate product-focused updates and highlights from recent code changes.',
+        useCases: [
+          'Compiling a monthly internal newsletter showcasing the engineering team\'s achievements.',
+          'Drafting a customer-facing email campaign announcing new feature releases.',
+          'Creating a digest of recent bug fixes to demonstrate ongoing product improvements.',
+        ],
+      },
+      {
+        id: 'pm-design-system-auditor',
+        name: 'PM Design System Auditor',
+        description: 'Check code implementation against design system standards and consistency.',
+        useCases: [
+          'Auditing a newly developed page to ensure all buttons use the correct design tokens.',
+          'Identifying inconsistencies in typography across different modules of the application.',
+          'Validating that new components adhere to established accessibility guidelines within the design system.',
+        ],
+      },
+      {
+        id: 'audit-tech-debt',
+        name: 'Audit Tech Debt',
+        description: 'Quantify and track structural and technical debt.',
+        useCases: [
+          'Identifying outdated dependencies that pose security risks.',
+          'Analyzing code complexity to plan refactoring sprints.',
+          'Measuring the impact of technical debt on team velocity.',
+        ],
+      },
+      {
+        id: 'standup-daily-summary',
+        name: 'Standup Daily Summary',
+        description: 'Analyze git activity for daily reports.',
+        useCases: [
+          'Generating an automated digest of team commits for morning standup.',
+          'Highlighting unmerged pull requests that are blocking progress.',
+          'Summarizing completed tasks to keep stakeholders informed.',
+        ],
+      },
+      {
+        id: 'ask',
+        name: 'Ask',
+        description: 'General codebase consultation and architectural advisor.',
+        useCases: [
+          'Querying the codebase for specific implementation details during a feasibility study.',
+          'Asking for an explanation of complex legacy code before proposing changes.',
+          'Getting architectural recommendations when planning a new feature.',
+        ],
+      },
     ],
   },
   {
