@@ -11,6 +11,7 @@ import {
 } from 'ai';
 import { getServerSession } from 'next-auth';
 import { initializeModel } from '../../chat/utils';
+import { telemetryService } from '@/lib/telemetry-service';
 
 export const maxDuration = 300;
 
@@ -155,6 +156,27 @@ export async function POST(req: Request) {
                     (r) => r.toolCallId === call.toolCallId
                   );
                   if (resultPart) {
+                    // Record telemetry for every tool execution
+                    const duration = 0; // ai library doesn't expose tool-level duration easily in onStepFinish
+                    const status = 'SUCCESS'; // If it's in results, it was tried
+
+                    // Safely extract tool arguments from the tool call object
+                    const toolArgs = (call as any).args ?? (call as any).input ?? {};
+                    
+                    await telemetryService.recordEvent({
+                      skillName: call.toolName,
+                      projectName: 'Skill Assistant',
+                      model: aiProvider.modelId,
+                      agent: 'Skill Assistant',
+                      duration,
+                      status,
+                      userEmail: session.user.email ?? undefined,
+                      metadata: {
+                        args: toolArgs,
+                        source: 'chat-ui'
+                      }
+                    }).catch(e => console.error('[skill-chat] Telemetry failed:', e));
+
                     if (call.toolName === 'lint_and_format') {
                       insights.push(
                         'Applied auto-formatting and linting fixes.'

@@ -7,10 +7,18 @@ import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 
+export interface DashboardSearchParams {
+  limit?: string;
+  from?: string;
+  to?: string;
+  view?: string;
+  project?: string;
+}
+
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ limit?: string; from?: string; to?: string }>;
+  searchParams: Promise<DashboardSearchParams>;
 }) {
   const session = await getServerSession(authOptions);
 
@@ -26,7 +34,8 @@ export default async function DashboardPage({
   const user = await prisma.user.findUnique({ where: { email: userEmail } });
   const resolvedUserId = user ? user.id : userEmail;
 
-  const { limit, from, to } = await searchParams;
+  const { limit, from, to, view, project } = await searchParams;
+  const filterByUser = view === 'me';
   const parsedLimit =
     limit === 'all' || !limit ? undefined : parseInt(limit, 10);
 
@@ -34,28 +43,14 @@ export default async function DashboardPage({
     limit && !['10', '20', '50', '100'].includes(limit) ? limit : undefined;
 
   const traces = await getAnalytics({
-    userId: resolvedUserId,
-    userEmail: userEmail,
+    userId: filterByUser ? resolvedUserId : undefined,
+    userEmail: filterByUser ? userEmail : undefined,
     timeframe: timeframe,
     limit: parsedLimit,
   });
 
-  const isPrivilegedRole = user?.role === 'ADMIN' || user?.role === 'DEVELOPER';
-
-  // Fetch authorized projects from the database
+  // Fetch all projects for "Public" view as requested
   const authorizedProjects = await prisma.project.findMany({
-    where: isPrivilegedRole ? {} : {
-      OR: [
-        { ownerId: resolvedUserId },
-        {
-          accessGrants: {
-            some: {
-              role: user?.role
-            },
-          },
-        },
-      ],
-    },
     orderBy: { name: 'asc' },
   });
 
@@ -69,7 +64,7 @@ export default async function DashboardPage({
     <DashboardContent
       traces={traces}
       projects={projects}
-      titlePrefix="My Authenticated"
+      titlePrefix={filterByUser ? "My Authenticated" : "Global Telemetry"}
     />
   );
 }

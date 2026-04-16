@@ -26,17 +26,30 @@ export async function getAnalytics(filters: {
 }): Promise<TraceData[]> {
   const where: any = {};
 
-  if (filters.userId || filters.userEmail) {
-    where.OR = [];
-    if (filters.userId) {
-      where.OR.push({ userId: filters.userId });
+  if (filters.userEmail || filters.userId) {
+    let resolvedUserId = filters.userId;
+    
+    // If we have an email but no CUID, try to find the user to get the CUID
+    // This ensures we can match standard userId fields in AnalyticsEvent
+    if (filters.userEmail && !resolvedUserId) {
+      const user = await prisma.user.findUnique({ 
+        where: { email: filters.userEmail },
+        select: { id: true }
+      });
+      if (user) {
+        resolvedUserId = user.id;
+      }
     }
-    if (filters.userEmail) {
-      where.OR.push({ metadata: { path: ['userEmail'], equals: filters.userEmail } });
-    }
+
+    where.OR = [
+      ...(resolvedUserId ? [{ userId: resolvedUserId }] : []),
+      ...(filters.userEmail ? [{ metadata: { path: ['userEmail'], equals: filters.userEmail } }] : [])
+    ];
+
+    if (where.OR.length === 0) delete where.OR;
   }
 
-  if (filters.projectName) {
+  if (filters.projectName && filters.projectName !== 'all') {
     where.projectName = filters.projectName;
   }
 
@@ -66,16 +79,20 @@ export async function getAnalytics(filters: {
     }
 
     // Only apply timeframe filter if it was a valid preset
-    if (['1yr', '6mo', '3mo', '1mo', 'week', 'day'].includes(filters.timeframe)) {
+    if (filters.timeframe && ['1yr', '6mo', '3mo', '1mo', 'week', 'day'].includes(filters.timeframe)) {
       where.createdAt = { gte: fromDate };
     }
   }
+
+  console.log('[AnalyticsService] Fetching with where:', JSON.stringify(where, null, 2), 'limit:', filters.limit);
 
   const events = await prisma.analyticsEvent.findMany({
     where,
     orderBy: { createdAt: 'desc' },
     take: filters.limit,
   });
+
+  console.log(`[AnalyticsService] Found ${events.length} events`);
 
   return events.map((event) => {
     const metadata = (event.metadata as Record<string, any>) || {};

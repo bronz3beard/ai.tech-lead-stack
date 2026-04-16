@@ -11,13 +11,18 @@ export function ProjectSelector({
   selectedProject: string;
   onSelectProject: (project: string) => void;
 }) {
+  // Ensure 'all' is an option if projects exist
+  const options = [
+    { label: 'All Projects', value: 'all' },
+    ...projects.map((p) => ({ label: p, value: p }))
+  ];
+
   return (
     <div className="w-64">
       <Select
-        value={selectedProject}
+        value={selectedProject || 'all'}
         onChange={onSelectProject}
-        options={projects.map((p) => ({ label: p, value: p }))}
-        placeholder="All Projects"
+        options={options}
       />
     </div>
   );

@@ -9,9 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, LineChart } from '@/components/ui/chart';
 import { isSkillTrace, normalizeProjectName } from '@/lib/trace-utils';
-import { SlidersHorizontal } from 'lucide-react';
+import { SlidersHorizontal, User, Globe } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export type TraceData = {
   id: string;
@@ -43,10 +44,11 @@ export function DashboardContent({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const selectedProject = searchParams.get('project') || '';
+  const selectedProject = searchParams.get('project') || 'all';
   const currentLimit = searchParams.get('limit') || '50';
   const fromDate = searchParams.get('from') || '';
   const toDate = searchParams.get('to') || '';
+  const currentView = searchParams.get('view') || 'global';
 
   // Draft state — changes here do NOT trigger navigation until Apply is clicked
   const [draftFrom, setDraftFrom] = useState(fromDate);
@@ -82,7 +84,7 @@ export function DashboardContent({
     const target = selectedProject.toLowerCase();
 
     // If "All Projects" is explicitly selected, return all traces.
-    if (target === 'all') return traces;
+    if (target === 'all' || target === 'all projects') return traces;
 
     return traces.filter((t) => normalizeProjectName(t.projectName) === target);
   }, [traces, selectedProject]);
@@ -175,22 +177,46 @@ export function DashboardContent({
     };
   }, [filteredTraces]);
 
-  const displayTitle = selectedProject ? selectedProject : 'All Projects';
+  const displayTitle = !selectedProject || selectedProject === 'all' ? 'All Projects' : selectedProject;
 
   return (
     <div className="flex flex-col min-h-screen bg-background p-8 text-foreground">
       <div className="max-w-6xl mx-auto w-full space-y-8">
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
-          <div className="self-end space-y-2">
-            <h1 className="text-4xl font-bold tracking-tight text-foreground">
-              {titlePrefix} Dashboard
-            </h1>
-            <p className="text-muted text-lg">
-              Viewing telemetry data for:{' '}
-              <span className="font-semibold text-emerald-500">
-                {displayTitle}
-              </span>
-            </p>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <h1 className="text-4xl font-bold tracking-tight text-foreground">
+                {titlePrefix} Dashboard
+              </h1>
+              <p className="text-muted text-lg">
+                Viewing telemetry data for:{' '}
+                <span className="font-semibold text-emerald-500">
+                  {displayTitle}
+                </span>
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground ml-1">
+                Data Scope
+              </p>
+              <Tabs
+                value={currentView}
+                onValueChange={(v) => updateFilters({ view: v })}
+                className="w-[300px]"
+              >
+                <TabsList className="grid w-full grid-cols-2 bg-card/40 border border-border/60">
+                  <TabsTrigger value="global" className="gap-2">
+                    <Globe className="h-4 w-4" />
+                    Global
+                  </TabsTrigger>
+                  <TabsTrigger value="me" className="gap-2">
+                    <User className="h-4 w-4" />
+                    My Activity
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
           </div>
           <form
             onSubmit={handleApplyFilters}
@@ -230,14 +256,14 @@ export function DashboardContent({
             </div>
           </form>
 
-          <div className="flex flex-col">
-            <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-1 ml-1">
-              Project
+          <div className="flex flex-col gap-2">
+            <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground ml-1">
+              Project Selection
             </p>
-            <div className="h-52 flex items-start bg-card/40 backdrop-blur-sm border border-border/60 rounded-xl px-4 py-3 shadow-sm">
-              <div className="flex flex-col">
+            <div className="flex items-start bg-card/40 backdrop-blur-sm border border-border/60 rounded-xl px-4 py-3 shadow-sm min-w-[280px]">
+              <div className="flex flex-col w-full">
                 <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-1 ml-1">
-                  Select
+                  Project
                 </label>
                 <ProjectSelector
                   projects={projectNames}
