@@ -42,8 +42,13 @@ export default async function DashboardPage({
 
   // Sync recent traces from Langfuse to ensure dashboard is up to date
   // We do this server-side to resolve the "empty dashboard" issue
+  // Increased limit from 20 to 100 to handle larger backlogs
   console.log('[Dashboard] Initializing data sync...');
-  await syncTracesFromLangfuse(20);
+  try {
+    await syncTracesFromLangfuse(100);
+  } catch (syncError) {
+    console.error('[Dashboard] Managed sync failure:', syncError);
+  }
 
   const traces = await getAnalytics({
     userId: filterByUser ? resolvedUserId : undefined,

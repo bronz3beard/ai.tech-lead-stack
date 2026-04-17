@@ -23,7 +23,7 @@ export interface TraceData {
  * This runs periodically or on-demand to ensure the DB stays updated even if 
  * live recording fails.
  */
-export async function syncTracesFromLangfuse(limit = 50) {
+export async function syncTracesFromLangfuse(limit = 100) {
   const publicKey = process.env.LANGFUSE_PUBLIC_KEY;
   const secretKey = process.env.LANGFUSE_SECRET_KEY;
   const baseUrl = process.env.LANGFUSE_BASE_URL || 'https://cloud.langfuse.com';
@@ -168,12 +168,17 @@ export async function getAnalytics(filters: {
         fromDate.setDate(now.getDate() - 7);
         break;
       case 'day':
+        // Last 24 hours
         fromDate.setDate(now.getDate() - 1);
+        break;
+      case 'today':
+        // Since midnight local time
+        fromDate.setHours(0, 0, 0, 0);
         break;
     }
 
     // Only apply timeframe filter if it was a valid preset
-    if (filters.timeframe && ['1yr', '6mo', '3mo', '1mo', 'week', 'day'].includes(filters.timeframe)) {
+    if (filters.timeframe && ['1yr', '6mo', '3mo', '1mo', 'week', 'day', 'today'].includes(filters.timeframe)) {
       where.createdAt = { gte: fromDate };
     }
   }

@@ -29,7 +29,8 @@
       "technical-debt-auditor": "cat .ai/skills/technical-debt-auditor.md",
       "validate-scripts": "bash scripts/validate-scripts.sh",
       "validate-skills": "bash scripts/validate-skills.sh",
-      "visual-verifier": "node scripts/visual-verifier.mjs"
+      "visual-verifier": "node scripts/visual-verifier.mjs",
+      "weekly-leadership-report": "cat .ai/skills/weekly-leadership-report.md"
     }
   },
   "scripts": {

@@ -149,29 +149,33 @@ export class TelemetryService {
         }
       }
 
-      console.log(`[Telemetry] Creating AnalyticsEvent in DB...`);
-      const event = await prisma.analyticsEvent.create({
-        data: {
-          skillName: normalizedSkill,
-          userId: resolvedUserId,
+      console.log(`[Telemetry] Attempting database recording for event...`);
+      const eventData = {
+        skillName: normalizedSkill,
+        userId: resolvedUserId,
+        projectName: normalizedProject,
+        model: resolvedModel,
+        agent: resolvedAgent,
+        duration: params.duration,
+        status: params.status,
+        error: params.error ?? null,
+        promptTokens,
+        completionTokens,
+        totalTokens: promptTokens + completionTokens,
+        totalCost: totalCost,
+        langfuseTraceId,
+        metadata: {
+          ...params.metadata,
+          userEmail: params.userEmail,
           projectName: normalizedProject,
-          model: resolvedModel,
-          agent: resolvedAgent,
-          duration: params.duration,
-          status: params.status,
-          error: params.error ?? null,
-          promptTokens,
-          completionTokens,
-          totalTokens: promptTokens + completionTokens,
-          totalCost: totalCost,
-          langfuseTraceId,
-          metadata: {
-            ...params.metadata,
-            userEmail: params.userEmail,
-            projectName: normalizedProject,
-            estimatedCost: totalCost,
-          }
+          estimatedCost: totalCost,
         }
+      };
+      
+      console.log(`[Telemetry] Persistence Payload:`, JSON.stringify(eventData, null, 2));
+
+      const event = await prisma.analyticsEvent.create({
+        data: eventData
       });
 
       console.log(
