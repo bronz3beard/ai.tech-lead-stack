@@ -36,6 +36,6 @@ workflow-pr-automator|.agents/workflows/pr-automator.md
 workflow-regression-bug-fix|.agents/workflows/regression-bug-fix.md
 workflow-security-audit|.agents/workflows/security-audit.md
 workflow-standup-daily-summary|.agents/workflows/standup-daily-summary.md
-workflow-strategy-target-evalutaion|.agents/workflows/strategy-target-evalutaion.md
+workflow-strategy-target-evaluation|.agents/workflows/strategy-target-evaluation.md
 workflow-style-logic-exporter|.agents/workflows/style-logic-exporter.md
 workflow-verify-changes|.agents/workflows/verify-changes.md
