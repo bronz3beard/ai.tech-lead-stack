@@ -45,7 +45,7 @@ export function DashboardContent({
   const searchParams = useSearchParams();
 
   const selectedProject = searchParams.get('project') || 'all';
-  const currentLimit = searchParams.get('limit') || '50';
+  const currentLimit = searchParams.get('limit') || 'all';
   const fromDate = searchParams.get('from') || '';
   const toDate = searchParams.get('to') || '';
   const currentView = searchParams.get('view') || 'global';
@@ -354,8 +354,8 @@ export function DashboardContent({
                 Activity Timeline
               </CardTitle>
               <p className="text-base text-muted">
-                Trend of agent executions over the last{' '}
-                {currentLimit === 'all' ? 'entire' : currentLimit} traces.
+                Trend of agent executions over the{' '}
+                {currentLimit === 'all' ? 'entire history' : `last ${currentLimit} traces`}.
               </p>
             </CardHeader>
             <CardContent className="pl-2 pb-6">
