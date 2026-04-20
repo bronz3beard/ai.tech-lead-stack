@@ -1,10 +1,14 @@
-import { Briefcase, Cpu, Layout, LucideIcon, Palette, ShieldCheck, Sparkles, Terminal } from 'lucide-react';
+'use client';
+
+import { useState } from 'react';
+import { Briefcase, ChevronDown, ChevronUp, Cpu, Layout, LucideIcon, Palette, ShieldCheck, Sparkles, Terminal } from 'lucide-react';
 
 interface Skill {
   id: string;
   name: string;
   description: string;
   useCases: string[];
+  realWorldExample?: string;
 }
 
 interface RoleSection {
@@ -24,6 +28,7 @@ const pmSkills: Skill[] = [
       'Identifying scope creep in mid-sprint feature requests.',
       'Re-ordering technical debt to unblock critical path features.',
     ],
+    realWorldExample: 'A PM uses the auditor to find that a "Checkout UI" task is scheduled two weeks before the "Payment API" it depends on is even started.',
   },
   {
     id: 'pm-story-augmenter',
@@ -34,6 +39,7 @@ const pmSkills: Skill[] = [
       'Highlighting missing edge cases in a newly proposed checkout flow.',
       'Ensuring all stories follow the INVEST principle before sprint planning.',
     ],
+    realWorldExample: 'Transforming "As a user I want to reset my password" into a detailed spec covering token expiration, rate limiting, and email template requirements.',
   },
   {
     id: 'pm-release-note-drafter',
@@ -44,6 +50,7 @@ const pmSkills: Skill[] = [
       'Translating technical bug fixes into user-friendly language.',
       'Creating internal release summaries for the sales and marketing teams.',
     ],
+    realWorldExample: 'A PM generates a professional release note that describes a "database indexing optimization" as "improved search performance for faster results."',
   },
   {
     id: 'product-strategist',
@@ -54,6 +61,7 @@ const pmSkills: Skill[] = [
       'Analyzing competitor features to prioritize the next roadmap item.',
       'Assessing the technical ecosystem cost before committing to a new integration.',
     ],
+    realWorldExample: 'Analyzing whether adding a new AI feature is more valuable for current user retention compared to fixing long-standing UI bugs.',
   },
   {
     id: 'pm-risk-detector',
@@ -64,6 +72,7 @@ const pmSkills: Skill[] = [
       'Identifying aggressive timelines that do not account for testing phases.',
       'Highlighting dependencies on external vendors that might delay the launch.',
     ],
+    realWorldExample: 'Detecting that a critical path task is assigned to the only developer who is also on vacation during the launch week.',
   },
   {
     id: 'pm-effort-estimator',
@@ -74,6 +83,7 @@ const pmSkills: Skill[] = [
       'Assessing the historical complexity of similar features to refine story points.',
       'Identifying overly complex tasks that should be broken down before estimation.',
     ],
+    realWorldExample: 'Using historical commit data to estimate that a new API integration will likely take 3-4 days based on previous similar integrations.',
   },
   {
     id: 'pm-context-summarizer',
@@ -84,6 +94,7 @@ const pmSkills: Skill[] = [
       'Translating a complex database migration issue into a clear business impact statement.',
       'Summarizing the root cause of a recent outage for a customer communication.',
     ],
+    realWorldExample: 'Summarizing a week of complex refactoring into a clear update for stakeholders: "Simplified the checkout logic to enable 20% faster feature development."',
   },
   {
     id: 'pm-action-item-mapper',
@@ -94,6 +105,7 @@ const pmSkills: Skill[] = [
       'Identifying clear technical deliverables from a customer feedback call.',
       'Mapping product requirements documents directly to architectural components.',
     ],
+    realWorldExample: 'Turning a messy 30-minute meeting transcript into five distinct, actionable tickets with clear ownership and descriptions.',
   },
   {
     id: 'pm-task-specifier',
@@ -104,6 +116,7 @@ const pmSkills: Skill[] = [
       'Defining database schema changes needed for a new user profile feature.',
       'Specifying error handling and edge cases for a third-party integration.',
     ],
+    realWorldExample: 'Drafting a technical spec for a "User Export" feature, specifying JSON format, file size limits, and security token requirements.',
   },
   {
     id: 'pm-progress-translator',
@@ -114,6 +127,7 @@ const pmSkills: Skill[] = [
       'Rewriting release notes from backend optimization to highlight faster load times for users.',
       'Communicating a security patch as a proactive data protection measure to enterprise customers.',
     ],
+    realWorldExample: 'Updating clients about a "Dockerization" effort as "Infrastructure upgrades to ensure 99.99% service availability during peak traffic."',
   },
   {
     id: 'pm-newsletter-generator',
@@ -124,6 +138,7 @@ const pmSkills: Skill[] = [
       'Drafting a customer-facing email campaign announcing new feature releases.',
       'Creating a digest of recent bug fixes to demonstrate ongoing product improvements.',
     ],
+    realWorldExample: 'Compiling the "Engineering Monthly" update that highlights the three most impactful features shipped this month.',
   },
   {
     id: 'pm-design-system-auditor',
@@ -134,7 +149,11 @@ const pmSkills: Skill[] = [
       'Identifying inconsistencies in typography across different modules of the application.',
       'Validating that new components adhere to established accessibility guidelines within the design system.',
     ],
+    realWorldExample: 'Scanning a new dashboard and finding three custom buttons that should have been using the standard "PrimaryButton" component.',
   },
+];
+
+const sharedSkills: Skill[] = [
   {
     id: 'audit-tech-debt',
     name: 'Audit Tech Debt',
@@ -144,6 +163,7 @@ const pmSkills: Skill[] = [
       'Analyzing code complexity to plan refactoring sprints.',
       'Measuring the impact of technical debt on team velocity.',
     ],
+    realWorldExample: 'Discovering a deeply nested module with a cyclomatic complexity of 45 that has been the source of 80% of recent regression bugs.',
   },
   {
     id: 'standup-daily-summary',
@@ -154,6 +174,7 @@ const pmSkills: Skill[] = [
       'Highlighting unmerged pull requests that are blocking progress.',
       'Summarizing completed tasks to keep stakeholders informed.',
     ],
+    realWorldExample: 'Automatically generating a "What I did yesterday" report that links directly to the specific PRs and commits made.',
   },
 ];
 
@@ -167,6 +188,7 @@ const designerSkills: Skill[] = [
       'Mapping coded spacing scales to update outdated design system documentation.',
       'Identifying inconsistent inline styles to unify component designs.',
     ],
+    realWorldExample: 'Exporting the actual spacing variables used in the CSS to update the outdated "Guidelines" page in Figma, ensuring 1:1 parity.',
   },
   {
     id: 'accessibility-auditor',
@@ -177,6 +199,7 @@ const designerSkills: Skill[] = [
       'Verifying that custom dropdown components have appropriate ARIA roles.',
       'Ensuring the entire checkout flow is fully keyboard navigable.',
     ],
+    realWorldExample: 'Finding that a custom modal component was missing the `aria-modal="true"` attribute, making it invisible to screen readers.',
   },
   {
     id: 'feature-design-assistant',
@@ -187,6 +210,7 @@ const designerSkills: Skill[] = [
       'Ensuring new feature designs adhere to the existing component library constraints.',
       'Drafting interaction specifications for a complex drag-and-drop interface.',
     ],
+    realWorldExample: 'Converting a loose sketch of a "User Profile" page into a structured component hierarchy with defined data requirements for each section.',
   },
 ];
 
@@ -200,6 +224,7 @@ const qaSkills: Skill[] = [
       'Running a quick visual smoke test on staging before a production deployment.',
       'Documenting layout shifts that occur dynamically on user interaction.',
     ],
+    realWorldExample: 'Automatically recording a video of the login flow on mobile and desktop to prove a CSS fix works across all responsive breakpoints.',
   },
   {
     id: 'verification-auditor',
@@ -210,6 +235,7 @@ const qaSkills: Skill[] = [
       'Auditing a new page for extreme performance regressions before sign-off.',
       'Ensuring all captured test evidence meets the required standards for compliance.',
     ],
+    realWorldExample: 'Identifying that a new third-party script added to the header increased the "Time to Interactive" by 1.5 seconds.',
   },
   {
     id: 'regression-bug-fix',
@@ -220,6 +246,7 @@ const qaSkills: Skill[] = [
       'Addressing a functional bug caught by QA in the staging environment.',
       'Fixing a design misalignment reported during the final UX review.',
     ],
+    realWorldExample: 'Reading a QA bug report about a misaligned footer and automatically generating the exact CSS fix to center it across all pages.',
   },
 ];
 
@@ -233,6 +260,7 @@ const universalSkills: Skill[] = [
       'Asking for an explanation of complex legacy code before proposing changes.',
       'Getting architectural recommendations when planning a new feature.',
     ],
+    realWorldExample: 'A developer joins a legacy project and uses Ask to understand the complex authentication flow across five different microservices without having to read every line of code.',
   },
 ];
 
@@ -240,7 +268,7 @@ const sharedRolesData: RoleSection[] = [
   {
     role: 'Product Manager',
     icon: Briefcase,
-    skills: pmSkills,
+    skills: [...pmSkills, ...sharedSkills],
   },
   {
     role: 'Designer',
@@ -254,12 +282,92 @@ const sharedRolesData: RoleSection[] = [
   },
 ];
 
-// Developer has access to ALL skills
+const devSpecificSkills: Skill[] = [
+  {
+    id: 'agent-chat',
+    name: 'Agent Chat',
+    description: 'Direct command center for interacting with agents equipped with full codebase access and specialized tools.',
+    useCases: [
+      'Pair programming on complex logic implementations.',
+      'Asking for architectural reviews of new feature proposals.',
+      'Brainstorming refactoring strategies for legacy modules.',
+    ],
+    realWorldExample: 'A developer uses Agent Chat to plan out a new microservice, getting a step-by-step implementation guide that respects the existing project patterns.',
+  },
+  {
+    id: 'ide-skills',
+    name: 'IDE Skills',
+    description: 'Seamlessly integrated workflows within Antigravity and Cursor for real-time code assistance and automation.',
+    useCases: [
+      'Invoking "Fix this bug" directly from the editor.',
+      'Generating unit tests for the current file with one command.',
+      'Refactoring multi-file components without leaving the IDE.',
+    ],
+    realWorldExample: 'Highlighting a complex function in Cursor and using an IDE skill to instantly refactor it for better readability while maintaining all tests.',
+  },
+  {
+    id: 'clean-code-audit',
+    name: 'Clean Code Audit',
+    description: 'Enforce SOLID principles and architectural standards through automated code analysis.',
+    useCases: [
+      'Identifying violations of the Single Responsibility Principle.',
+      'Finding tightly coupled modules that should be decoupled.',
+      'Ensuring new code follows the established architectural patterns.',
+    ],
+    realWorldExample: 'Scanning a new PR and getting a report that a service class is doing too much and should be split into three smaller, focused services.',
+  },
+  {
+    id: 'code-review',
+    name: 'Code Review',
+    description: 'Pre-PR quality gatekeeper that ensures code meets specification compliance and quality standards.',
+    useCases: [
+      'Automated checking for common security vulnerabilities.',
+      'Verifying that all new code has corresponding test coverage.',
+      'Ensuring naming conventions and style guides are strictly followed.',
+    ],
+    realWorldExample: 'Running a code review on a branch and catching a potential SQL injection vulnerability before it ever reaches a human reviewer.',
+  },
+  {
+    id: 'onboard-dev',
+    name: 'Onboard Dev',
+    description: 'Accelerate developer ramp-up by providing deep insights into new infrastructure and repositories.',
+    useCases: [
+      'Getting a high-level overview of a new repository\'s architecture.',
+      'Understanding the deployment pipeline and environment configurations.',
+      'Identifying the key entry points and core modules of a project.',
+    ],
+    realWorldExample: 'A new hire uses Onboard Dev to understand the data flow between the frontend and the three different backend services in under 30 minutes.',
+  },
+  {
+    id: 'security-audit',
+    name: 'Security Audit',
+    description: 'Scan configurations and code for potential security vulnerabilities and compliance issues.',
+    useCases: [
+      'Checking for exposed API keys or secrets in the codebase.',
+      'Identifying outdated dependencies with known vulnerabilities.',
+      'Auditing IAM roles and permissions for least-privilege compliance.',
+    ],
+    realWorldExample: 'Running a security audit that identifies a hardcoded development API key in a configuration file that was accidentally committed.',
+  },
+  {
+    id: 'strategy-target-evaluation',
+    name: 'Strategy Target Evaluation',
+    description: 'High-density product strategy and roadmap audit for technical feasibility.',
+    useCases: [
+      'Evaluating the technical effort required for a proposed roadmap item.',
+      'Analyzing if current infrastructure can support a new strategic direction.',
+      'Identifying potential architectural blockers for long-term product goals.',
+    ],
+    realWorldExample: 'A developer uses this to evaluate whether the proposed "Real-time Collaboration" feature is feasible with the current WebSocket implementation.',
+  },
+];
+
+// Developer section: Everything except PM skills and "Ask"
 const developerSkills: Skill[] = [
-  ...universalSkills,
-  ...pmSkills,
+  ...devSpecificSkills,
   ...designerSkills,
   ...qaSkills,
+  ...sharedSkills,
 ];
 
 export default function RolesPage() {
@@ -327,22 +435,90 @@ export default function RolesPage() {
             <span className="bg-emerald-500/20 text-emerald-400 text-xs px-2 py-1 rounded-full uppercase tracking-wider">Full Stack Access</span>
           </div>
 
-          <div className="bg-slate-800/40 rounded-2xl p-8 border border-slate-700/50">
-            <p className="text-slate-300 mb-8 max-w-3xl">
+          <div className="bg-slate-800/40 rounded-3xl p-8 md:p-12 border border-slate-700/50 space-y-10">
+            <p className="text-slate-300 text-lg md:text-xl max-w-3xl leading-relaxed">
               Developers have unhindered access to every capability in the Interlink system. 
-              The following represents the full suite of specialized AI tools available for architectural, logic, and operational excellence.
+              The following represents the specialized AI tools available for architectural, logic, and operational excellence.
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {developerSkills.map((skill) => (
-                <div key={skill.id} className="bg-slate-900/40 p-3 rounded-lg border border-slate-700/30 flex items-center space-x-3 group hover:border-emerald-500/50 transition-colors">
-                  <Cpu className="w-4 h-4 text-emerald-500/50 group-hover:text-emerald-400" />
-                  <span className="text-sm font-medium text-slate-200">{skill.name}</span>
-                </div>
+                <ExpandableSkillBadge key={skill.id} skill={skill} />
               ))}
+            </div>
+
+            <div className="pt-8 border-t border-slate-700/30">
+              <p className="text-slate-500 text-sm italic flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-500/40" />
+                <em>Note: PM-specific skills are also fully available to Developers via the Antigravity/Cursor IDEs and our Agent Chat interface.</em>
+              </p>
             </div>
           </div>
         </section>
       </div>
+    </div>
+  );
+}
+
+function ExpandableSkillBadge({ skill }: { skill: Skill }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <div
+      className={`bg-slate-900/40 rounded-lg border transition-all duration-300 overflow-hidden ${
+        isExpanded ? 'border-emerald-500/50 shadow-lg shadow-emerald-500/10' : 'border-slate-700/30 hover:border-emerald-500/50'
+      }`}
+    >
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full p-3 flex items-center justify-between group transition-colors"
+        aria-expanded={isExpanded}
+      >
+        <div className="flex items-center space-x-3">
+          <Cpu className={`w-4 h-4 transition-colors ${isExpanded ? 'text-emerald-400' : 'text-emerald-500/50 group-hover:text-emerald-400'}`} />
+          <span className="text-sm font-medium text-slate-200">{skill.name}</span>
+        </div>
+        {isExpanded ? (
+          <ChevronUp className="w-4 h-4 text-slate-500" />
+        ) : (
+          <ChevronDown className="w-4 h-4 text-slate-500 group-hover:text-slate-400" />
+        )}
+      </button>
+
+      {isExpanded && (
+        <div className="px-4 pb-6 pt-2 space-y-6 border-t border-slate-800/50 bg-slate-900/20">
+          <div className="space-y-2">
+            <h4 className="text-xs font-semibold text-emerald-500/70 uppercase tracking-widest">Description</h4>
+            <p className="text-slate-300 text-base leading-relaxed">
+              {skill.description}
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="text-xs font-semibold text-emerald-500/70 uppercase tracking-widest">Key Use Cases</h4>
+            <ul className="space-y-2">
+              {skill.useCases.map((useCase, index) => (
+                <li key={index} className="flex items-start text-sm text-slate-300">
+                  <span className="text-emerald-500/60 mr-2 mt-1">•</span>
+                  <span>{useCase}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {skill.realWorldExample && (
+            <div className="space-y-2 p-4 bg-emerald-500/5 rounded-xl border border-emerald-500/10">
+              <h4 className="text-xs font-semibold text-emerald-400 uppercase tracking-widest flex items-center gap-2">
+                <Sparkles className="w-3 h-3" />
+                Real-World Example
+              </h4>
+              <p className="text-slate-300 text-sm italic leading-relaxed">
+                "{skill.realWorldExample}"
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
