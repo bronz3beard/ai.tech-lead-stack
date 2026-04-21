@@ -18,9 +18,9 @@ describe('normalizeProjectName', () => {
   });
 
   it('should return unknown for empty or invalid names', () => {
-    expect(normalizeProjectName(undefined)).toBe('unknown');
-    expect(normalizeProjectName('')).toBe('unknown');
-    expect(normalizeProjectName('   ')).toBe('unknown');
-    expect(normalizeProjectName('unknown')).toBe('unknown');
+    expect(normalizeProjectName(undefined)).toBe('global');
+    expect(normalizeProjectName('')).toBe('global');
+    expect(normalizeProjectName('   ')).toBe('global');
+    expect(normalizeProjectName('unknown')).toBe('global');
   });
 });
