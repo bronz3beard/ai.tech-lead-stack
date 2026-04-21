@@ -1,13 +1,14 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { isSuperUser } from '@/lib/access';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { z } from 'zod';
 import { Role } from '@prisma/client';
+import { getServerSession } from 'next-auth';
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
 
 const GrantAccessSchema = z.object({
   projectId: z.string().min(1),
-  role: z.nativeEnum(Role),
+  role: z.enum(Role),
 });
 
 export async function GET() {
@@ -17,12 +18,17 @@ export async function GET() {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  // Only Developers/Admins manage project access
-  if (session.user.role !== 'DEVELOPER' && session.user.role !== 'ADMIN') {
+  // Only Developers/Admins manage project access (unless they are superusers)
+  const isSuper = isSuperUser(session.user.email);
+  if (
+    session.user.role !== 'DEVELOPER' &&
+    session.user.role !== 'ADMIN' &&
+    !isSuper
+  ) {
     return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
   }
 
-  const isPrivilegedRole = session.user.role === 'ADMIN' || session.user.role === 'DEVELOPER';
+  const isPrivilegedRole = session.user.role === 'ADMIN' || isSuper;
 
   const projects = await prisma.project.findMany({
     where: isPrivilegedRole ? {} : { ownerId: session.user.id },
@@ -39,9 +45,9 @@ export async function GET() {
     orderBy: { name: 'asc' },
   });
 
-  const formattedProjects = projects.map(p => ({
+  const formattedProjects = projects.map((p) => ({
     ...p,
-    accessGrants: p.accessGrants.map(ag => ag.role),
+    accessGrants: p.accessGrants.map((ag) => ag.role),
   }));
 
   return NextResponse.json({ projects: formattedProjects });
@@ -61,20 +67,23 @@ export async function POST(req: Request) {
     if (!parsed.success) {
       return NextResponse.json(
         { message: 'Invalid request body', errors: parsed.error.flatten() },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     const { projectId, role } = parsed.data;
 
+    const isSuper = isSuperUser(session.user.email);
     const project = await prisma.project.findFirst({
-      where: { id: projectId, ownerId: session.user.id },
+      where: isSuper
+        ? { id: projectId }
+        : { id: projectId, ownerId: session.user.id },
     });
 
     if (!project) {
       return NextResponse.json(
         { message: 'Project not found or you are not the owner' },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
@@ -95,7 +104,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error granting project access:', error);
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json(
+      { message: 'Internal Server Error' },
+      { status: 500 }
+    );
   }
 }
 
@@ -113,20 +125,23 @@ export async function DELETE(req: Request) {
     if (!parsed.success) {
       return NextResponse.json(
         { message: 'Invalid request body', errors: parsed.error.flatten() },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
     const { projectId, role } = parsed.data;
 
+    const isSuper = isSuperUser(session.user.email);
     const project = await prisma.project.findFirst({
-      where: { id: projectId, ownerId: session.user.id },
+      where: isSuper
+        ? { id: projectId }
+        : { id: projectId, ownerId: session.user.id },
     });
 
     if (!project) {
       return NextResponse.json(
         { message: 'Project not found or you are not the owner' },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
@@ -140,6 +155,9 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error revoking project access:', error);
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json(
+      { message: 'Internal Server Error' },
+      { status: 500 }
+    );
   }
 }

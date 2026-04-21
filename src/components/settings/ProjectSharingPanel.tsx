@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 interface ProjectAccess {
   id: string;
   name: string;
-  accessGrants: ('PM' | 'QA' | 'DESIGNER')[];
+  accessGrants: ('PM' | 'QA' | 'DESIGNER' | 'DEVELOPER')[];
 }
 
 export default function ProjectSharingPanel() {
@@ -71,7 +71,7 @@ export default function ProjectSharingPanel() {
     <Card className="bg-zinc-900 border-zinc-800">
       <CardHeader>
         <CardTitle>My Projects</CardTitle>
-        <CardDescription>Share your projects with non-developer roles to allow them to chat about the codebase.</CardDescription>
+        <CardDescription>Share your projects with other roles to allow them to chat about the codebase.</CardDescription>
       </CardHeader>
       <CardContent>
         {projects.length === 0 ? (
@@ -81,8 +81,8 @@ export default function ProjectSharingPanel() {
             {projects.map(project => (
               <div key={project.id} className="border border-zinc-800 rounded-lg p-4 bg-zinc-950/50">
                 <h3 className="font-medium text-zinc-200 mb-4">{project.name}</h3>
-                <div className="flex gap-6">
-                  {['PM', 'QA', 'DESIGNER'].map(role => {
+                <div className="flex flex-wrap gap-6">
+                  {['DEVELOPER', 'PM', 'QA', 'DESIGNER'].map(role => {
                     const hasAccess = project.accessGrants.includes(role as any);
                     return (
                       <div key={role} className="flex items-center space-x-2">

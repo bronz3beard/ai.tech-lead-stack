@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
+import { getProjectAccessFilter } from '@/lib/access';
 
 export interface DashboardSearchParams {
   limit?: string;
@@ -48,8 +49,9 @@ export default async function DashboardPage({
     limit: parsedLimit,
   });
 
-  // Fetch all projects for "Public" view as requested
+  // Fetch only projects the user is authorized to see
   const authorizedProjects = await prisma.project.findMany({
+    where: getProjectAccessFilter(session.user),
     orderBy: { name: 'asc' },
   });
 
