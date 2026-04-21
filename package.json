@@ -48,7 +48,7 @@
     "dev": "prisma generate && next dev",
     "build": "prisma generate && next build",
     "start": "next start",
-    "lint:next": "next lint ."
+    "lint:next": "next lint"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.68",
@@ -103,7 +103,6 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.5",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
@@ -113,8 +112,8 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "dotenv": "^17.4.2",
-    "eslint": "^8.57.1",
-    "eslint-config-next": "^16.2.4",
+    "eslint": "^10.2.0",
+    "eslint-config-next": "^16.2.3",
     "husky": "^9.1.7",
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^30.3.0",
