@@ -1,5 +1,5 @@
 ---
-name: strategy-target-evalutaion
+name: strategy-target-evaluation
 description: Product Strategy Audit
 ---
 

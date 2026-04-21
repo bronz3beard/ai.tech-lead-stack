@@ -9,7 +9,7 @@ export const WORKFLOW_ROLES: Record<string, string[]> = {
   "onboard-dev": ["DEVELOPER", "ADMIN"],
   "security-audit": ["DEVELOPER", "ADMIN"],
   "standup-daily-summary": ["DEVELOPER", "PM", "QA"],
-  "strategy-target-evalutaion": ["DEVELOPER", "PM"],
+  "strategy-target-evaluation": ["DEVELOPER", "PM"],
   "style-logic-exporter": ["DEVELOPER", "DESIGNER"],
 
   // Developer Only
@@ -38,7 +38,7 @@ export const WORKFLOW_DESCRIPTIONS: Record<string, string> = {
   "onboard-dev": "Accelerate ramp-up on new infrastructure/repositories",
   "security-audit": "Scan agent configurations for security vulnerabilities",
   "standup-daily-summary": "Analyze git activity for daily reports",
-  "strategy-target-evalutaion": "High-density product strategy and roadmap audit",
+  "strategy-target-evaluation": "High-density product strategy and roadmap audit",
   "style-logic-exporter": "Extract design tokens and styles for Figma/Code alignment",
   "pm-story-augmenter": "Enhance user stories with technical depth and edge-case detection",
   "pm-effort-estimator": "Estimate development effort based on codebase history and complexity",

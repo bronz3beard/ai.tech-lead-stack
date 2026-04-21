@@ -1,11 +1,33 @@
+// Mock langfuse to prevent ESM dynamic import issues in Node 22
+jest.mock('langfuse', () => ({
+  Langfuse: jest.fn().mockImplementation(() => ({})),
+}));
+
+// Mock telemetry to prevent real telemetry service from loading
+jest.mock('../telemetry', () => ({
+  Telemetry: jest.fn().mockImplementation(() => ({
+    withAnalytics: jest
+      .fn()
+      .mockImplementation(
+        (
+          _skill: string,
+          _project: string,
+          _model: string,
+          _agent: string,
+          _cost: string | undefined,
+          callback: () => Promise<any>
+        ) => callback()
+      ),
+  })),
+}));
+
 import { FileSystemService } from '@/lib/skills';
+import * as fs from 'fs/promises';
 import { Handlers } from '../handlers';
 import { Telemetry } from '../telemetry';
-import * as fs from 'fs/promises';
 
 // Mock the services
 jest.mock('@/lib/skills/fs-service');
-jest.mock('../telemetry');
 jest.mock('fs/promises');
 
 describe('MCP Server', () => {
@@ -83,7 +105,9 @@ describe('MCP Server', () => {
       mockFsService.findProjectRoot.mockResolvedValue('/mock/app');
 
       // Mock package.json read
-      (fs.readFile as jest.Mock).mockResolvedValue(JSON.stringify({ name: 'app' }));
+      (fs.readFile as jest.Mock).mockResolvedValue(
+        JSON.stringify({ name: 'app' })
+      );
 
       const result = await handlers.handleGetSkill('get_skill', {
         skillName: 'test-skill',

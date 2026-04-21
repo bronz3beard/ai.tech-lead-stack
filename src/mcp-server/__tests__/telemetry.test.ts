@@ -1,3 +1,4 @@
+import { telemetryService } from '@/lib/telemetry-service';
 import { Telemetry } from '../telemetry';
 
 // Mock child_process to prevent actual shell commands
@@ -16,51 +17,22 @@ jest.mock('../../lib/trace-utils', () => ({
   isSkillTrace: jest.fn().mockReturnValue(false),
 }));
 
-// Mock langfuse
-const mockUpdate = jest.fn();
-const mockGeneration = jest.fn();
-const mockTrace = jest.fn(() => ({
-  update: mockUpdate,
-  generation: mockGeneration,
+// Mock telemetryService from the library
+jest.mock('@/lib/telemetry-service', () => ({
+  telemetryService: {
+    recordEvent: jest.fn().mockResolvedValue({ id: 'mock-event-id' }),
+  },
 }));
-const mockFlushAsync = jest.fn();
-
-jest.mock('langfuse', () => {
-  return {
-    Langfuse: jest.fn().mockImplementation(() => ({
-      trace: mockTrace,
-      flushAsync: mockFlushAsync,
-    })),
-  };
-});
 
 describe('Telemetry', () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    process.env = {
-      ...originalEnv,
-      LANGFUSE_PUBLIC_KEY: 'test-pub-key',
-      LANGFUSE_SECRET_KEY: 'test-sec-key',
-    };
   });
 
   afterEach(() => {
     process.env = originalEnv;
-  });
-
-  it('should initialize successfully when env vars are present', () => {
-    const telemetry = new Telemetry();
-    expect(telemetry['isConfigured']).toBe(true);
-    expect(telemetry['langfuse']).not.toBeNull();
-  });
-
-  it('should not initialize if keys are placeholders', () => {
-    process.env.LANGFUSE_PUBLIC_KEY = 'placeholder';
-    process.env.LANGFUSE_SECRET_KEY = 'placeholder';
-    const telemetry = new Telemetry();
-    expect(telemetry['isConfigured']).toBe(false);
   });
 
   describe('withAnalytics', () => {
@@ -73,28 +45,26 @@ describe('Telemetry', () => {
         'test-project',
         'test-model',
         'test-agent',
-        undefined,
+        'high',
         mockCallback
       );
 
       expect(result).toBe('SuccessResult');
       expect(mockCallback).toHaveBeenCalled();
 
-      expect(mockTrace).toHaveBeenCalledWith(expect.objectContaining({
-        name: 'skill:test-skill',
-        userId: 'testuser@example.com',
-      }));
-
-      expect(mockGeneration).toHaveBeenCalledWith(expect.objectContaining({
-        name: 'generation:test-skill',
-        output: 'SuccessResult',
-      }));
-
-      expect(mockUpdate).toHaveBeenCalledWith({
-        output: 'Skill test-skill executed successfully.',
-      });
-
-      expect(mockFlushAsync).toHaveBeenCalled();
+      expect(telemetryService.recordEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skillName: 'test-skill',
+          projectName: 'test-project',
+          model: 'test-model',
+          agent: 'test-agent',
+          status: 'SUCCESS',
+          metadata: expect.objectContaining({
+            skillCost: 'high',
+            source: 'mcp',
+          }),
+        })
+      );
     });
 
     it('should handle errors in callback and trace them', async () => {
@@ -115,19 +85,13 @@ describe('Telemetry', () => {
 
       expect(mockCallback).toHaveBeenCalled();
 
-      expect(mockTrace).toHaveBeenCalledWith(expect.objectContaining({
-        name: 'skill:test-skill-error',
-      }));
-
-      expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
-        output: 'Error executing skill test-skill-error: Skill execution failed',
-        metadata: expect.objectContaining({
+      expect(telemetryService.recordEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skillName: 'test-skill-error',
+          status: 'ERROR',
           error: 'Skill execution failed',
-          stack: mockError.stack,
-        }),
-      }));
-
-      expect(mockFlushAsync).toHaveBeenCalled();
+        })
+      );
     });
 
     it('should handle non-Error thrown objects', async () => {
@@ -145,14 +109,13 @@ describe('Telemetry', () => {
         )
       ).rejects.toEqual('String error');
 
-      expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({
-        output: 'Error executing skill test-skill-string-error: String error',
-        metadata: expect.objectContaining({
+      expect(telemetryService.recordEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skillName: 'test-skill-string-error',
+          status: 'ERROR',
           error: 'String error',
-        }),
-      }));
-
-      expect(mockFlushAsync).toHaveBeenCalled();
+        })
+      );
     });
   });
 });

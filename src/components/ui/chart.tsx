@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import {
   Bar,
   CartesianGrid,
@@ -12,7 +13,6 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { useState, useEffect } from 'react';
 
 const DEFAULT_COLORS = [
   '#60a5fa', // Soft Blue
@@ -34,6 +34,7 @@ export function BarChart({
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMounted(true);
   }, []);
 
@@ -76,7 +77,10 @@ export function BarChart({
           />
           <Bar dataKey="total" radius={[4, 4, 0, 0]}>
             {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+              <Cell
+                key={`cell-${index}`}
+                fill={colors[index % colors.length]}
+              />
             ))}
           </Bar>
         </RechartsBarChart>
@@ -93,6 +97,7 @@ export function LineChart({
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMounted(true);
   }, []);
 
