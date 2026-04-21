@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
+import { getProjectAccessFilter } from '@/lib/access';
 
 export interface DashboardSearchParams {
   limit?: string;
@@ -35,20 +36,10 @@ export default async function DashboardPage({
   const { limit, from, to, view, project } = await searchParams;
   const filterByUser = view === 'me';
   const parsedLimit =
-    limit === 'all' || !limit ? undefined : parseInt(limit, 10);
+    limit === 'all' ? -1 : (limit ? parseInt(limit, 10) : undefined);
 
   const timeframe: string | undefined =
     limit && !['10', '20', '50', '100'].includes(limit) ? limit : undefined;
-
-  // Sync recent traces from Langfuse to ensure dashboard is up to date
-  // We do this server-side to resolve the "empty dashboard" issue
-  // Increased limit from 20 to 100 to handle larger backlogs
-  console.log('[Dashboard] Initializing data sync...');
-  try {
-    await syncTracesFromLangfuse(100);
-  } catch (syncError) {
-    console.error('[Dashboard] Managed sync failure:', syncError);
-  }
 
   const traces = await getAnalytics({
     userId: filterByUser ? resolvedUserId : undefined,
@@ -58,8 +49,9 @@ export default async function DashboardPage({
     limit: parsedLimit,
   });
 
-  // Fetch all projects for "Public" view as requested
+  // Fetch only projects the user is authorized to see
   const authorizedProjects = await prisma.project.findMany({
+    where: getProjectAccessFilter(session.user),
     orderBy: { name: 'asc' },
   });
 

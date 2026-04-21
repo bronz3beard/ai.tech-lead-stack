@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { getProjectAccessFilter } from '@/lib/access';
 
 const RegisterProjectSchema = z.object({
   name: z.string().min(1),
@@ -25,15 +26,8 @@ export async function GET() {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  const isPrivilegedRole = session.user.role === 'ADMIN' || session.user.role === 'DEVELOPER';
-
   const projects = await prisma.project.findMany({
-    where: isPrivilegedRole ? {} : {
-      OR: [
-        { ownerId: session.user.id },
-        { accessGrants: { some: { role: session.user.role as any } } }
-      ]
-    },
+    where: getProjectAccessFilter(session.user),
     orderBy: { name: 'asc' },
     select: { id: true, name: true, githubFullName: true, repoUrl: true, description: true },
   });

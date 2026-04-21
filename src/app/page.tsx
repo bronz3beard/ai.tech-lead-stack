@@ -21,6 +21,7 @@ async function getGlobalMetrics(projectId?: string, session?: any) {
     // We fetch a larger batch for the global view to ensure historical accuracy
     const allTraces = await getAnalytics({ 
       timeframe: 'all',
+      limit: -1, // Fetch all historical records
       projectName: projectId === 'all' ? undefined : projectId
     });
 
