@@ -33,7 +33,7 @@ export default async function DashboardPage({
   const user = await prisma.user.findUnique({ where: { email: userEmail } });
   const resolvedUserId = user ? user.id : userEmail;
 
-  const { limit, from, to, view, project } = await searchParams;
+  const { limit, view, project } = await searchParams;
   const filterByUser = view === 'me';
   const parsedLimit =
     limit === 'all' ? -1 : (limit ? parseInt(limit, 10) : undefined);
