@@ -86,7 +86,7 @@ export async function fetchAllPages<T>(
       headers: {
         Authorization: authHeader,
       },
-      next: { revalidate: 60 },
+      cache: 'no-store',
     });
 
     // Special Case: 429 Rate Limit exceeded after all retries

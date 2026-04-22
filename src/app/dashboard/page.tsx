@@ -41,6 +41,13 @@ export default async function DashboardPage({
   const timeframe: string | undefined =
     limit && !['10', '20', '50', '100'].includes(limit) ? limit : undefined;
 
+  // Background sync (throttled)
+  if (!filterByUser) {
+    syncTracesFromLangfuse(50).catch(err =>
+      console.error('[Dashboard] Background sync failed:', err)
+    );
+  }
+
   const traces = await getAnalytics({
     userId: filterByUser ? resolvedUserId : undefined,
     userEmail: filterByUser ? userEmail : undefined,

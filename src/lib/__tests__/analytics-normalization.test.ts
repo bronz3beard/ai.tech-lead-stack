@@ -9,8 +9,8 @@ describe('Analytics Normalization', () => {
     });
 
     it('should handle undefined and null', () => {
-      expect(normalizeProjectName(undefined)).toBe('global');
-      expect(normalizeProjectName(null as any)).toBe('global');
+      expect(normalizeProjectName(undefined)).toBe('tech-lead-stack');
+      expect(normalizeProjectName(null as any)).toBe('tech-lead-stack');
     });
 
     it('should handle special characters', () => {

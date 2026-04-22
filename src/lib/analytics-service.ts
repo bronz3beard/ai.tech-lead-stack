@@ -24,7 +24,15 @@ export interface TraceData {
  * This runs periodically or on-demand to ensure the DB stays updated even if 
  * live recording fails.
  */
-export async function syncTracesFromLangfuse(limit?: number) {
+let lastSyncTime = 0;
+const SYNC_COOLDOWN = 5 * 60 * 1000; // 5 minutes
+
+export async function syncTracesFromLangfuse(limit?: number, force = false) {
+  if (!force && Date.now() - lastSyncTime < SYNC_COOLDOWN) {
+    console.log('[AnalyticsSync] Skipping sync: recently updated.');
+    return { count: 0, status: 'SKIPPED_COOLDOWN' };
+  }
+
   const publicKey = process.env.LANGFUSE_PUBLIC_KEY;
   const secretKey = process.env.LANGFUSE_SECRET_KEY;
   const baseUrl = process.env.LANGFUSE_BASE_URL || 'https://cloud.langfuse.com';
@@ -116,6 +124,7 @@ export async function syncTracesFromLangfuse(limit?: number) {
     }
 
     console.log(`[AnalyticsSync] Sync completed. Persisted ${syncedCount} new records.`);
+    lastSyncTime = Date.now();
     return { count: syncedCount, status: 'SUCCESS' };
   } catch (error) {
     console.error('[AnalyticsSync] Sync failed:', error);

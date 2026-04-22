@@ -10,7 +10,7 @@
  */
 export function normalizeProjectName(name: string | undefined | null): string {
   if (!name || typeof name !== 'string' || name.toLowerCase().trim() === 'unknown' || name.trim() === '') {
-    return 'global';
+    return 'tech-lead-stack';
   }
 
   let normalized = name.toLowerCase().trim();
