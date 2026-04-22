@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
-import { normalizeProjectName, normalizeSkillName } from './trace-utils';
 import { fetchAllPages } from './langfuse-api';
+import { normalizeProjectName, normalizeSkillName } from './trace-utils';
 
 export interface TraceData {
   id: string;
@@ -21,7 +21,7 @@ export interface TraceData {
 
 /**
  * Syncs the latest traces from Langfuse API into the Postgres database.
- * This runs periodically or on-demand to ensure the DB stays updated even if 
+ * This runs periodically or on-demand to ensure the DB stays updated even if
  * live recording fails.
  */
 let lastSyncTime = 0;
@@ -38,14 +38,16 @@ export async function syncTracesFromLangfuse(limit?: number, force = false) {
   const baseUrl = process.env.LANGFUSE_BASE_URL || 'https://cloud.langfuse.com';
 
   if (!publicKey || !secretKey || publicKey === 'placeholder') {
-    console.warn('[AnalyticsSync] Skipping sync: Langfuse credentials not configured.');
+    console.warn(
+      '[AnalyticsSync] Skipping sync: Langfuse credentials not configured.'
+    );
     return { count: 0, status: 'SKIPPED' };
   }
 
   try {
     console.log(`[AnalyticsSync] Starting sync... limit: ${limit || 'ALL'}`);
     const authHeader = `Basic ${Buffer.from(`${publicKey}:${secretKey}`).toString('base64')}`;
-    
+
     // Use enhanced fetchAllPages utility
     const queryParams = new URLSearchParams();
     queryParams.set('orderBy', 'timestamp.desc');
@@ -57,34 +59,41 @@ export async function syncTracesFromLangfuse(limit?: number, force = false) {
       authHeader,
       limit
     );
-    console.log(`[AnalyticsSync] Fetched ${traces.length} total traces from Langfuse.`);
+    console.log(
+      `[AnalyticsSync] Fetched ${traces.length} total traces from Langfuse.`
+    );
 
     let syncedCount = 0;
-    console.log(`[AnalyticsSync] Processing ${traces.length} traces from Langfuse...`);
+    console.log(
+      `[AnalyticsSync] Processing ${traces.length} traces from Langfuse...`
+    );
 
     for (const trace of traces) {
       // 1. Process project and skill names
-      const rawProject = trace.metadata?.projectName || 
-                         trace.metadata?.projectId ||
-                         trace.tags?.find((t: string) => !t.includes(':')) || 
-                         'tech-lead-stack';
-      
+      const rawProject =
+        trace.metadata?.projectName ||
+        trace.metadata?.projectId ||
+        trace.tags?.find((t: string) => !t.includes(':')) ||
+        'tech-lead-stack';
+
       const normalizedProject = normalizeProjectName(rawProject);
-      const normalizedSkill = normalizeSkillName(trace.name?.replace('skill:', '') || 'unknown');
+      const normalizedSkill = normalizeSkillName(
+        trace.name?.replace('skill:', '') || 'unknown'
+      );
 
       // 2. Resolve User ID if possible
       let resolvedUserId: string | null = null;
       if (trace.userId && trace.userId.includes('@')) {
         const user = await prisma.user.findUnique({
           where: { email: trace.userId },
-          select: { id: true }
+          select: { id: true },
         });
         if (user) resolvedUserId = user.id;
       }
 
       // 3. Manual Upsert to support historical correction since langfuseTraceId is not @unique in schema
       const existing = await prisma.analyticsEvent.findFirst({
-        where: { langfuseTraceId: trace.id }
+        where: { langfuseTraceId: trace.id },
       });
 
       const eventData = {
@@ -102,14 +111,14 @@ export async function syncTracesFromLangfuse(limit?: number, force = false) {
         metadata: {
           ...trace.metadata,
           syncedAt: new Date().toISOString(),
-          isSynced: true
-        }
+          isSynced: true,
+        },
       };
 
       if (existing) {
         await prisma.analyticsEvent.update({
           where: { id: existing.id },
-          data: eventData
+          data: eventData,
         });
       } else {
         await prisma.analyticsEvent.create({
@@ -117,13 +126,15 @@ export async function syncTracesFromLangfuse(limit?: number, force = false) {
             ...eventData,
             langfuseTraceId: trace.id,
             createdAt: new Date(trace.timestamp),
-          }
+          },
         });
       }
       syncedCount++;
     }
 
-    console.log(`[AnalyticsSync] Sync completed. Persisted ${syncedCount} new records.`);
+    console.log(
+      `[AnalyticsSync] Sync completed. Persisted ${syncedCount} new records.`
+    );
     lastSyncTime = Date.now();
     return { count: syncedCount, status: 'SUCCESS' };
   } catch (error) {
@@ -132,8 +143,8 @@ export async function syncTracesFromLangfuse(limit?: number, force = false) {
   }
 }
 
-export async function getAnalytics(filters: { 
-  userId?: string; 
+export async function getAnalytics(filters: {
+  userId?: string;
   userEmail?: string;
   timeframe?: string;
   projectName?: string;
@@ -143,13 +154,13 @@ export async function getAnalytics(filters: {
 
   if (filters.userEmail || filters.userId) {
     let resolvedUserId = filters.userId;
-    
+
     // If we have an email but no CUID, try to find the user to get the CUID
     // This ensures we can match standard userId fields in AnalyticsEvent
     if (filters.userEmail && !resolvedUserId) {
-      const user = await prisma.user.findUnique({ 
+      const user = await prisma.user.findUnique({
         where: { email: filters.userEmail },
-        select: { id: true }
+        select: { id: true },
       });
       if (user) {
         resolvedUserId = user.id;
@@ -158,7 +169,9 @@ export async function getAnalytics(filters: {
 
     where.OR = [
       ...(resolvedUserId ? [{ userId: resolvedUserId }] : []),
-      ...(filters.userEmail ? [{ metadata: { path: ['userEmail'], equals: filters.userEmail } }] : [])
+      ...(filters.userEmail
+        ? [{ metadata: { path: ['userEmail'], equals: filters.userEmail } }]
+        : []),
     ];
 
     if (where.OR.length === 0) delete where.OR;
@@ -199,33 +212,47 @@ export async function getAnalytics(filters: {
     }
 
     // Only apply timeframe filter if it was a valid preset
-    if (filters.timeframe && ['1yr', '6mo', '3mo', '1mo', 'week', 'day', 'today'].includes(filters.timeframe)) {
+    if (
+      filters.timeframe &&
+      ['1yr', '6mo', '3mo', '1mo', 'week', 'day', 'today'].includes(
+        filters.timeframe
+      )
+    ) {
       where.createdAt = { gte: fromDate };
     }
   }
 
-  console.log('[AnalyticsService] Fetching with where:', JSON.stringify(where, null, 2), 'limit:', filters.limit);
+  console.log(
+    '[AnalyticsService] Fetching with where:',
+    JSON.stringify(where, null, 2),
+    'limit:',
+    filters.limit
+  );
 
   const events = await prisma.analyticsEvent.findMany({
     where,
     orderBy: { createdAt: 'desc' },
-    take: filters.limit === -1 ? undefined : (filters.limit || 1000), // Default to 1000 if not specified, -1 for all
+    take: filters.limit === -1 ? undefined : filters.limit || 1000, // Default to 1000 if not specified, -1 for all
   });
 
   console.log(`[AnalyticsService] Found ${events.length} events`);
 
   return events.map((event) => {
     const metadata = (event.metadata as Record<string, any>) || {};
-    
+
     // Attribution Fallback Hierarchy: root projectName -> metadata.projectName -> metadata.projectId -> tag (none here) -> fallback
-    const projectName = event.projectName || metadata.projectName || metadata.projectId || 'tech-lead-stack';
+    const projectName =
+      event.projectName ||
+      metadata.projectName ||
+      metadata.projectId ||
+      'tech-lead-stack';
 
     return {
       id: event.id,
       name: event.skillName || 'unnamed-trace',
       timestamp: event.createdAt.toISOString(),
-      sessionId: event.langfuseTraceId || undefined, 
-      projectName: projectName, 
+      sessionId: event.langfuseTraceId || undefined,
+      projectName: projectName,
       model: event.model || 'unknown',
       agent: event.agent || 'unknown',
       duration: event.duration || undefined,
