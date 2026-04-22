@@ -16,6 +16,7 @@ import {
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { Telemetry } from '@/mcp-server/telemetry';
+import { telemetryService } from '@/lib/telemetry-service';
 import {
   CHAT_GUARD_INSTRUCTION,
   MAX_ANALYTICAL_STEPS,
@@ -464,6 +465,7 @@ export async function POST(req: Request) {
                 });
               }
 
+              let lastStepTime = Date.now();
               const result = await streamText({
                 model,
                 system: finalSystemInstruction,
@@ -472,6 +474,10 @@ export async function POST(req: Request) {
                 maxRetries: 0, // Manual rotation handled here
                 stopWhen: stepCountIs(MAX_ANALYTICAL_STEPS),
                 onStepFinish: async (event) => {
+                  const now = Date.now();
+                  const stepDuration = (now - lastStepTime) / 1000;
+                  lastStepTime = now;
+
                   try {
                     if (event.toolCalls && event.toolCalls.length > 0) {
                       stepCount++;
@@ -481,6 +487,38 @@ export async function POST(req: Request) {
                       for (const call of event.toolCalls) {
                         const callAny = call as any;
                         const resultPart = event.toolResults.find(r => r.toolCallId === call.toolCallId) as any;
+
+                        // --- EXECUTION TELEMETRY ---
+                        // Capture get_skill and discrete skill tools for analytics
+                        const isSkillTool =
+                          call.toolName === 'get_skill' ||
+                          (!['list_skills', 'read_file', 'list_files', 'run_command'].includes(call.toolName));
+
+                        if (isSkillTool) {
+                          const args = callAny.args || callAny.input || {};
+                          const skillName = call.toolName === 'get_skill'
+                            ? (args.name || args.skillName || args.skill_id || 'unknown-skill')
+                            : call.toolName;
+
+                          // Record skill execution event asynchronously
+                          telemetryService.recordEvent({
+                            skillName,
+                            projectName: project.name,
+                            model: config.modelId,
+                            agent: 'pm-assistant',
+                            duration: stepDuration,
+                            status: resultPart && resultPart.result?.error ? 'ERROR' : 'SUCCESS',
+                            error: resultPart && resultPart.result?.error ? String(resultPart.result.error) : undefined,
+                            userEmail: user.email ?? undefined,
+                            metadata: {
+                              chatId: currentChatId,
+                              toolCallId: call.toolCallId,
+                              stepNumber: stepCount,
+                              source: 'chat-v2-execution',
+                            }
+                          }).catch(err => console.error('[Telemetry] Execution log failed:', err));
+                        }
+
                         if (resultPart) {
                           const args = callAny.args || callAny.input || {};
                           

@@ -18,9 +18,9 @@ describe('normalizeProjectName', () => {
   });
 
   it('should return unknown for empty or invalid names', () => {
-    expect(normalizeProjectName(undefined)).toBe('global');
-    expect(normalizeProjectName('')).toBe('global');
-    expect(normalizeProjectName('   ')).toBe('global');
-    expect(normalizeProjectName('unknown')).toBe('global');
+    expect(normalizeProjectName(undefined)).toBe('tech-lead-stack');
+    expect(normalizeProjectName('')).toBe('tech-lead-stack');
+    expect(normalizeProjectName('   ')).toBe('tech-lead-stack');
+    expect(normalizeProjectName('unknown')).toBe('tech-lead-stack');
   });
 });

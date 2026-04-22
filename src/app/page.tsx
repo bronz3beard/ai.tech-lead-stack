@@ -1,10 +1,8 @@
-import { TraceData } from '@/components/dashboard/DashboardContent';
 import { DashboardDisclaimer } from '@/components/dashboard/DashboardDisclaimer';
 import { InsightsTable } from '@/components/dashboard/InsightsTable';
 import { ProjectSelect, type Project } from '@/components/ProjectSelect';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, LineChart } from '@/components/ui/chart';
-import { langfuseLabel } from '@/lib/langfuse-labels';
 import { isSkillTrace, isActiveSkill, normalizeSkillName } from '@/lib/trace-utils';
 import { getAnalytics } from '@/lib/analytics-service';
 import { getServerSession } from 'next-auth';

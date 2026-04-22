@@ -74,8 +74,8 @@ export class TelemetryService {
 
     const normalizedSkill = normalizeSkillName(params.skillName);
     const normalizedProject = normalizeProjectName(params.projectName);
-    const resolvedModel = langfuseLabel(params.model);
-    const resolvedAgent = langfuseLabel(params.agent);
+    const resolvedModel = langfuseLabel(params.model || 'unknown-model');
+    const resolvedAgent = langfuseLabel(params.agent || 'unknown-agent');
 
     const promptTokens = params.promptTokens || 0;
     const completionTokens = params.completionTokens || 0;
