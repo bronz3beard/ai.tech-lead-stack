@@ -3,7 +3,6 @@ import { langfuseLabel } from './langfuse-labels';
 import { prisma } from './prisma';
 import { normalizeProjectName, normalizeSkillName } from './trace-utils';
 
-
 export interface TelemetryMetadata {
   skillName: string;
   projectName: string;
@@ -21,16 +20,26 @@ export class TelemetryService {
   private static instance: TelemetryService;
   private langfuse: Langfuse | null = null;
   private isConfigured = false;
-  private publicKey: string | undefined;
-  private secretKey: string | undefined;
-  private baseUrl: string;
-
+  private publicKey: string | undefined = '';
+  private secretKey: string | undefined = '';
+  private baseUrl: string = '';
 
   private constructor() {
+    this.configure();
+  }
+
+  /**
+   * Internal configuration logic.
+   * Can be called during construction or as a fallback if env vars
+   * are loaded after initial singleton instantiation.
+   */
+  private configure(): boolean {
+    if (this.isConfigured) return true;
+
     this.publicKey = process.env.LANGFUSE_PUBLIC_KEY;
     this.secretKey = process.env.LANGFUSE_SECRET_KEY;
     this.baseUrl =
-      process.env.LANGFUSE_BASE_URL || 'https://cloud.langfuse.com';
+      process.env.LANGFUSE_BASE_URL || 'https://us.cloud.langfuse.com';
 
     if (
       this.publicKey &&
@@ -38,12 +47,33 @@ export class TelemetryService {
       this.publicKey !== 'placeholder' &&
       this.secretKey !== 'placeholder'
     ) {
-      this.langfuse = new Langfuse({ 
-        publicKey: this.publicKey, 
-        secretKey: this.secretKey, 
-        baseUrl: this.baseUrl 
-      });
-      this.isConfigured = true;
+      try {
+        this.langfuse = new Langfuse({
+          publicKey: this.publicKey,
+          secretKey: this.secretKey,
+          baseUrl: this.baseUrl,
+        });
+        this.isConfigured = true;
+        const projectShort = this.publicKey.split('-')[1] || 'unknown';
+        console.log(
+          `[Telemetry] Service successfully configured for project ${projectShort}`
+        );
+        return true;
+      } catch (err) {
+        console.error('[Telemetry] Failed to initialize Langfuse client:', err);
+        return false;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Ensures the service is configured before recording an event.
+   * Handles cases where the singleton is instantiated before environment variables are loaded.
+   */
+  private ensureConfigured() {
+    if (!this.isConfigured) {
+      this.configure();
     }
   }
 
@@ -71,6 +101,7 @@ export class TelemetryService {
     userEmail?: string;
     metadata?: Record<string, any>;
   }) {
+    this.ensureConfigured();
 
     const normalizedSkill = normalizeSkillName(params.skillName);
     const normalizedProject = normalizeProjectName(params.projectName);
@@ -81,8 +112,8 @@ export class TelemetryService {
     const completionTokens = params.completionTokens || 0;
 
     // Estimate total cost based on GPT-4o pricing
-    const inputCost = (promptTokens / 1_000_000) * 5.00;
-    const outputCost = (completionTokens / 1_000_000) * 15.00;
+    const inputCost = (promptTokens / 1_000_000) * 5.0;
+    const outputCost = (completionTokens / 1_000_000) * 15.0;
     const totalCost = Number((inputCost + outputCost).toFixed(6));
 
     // 1. Log to Langfuse (Async)
@@ -125,8 +156,10 @@ export class TelemetryService {
 
     // 2. Log to Postgres
     try {
-      console.log(`[Telemetry] Starting Postgres recording for skill: ${normalizedSkill}`);
-      
+      console.log(
+        `[Telemetry] Starting Postgres recording for skill: ${normalizedSkill}`
+      );
+
       let resolvedUserId: string | null = null;
       if (
         params.userEmail &&
@@ -140,12 +173,19 @@ export class TelemetryService {
           });
           if (user) {
             resolvedUserId = user.id;
-            console.log(`[Telemetry] Resolved userId ${resolvedUserId} for email ${params.userEmail}`);
+            console.log(
+              `[Telemetry] Resolved userId ${resolvedUserId} for email ${params.userEmail}`
+            );
           } else {
-            console.warn(`[Telemetry] No user found for email ${params.userEmail}`);
+            console.warn(
+              `[Telemetry] No user found for email ${params.userEmail}`
+            );
           }
         } catch (authError) {
-          console.error('[Telemetry] User lookup failed, continuing anonymously:', authError);
+          console.error(
+            '[Telemetry] User lookup failed, continuing anonymously:',
+            authError
+          );
         }
       }
 
@@ -169,13 +209,16 @@ export class TelemetryService {
           userEmail: params.userEmail,
           projectName: normalizedProject,
           estimatedCost: totalCost,
-        }
+        },
       };
-      
-      console.log(`[Telemetry] Persistence Payload:`, JSON.stringify(eventData, null, 2));
+
+      console.log(
+        `[Telemetry] Persistence Payload:`,
+        JSON.stringify(eventData, null, 2)
+      );
 
       const event = await prisma.analyticsEvent.create({
-        data: eventData
+        data: eventData,
       });
 
       console.log(
@@ -184,7 +227,9 @@ export class TelemetryService {
 
       // Async enrichment: Fetch actual usage from Langfuse if possible
       if (langfuseTraceId) {
-        console.log(`[Telemetry] Triggering async enrichment for trace ${langfuseTraceId}...`);
+        console.log(
+          `[Telemetry] Triggering async enrichment for trace ${langfuseTraceId}...`
+        );
         this.enrichEvent(event.id, langfuseTraceId).catch((err) => {
           console.error('[Telemetry] Enrichment failed:', err);
         });
@@ -192,7 +237,10 @@ export class TelemetryService {
 
       return event;
     } catch (dbError: any) {
-      console.error('[Telemetry] CRITICAL: Failed to log to Postgres:', dbError);
+      console.error(
+        '[Telemetry] CRITICAL: Failed to log to Postgres:',
+        dbError
+      );
       // Log more details if it's a Prisma error
       if (dbError.code) {
         console.error(`[Telemetry] Prisma Error Code: ${dbError.code}`);
@@ -213,18 +261,24 @@ export class TelemetryService {
       await new Promise((r) => setTimeout(r, 2000));
 
       const authHeader = `Basic ${Buffer.from(`${this.publicKey}:${this.secretKey}`).toString('base64')}`;
-      const response = await fetch(`${this.baseUrl}/api/public/traces/${traceId}`, {
-        headers: { Authorization: authHeader },
-      });
+      const response = await fetch(
+        `${this.baseUrl}/api/public/traces/${traceId}`,
+        {
+          headers: { Authorization: authHeader },
+        }
+      );
 
       if (!response.ok) return;
 
       const traceDetails = await response.json();
-      
+
       // Attempt to extract usage from any of the generations associated with this trace
       // In a more complex scenario, we'd sum all generations, but for a skill trace, there's usually one primary.
-      const generations = traceDetails.observations?.filter((o: any) => o.type === 'GENERATION') || [];
-      
+      const generations =
+        traceDetails.observations?.filter(
+          (o: any) => o.type === 'GENERATION'
+        ) || [];
+
       let enrichedPromptTokens = 0;
       let enrichedCompletionTokens = 0;
       let enrichedTotalCost = 0;
@@ -249,7 +303,9 @@ export class TelemetryService {
             },
           },
         });
-        console.log(`[Telemetry] Enriched event ${eventId} with actual Langfuse data.`);
+        console.log(
+          `[Telemetry] Enriched event ${eventId} with actual Langfuse data.`
+        );
       }
     } catch (err) {
       console.warn('[Telemetry] Enrichment suppressed:', err);
@@ -280,51 +336,60 @@ export async function withAnalytics<T, U>(
 
     try {
       const output = await skill(input);
-      
+
       // Fire-and-forget logging
       const duration = (Date.now() - startTime) / 1000;
-      const outputStr = typeof output === 'string' ? output : JSON.stringify(output);
+      const outputStr =
+        typeof output === 'string' ? output : JSON.stringify(output);
       const completionTokens = Math.ceil(outputStr.length / 4);
       const promptTokens = 500; // Baseline estimation
 
-      telemetryService.recordEvent({
-        skillName,
-        projectName: context.projectName || context.projectId,
-        model: context.model,
-        agent: context.agent,
-        duration,
-        status,
-        userEmail: context.userId,
-        promptTokens,
-        completionTokens,
-        metadata: {
-          ...context.metadata,
-          input: typeof input === 'object' ? input : { value: input },
-          source: 'chat-v2',
-        },
-      }).catch(err => console.error('[Telemetry] withAnalytics log failed:', err));
+      telemetryService
+        .recordEvent({
+          skillName,
+          projectName: context.projectName || context.projectId,
+          model: context.model,
+          agent: context.agent,
+          duration,
+          status,
+          userEmail: context.userId,
+          promptTokens,
+          completionTokens,
+          metadata: {
+            ...context.metadata,
+            input: typeof input === 'object' ? input : { value: input },
+            source: 'chat-v2',
+          },
+        })
+        .catch((err) =>
+          console.error('[Telemetry] withAnalytics log failed:', err)
+        );
 
       return output;
     } catch (error) {
       status = 'ERROR';
       errorMessage = error instanceof Error ? error.message : String(error);
-      
+
       const duration = (Date.now() - startTime) / 1000;
-      telemetryService.recordEvent({
-        skillName,
-        projectName: context.projectName || context.projectId,
-        model: context.model,
-        agent: context.agent,
-        duration,
-        status,
-        error: errorMessage,
-        userEmail: context.userId,
-        metadata: {
-          ...context.metadata,
-          input: typeof input === 'object' ? input : { value: input },
-          source: 'chat-v2-error',
-        },
-      }).catch(err => console.error('[Telemetry] withAnalytics error log failed:', err));
+      telemetryService
+        .recordEvent({
+          skillName,
+          projectName: context.projectName || context.projectId,
+          model: context.model,
+          agent: context.agent,
+          duration,
+          status,
+          error: errorMessage,
+          userEmail: context.userId,
+          metadata: {
+            ...context.metadata,
+            input: typeof input === 'object' ? input : { value: input },
+            source: 'chat-v2-error',
+          },
+        })
+        .catch((err) =>
+          console.error('[Telemetry] withAnalytics error log failed:', err)
+        );
 
       throw error;
     }
@@ -332,4 +397,3 @@ export async function withAnalytics<T, U>(
 }
 
 export const telemetryService = TelemetryService.getInstance();
-

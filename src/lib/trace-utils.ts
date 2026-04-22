@@ -1,15 +1,19 @@
 /**
  * Normalizes a project name for consistent grouping and filtering.
- * 
+ *
  * - Trims whitespace
  * - Converts to lowercase
  * - Extracts the base name from scoped packages (e.g., "@scope/name" -> "name")
- * 
+ *
  * @param name - The raw project name (e.g., "@bronz3beard/tech-lead-stack")
  * @returns The normalized project name (e.g., "tech-lead-stack")
  */
 export function normalizeProjectName(name: string | undefined | null): string {
-  if (!name || typeof name !== 'string' || name.toLowerCase().trim() === 'unknown' || name.trim() === '') {
+  if (
+    !name ||
+    typeof name !== 'string' ||
+    ['unknown', 'global', 'all', ''].includes(name.toLowerCase().trim())
+  ) {
     return 'tech-lead-stack';
   }
 
@@ -32,12 +36,12 @@ export function normalizeProjectName(name: string | undefined | null): string {
     .replace(/^ai\./, '')
     .replace(/-(mcp|analytics|llms|bridge|code-review)$/, '')
     .replace(/[^a-z0-9]+/g, '-') // Convert spaces and special chars to dashes
-    .replace(/^-+|-+$/g, '');   // Trim leading/trailing dashes
+    .replace(/^-+|-+$/g, ''); // Trim leading/trailing dashes
 }
 
 /**
  * Normalizes a skill name to kebab-case for consistent tracing and lookups.
- * 
+ *
  * @param name - The raw skill name (e.g., "Planning Expert", "planningExpert")
  * @returns The normalized skill name (e.g., "planning-expert")
  */
@@ -49,33 +53,33 @@ export function normalizeSkillName(name: string | undefined | null): string {
     .trim()
     .replace(/\.md$/, '')
     .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with dashes
-    .replace(/^-+|-+$/g, '');   // Trim leading/trailing dashes
+    .replace(/^-+|-+$/g, ''); // Trim leading/trailing dashes
 }
 
 /**
  * Checks if a skill name is active and should be tracked.
- * 
+ *
  * Any skill that is not explicitly identified as a "system/meta-trace" via
  * isSkillTrace is considered active and will be tracked in telemetry.
- * 
+ *
  * @param skillName - The name of the skill to check.
  * @returns True if the skill is active and should be tracked.
  */
 export function isActiveSkill(skillName: string | undefined): boolean {
   if (!skillName) return false;
-  
+
   const normalized = normalizeSkillName(skillName);
-  
+
   // Broad Validation: If it's not a known system/skeletal trace, it's active.
   return !isSkillTrace(undefined, normalized);
 }
 
 /**
  * Checks if a trace should be filtered out from dashboard metrics and telemetry.
- * 
+ *
  * Blocks traces that are explicitly "unknown" or match "meta-skill" patterns
  * used by the system for internal tracing or skeletal generation.
- * 
+ *
  * @param name - The full trace name (e.g., "skill:planning-expert")
  * @param skillName - The extracted skill name (e.g., "planning-expert")
  * @returns True if the trace is a system/meta trace and should be hidden.
@@ -86,13 +90,18 @@ export function isSkillTrace(name?: string, skillName?: string): boolean {
 
   // Strictly filter out truly unknown/empty identities
   if (!name && !skillName) return true;
-  if (normalizedName === 'unknown' && normalizedSkill === 'unknown') return true;
+  if (normalizedName === 'unknown' && normalizedSkill === 'unknown')
+    return true;
 
   const forbidden = ['skill', 'skill-md', 'skill-skill', 'generation-skill'];
-  
+
   // If the trace name is forbidden, block it if skill identity is also forbidden or missing.
   if (forbidden.includes(normalizedName)) {
-    if (!skillName || normalizedSkill === 'unknown' || forbidden.includes(normalizedSkill)) {
+    if (
+      !skillName ||
+      normalizedSkill === 'unknown' ||
+      forbidden.includes(normalizedSkill)
+    ) {
       return true;
     }
   }
