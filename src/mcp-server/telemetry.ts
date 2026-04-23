@@ -1,4 +1,4 @@
-import { telemetryService } from '../lib/telemetry-service.js';
+import { telemetryService } from '../lib/telemetry-service';
 import {
   isSkillTrace,
   normalizeProjectName,
