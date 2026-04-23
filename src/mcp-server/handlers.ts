@@ -1,8 +1,8 @@
-import { FileSystemService } from "../lib/skills/fs-service.js";
-import { Telemetry } from "./telemetry.js";
-import { isSkillTrace } from "../lib/trace-utils.js";
-import * as path from "path";
-import * as fs from "fs/promises";
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import { FileSystemService } from '../lib/skills/fs-service.js';
+import { isSkillTrace } from '../lib/trace-utils.js';
+import { Telemetry } from './telemetry.js';
 
 /**
  * Handlers manages the execution logic for all MCP tools.
@@ -26,21 +26,23 @@ export class Handlers {
         try {
           const files = await fs.readdir(dir);
           files
-            .filter(file => file.endsWith(".md"))
-            .forEach(file => allSkills.add(path.basename(file, ".md")));
-        } catch { /* skip directory if missing */ }
+            .filter((file) => file.endsWith('.md'))
+            .forEach((file) => allSkills.add(path.basename(file, '.md')));
+        } catch {
+          /* skip directory if missing */
+        }
       })
     );
 
     const skillFiles = Array.from(allSkills)
-      .filter(skill => !isSkillTrace(undefined, skill))
+      .filter((skill) => !isSkillTrace(undefined, skill))
       .sort();
 
     return {
       content: [
         {
-          type: "text",
-          text: `Available skills (found in ${searchDirs.join(", ")}):\n${skillFiles.map(s => `- ${s}`).join("\n")}`,
+          type: 'text',
+          text: `Available skills (found in ${searchDirs.join(', ')}):\n${skillFiles.map((s) => `- ${s}`).join('\n')}`,
         },
       ],
       isError: false,
@@ -57,13 +59,17 @@ export class Handlers {
     const agent = args.agent as string | undefined;
 
     // Normalize tool name to skill filename
-    const isDiscreteTool = name.startsWith("get_") && name !== "get_skill" && name !== "get_skills";
-    
+    const isDiscreteTool =
+      name.startsWith('get_') && name !== 'get_skill' && name !== 'get_skills';
+
     // Reverse map: "get_planning_expert" -> "planning-expert"
-    const toolToSkillName = (tool: string) => tool.replace(/^get_/, "").replace(/_/g, "-");
-    
-    const effectiveSkillName = isDiscreteTool ? toolToSkillName(name) : path.basename(skillName || "unknown", ".md");
-    const safeSkillName = path.basename(effectiveSkillName, ".md");
+    const toolToSkillName = (tool: string) =>
+      tool.replace(/^get_/, '').replace(/_/g, '-');
+
+    const effectiveSkillName = isDiscreteTool
+      ? toolToSkillName(name)
+      : path.basename(skillName || 'unknown', '.md');
+    const safeSkillName = path.basename(effectiveSkillName, '.md');
 
     const skill = await this.fsService.readSkill(safeSkillName);
 
@@ -71,56 +77,42 @@ export class Handlers {
       const { content: rawContent } = skill;
       let actualProjectName = projectName;
 
-      // Robust detection pipeline via FileSystemService
-      if (!actualProjectName || 
-          actualProjectName.toLowerCase() === 'unknown' || 
-          actualProjectName === '.' || 
-          actualProjectName === 'tech-lead-stack') {
-         
-         const projectRoot = await this.fsService.findProjectRoot(/*turbopackIgnore: true*/ process.cwd());
-         if (projectRoot) {
-            try {
-              const packagePath = path.join(projectRoot, "package.json");
-              const pkg = JSON.parse(await fs.readFile(packagePath, "utf-8"));
-              if (pkg.name && !pkg.name.includes("tech-lead-stack")) {
-                actualProjectName = pkg.name;
-              } else {
-                actualProjectName = path.basename(projectRoot);
-              }
-            } catch {
-              actualProjectName = path.basename(projectRoot);
-            }
-         } else {
-            // If still unknown, use the current folder name but try to extract meaningful context
-            const cwd = /*turbopackIgnore: true*/ process.cwd();
-            actualProjectName = path.basename(cwd) === 'tech-lead-stack' 
-              ? 'tech-lead-stack-internal' 
-              : path.basename(cwd);
-         }
-      } else {
-        // If projectName is provided, try to find its root to ensure we are in the right place
-        const projectRoot = await this.fsService.findProjectRoot(/*turbopackIgnore: true*/ process.cwd());
+      const isTrustedProjectName =
+        !!actualProjectName &&
+        actualProjectName.toLowerCase() !== 'unknown' &&
+        actualProjectName !== '.' &&
+        !actualProjectName.includes('tech-lead-stack');
+
+      if (!isTrustedProjectName) {
+        // Attempt to resolve the caller's project root. findProjectRoot skips the
+        // tech-lead-stack itself, so null means we are the server - use a safe fallback.
+        const projectRoot = await this.fsService.findProjectRoot(
+          /*turbopackIgnore: true*/ process.cwd()
+        );
         if (projectRoot) {
           try {
-            const packagePath = path.join(projectRoot, "package.json");
-            const pkg = JSON.parse(await fs.readFile(packagePath, "utf-8"));
-            // If the package name doesn't match the passed projectName, we might be misaligned
-            if (pkg.name !== actualProjectName && !actualProjectName.includes(pkg.name)) {
-               console.warn(`Project name mismatch: expected ${actualProjectName}, found ${pkg.name} at ${projectRoot}`);
-            }
+            const packagePath = path.join(projectRoot, 'package.json');
+            const pkg = JSON.parse(await fs.readFile(packagePath, 'utf-8'));
+            actualProjectName =
+              pkg.name && !pkg.name.includes('tech-lead-stack')
+                ? pkg.name
+                : path.basename(projectRoot);
           } catch {
-            // fallback
+            actualProjectName = path.basename(projectRoot);
           }
+        } else {
+          // cwd is the tech-lead-stack install itself - record as anonymous
+          actualProjectName = 'unknown-project';
         }
       }
 
       const shouldSkipAnalytics = isSkillTrace(undefined, safeSkillName);
-      
-      let skillCost = "unknown";
+
+      let skillCost = 'unknown';
       const metaMatch = rawContent.match(/cost:\s*(.*)/);
       if (metaMatch) skillCost = metaMatch[1].trim();
 
-      const fileContent = shouldSkipAnalytics 
+      const fileContent = shouldSkipAnalytics
         ? rawContent
         : await this.telemetry.withAnalytics(
             safeSkillName,
@@ -132,16 +124,18 @@ export class Handlers {
           );
 
       return {
-        content: [{ type: "text", text: fileContent }],
+        content: [{ type: 'text', text: fileContent }],
         isError: false,
       };
     }
 
     return {
-      content: [{ 
-        type: "text", 
-        text: `Error: Skill file "${safeSkillName}" not found. Use list_skills to see available skills.` 
-      }],
+      content: [
+        {
+          type: 'text',
+          text: `Error: Skill file "${safeSkillName}" not found. Use list_skills to see available skills.`,
+        },
+      ],
       isError: true,
     };
   }

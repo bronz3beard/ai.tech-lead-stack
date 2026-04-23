@@ -9,10 +9,18 @@ import { CodeProvider } from './providers/base-provider';
 export class FileSystemService implements CodeProvider {
   private repoSkillsDir: string;
   private repoWorkflowsDir: string;
+  /** Root of the caller's project (not the tech-lead-stack repo itself). Null when cwd IS the tech-lead-stack. */
+  private clientProjectRoot: string | null;
 
-  constructor(repoRoot: string) {
+  constructor(repoRoot: string, clientProjectRoot: string | null = null) {
     this.repoSkillsDir = path.join(repoRoot, '.ai', 'skills');
     this.repoWorkflowsDir = path.join(repoRoot, '.agents', 'workflows');
+    this.clientProjectRoot = clientProjectRoot;
+  }
+
+  /** Updates the resolved client project root after async discovery at startup. */
+  setClientProjectRoot(root: string | null): void {
+    this.clientProjectRoot = root;
   }
 
   /**
@@ -23,7 +31,10 @@ export class FileSystemService implements CodeProvider {
     let current = startDir;
     while (current !== path.parse(current).root) {
       try {
-        const pkgPath = path.join(/*turbopackIgnore: true*/ current, 'package.json');
+        const pkgPath = path.join(
+          /*turbopackIgnore: true*/ current,
+          'package.json'
+        );
         await fs.access(pkgPath);
         const pkg = JSON.parse(await fs.readFile(pkgPath, 'utf-8'));
 
@@ -63,16 +74,29 @@ export class FileSystemService implements CodeProvider {
       }
     >();
 
-    // Check local project skills/workflows
-    const localSkillsDir = path.join(/*turbopackIgnore: true*/ process.cwd(), '.ai', 'skills');
-    const localWorkflowsDir = path.join(/*turbopackIgnore: true*/ process.cwd(), '.agents', 'workflows');
+    // Build search dirs. When clientProjectRoot is set (caller's project), include
+    // its local skills/workflows first. When null (we are the tech-lead-stack itself),
+    // skip local lookups to avoid double-counting or wrong paths.
+    const searchConfigs: { dir: string; type: 'skill' | 'workflow' }[] = [];
 
-    const searchConfigs = [
-      { dir: localSkillsDir, type: 'skill' as const },
-      { dir: this.repoSkillsDir, type: 'skill' as const },
-      { dir: localWorkflowsDir, type: 'workflow' as const },
-      { dir: this.repoWorkflowsDir, type: 'workflow' as const },
-    ];
+    if (this.clientProjectRoot) {
+      searchConfigs.push(
+        {
+          dir: path.join(this.clientProjectRoot, '.ai', 'skills'),
+          type: 'skill',
+        },
+        {
+          dir: path.join(this.clientProjectRoot, '.agents', 'workflows'),
+          type: 'workflow',
+        }
+      );
+    }
+
+    // Always include the tech-lead-stack repo skills/workflows as the authoritative source
+    searchConfigs.push(
+      { dir: this.repoSkillsDir, type: 'skill' },
+      { dir: this.repoWorkflowsDir, type: 'workflow' }
+    );
 
     for (const config of searchConfigs) {
       try {
@@ -123,18 +147,26 @@ export class FileSystemService implements CodeProvider {
     safeName: string,
     type: 'skill' | 'workflow' = 'skill'
   ): Promise<{ content: string; path: string } | null> {
-    const localDir =
-      type === 'skill'
-        ? path.join(/*turbopackIgnore: true*/ process.cwd(), '.ai', 'skills')
-        : path.join(/*turbopackIgnore: true*/ process.cwd(), '.agents', 'workflows');
-
     const repoDir =
       type === 'skill' ? this.repoSkillsDir : this.repoWorkflowsDir;
 
-    const searchDirs = [localDir, repoDir];
+    // Only include local dir when we have a resolved client project root
+    const localDir = this.clientProjectRoot
+      ? path.join(
+          this.clientProjectRoot,
+          type === 'skill'
+            ? path.join('.ai', 'skills')
+            : path.join('.agents', 'workflows')
+        )
+      : null;
+
+    const searchDirs = [...(localDir ? [localDir] : []), repoDir];
 
     for (const dir of searchDirs) {
-      const fullPath = path.join(/*turbopackIgnore: true*/ dir, `${safeName}.md`);
+      const fullPath = path.join(
+        /*turbopackIgnore: true*/ dir,
+        `${safeName}.md`
+      );
       try {
         const content = await fs.readFile(fullPath, 'utf-8');
         return { content, path: fullPath };
@@ -149,7 +181,10 @@ export class FileSystemService implements CodeProvider {
    * Reads an arbitrary file from the project root.
    */
   async readFile(relativePath: string): Promise<string> {
-    const fullPath = path.join(/*turbopackIgnore: true*/ process.cwd(), relativePath);
+    const fullPath = path.join(
+      /*turbopackIgnore: true*/ process.cwd(),
+      relativePath
+    );
     return await fs.readFile(fullPath, 'utf-8');
   }
 
@@ -157,11 +192,14 @@ export class FileSystemService implements CodeProvider {
    * Get all directory search paths for skill discovery.
    */
   getSearchDirs(): string[] {
-    return [
-      path.join(/*turbopackIgnore: true*/ process.cwd(), '.ai', 'skills'),
-      this.repoSkillsDir,
-      path.join(/*turbopackIgnore: true*/ process.cwd(), '.agents', 'workflows'),
-      this.repoWorkflowsDir,
-    ];
+    const dirs: string[] = [];
+    if (this.clientProjectRoot) {
+      dirs.push(
+        path.join(this.clientProjectRoot, '.ai', 'skills'),
+        path.join(this.clientProjectRoot, '.agents', 'workflows')
+      );
+    }
+    dirs.push(this.repoSkillsDir, this.repoWorkflowsDir);
+    return dirs;
   }
 }

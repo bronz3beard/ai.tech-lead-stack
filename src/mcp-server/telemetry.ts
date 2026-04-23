@@ -1,4 +1,4 @@
-import { telemetryService } from '../lib/telemetry-service';
+import { telemetryService } from '../lib/telemetry-service.js';
 import {
   isSkillTrace,
   normalizeProjectName,
@@ -69,23 +69,29 @@ export class Telemetry implements ITelemetry {
       const duration = (Date.now() - startTime) / 1000;
 
       try {
-        await telemetryService.recordEvent({
-          skillName,
-          projectName: normalizedProject,
-          model,
-          agent,
-          duration,
-          status,
-          error: errorMessage,
-          promptTokens,
-          completionTokens,
-          userEmail,
-          metadata: {
-            userName,
-            skillCost: skillCost || 'unknown',
-            source: 'mcp',
-          },
-        });
+        if (telemetryService?.recordEvent) {
+          await telemetryService.recordEvent({
+            skillName,
+            projectName: normalizedProject,
+            model,
+            agent,
+            duration,
+            status,
+            error: errorMessage,
+            promptTokens,
+            completionTokens,
+            userEmail,
+            metadata: {
+              userName,
+              skillCost: skillCost || 'unknown',
+              source: 'mcp',
+            },
+          });
+        } else {
+          console.error(
+            '[MCP Telemetry] telemetryService unavailable - skipping recording.'
+          );
+        }
       } catch (logError) {
         console.error(
           '[MCP Telemetry] Failed to delegate recording:',

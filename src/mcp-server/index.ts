@@ -1,6 +1,49 @@
 #!/usr/bin/env node
 
 /**
+ * CRITICAL: Full stdout protection for MCP stdio transport.
+ *
+ * dotenv v17+ and other dependencies call process.stdout.write() directly,
+ * bypassing console.log overrides. This intercept redirects ALL writes to
+ * stderr before the MCP transport is connected, so no dependency advertisement
+ * or log can corrupt the JSON-RPC stream.
+ *
+ * Once server.connect() is called, the MCP SDK takes ownership of stdout and
+ * this intercept is no longer needed.
+ */
+let mcpTransportConnected = false;
+
+const _originalStdoutWrite = process.stdout.write.bind(process.stdout);
+
+process.stdout.write = (
+  chunk: string | Uint8Array,
+  encodingOrCallback?: BufferEncoding | ((err?: Error | null) => void),
+  callback?: (err?: Error | null) => void
+): boolean => {
+  if (!mcpTransportConnected) {
+    // Redirect to stderr — don't let anything pollute stdout before MCP connects
+    process.stderr.write(chunk as string | Uint8Array);
+    const cb =
+      typeof encodingOrCallback === 'function' ? encodingOrCallback : callback;
+    if (cb) cb();
+    return true;
+  }
+  if (typeof encodingOrCallback === 'function') {
+    return _originalStdoutWrite(chunk, encodingOrCallback);
+  }
+  return _originalStdoutWrite(
+    chunk,
+    encodingOrCallback as BufferEncoding,
+    callback
+  );
+};
+
+// Also redirect console.log in case anything uses it
+console.log = (...args: any[]) => {
+  console.error(...args);
+};
+
+/**
  * Tech-Lead Stack MCP Server
  *
  * Refactored to follow SOLID principles (SRP, OCP, DIP).
@@ -24,6 +67,27 @@ import { Telemetry } from './telemetry.js';
 const telemetry = new Telemetry();
 const fsService = new FileSystemService(repoRoot);
 const handlers = new Handlers(fsService, telemetry);
+
+// Resolve caller's project root once at startup (after dotenv has loaded)
+// fsService.findProjectRoot skips the tech-lead-stack itself, returning null when cwd IS the server.
+fsService
+  .findProjectRoot(process.cwd())
+  .then((clientRoot) => {
+    fsService.setClientProjectRoot(clientRoot);
+    if (clientRoot) {
+      console.error(`[MCP] Resolved client project root: ${clientRoot}`);
+    } else {
+      console.error(
+        '[MCP] Running as standalone server - local skill lookup disabled.'
+      );
+    }
+  })
+  .catch(() => {
+    // Non-fatal: server continues with only repo skills
+    console.error(
+      '[MCP] Client project root discovery failed - using repo skills only.'
+    );
+  });
 
 const server = new Server(
   {
@@ -118,6 +182,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function runServer() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
+  // Release stdout back to MCP SDK — intercept no longer needed
+  mcpTransportConnected = true;
   console.error('Tech-Lead Stack Analytics MCP Server running on stdio');
 }
 

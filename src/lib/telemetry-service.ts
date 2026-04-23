@@ -34,7 +34,9 @@ export class TelemetryService {
    * are loaded after initial singleton instantiation.
    */
   private configure(): boolean {
-    if (this.isConfigured) return true;
+    // Only skip re-initialization if the Langfuse client is already instantiated.
+    // Do NOT gate on isConfigured alone — env vars may arrive after the first configure() call.
+    if (this.langfuse) return true;
 
     this.publicKey = process.env.LANGFUSE_PUBLIC_KEY;
     this.secretKey = process.env.LANGFUSE_SECRET_KEY;
@@ -55,7 +57,7 @@ export class TelemetryService {
         });
         this.isConfigured = true;
         const projectShort = this.publicKey.split('-')[1] || 'unknown';
-        console.log(
+        console.error(
           `[Telemetry] Service successfully configured for project ${projectShort}`
         );
         return true;
@@ -156,7 +158,7 @@ export class TelemetryService {
 
     // 2. Log to Postgres
     try {
-      console.log(
+      console.error(
         `[Telemetry] Starting Postgres recording for skill: ${normalizedSkill}`
       );
 
@@ -173,7 +175,7 @@ export class TelemetryService {
           });
           if (user) {
             resolvedUserId = user.id;
-            console.log(
+            console.error(
               `[Telemetry] Resolved userId ${resolvedUserId} for email ${params.userEmail}`
             );
           } else {
@@ -189,7 +191,7 @@ export class TelemetryService {
         }
       }
 
-      console.log(`[Telemetry] Attempting database recording for event...`);
+      console.error(`[Telemetry] Attempting database recording for event...`);
       const eventData = {
         skillName: normalizedSkill,
         userId: resolvedUserId,
@@ -212,7 +214,7 @@ export class TelemetryService {
         },
       };
 
-      console.log(
+      console.error(
         `[Telemetry] Persistence Payload:`,
         JSON.stringify(eventData, null, 2)
       );
@@ -221,13 +223,13 @@ export class TelemetryService {
         data: eventData,
       });
 
-      console.log(
+      console.error(
         `[Telemetry] Successfully recorded event to DB: ${normalizedSkill} (ID: ${event.id}, Status: ${params.status})`
       );
 
       // Async enrichment: Fetch actual usage from Langfuse if possible
       if (langfuseTraceId) {
-        console.log(
+        console.error(
           `[Telemetry] Triggering async enrichment for trace ${langfuseTraceId}...`
         );
         this.enrichEvent(event.id, langfuseTraceId).catch((err) => {
@@ -303,7 +305,7 @@ export class TelemetryService {
             },
           },
         });
-        console.log(
+        console.error(
           `[Telemetry] Enriched event ${eventId} with actual Langfuse data.`
         );
       }
@@ -396,4 +398,17 @@ export async function withAnalytics<T, U>(
   };
 }
 
-export const telemetryService = TelemetryService.getInstance();
+/**
+ * Lazy singleton accessor. Deferred until first use to avoid ESM hoisting
+ * race conditions where this module evaluates before dotenv loads env vars.
+ */
+let _telemetryServiceInstance: TelemetryService | null = null;
+
+export const telemetryService: Pick<TelemetryService, 'recordEvent'> = {
+  recordEvent: (params) => {
+    if (!_telemetryServiceInstance) {
+      _telemetryServiceInstance = TelemetryService.getInstance();
+    }
+    return _telemetryServiceInstance.recordEvent(params);
+  },
+};
