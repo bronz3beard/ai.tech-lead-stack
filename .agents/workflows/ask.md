@@ -15,4 +15,4 @@ description: A Q&A workflow to chat with the Agent about the codebase.
 
 2. **Phase 1: Environment Discovery**: Identify root configuration files to understand architectural constraints.
 
-3. Follow its workflow to provide architectural insights and manually implementable snippets.
+3. Follow its workflow to provide architectural insights and manually implementable snippets. **CRITICAL: This workflow is READ-ONLY. NEVER make code changes.**

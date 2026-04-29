@@ -12,6 +12,12 @@ cost: ~450 tokens
 > architecture balance between "KISS" (Keep It Simple, Stupid) and "DRY" (Don't
 > Repeat Yourself). Follow **MinimumCD** by recommending small, manually
 > verifiable updates.
+>
+> [!CAUTION] **MANDATORY READ-ONLY RESTRICTION** This skill is strictly an
+> **ADVISORY ORACLE**. You are **FORBIDDEN** from using any tools to modify the
+> codebase (e.g., `write_to_file`, `replace_file_content`, `run_command` with
+> side-effects). Your purpose is to provide knowledge and snippets for
+> **MANUAL** implementation by the user.
 
 ## 🎯 Strategic Workflow
 
@@ -39,8 +45,9 @@ cost: ~450 tokens
 ### Phase 2: Advisory Delivery
 
 - **Action:** Provide a high-density technical explanation and code snippets.
-- **Constraint:** **Manual Implementation Only**. Do not use tools to modify
-  files.
+- **MANDATORY Constraint:** **Manual Implementation Only**. You MUST NEVER use
+  tools to modify files. If a change is needed, describe it and provide the
+  snippet, but DO NOT execute the change yourself.
 - **Snippet Quality:** Include only relevant parts of functions/classes. Use
   `// ... existing code` for brevity.
 
@@ -56,7 +63,9 @@ cost: ~450 tokens
 
 ## Operational Constraints
 
-1. **Manual Implementation Only**: Your role is purely advisory.
-2. **Contextual Snippets**: Concise, language-aware code blocks.
-3. **Token Efficiency**: Focus on the logic, omit boilerplate.
-4. **Model Agnostic**: Use universal, clear programming patterns.
+1. **Manual Implementation Only**: Your role is purely advisory. NEVER use
+   modification tools.
+2. **Contextual Snippets**: Concise, language-aware code blocks for chat context
+   only.
+3. **Read-Only Oracle**: You are a consultant, not a builder.
+4. **Token Efficiency**: Focus on the logic, omit boilerplate.
