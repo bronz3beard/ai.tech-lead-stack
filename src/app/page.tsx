@@ -78,7 +78,12 @@ async function getGlobalMetrics(projectId?: string, session?: any) {
     const skillCounts: Record<string, number> = {};
     const timeBuckets: Record<string, number> = {};
 
-    finalTraces.forEach((trace) => {
+    // Sort chronologically (oldest to newest) for the Activity Timeline
+    const chronologicalTraces = [...finalTraces].sort(
+      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+
+    chronologicalTraces.forEach((trace) => {
       // Aggregate by skill
       let rawSkillName = trace.name;
       if (trace.name && trace.name.startsWith('skill:')) {
@@ -90,8 +95,9 @@ async function getGlobalMetrics(projectId?: string, session?: any) {
 
       skillCounts[skillName] = (skillCounts[skillName] || 0) + 1;
 
-      // Aggregate by time
+      // Aggregate by time - include weekday for tooltip as requested
       const dateKey = new Date(trace.timestamp).toLocaleDateString(undefined, {
+        weekday: 'short',
         month: 'short',
         day: 'numeric',
       });

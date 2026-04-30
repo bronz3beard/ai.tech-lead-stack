@@ -128,19 +128,13 @@ export function DashboardContent({
         workflows.add(trace.sessionId);
       }
 
-      // Time series: format to include time, date, and day
-      const date = new Date(trace.timestamp);
-      // Example: "Dec 15, Mon 2:30 PM"
-      const dateStr = date.toLocaleDateString(undefined, {
+      // Time series: format to include weekday and date for a clear timeline
+      // Example: "Thu, Apr 30"
+      const dateKey = new Date(trace.timestamp).toLocaleDateString(undefined, {
+        weekday: 'short',
         month: 'short',
         day: 'numeric',
       });
-      const dayStr = date.toLocaleDateString(undefined, { weekday: 'short' });
-      const timeStr = date.toLocaleTimeString(undefined, {
-        hour: 'numeric',
-        minute: '2-digit',
-      });
-      const dateKey = `${dateStr}, ${dayStr} ${timeStr}`;
       timeBuckets[dateKey] = (timeBuckets[dateKey] || 0) + 1;
     }
 
