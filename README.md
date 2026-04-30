@@ -100,11 +100,13 @@ lead-init
 
 ---
 
-## 🧠 The G-Stack Methodology
+## 🧠 The Methodology: Three Pillars
 
-The "Tech-Lead Stack" is built upon the **G-Stack Methodology**, a
-technology-agnostic engineering framework inspired by the **garrytan/gstack**
-ethos and **MinimumCD** principles.
+The "Tech-Lead Stack" is built upon three foundational pillars of modern engineering excellence:
+
+1. **G-Stack**: A technology-agnostic engineering framework inspired by the **garrytan/gstack** ethos, focusing on modularity and diagnosis-first planning.
+2. **MinimumCD**: A priority on small, atomic batches of work, continuous automated verification, and early detection of regression risks.
+3. **Agent Skills**: A high-discipline [Production-Grade Ethos](https://github.com/addyosmani/agent-skills) that prevents "shortcut" logic and ensures AI agents default to professional engineering standards.
 
 ### Core Tenets:
 
@@ -120,6 +122,12 @@ ethos and **MinimumCD** principles.
    regression risks.
 4. **Clean Context & RTK Execution**: We use dedicated RTK tools to maintain
    "Context Hygiene" and ensure every action is repeatable and auditable.
+
+### Production-Grade Ethos
+Our methodology is reinforced by the [Agent Skills](https://github.com/addyosmani/agent-skills) ethos, ensuring AI agents default to high-discipline engineering rather than the shortest path:
+- **Process over Prose**: We follow structured workflows with specific verification gates.
+- **Anti-Rationalization**: We combat common AI excuses (e.g., "I'll add tests later") with mandatory quality gates.
+- **Verification is Non-Negotiable**: Every task must end with hard evidence (tests, logs, or screenshots).
 
 > [!NOTE] **G-Stack is a Methodology, not a Stack**: While the name implies a
 > specific technology set, the Tech-Lead Stack treats "G-Stack" as an
@@ -449,6 +457,7 @@ tech-lead-stack/
 - https://migration.minimumcd.org/docs/reference/practices/continuous-integration/
 - https://agents.md/
 - https://github.com/bdfinst/agentic-dev-team?tab=readme-ov-file#review-agents
+- https://github.com/addyosmani/agent-skills
 
 ---
 
@@ -502,7 +511,8 @@ async readSkill(safeSkillName: string) {
 | :----------------------------- | :------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------- | :--------------------- |
 | **`accessibility-auditor`**    | Specialized audit for Web Accessibility (A11y). Scans for contrast, semantics, and ARIA debt.                  | Static analysis via `grep`, visual scrutiny of CSS, and read-only runtime DOM inspection.                       | Ensuring WCAG 2.1 compliance and multi-viewport accessibility.              | ~650 tokens            |
 | **`mission-architect`**        | Master Blueprint Engine. Orchestrates Strategy -> Research -> Plan -> Deliver for complex features.            | Strategic extraction from roadmaps, deep codebase audit, and multi-stage planning via `planning-expert`.        | Designing and executing a major architectural change or multi-file feature. | ~1300 tokens           |
-| **`planning-expert`**          | Lightweight Research, Strategic Planning, and Task Decomposition for daily coding tasks.                       | Rapid codebase scan followed by an atomic G-Stack blueprint and commit-ready task list.                         | Breaking down a standard Jira ticket or bug fix into test-driven steps.     | ~550 tokens            |
+| **`planning-expert`**          | The complete Planning Expert. Orchestrates deep pattern discovery, vertical slicing, and safe incremental delivery. | Deep codebase audit followed by an atomic G-Stack blueprint and commit-ready task list.                         | Breaking down complex Jira tickets or architectural refactors into test-driven steps. | ~850 tokens            |
+| **`planning-expert-quick`**    | Ultra-lean strategic planning. Optimized for speed, token efficiency, and rapid MVC delivery.                   | Anchors tech stack followed by a condensed W/W/H blueprint and rapid execution cycle.                           | Common, less complex, lite-weight tasks where velocity is the priority.      | ~600 tokens            |
 | **`regression-bug-fix`**       | Unified remediation engine for resolving QA, Design Review (DR), and Regression feedback.                      | Maps feedback to code impact, generates a localized remediation plan, and verifies the fix against regressions. | Fixing "Login button misaligned" or "API returning 500" after a QA pass.    | ~1350 tokens           |
 | **`code-review-checklist`**    | High-density pre-commit quality auditor for verifying functionality and G-Stack standards.                     | Analyzes local diffs against 4 gates (Spec, SOLID, A11y, Evidence), ensuring zero `any` types and compliance.   | Rapid local verification before running `rtk run create-pr`.                | ~650 tokens            |
 | **`clean-code`**               | Architectural auditor enforcing SOLID principles and programmatic standards (KISS, DRY, YAGNI).                | Scans for "God Objects" and tight coupling. Recommends strategy patterns and colocation of code.                | Checking a new feature branch before merging to prevent technical debt.     | ~950 tokens            |
