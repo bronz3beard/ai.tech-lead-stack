@@ -22,24 +22,28 @@ jest.mock('../telemetry', () => ({
 }));
 
 import { FileSystemService } from '@/lib/skills';
+import { KiService } from '@/lib/ki/ki-service';
 import * as fs from 'fs/promises';
 import { Handlers } from '../handlers';
 import { Telemetry } from '../telemetry';
 
 // Mock the services
 jest.mock('@/lib/skills/fs-service');
+jest.mock('@/lib/ki/ki-service');
 jest.mock('fs/promises');
 
 describe('MCP Server', () => {
   let handlers: Handlers;
   let mockFsService: jest.Mocked<FileSystemService>;
   let mockTelemetry: jest.Mocked<Telemetry>;
+  let mockKiService: jest.Mocked<KiService>;
 
   beforeEach(() => {
     mockFsService = new FileSystemService(
       'mock-root'
     ) as jest.Mocked<FileSystemService>;
     mockTelemetry = new Telemetry() as jest.Mocked<Telemetry>;
+    mockKiService = new KiService() as jest.Mocked<KiService>;
 
     // Default mock implementations
     mockFsService.getSearchDirs.mockReturnValue(['mock-dir-1', 'mock-dir-2']);
@@ -61,7 +65,7 @@ describe('MCP Server', () => {
       }
     );
 
-    handlers = new Handlers(mockFsService, mockTelemetry);
+    handlers = new Handlers(mockFsService, mockTelemetry, mockKiService);
   });
 
   describe('CallToolRequestSchema handler - get_skills / get_skill', () => {

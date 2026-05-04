@@ -213,6 +213,11 @@ else
     echo "❌ RTK setup failed. Please install it manually: https://rtk-ai.app"
 fi
 
+# 4b. Antigravity Knowledge Items Bootstrap
+echo "📚 Bootstrapping Antigravity Knowledge Items directory..."
+mkdir -p "$HOME/.gemini/antigravity/knowledge"
+echo "   ✅ Knowledge Items directory initialized: $HOME/.gemini/antigravity/knowledge"
+
 # 5. Generic MCP Configuration (Claude Desktop, etc.)
 setup_mcp_environment() {
     # Check common configuration paths for various agents/IDEs

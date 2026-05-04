@@ -59,16 +59,23 @@ import {
 import './config.js';
 import { repoRoot } from './config.js';
 
+import { KiService } from '../lib/ki/ki-service.js';
+import { AlignmentService } from '../lib/skills/alignment-service.js';
 import { FileSystemService } from '../lib/skills/fs-service.js';
 import { Handlers } from './handlers.js';
 import { Telemetry } from './telemetry.js';
-import { AlignmentService } from '../lib/skills/alignment-service.js';
 
 // Initialize Services
 const telemetry = new Telemetry();
 const fsService = new FileSystemService(repoRoot);
 const alignmentService = new AlignmentService(repoRoot); // Default to repoRoot, updated if clientRoot found
-const handlers = new Handlers(fsService, telemetry, alignmentService);
+const kiService = new KiService();
+const handlers = new Handlers(
+  fsService,
+  telemetry,
+  alignmentService,
+  kiService
+);
 
 // Resolve caller's project root once at startup (after dotenv has loaded)
 // fsService.findProjectRoot skips the tech-lead-stack itself, returning null when cwd IS the server.
@@ -158,6 +165,71 @@ const VERIFY_MISSION_ALIGNMENT_TOOL: Tool = {
   },
 };
 
+const LIST_KI_TOOL: Tool = {
+  name: 'list_knowledge_items',
+  description: 'Lists all available Antigravity Knowledge Items.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      projectName: {
+        type: 'string',
+        description: 'Optional: Filter by project name',
+      },
+    },
+  },
+};
+
+const READ_KI_TOOL: Tool = {
+  name: 'read_knowledge_item',
+  description: 'Reads a specific Knowledge Item and its artifacts.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      slug: {
+        type: 'string',
+        description: 'The slug of the knowledge item to read',
+      },
+    },
+    required: ['slug'],
+  },
+};
+
+const CREATE_KI_TOOL: Tool = {
+  name: 'create_knowledge_item',
+  description: 'Creates or updates a Knowledge Item from the current context.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      slug: {
+        type: 'string',
+        description: 'Unique slug (e.g., auth-migration-insights)',
+      },
+      summary: {
+        type: 'string',
+        description: 'Concise summary of the knowledge',
+      },
+      artifacts: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            content: { type: 'string' },
+          },
+          required: ['name', 'content'],
+        },
+      },
+      projectName: {
+        type: 'string',
+        description: 'Optional: Scoped project name',
+      },
+      references: { type: 'array', items: { type: 'string' } },
+      tags: { type: 'array', items: { type: 'string' } },
+    },
+    required: ['slug', 'summary', 'artifacts'],
+  },
+};
+
 /**
  * Handlers: Tool Listing
  */
@@ -179,6 +251,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       GET_SKILLS_TOOL,
       GET_SKILL_TOOL,
       VERIFY_MISSION_ALIGNMENT_TOOL,
+      LIST_KI_TOOL,
+      READ_KI_TOOL,
+      CREATE_KI_TOOL,
       ...dynamicTools,
     ],
   };
@@ -204,6 +279,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   if (name === 'verify_mission_alignment') {
     return await handlers.handleVerifyMissionAlignment(args || {});
+  }
+
+  if (name === 'list_knowledge_items') {
+    return await handlers.handleListKnowledgeItems(args || {});
+  }
+
+  if (name === 'read_knowledge_item') {
+    return await handlers.handleReadKnowledgeItem(args || {});
+  }
+
+  if (name === 'create_knowledge_item') {
+    return await handlers.handleCreateKnowledgeItem(args || {});
   }
 
   throw new Error(`Unknown tool: ${name}`);

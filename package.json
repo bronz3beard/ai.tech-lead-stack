@@ -36,7 +36,7 @@
   "scripts": {
     "test": "jest",
     "setup-browsers": "npx playwright install chromium",
-    "postinstall": "prisma generate && npm run setup-browsers",
+    "postinstall": "[ -f prisma/schema.prisma ] && prisma generate || true",
     "format": "npx prettier --write \".ai/skills/*.md\" \"scripts/*.{js,mjs}\" \"README.md\"",
     "format:check": "npx prettier --check \".ai/skills/*.md\" \"scripts/*.{js,mjs}\" \"README.md\"",
     "lint": "npx markdownlint-cli \".ai/skills/*.md\"",
