@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { CalendarDays } from 'lucide-react';
-import * as React from 'react';
+import { ChangeEvent, useState } from 'react';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -83,16 +83,18 @@ function DatePickerInput({
   selectedDate,
   ...rest
 }: DatePickerInputProps) {
-  const [isOpen, setIsOpen] = React.useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   // Display format is dd/mm/yyyy; `value` prop is ISO yyyy-MM-dd
-  const [inputValue, setInputValue] = React.useState(() => toDisplay(value));
+  const [inputValue, setInputValue] = useState(() => toDisplay(value));
+  const [prevValue, setPrevValue] = useState(value);
 
   // Keep display input in sync when the ISO prop changes (e.g. from→to sync)
-  React.useEffect(() => {
+  if (value !== prevValue) {
     setInputValue(toDisplay(value));
-  }, [value]);
+    setPrevValue(value);
+  }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
     setInputValue(raw);
     // Only fire onChange when the user has typed a valid dd/mm/yyyy date

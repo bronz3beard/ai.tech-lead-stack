@@ -1,12 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { Loader2 } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface ApiKeyCardProps {
   provider: 'gemini' | 'claude' | 'openai';
@@ -14,7 +20,11 @@ interface ApiKeyCardProps {
   isSystemDefault?: boolean;
 }
 
-export default function ApiKeyCard({ provider, label, isSystemDefault }: ApiKeyCardProps) {
+export default function ApiKeyCard({
+  provider,
+  label,
+  isSystemDefault,
+}: ApiKeyCardProps) {
   const [hasKey, setHasKey] = useState(false);
   const [isDefault, setIsDefault] = useState(false);
   const [keyInput, setKeyInput] = useState('');
@@ -22,7 +32,7 @@ export default function ApiKeyCard({ provider, label, isSystemDefault }: ApiKeyC
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchStatus = async () => {
+  const fetchStatus = useCallback(async () => {
     try {
       const res = await fetch('/api/settings/api-keys');
       if (res.ok) {
@@ -36,12 +46,14 @@ export default function ApiKeyCard({ provider, label, isSystemDefault }: ApiKeyC
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [provider]);
 
   useEffect(() => {
-    fetchStatus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const init = async () => {
+      await fetchStatus();
+    };
+    init();
+  }, [fetchStatus]);
 
   const handleSave = async () => {
     if (!keyInput.trim()) return;
@@ -107,23 +119,38 @@ export default function ApiKeyCard({ provider, label, isSystemDefault }: ApiKeyC
   };
 
   useEffect(() => {
-    const onKeysUpdated = () => fetchStatus();
+    const onKeysUpdated = async () => {
+      await fetchStatus();
+    };
     window.addEventListener('api-keys-updated', onKeysUpdated);
     return () => window.removeEventListener('api-keys-updated', onKeysUpdated);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchStatus]);
 
   return (
-    <Card className={cn('bg-zinc-900 border-zinc-800', isDefault && 'border-blue-500/50')}>
+    <Card
+      className={cn(
+        'bg-zinc-900 border-zinc-800',
+        isDefault && 'border-blue-500/50'
+      )}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-lg flex items-center gap-2">
               {label}
-              {isDefault && <Badge variant="secondary" className="bg-blue-500/10 text-blue-500 border-blue-500/20">Default</Badge>}
+              {isDefault && (
+                <Badge
+                  variant="secondary"
+                  className="bg-blue-500/10 text-blue-500 border-blue-500/20"
+                >
+                  Default
+                </Badge>
+              )}
             </CardTitle>
             {isSystemDefault && (
-              <CardDescription className="text-xs mt-1">System default — used when no personal key is set</CardDescription>
+              <CardDescription className="text-xs mt-1">
+                System default — used when no personal key is set
+              </CardDescription>
             )}
           </div>
         </div>
@@ -135,15 +162,32 @@ export default function ApiKeyCard({ provider, label, isSystemDefault }: ApiKeyC
           </div>
         ) : hasKey ? (
           <div className="flex items-center justify-between bg-zinc-800/50 p-3 rounded-md">
-            <code className="text-sm text-zinc-400">•••••••••••••••• Saved</code>
+            <code className="text-sm text-zinc-400">
+              •••••••••••••••• Saved
+            </code>
             <div className="flex items-center gap-2">
               {!isDefault && (
-                <Button variant="outline" size="sm" onClick={handleSetDefault} className="h-8 border-zinc-700 hover:bg-zinc-800">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSetDefault}
+                  className="h-8 border-zinc-700 hover:bg-zinc-800"
+                >
                   Set as Default
                 </Button>
               )}
-              <Button variant="destructive" size="sm" onClick={handleDelete} disabled={isDeleting} className="h-8">
-                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Delete'}
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="h-8"
+              >
+                {isDeleting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  'Delete'
+                )}
               </Button>
             </div>
           </div>
@@ -156,8 +200,16 @@ export default function ApiKeyCard({ provider, label, isSystemDefault }: ApiKeyC
               onChange={(e) => setKeyInput(e.target.value)}
               className="bg-zinc-800 border-zinc-700"
             />
-            <Button onClick={handleSave} disabled={!keyInput.trim() || isSaving} className="shrink-0 bg-blue-600 hover:bg-blue-700">
-              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Key'}
+            <Button
+              onClick={handleSave}
+              disabled={!keyInput.trim() || isSaving}
+              className="shrink-0 bg-blue-600 hover:bg-blue-700"
+            >
+              {isSaving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                'Save Key'
+              )}
             </Button>
           </div>
         )}

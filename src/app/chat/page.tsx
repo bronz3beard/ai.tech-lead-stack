@@ -5,20 +5,25 @@ import ChatMessageList from '@/components/chat/ChatMessageList';
 import ChatSidebar from '@/components/chat/ChatSidebar';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { useCallback, useEffect, useState, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-function ChatBody({ 
-  projectId, 
-  chatId, 
+function ChatBody({
+  projectId,
+  chatId,
   setChatId,
   onChatCreated,
-}: { 
-  projectId: string; 
-  chatId: string | null; 
+}: {
+  projectId: string;
+  chatId: string | null;
   setChatId: (id: string | null) => void;
   onChatCreated: () => void;
 }) {
   const [input, setInput] = useState('');
+  const [messagesInitialized, setMessagesInitialized] = useState(false);
+  const [streamData, setStreamData] = useState<any[]>([]);
+  // Handle chatId change during render to avoid sync setState in effect
+  const [prevChatId, setPrevChatId] = useState(chatId);
+
   // Track whether onChatCreated has been called for this chat session
   const chatCreatedNotified = useRef(false);
 
@@ -33,9 +38,6 @@ function ChatBody({
       }),
     [projectId, chatId]
   );
-  
-  const [messagesInitialized, setMessagesInitialized] = useState(false);
-  const [streamData, setStreamData] = useState<any[]>([]);
 
   const { messages, status, sendMessage, error, setMessages } = useChat({
     transport,
@@ -50,8 +52,8 @@ function ChatBody({
         typeof data === 'object' && data !== null && 'data' in data
           ? (data as { data: Record<string, unknown> }).data
           : typeof data === 'object' && data !== null
-          ? (data as Record<string, unknown>)
-          : {};
+            ? (data as Record<string, unknown>)
+            : {};
 
       // ── Sidebar refresh trigger #1: chatId assignment ─────────────────────
       // Fires IMMEDIATELY when the server assigns a chatId (very early in the
@@ -81,6 +83,14 @@ function ChatBody({
     },
   });
 
+  if (chatId !== prevChatId) {
+    setPrevChatId(chatId);
+    if (!chatId) {
+      setMessages([]);
+      setMessagesInitialized(true);
+    }
+  }
+
   // Load initial messages for existing chats
   useEffect(() => {
     if (chatId && !messagesInitialized) {
@@ -99,9 +109,6 @@ function ChatBody({
         }
       };
       fetchHistory();
-    } else if (!chatId) {
-      setMessages([]);
-      setMessagesInitialized(true);
     }
   }, [chatId, messagesInitialized, setMessages]);
 
@@ -114,7 +121,7 @@ function ChatBody({
   const handleSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
     if (!input.trim() || isLoading) return;
-    
+
     // Reset the notified flag so the next message can trigger a refresh
     chatCreatedNotified.current = false;
     setStreamData([]); // Clear old status updates
@@ -128,10 +135,10 @@ function ChatBody({
   return (
     <>
       <div className="flex-1 overflow-y-auto p-4 md:p-8">
-        <ChatMessageList 
-          messages={messages} 
+        <ChatMessageList
+          messages={messages}
           data={streamData}
-          isLoading={isLoading} 
+          isLoading={isLoading}
         />
         {error && (
           <div className="p-4 mt-4 bg-red-900/20 border border-red-500/50 rounded-lg text-red-400">
@@ -216,4 +223,3 @@ export default function ChatPage() {
     </div>
   );
 }
-

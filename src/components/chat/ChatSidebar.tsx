@@ -72,8 +72,17 @@ export default function ChatSidebar({
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
 
+  // Handle projectId change during render to avoid sync setState in effect
+  const [prevProjectId, setPrevProjectId] = useState(projectId);
+  if (projectId !== prevProjectId) {
+    setPrevProjectId(projectId);
+    if (!projectId) {
+      setChats([]);
+    }
+  }
+
   const fetchProjects = useCallback(async () => {
-    setProjectFetchState('loading');
+    setProjectFetchState((prev) => (prev === 'loading' ? prev : 'loading'));
     try {
       const res = await fetch('/api/projects');
       if (!res.ok) throw new Error('Failed to load projects.');
@@ -86,14 +95,14 @@ export default function ChatSidebar({
   }, []);
 
   useEffect(() => {
-    fetchProjects();
+    const init = async () => {
+      await fetchProjects();
+    };
+    init();
   }, [fetchProjects]);
 
   const fetchChats = useCallback(async () => {
-    if (!projectId) {
-      setChats([]);
-      return;
-    }
+    if (!projectId) return;
     try {
       const res = await fetch(`/api/chat?projectId=${projectId}&t=${Date.now()}`, {
         cache: 'no-store',
@@ -107,7 +116,10 @@ export default function ChatSidebar({
   }, [projectId]);
 
   useEffect(() => {
-    fetchChats();
+    const init = async () => {
+      await fetchChats();
+    };
+    init();
   }, [fetchChats, refreshKey]);
 
 

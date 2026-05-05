@@ -39,27 +39,41 @@ export default function GitHubRepoImportModal({
   const [connectedRepoIds, setConnectedRepoIds] = useState<Set<number>>(new Set());
   const [isPending, startTransition] = useTransition();
 
-  useEffect(() => {
-    if (!isOpen) return;
+  // Reset state when modal opens
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  if (isOpen && !prevIsOpen) {
     setFetchState('loading');
     setSearchQuery('');
+    setPrevIsOpen(true);
+  } else if (!isOpen && prevIsOpen) {
+    setPrevIsOpen(false);
+  }
 
-    fetch('/api/github/repos')
-      .then(async (res) => {
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const loadRepos = async () => {
+      try {
+        const res = await fetch('/api/github/repos');
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          throw new Error((data as { message?: string }).message ?? 'Failed to load repositories.');
+          throw new Error(
+            (data as { message?: string }).message ??
+              'Failed to load repositories.'
+          );
         }
-        return res.json() as Promise<{ repos: GitHubRepo[] }>;
-      })
-      .then(({ repos: data }) => {
+        const { repos: data } = (await res.json()) as { repos: GitHubRepo[] };
         setRepos(data);
         setFetchState('success');
-      })
-      .catch((err: unknown) => {
-        setErrorMessage(err instanceof Error ? err.message : 'An unexpected error occurred.');
+      } catch (err: unknown) {
+        setErrorMessage(
+          err instanceof Error ? err.message : 'An unexpected error occurred.'
+        );
         setFetchState('error');
-      });
+      }
+    };
+
+    loadRepos();
   }, [isOpen]);
 
   const handleConnect = (repo: GitHubRepo) => {

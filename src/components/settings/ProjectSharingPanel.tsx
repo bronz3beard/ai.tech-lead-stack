@@ -10,7 +10,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Loader2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface ProjectAccess {
   id: string;
@@ -22,11 +22,7 @@ export default function ProjectSharingPanel() {
   const [projects, setProjects] = useState<ProjectAccess[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    fetchProjects();
-  }, []);
-
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     try {
       const res = await fetch('/api/settings/project-access');
       if (res.ok) {
@@ -38,7 +34,14 @@ export default function ProjectSharingPanel() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const init = async () => {
+      await fetchProjects();
+    };
+    init();
+  }, [fetchProjects]);
 
   const handleToggle = async (
     projectId: string,
@@ -83,7 +86,10 @@ export default function ProjectSharingPanel() {
     <Card className="bg-zinc-900 border-zinc-800">
       <CardHeader>
         <CardTitle>My Projects</CardTitle>
-        <CardDescription>Share your projects with other roles to allow them to chat about the codebase.</CardDescription>
+        <CardDescription>
+          Share your projects with other roles to allow them to chat about the
+          codebase.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         {projects.length === 0 ? (
@@ -92,12 +98,19 @@ export default function ProjectSharingPanel() {
           </p>
         ) : (
           <div className="space-y-6">
-            {projects.map(project => (
-              <div key={project.id} className="border border-zinc-800 rounded-lg p-4 bg-zinc-950/50">
-                <h3 className="font-medium text-zinc-200 mb-4">{project.name}</h3>
+            {projects.map((project) => (
+              <div
+                key={project.id}
+                className="border border-zinc-800 rounded-lg p-4 bg-zinc-950/50"
+              >
+                <h3 className="font-medium text-zinc-200 mb-4">
+                  {project.name}
+                </h3>
                 <div className="flex flex-wrap gap-6">
-                  {['DEVELOPER', 'PM', 'QA', 'DESIGNER'].map(role => {
-                    const hasAccess = project.accessGrants.includes(role as any);
+                  {['DEVELOPER', 'PM', 'QA', 'DESIGNER'].map((role) => {
+                    const hasAccess = project.accessGrants.includes(
+                      role as any
+                    );
                     return (
                       <div key={role} className="flex items-center space-x-2">
                         <Switch

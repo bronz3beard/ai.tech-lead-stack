@@ -19,8 +19,6 @@ interface SkillFormProps {
 
 export default function SkillForm({ initialTemplate, projectName }: SkillFormProps) {
   const [content, setContent] = useState(initialTemplate);
-  const [isValid, setIsValid] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [serverFeedback, setServerFeedback] = useState<{
@@ -32,34 +30,33 @@ export default function SkillForm({ initialTemplate, projectName }: SkillFormPro
   >('idle');
   const [prUrl, setPrUrl] = useState<string | null>(null);
 
-  const validateFrontmatter = useCallback((mdContent: string) => {
+  const validation = useMemo(() => {
     try {
-      const parsed = matter(mdContent);
+      const parsed = matter(content);
       const errors: string[] = [];
       const data = parsed.data;
 
       if (!data.name) errors.push("Missing 'name' in frontmatter");
-      if (!data.description)
-        errors.push("Missing 'description' in frontmatter");
+      if (!data.description) errors.push("Missing 'description' in frontmatter");
       if (!data.cost) errors.push("Missing 'cost' in frontmatter");
 
-      if (errors.length > 0) {
-        setIsValid(false);
-        setValidationErrors(errors);
-      } else {
-        setIsValid(true);
-        setValidationErrors([]);
-      }
+      return {
+        isValid: errors.length === 0,
+        errors,
+      };
     } catch (e: unknown) {
       const err = e as Error;
-      setIsValid(false);
-      setValidationErrors([`YAML parsing error: ${err.message}`]);
+      return {
+        isValid: false,
+        errors: [`YAML parsing error: ${err.message}`],
+      };
     }
-  }, []);
+  }, [content]);
 
-  useEffect(() => {
-    validateFrontmatter(content);
-  }, [content, validateFrontmatter]);
+  const { isValid, validationErrors } = {
+    isValid: validation.isValid,
+    validationErrors: validation.errors,
+  };
 
   const handleChange = (value: string) => {
     setContent(value);
