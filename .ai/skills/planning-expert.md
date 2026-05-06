@@ -1,8 +1,9 @@
 ---
-name: planning-expert-zenith
+name: planning-expert
 description:
-  The complete Planning Expert. Orchestrates deep pattern discovery, vertical
-  slicing, and safe incremental delivery. Used for more complex and heavy tasks.
+  The complete Planning Expert Zenith. Orchestrates deep pattern discovery,
+  vertical slicing, and safe incremental delivery. Used for more complex and
+  heavy tasks.
 cost: ~850 tokens
 ---
 

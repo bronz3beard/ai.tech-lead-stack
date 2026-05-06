@@ -5,7 +5,7 @@ import EasyMDE from 'easymde';
 import 'easymde/dist/easymde.min.css';
 import matter from 'gray-matter';
 import dynamic from 'next/dynamic';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import SkillAssistant from './SkillAssistant';
 
 const SimpleMdeReact = dynamic(() => import('react-simplemde-editor'), {
@@ -17,7 +17,10 @@ interface SkillFormProps {
   projectName?: string;
 }
 
-export default function SkillForm({ initialTemplate, projectName }: SkillFormProps) {
+export default function SkillForm({
+  initialTemplate,
+  projectName,
+}: SkillFormProps) {
   const [content, setContent] = useState(initialTemplate);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
@@ -37,7 +40,8 @@ export default function SkillForm({ initialTemplate, projectName }: SkillFormPro
       const data = parsed.data;
 
       if (!data.name) errors.push("Missing 'name' in frontmatter");
-      if (!data.description) errors.push("Missing 'description' in frontmatter");
+      if (!data.description)
+        errors.push("Missing 'description' in frontmatter");
       if (!data.cost) errors.push("Missing 'cost' in frontmatter");
 
       return {
@@ -100,10 +104,13 @@ export default function SkillForm({ initialTemplate, projectName }: SkillFormPro
     setSubmissionStatus('submitting');
     setServerFeedback(null);
     setPrUrl(null);
-    
+
     try {
       // Step 1: Server Validation
-      setServerFeedback({ type: 'success', message: 'Validating skill on server...' });
+      setServerFeedback({
+        type: 'success',
+        message: 'Validating skill on server...',
+      });
       const valRes = await validateSkill(content);
       if (!valRes.success) {
         setSubmissionStatus('error');
@@ -113,15 +120,18 @@ export default function SkillForm({ initialTemplate, projectName }: SkillFormPro
       }
 
       // Step 2: GitHub Submission
-      setServerFeedback({ type: 'success', message: 'Connecting to GitHub and creating Draft PR...' });
+      setServerFeedback({
+        type: 'success',
+        message: 'Connecting to GitHub and creating Draft PR...',
+      });
       const res = await submitSkill(content);
-      
+
       if (res.success) {
         setSubmissionStatus('success');
         setPrUrl(res.prUrl || null);
-        setServerFeedback({ 
-          type: 'success', 
-          message: res.message || 'Draft PR created successfully!' 
+        setServerFeedback({
+          type: 'success',
+          message: res.message || 'Draft PR created successfully!',
         });
       } else {
         setSubmissionStatus('error');
@@ -221,14 +231,32 @@ export default function SkillForm({ initialTemplate, projectName }: SkillFormPro
             <div className="flex flex-col space-y-2">
               <div className="flex items-center gap-2">
                 {isSubmitting && (
-                  <svg className="animate-spin h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg
+                    className="animate-spin h-4 w-4 text-blue-600"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                 )}
-                <span className="text-sm font-medium">{serverFeedback.message}</span>
+                <span className="text-sm font-medium">
+                  {serverFeedback.message}
+                </span>
               </div>
-              
+
               {prUrl && (
                 <a
                   href={prUrl}
@@ -272,9 +300,25 @@ export default function SkillForm({ initialTemplate, projectName }: SkillFormPro
           >
             {isSubmitting ? (
               <>
-                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <svg
+                  className="animate-spin h-4 w-4 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
                 </svg>
                 Processing...
               </>
