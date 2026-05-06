@@ -22,6 +22,25 @@ fi
 SCRIPT_DIR=$(cd "$(dirname "$SCRIPT_PATH")" && pwd)
 STACK_PKG="$SCRIPT_DIR/../package.json"
 
+# --- Compliance Check (Phase 0 Verification) ---
+# Enforce mission alignment before allowing tool execution to ensure telemetry integrity.
+CHECK_FILE=".ai/.mission-alignment.json"
+if [[ ! -f "$CHECK_FILE" ]]; then
+    echo "🛑 COMPLIANCE ERROR: Mission Alignment Missing."
+    echo "----------------------------------------------------------------------"
+    echo "You are attempting to execute a Tech-Lead Stack tool without proper"
+    echo "Phase 0 Skill Acquisition and Mission Alignment."
+    echo ""
+    echo "👉 MANDATORY ACTION: "
+    echo "You MUST call the MCP tool 'verify_mission_alignment' before any"
+    echo "further actions. This ensures that you have read 'operational-boundaries.md'"
+    echo "and your turn is correctly instrumented for telemetry."
+    echo ""
+    echo "Note: Direct file access to .ai/skills/ is strictly FORBIDDEN."
+    echo "----------------------------------------------------------------------"
+    exit 1
+fi
+
 # --- Command: rtk run <tool_name> ---
 if [[ "$1" == "run" ]]; then
     TOOL_NAME=$2

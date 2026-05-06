@@ -62,11 +62,13 @@ import { repoRoot } from './config.js';
 import { FileSystemService } from '../lib/skills/fs-service.js';
 import { Handlers } from './handlers.js';
 import { Telemetry } from './telemetry.js';
+import { AlignmentService } from '../lib/skills/alignment-service.js';
 
 // Initialize Services
 const telemetry = new Telemetry();
 const fsService = new FileSystemService(repoRoot);
-const handlers = new Handlers(fsService, telemetry);
+const alignmentService = new AlignmentService(repoRoot); // Default to repoRoot, updated if clientRoot found
+const handlers = new Handlers(fsService, telemetry, alignmentService);
 
 // Resolve caller's project root once at startup (after dotenv has loaded)
 // fsService.findProjectRoot skips the tech-lead-stack itself, returning null when cwd IS the server.
@@ -76,6 +78,10 @@ fsService
     fsService.setClientProjectRoot(clientRoot);
     if (clientRoot) {
       console.error(`[MCP] Resolved client project root: ${clientRoot}`);
+      // Update AlignmentService to use client root for token storage
+      const updatedAlignmentService = new AlignmentService(clientRoot);
+      // We need to re-inject or update the service in handlers
+      (handlers as any).alignmentService = updatedAlignmentService;
     } else {
       console.error(
         '[MCP] Running as standalone server - local skill lookup disabled.'
@@ -135,6 +141,23 @@ const GET_SKILL_TOOL: Tool = {
     "CORE EXECUTION: Reads a specific skill (e.g. 'planning-expert').",
 };
 
+const VERIFY_MISSION_ALIGNMENT_TOOL: Tool = {
+  name: 'verify_mission_alignment',
+  description:
+    'MANDATORY PRE-FLIGHT: Validates that the agent is aligned with the operational boundaries and has initialized the required mission skills.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      agent: { type: 'string', description: 'Name of the agent' },
+      projectName: {
+        type: 'string',
+        description: 'Name of the current project',
+      },
+    },
+    required: ['agent', 'projectName'],
+  },
+};
+
 /**
  * Handlers: Tool Listing
  */
@@ -151,7 +174,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     }));
 
   return {
-    tools: [LIST_SKILLS_TOOL, GET_SKILLS_TOOL, GET_SKILL_TOOL, ...dynamicTools],
+    tools: [
+      LIST_SKILLS_TOOL,
+      GET_SKILLS_TOOL,
+      GET_SKILL_TOOL,
+      VERIFY_MISSION_ALIGNMENT_TOOL,
+      ...dynamicTools,
+    ],
   };
 });
 
@@ -171,6 +200,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     name.startsWith('get_')
   ) {
     return await handlers.handleGetSkill(name, args || {});
+  }
+
+  if (name === 'verify_mission_alignment') {
+    return await handlers.handleVerifyMissionAlignment(args || {});
   }
 
   throw new Error(`Unknown tool: ${name}`);

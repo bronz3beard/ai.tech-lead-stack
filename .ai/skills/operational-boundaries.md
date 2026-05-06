@@ -40,10 +40,18 @@ cost: 1
    violation.
    - **IDE / MCP-enabled Agent**: You MUST use the MCP `get_skills` tool.
    - **Chat UI (/chat)**: You MUST use the internal `get_skill` tool.
-7. **Sequential Integrity**: You are FORBIDDEN from attempting to solve a
+   - **The IsSkillFile Fallacy**: Using the `IsSkillFile: true` parameter in
+     `view_file` is strictly FORBIDDEN for reading `.ai/skills/`. This parameter
+     bypasses the repository-level telemetry system and is considered a boundary
+     violation.
+7. **Mission Alignment**: You are FORBIDDEN from using any `rtk` CLI tools
+   (e.g., `rtk run`, `rtk list`) until you have successfully called the
+   `verify_mission_alignment` MCP tool. This tool "unlocks" the CLI by verifying
+   your Phase 0 compliance.
+8. **Sequential Integrity**: You are FORBIDDEN from attempting to solve a
    technical request or searching the codebase (Phase 1) until the mandatory
    "Phase 0: Skill Acquisition" step of the active workflow is completed and the
-   relevant skill logic is loaded into your context.
+   relevant skill logic is loaded into your context via MCP.
 
 ## ✅ In-Bounds (STAY FOCUSED)
 

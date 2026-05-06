@@ -16,13 +16,15 @@ cost: ~650 tokens
 
 ## 🎯 Verification Gates
 
-### Gate 1: Environment Readiness
+### Gate 1: Mission Alignment (The Key)
 
-- **Positive (GO):** Found valid `.env`, authenticated tool CLIs (e.g., `gh`),
-  and essential project configuration files.
-- **Negative (ABORT):** Missing `.env` variables or auth failures.
-- **Action:** Immediately halt processes and print the exact bash command the
-  user needs to run to fix it.
+- **Positive (GO):** Found `.ai/.mission-alignment.json` file with a valid
+  timestamp and agent signature.
+- **Negative (ABORT):** Missing or expired alignment token.
+- **Action:** MANDATORY call to MCP tool `verify_mission_alignment`. Block all
+  `rtk` CLI tools until resolved.
+
+### Gate 2: Environment Readiness
 
 ### Gate 2: Tech-Stack Discovery (Ecosystem Detection)
 
@@ -46,9 +48,15 @@ cost: ~650 tokens
 
 ## Workflow Execution
 
-### 1. Skill Discovery (The Brain)
+### 1. Mission Alignment (Phase 0)
 
-Verify that all core skill modules are present in the `.ai/skills/` directory.
+MANDATORY: Use the MCP tool `verify_mission_alignment` to record your session
+and "unlock" the RTK CLI tools.
+
+### 2. Skill Discovery (The Brain)
+
+Use the MCP tool `list_skills` to verify that all core skill modules are
+present. DO NOT use `ls` or `view_file` for discovery.
 
 ### 2. Environment Integrity (The ID)
 
