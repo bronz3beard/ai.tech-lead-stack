@@ -39,7 +39,7 @@ export class Handlers {
     );
 
     const skillFiles = Array.from(allSkills)
-      .filter((skill) => !isSkillTrace(undefined, skill))
+      .filter((skill) => !isSkillTrace(undefined, skill) && !skill.startsWith('pm-'))
       .sort();
 
     return {

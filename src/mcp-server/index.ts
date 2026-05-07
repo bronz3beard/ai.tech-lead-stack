@@ -238,7 +238,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   const skillToToolName = (skill: string) => `get_${skill.replace(/-/g, '_')}`;
 
   const dynamicTools: Tool[] = Array.from(skills.entries())
-    .filter(([, meta]) => !meta.internal)
+    .filter(([name, meta]) => !meta.internal && !name.startsWith('pm-'))
     .map(([name, meta]) => ({
       name: skillToToolName(name),
       description: `[SKILL] ${meta.description} (Standard Cost: ${meta.cost})`,
