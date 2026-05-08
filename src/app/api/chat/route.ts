@@ -564,60 +564,64 @@ export async function POST(req: Request) {
                       });
                     }
 
-                    for (const msg of event.response.messages) {
-                      await prisma.message.create({
-                        data: {
-                          chatId: currentChatId ?? '',
-                          role: msg.role as any,
-                          content: JSON.stringify(msg),
-                        },
+                    if (event.response.messages && event.response.messages.length > 0) {
+                      const messagesData = event.response.messages.map((msg) => ({
+                        chatId: currentChatId ?? '',
+                        role: msg.role as any,
+                        content: JSON.stringify(msg),
+                      }));
+
+                      await prisma.message.createMany({
+                        data: messagesData,
                       });
 
-                      // AUTO-TITLING: Extract text from assistant message content parts.
-                      // CRITICAL FIX: msg.content from response.messages is ALWAYS an array
-                      // of ContentPart in the AI SDK — never a raw string. The old
-                      // `typeof === 'string'` guard always failed, so title stayed "New Chat".
-                      if (msg.role === 'assistant') {
-                        const content = msg.content;
-                        let extractedText = '';
+                      for (const msg of event.response.messages) {
+                        // AUTO-TITLING: Extract text from assistant message content parts.
+                        // CRITICAL FIX: msg.content from response.messages is ALWAYS an array
+                        // of ContentPart in the AI SDK — never a raw string. The old
+                        // `typeof === 'string'` guard always failed, so title stayed "New Chat".
+                        if (msg.role === 'assistant') {
+                          const content = msg.content;
+                          let extractedText = '';
 
-                        if (typeof content === 'string') {
-                          extractedText = content;
-                        } else if (Array.isArray(content)) {
-                          for (const part of content) {
-                            const p = part as any;
-                            if (p.type === 'text' && typeof p.text === 'string' && p.text.trim().length > 0) {
-                              extractedText = p.text;
-                              break;
+                          if (typeof content === 'string') {
+                            extractedText = content;
+                          } else if (Array.isArray(content)) {
+                            for (const part of content) {
+                              const p = part as any;
+                              if (p.type === 'text' && typeof p.text === 'string' && p.text.trim().length > 0) {
+                                extractedText = p.text;
+                                break;
+                              }
                             }
                           }
-                        }
 
-                        if (extractedText.trim().length > 0) {
-                          const chat = await prisma.chat.findUnique({
-                            where: { id: currentChatId ?? '' },
-                          });
-                          if (chat && !chat.isCustomTitle && chat.title === 'New Chat') {
-                            // Preferred: title from AI response text
-                            const aiTitle = generateAutoTitle(extractedText);
-
-                            // Fallback: truncate the user's original message
-                            let userFallbackTitle = 'New Chat';
-                            if (lastUserMessage) {
-                              const userContent = lastUserMessage.content;
-                              const userText = typeof userContent === 'string'
-                                ? userContent
-                                : Array.isArray(userContent)
-                                  ? (userContent as any[]).filter((p: any) => p.type === 'text').map((p: any) => p.text).join(' ')
-                                  : '';
-                              userFallbackTitle = generateAutoTitle(userText);
-                            }
-
-                            const finalTitle = aiTitle !== 'New Chat' ? aiTitle : userFallbackTitle;
-                            await prisma.chat.update({
-                              where: { id: chat.id },
-                              data: { title: finalTitle },
+                          if (extractedText.trim().length > 0) {
+                            const chat = await prisma.chat.findUnique({
+                              where: { id: currentChatId ?? '' },
                             });
+                            if (chat && !chat.isCustomTitle && chat.title === 'New Chat') {
+                              // Preferred: title from AI response text
+                              const aiTitle = generateAutoTitle(extractedText);
+
+                              // Fallback: truncate the user's original message
+                              let userFallbackTitle = 'New Chat';
+                              if (lastUserMessage) {
+                                const userContent = lastUserMessage.content;
+                                const userText = typeof userContent === 'string'
+                                  ? userContent
+                                  : Array.isArray(userContent)
+                                    ? (userContent as any[]).filter((p: any) => p.type === 'text').map((p: any) => p.text).join(' ')
+                                    : '';
+                                userFallbackTitle = generateAutoTitle(userText);
+                              }
+
+                              const finalTitle = aiTitle !== 'New Chat' ? aiTitle : userFallbackTitle;
+                              await prisma.chat.update({
+                                where: { id: chat.id },
+                                data: { title: finalTitle },
+                              });
+                            }
                           }
                         }
                       }
