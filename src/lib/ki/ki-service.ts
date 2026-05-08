@@ -51,7 +51,7 @@ export class KiService {
             summary: metadata.summary,
             projectName: metadata.projectName
           });
-        } catch (e) {
+        } catch {
           // Skip malformed KIs
           continue;
         }
@@ -111,7 +111,7 @@ export class KiService {
       const existingRaw = await fs.readFile(path.join(kiPath, 'metadata.json'), 'utf-8');
       const existing: KiMetadata = JSON.parse(existingRaw);
       createdAt = existing.createdAt;
-    } catch (e) {
+    } catch {
       // New item
     }
     

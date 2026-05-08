@@ -1,5 +1,5 @@
 import { Role } from '@prisma/client';
-import { isSuperUser, getProjectAccessFilter, WHITELISTED_EMAILS } from '../access';
+import { isSuperUser, getProjectAccessFilter } from '../access';
 
 describe('Access Logic Tests', () => {
   describe('isSuperUser', () => {

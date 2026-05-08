@@ -71,7 +71,7 @@ export function createAgentTools(currentContent: string) {
         } finally {
           try {
             await fs.rm(tempDir, { recursive: true, force: true });
-          } catch (_) {
+          } catch {
             /* cleanup best-effort */
           }
         }
@@ -134,7 +134,7 @@ export function createAgentTools(currentContent: string) {
         } finally {
           try {
             await fs.rm(tempDir, { recursive: true, force: true });
-          } catch (_) {
+          } catch {
             /* cleanup best-effort */
           }
         }
