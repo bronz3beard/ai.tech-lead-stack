@@ -9,6 +9,7 @@ import {
   LogOut,
   Menu,
   MessageSquare,
+  Palette,
   Settings,
   X,
   BookOpen,
@@ -34,6 +35,12 @@ const navigation = [
     name: 'Agent Chat',
     href: '/chat',
     icon: MessageSquare,
+    protected: true,
+  },
+  {
+    name: 'Design Review',
+    href: '/design-review',
+    icon: Palette,
     protected: true,
   },
   {

@@ -7,12 +7,14 @@ import {
   Github,
   Loader2,
   MessageSquare,
+  Palette,
   Pin,
   PinOff,
   PlusCircle,
   Trash2,
   X,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import GitHubRepoImportModal from './GitHubRepoImportModal';
 
@@ -64,6 +66,7 @@ export default function ChatSidebar({
   onNewChat,
   refreshKey = 0,
 }: ChatSidebarProps) {
+  const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [chats, setChats] = useState<Chat[]>([]);
   const [projectFetchState, setProjectFetchState] =
@@ -272,6 +275,18 @@ export default function ChatSidebar({
             <PlusCircle className="h-4 w-4" />
             <span>New Chat</span>
           </button>
+
+          {/* Design Review quick-start — navigates to the dedicated route */}
+          {projectId && (
+            <button
+              id="sidebar-design-review-btn"
+              onClick={() => router.push('/design-review')}
+              className="w-full flex items-center justify-center gap-2 border border-zinc-700/60 hover:border-violet-600/60 hover:bg-violet-900/10 text-zinc-400 hover:text-violet-300 rounded-md py-2 px-4 transition-colors text-sm font-medium"
+            >
+              <Palette className="h-4 w-4" />
+              <span>Design Review</span>
+            </button>
+          )}
         </div>
 
         {/* Chat history */}
