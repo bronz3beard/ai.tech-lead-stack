@@ -39,13 +39,14 @@ export function BarChart({
   }, []);
 
   if (!isMounted) {
-    return <div className="w-full h-[350px]" />;
+    return <div className="w-full aspect-[4/3] min-h-[350px] bg-slate-900/10 animate-pulse rounded-lg" />;
   }
 
   return (
-    <div className="w-full h-[350px] relative overflow-visible">
-      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-        <RechartsBarChart data={data}>
+    <div className="w-full aspect-[4/3] min-h-[350px] relative overflow-hidden">
+      <ResponsiveContainer width="100%" height="100%">
+        <RechartsBarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" />
           <XAxis
             dataKey="name"
             stroke="#94a3b8"
@@ -60,22 +61,22 @@ export function BarChart({
           />
           <YAxis
             stroke="#94a3b8"
-            fontSize={14}
+            fontSize={12}
             tickLine={false}
             axisLine={false}
             tickFormatter={(value) => `${value}`}
           />
           <Tooltip
-            allowEscapeViewBox={{ x: true, y: true }}
+            cursor={{ fill: 'rgba(255, 255, 255, 0.05)' }}
             contentStyle={{
               backgroundColor: '#1e293b',
-              border: 'none',
+              border: '1px solid #334155',
               borderRadius: '8px',
               color: '#f8fafc',
             }}
             itemStyle={{ color: '#f8fafc' }}
           />
-          <Bar dataKey="total" radius={[4, 4, 0, 0]}>
+          <Bar dataKey="total" radius={[4, 4, 0, 0]} barSize={32}>
             {data.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
@@ -102,13 +103,13 @@ export function LineChart({
   }, []);
 
   if (!isMounted) {
-    return <div className="w-full h-[350px]" />;
+    return <div className="w-full aspect-[4/3] min-h-[350px] bg-slate-900/10 animate-pulse rounded-lg" />;
   }
 
   return (
-    <div className="w-full h-[350px] relative overflow-visible">
-      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-        <RechartsLineChart data={data}>
+    <div className="w-full aspect-[4/3] min-h-[350px] relative overflow-hidden">
+      <ResponsiveContainer width="100%" height="100%">
+        <RechartsLineChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
           <CartesianGrid
             strokeDasharray="3 3"
             vertical={false}
@@ -128,16 +129,15 @@ export function LineChart({
           />
           <YAxis
             stroke="#94a3b8"
-            fontSize={14}
+            fontSize={12}
             tickLine={false}
             axisLine={false}
             tickFormatter={(value) => `${value}`}
           />
           <Tooltip
-            allowEscapeViewBox={{ x: true, y: true }}
             contentStyle={{
               backgroundColor: '#1e293b',
-              border: 'none',
+              border: '1px solid #334155',
               borderRadius: '8px',
               color: '#f8fafc',
             }}
@@ -148,8 +148,8 @@ export function LineChart({
             dataKey="total"
             stroke="#60a5fa"
             strokeWidth={2}
-            dot={{ r: 4, fill: '#60a5fa' }}
-            activeDot={{ r: 6 }}
+            dot={{ r: 4, fill: '#60a5fa', strokeWidth: 2 }}
+            activeDot={{ r: 6, strokeWidth: 0 }}
           />
         </RechartsLineChart>
       </ResponsiveContainer>

@@ -2,6 +2,7 @@
 
 import { cn } from '@/lib/utils';
 import {
+  BookOpen,
   Globe,
   Hammer,
   LayoutDashboard,
@@ -11,9 +12,8 @@ import {
   MessageSquare,
   Palette,
   Settings,
-  X,
-  BookOpen,
   Sparkles,
+  X,
 } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import Image from 'next/image';
@@ -207,7 +207,7 @@ export function Navbar() {
 
   return (
     <nav className="bg-card border-b border-border">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-max mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex">
             <div className="shrink-0 flex items-center">

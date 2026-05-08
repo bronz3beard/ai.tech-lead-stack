@@ -21,32 +21,36 @@ export function DesignReviewSession({ sessionId }: DesignReviewSessionProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ── Fetch session ────────────────────────────────────────────────────────────
-
-  const fetchSession = useCallback(async () => {
-    try {
-      // We re-use the existing /api/chat GET (by chatId) for the base chat data
-      // and /api/design-review PATCH for metadata updates. To read the current
-      // session, we call GET /api/design-review?projectId and find by id.
-      // Simpler: hit a direct lookup via chat endpoint — the metadata is on Chat.
-      const res = await fetch(`/api/design-review/session/${sessionId}`);
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message ?? 'Failed to load session');
-      }
-      const data = (await res.json()) as { session: ReviewSession };
-      setSession(data.session);
-      setChatId(sessionId);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [sessionId]);
-
+  // ── Fetch session on mount / sessionId change ──────────────────────────────
   useEffect(() => {
-    fetchSession();
-  }, [fetchSession]);
+    let cancelled = false;
+
+    async function loadSession() {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/design-review/session/${sessionId}`);
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.message ?? 'Failed to load session');
+        }
+        const data = (await res.json()) as { session: ReviewSession };
+        if (!cancelled) {
+          setSession(data.session);
+          setChatId(sessionId);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Unknown error');
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+
+    loadSession();
+    return () => { cancelled = true; };
+  }, [sessionId]);
 
   // ── PATCH helper ──────────────────────────────────────────────────────────────
 

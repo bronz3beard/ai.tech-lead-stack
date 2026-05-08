@@ -74,15 +74,14 @@ export async function GET(req: Request) {
   }
 
   try {
+    // Fetch all chats for this user+project, then discriminate by reviewType
+    // in application code. Prisma v7's ChatWhereInput does not expose a
+    // stable JSON path filter API — toReviewSession returns null for non-review
+    // chats, so the filter below is the type-safe discriminator.
     const chats = await prisma.chat.findMany({
       where: {
         projectId,
         userId: session.user.id,
-        // Filter for design review sessions via Prisma JSON path filter
-        metadata: {
-          path: ['reviewType'],
-          equals: 'design-system-review',
-        },
       },
       orderBy: { updatedAt: 'desc' },
       select: {

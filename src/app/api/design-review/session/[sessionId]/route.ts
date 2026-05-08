@@ -20,16 +20,11 @@ export async function GET(
   const { sessionId } = await params;
 
   try {
+    // Fetch the full record — no select clause avoids the ChatSelect<DefaultArgs>
+    // stale-type issue in Prisma v7 where metadata is not yet reflected in the
+    // generated select type. All fields we need are on the full Chat record.
     const chat = await prisma.chat.findUnique({
       where: { id: sessionId },
-      select: {
-        id: true,
-        projectId: true,
-        metadata: true,
-        createdAt: true,
-        updatedAt: true,
-        userId: true,
-      },
     });
 
     if (!chat) {

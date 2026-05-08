@@ -1,14 +1,18 @@
 import { ReviewQueue } from '@/components/design-review/ReviewQueue';
-import { authOptions } from '@/lib/auth';
-import { ReviewSession, ReviewSessionMetadata } from '@/lib/design-review-types';
-import { prisma } from '@/lib/prisma';
 import { getProjectAccessFilter } from '@/lib/access';
+import { authOptions } from '@/lib/auth';
+import {
+  ReviewSession,
+  ReviewSessionMetadata,
+} from '@/lib/design-review-types';
+import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
 
 export const metadata = {
   title: 'Design Reviews — Tech Lead Stack',
-  description: 'AI-augmented design system review sessions with 2-iteration guard and designer quality gate.',
+  description:
+    'AI-augmented design system review sessions with 2-iteration guard and designer quality gate.',
 };
 
 interface PageProps {
@@ -26,7 +30,9 @@ export default async function DesignReviewPage({ searchParams }: PageProps) {
   const { projectId } = await searchParams;
 
   const authorizedProjects = await prisma.project.findMany({
-    where: getProjectAccessFilter(session.user as { id: string; role: string; email?: string | null }),
+    where: getProjectAccessFilter(
+      session.user as { id: string; role: string; email?: string | null }
+    ),
     orderBy: { name: 'asc' },
     select: { id: true, name: true },
   });
