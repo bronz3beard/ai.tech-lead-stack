@@ -12,11 +12,11 @@ module.exports = {
       'ts-jest',
       {
         tsconfig: {
-          ignoreDeprecations: '6.0',
+
           rootDir: '.',
 
           jsx: 'react-jsx',
-          ignoreDeprecations: '6.0',
+
           rootDir: '.',
         },
       },
