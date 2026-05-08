@@ -65,7 +65,7 @@ describe('MCP Server', () => {
       }
     );
 
-    handlers = new Handlers(mockFsService, mockTelemetry, mockKiService);
+    handlers = new Handlers(mockFsService, mockTelemetry, {} as any, mockKiService);
   });
 
   describe('CallToolRequestSchema handler - get_skills / get_skill', () => {
