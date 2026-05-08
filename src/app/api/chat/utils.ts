@@ -167,14 +167,6 @@ export function resolveGeminiApiKeys(
   return keys;
 }
 
-// Deprecated alias for backward compatibility if needed, but we should update callers.
-export function resolveGeminiApiKey(
-  user: Pick<User, 'geminiApiKey'>,
-  decrypt: (ciphertext: string) => string
-): string {
-  return resolveGeminiApiKeys(user, decrypt)[0];
-}
-
 /**
  * Factory for initializing the AI model based on user preference and API keys.
  * Supports fallback rotation via modelId and keyIndex.
