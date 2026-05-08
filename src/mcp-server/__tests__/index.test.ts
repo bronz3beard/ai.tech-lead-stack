@@ -65,7 +65,9 @@ describe('MCP Server', () => {
       }
     );
 
-    handlers = new Handlers(mockFsService, mockTelemetry, mockKiService);
+    const { AlignmentService } = require('@/lib/skills/alignment-service');
+    const mockAlignmentService = new AlignmentService('mock-root');
+    handlers = new Handlers(mockFsService, mockTelemetry, mockAlignmentService, mockKiService);
   });
 
   describe('CallToolRequestSchema handler - get_skills / get_skill', () => {
