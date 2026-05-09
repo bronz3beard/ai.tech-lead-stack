@@ -1,6 +1,5 @@
 import { telemetryService, TelemetryService, withAnalytics } from '../telemetry-service';
 import { prisma } from '../prisma';
-import { Langfuse } from 'langfuse';
 
 jest.mock('../prisma', () => ({
   prisma: {

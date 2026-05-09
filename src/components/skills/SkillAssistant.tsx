@@ -689,7 +689,11 @@ function CodeBlock({
 }) {
   const [isCopied, setIsCopied] = useState(false);
   const content = String(children || '').replace(/\n$/, '');
-  const { node, ...rest } = props;
+
+  // Create a copy of props and remove the `node` property to pass `rest` safely.
+  const rest = { ...props } as any;
+  delete rest.node;
+
   const match = /language-(\w+)/.exec(className || '');
   const language = match ? match[1] : '';
 

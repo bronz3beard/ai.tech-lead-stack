@@ -1,5 +1,3 @@
-import { FileSystemService } from "../fs-service";
-
 export interface CodeProvider {
   /**
    * Reads a file from the project for analysis.

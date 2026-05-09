@@ -44,7 +44,7 @@ function SignInContent() {
 
     try {
       await signIn('github', { callbackUrl: '/dashboard' });
-    } catch (err) {
+    } catch {
       signInStarted.current = false;
       setLoading(false);
       toast.error('GitHub Connection Failed', {
@@ -85,7 +85,7 @@ function SignInContent() {
           window.location.href = '/dashboard';
         }, 800);
       }
-    } catch (err) {
+    } catch {
       signInStarted.current = false;
       setLoading(false);
       toast.error('System Error', {
