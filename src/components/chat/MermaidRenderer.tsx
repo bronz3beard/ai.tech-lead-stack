@@ -28,7 +28,7 @@ mermaid.initialize({
     mainBkg: '#1e293b', // Slate 800
     nodeBorder: '#475569', // Slate 600
   },
-  securityLevel: 'loose',
+  securityLevel: 'strict',
   suppressErrorRendering: true,
 });
 
