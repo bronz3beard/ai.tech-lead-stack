@@ -15,7 +15,8 @@ jest.mock('../telemetry', () => ({
           _model: string,
           _agent: string,
           _cost: string | undefined,
-          callback: () => Promise<any>
+          callback: () => Promise<any>,
+          _overrides?: { userEmail?: string; userRole?: string }
         ) => callback()
       ),
   })),
@@ -23,6 +24,7 @@ jest.mock('../telemetry', () => ({
 
 import { FileSystemService } from '@/lib/skills';
 import { KiService } from '@/lib/ki/ki-service';
+import { AlignmentService } from '@/lib/skills/alignment-service';
 import * as fs from 'fs/promises';
 import { Handlers } from '../handlers';
 import { Telemetry } from '../telemetry';
@@ -30,6 +32,7 @@ import { Telemetry } from '../telemetry';
 // Mock the services
 jest.mock('@/lib/skills/fs-service');
 jest.mock('@/lib/ki/ki-service');
+jest.mock('@/lib/skills/alignment-service');
 jest.mock('fs/promises');
 
 describe('MCP Server', () => {
@@ -37,6 +40,7 @@ describe('MCP Server', () => {
   let mockFsService: jest.Mocked<FileSystemService>;
   let mockTelemetry: jest.Mocked<Telemetry>;
   let mockKiService: jest.Mocked<KiService>;
+  let mockAlignmentService: jest.Mocked<AlignmentService>;
 
   beforeEach(() => {
     mockFsService = new FileSystemService(
@@ -44,6 +48,7 @@ describe('MCP Server', () => {
     ) as jest.Mocked<FileSystemService>;
     mockTelemetry = new Telemetry() as jest.Mocked<Telemetry>;
     mockKiService = new KiService() as jest.Mocked<KiService>;
+    mockAlignmentService = new AlignmentService('mock-root') as jest.Mocked<AlignmentService>;
 
     // Default mock implementations
     mockFsService.getSearchDirs.mockReturnValue(['mock-dir-1', 'mock-dir-2']);
@@ -60,12 +65,12 @@ describe('MCP Server', () => {
     });
 
     mockTelemetry.withAnalytics.mockImplementation(
-      async (name, project, model, agent, cost, callback) => {
+      async (name, project, model, agent, cost, callback, overrides) => {
         return await callback();
       }
     );
 
-    handlers = new Handlers(mockFsService, mockTelemetry, {} as any, mockKiService);
+    handlers = new Handlers(mockFsService, mockTelemetry, mockAlignmentService, mockKiService);
   });
 
   describe('CallToolRequestSchema handler - get_skills / get_skill', () => {

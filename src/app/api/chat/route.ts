@@ -564,13 +564,14 @@ export async function POST(req: Request) {
                       });
                     }
 
+                    const messagesToCreate = [];
+                    let lastExtractedText = '';
+
                     for (const msg of event.response.messages) {
-                      await prisma.message.create({
-                        data: {
-                          chatId: currentChatId ?? '',
-                          role: msg.role as any,
-                          content: JSON.stringify(msg),
-                        },
+                      messagesToCreate.push({
+                        chatId: currentChatId ?? '',
+                        role: msg.role as any,
+                        content: JSON.stringify(msg),
                       });
 
                       // AUTO-TITLING: Extract text from assistant message content parts.
@@ -594,32 +595,42 @@ export async function POST(req: Request) {
                         }
 
                         if (extractedText.trim().length > 0) {
-                          const chat = await prisma.chat.findUnique({
-                            where: { id: currentChatId ?? '' },
-                          });
-                          if (chat && !chat.isCustomTitle && chat.title === 'New Chat') {
-                            // Preferred: title from AI response text
-                            const aiTitle = generateAutoTitle(extractedText);
-
-                            // Fallback: truncate the user's original message
-                            let userFallbackTitle = 'New Chat';
-                            if (lastUserMessage) {
-                              const userContent = lastUserMessage.content;
-                              const userText = typeof userContent === 'string'
-                                ? userContent
-                                : Array.isArray(userContent)
-                                  ? (userContent as any[]).filter((p: any) => p.type === 'text').map((p: any) => p.text).join(' ')
-                                  : '';
-                              userFallbackTitle = generateAutoTitle(userText);
-                            }
-
-                            const finalTitle = aiTitle !== 'New Chat' ? aiTitle : userFallbackTitle;
-                            await prisma.chat.update({
-                              where: { id: chat.id },
-                              data: { title: finalTitle },
-                            });
-                          }
+                          lastExtractedText = extractedText;
                         }
+                      }
+                    }
+
+                    if (messagesToCreate.length > 0) {
+                      await prisma.message.createMany({
+                        data: messagesToCreate,
+                      });
+                    }
+
+                    if (lastExtractedText.trim().length > 0 && currentChatId) {
+                      const chat = await prisma.chat.findUnique({
+                        where: { id: currentChatId },
+                      });
+                      if (chat && !chat.isCustomTitle && chat.title === 'New Chat') {
+                        // Preferred: title from AI response text
+                        const aiTitle = generateAutoTitle(lastExtractedText);
+
+                        // Fallback: truncate the user's original message
+                        let userFallbackTitle = 'New Chat';
+                        if (lastUserMessage) {
+                          const userContent = lastUserMessage.content;
+                          const userText = typeof userContent === 'string'
+                            ? userContent
+                            : Array.isArray(userContent)
+                              ? (userContent as any[]).filter((p: any) => p.type === 'text').map((p: any) => p.text).join(' ')
+                              : '';
+                          userFallbackTitle = generateAutoTitle(userText);
+                        }
+
+                        const finalTitle = aiTitle !== 'New Chat' ? aiTitle : userFallbackTitle;
+                        await prisma.chat.update({
+                          where: { id: chat.id },
+                          data: { title: finalTitle },
+                        });
                       }
                     }
 
@@ -680,6 +691,8 @@ export async function POST(req: Request) {
                   if (currentChatId) {
                     try {
                       const summaryResponse = await summaryResult.response;
+                      const messagesToCreate = [];
+                      let lastSummaryText = '';
                       for (const msg of summaryResponse.messages) {
                         if (msg.role !== 'assistant') continue;
 
@@ -696,24 +709,29 @@ export async function POST(req: Request) {
 
                         if (summaryText.trim().length === 0) continue;
 
-                        await prisma.message.create({
-                          data: {
-                            chatId: currentChatId,
+                        messagesToCreate.push({
+                          chatId: currentChatId,
+                          role: 'assistant',
+                          // Store as a simple text ContentPart array for clean history rendering
+                          content: JSON.stringify({
                             role: 'assistant',
-                            // Store as a simple text ContentPart array for clean history rendering
-                            content: JSON.stringify({
-                              role: 'assistant',
-                              content: [{ type: 'text', text: summaryText }],
-                            }),
-                          },
+                            content: [{ type: 'text', text: summaryText }],
+                          }),
+                        });
+                        lastSummaryText = summaryText;
+                      }
+
+                      if (messagesToCreate.length > 0) {
+                        await prisma.message.createMany({
+                          data: messagesToCreate,
                         });
 
                         // Also update the chat title from the clean final answer if still "New Chat"
                         const chat = await prisma.chat.findUnique({
                           where: { id: currentChatId },
                         });
-                        if (chat && !chat.isCustomTitle && chat.title === 'New Chat') {
-                          const finalTitle = generateAutoTitle(summaryText);
+                        if (chat && !chat.isCustomTitle && chat.title === 'New Chat' && lastSummaryText) {
+                          const finalTitle = generateAutoTitle(lastSummaryText);
                           if (finalTitle !== 'New Chat') {
                             await prisma.chat.update({
                               where: { id: currentChatId },

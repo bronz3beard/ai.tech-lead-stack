@@ -151,7 +151,7 @@ export default function ChatMessageList({
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [isLoading, messages.length === 0]);
+  }, [isLoading, messages.length]);
 
   // History mode: not currently streaming AND no live stream data in flight.
   // In this mode: suppress tool-call/tool-result trails and reasoning blocks —
@@ -343,12 +343,11 @@ export default function ChatMessageList({
                           remarkPlugins={[remarkGfm]}
                           components={{
                             code({
-                              node,
                               inline,
                               className,
                               children,
                               ...props
-                            }: CodeComponentProps) {
+                            }: Omit<CodeComponentProps, 'node'>) {
                               const match = /language-(\w+)/.exec(
                                 className ?? ''
                               );
