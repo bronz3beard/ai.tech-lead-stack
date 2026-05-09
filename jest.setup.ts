@@ -1,4 +1,5 @@
-import { TextDecoder, TextEncoder } from 'util';
+import '@testing-library/jest-dom';
+import { TextEncoder, TextDecoder } from 'util';
+import { TransformStream } from 'stream/web';
 
-global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder;
+Object.assign(global, { TextDecoder, TextEncoder, TransformStream });

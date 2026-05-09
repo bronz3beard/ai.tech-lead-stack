@@ -17,12 +17,23 @@ export function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
 
   const anyErr = error as any;
+  let fallback = '';
+  if (typeof anyErr === 'object' && anyErr !== null) {
+    try {
+      fallback = JSON.stringify(anyErr);
+    } catch (e) {
+      fallback = String(anyErr);
+    }
+  } else {
+    fallback = String(anyErr);
+  }
+
   const message =
     anyErr?.error?.message ||
     anyErr?.message ||
     anyErr?.data?.error?.message ||
     anyErr?.response?.data?.error?.message ||
-    (typeof anyErr === 'object' ? JSON.stringify(anyErr) : String(anyErr));
+    fallback;
 
   return message;
 }
@@ -53,7 +64,13 @@ export function isQuotaError(err: any): boolean {
   // 3. Deep heuristic check via stringification
   // This catches cases where the error is wrapped or the detail is deep
   const msg = getErrorMessage(err).toLowerCase();
-  const raw = typeof err === 'object' ? JSON.stringify(err).toLowerCase() : String(err).toLowerCase();
+  let raw = '';
+  try {
+    raw = typeof err === 'object' ? JSON.stringify(err).toLowerCase() : String(err).toLowerCase();
+  } catch (e) {
+    // If stringification fails (e.g., circular structure), fall back to String()
+    raw = String(err).toLowerCase();
+  }
 
   const keywords = [
     '429',
@@ -165,14 +182,6 @@ export function resolveGeminiApiKeys(
   }
 
   return keys;
-}
-
-// Deprecated alias for backward compatibility if needed, but we should update callers.
-export function resolveGeminiApiKey(
-  user: Pick<User, 'geminiApiKey'>,
-  decrypt: (ciphertext: string) => string
-): string {
-  return resolveGeminiApiKeys(user, decrypt)[0];
 }
 
 /**
