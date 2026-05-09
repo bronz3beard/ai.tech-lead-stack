@@ -1,6 +1,6 @@
 import { TextDecoder, TextEncoder } from 'util';
+import { TransformStream } from 'stream/web';
 
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
-import { TransformStream } from 'stream/web';
-Object.assign(global, { TransformStream });
+global.TransformStream = TransformStream;
