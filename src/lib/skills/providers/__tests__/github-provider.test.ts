@@ -16,7 +16,6 @@ jest.mock('octokit', () => {
 });
 
 // Import mocked Octokit
-import { Octokit } from 'octokit';
 
 describe('GitHubCodeProvider', () => {
   const mockToken = 'test-token';

@@ -68,8 +68,46 @@ export async function syncTracesFromLangfuse(limit?: number, force = false) {
       `[AnalyticsSync] Processing ${traces.length} traces from Langfuse...`
     );
 
+    // 1. Batch resolve users by email
+    const emails = [
+      ...new Set(
+        traces
+          .map((t: any) => t.userId)
+          .filter((id: any) => id && typeof id === 'string' && id.includes('@'))
+      ),
+    ] as string[];
+
+    const userLookup = new Map<string, string>();
+    if (emails.length > 0) {
+      const users = await prisma.user.findMany({
+        where: { email: { in: emails } },
+        select: { id: true, email: true },
+      });
+      for (const u of users) {
+        if (u.email) userLookup.set(u.email, u.id);
+      }
+    }
+
+    // 2. Batch resolve existing traces
+    const traceIds = traces.map((t: any) => t.id).filter(Boolean) as string[];
+    const existingEventsLookup = new Map<string, string>();
+
+    if (traceIds.length > 0) {
+      const existingEvents = await prisma.analyticsEvent.findMany({
+        where: { langfuseTraceId: { in: traceIds } },
+        select: { id: true, langfuseTraceId: true },
+      });
+      for (const event of existingEvents) {
+        if (event.langfuseTraceId) {
+          existingEventsLookup.set(event.langfuseTraceId, event.id);
+        }
+      }
+    }
+
+    // 3. Prepare batch operations
+    const operations: any[] = [];
+
     for (const trace of traces) {
-      // 1. Process project and skill names
       const rawProject =
         trace.metadata?.projectName ||
         trace.metadata?.projectId ||
@@ -81,20 +119,12 @@ export async function syncTracesFromLangfuse(limit?: number, force = false) {
         trace.name?.replace('skill:', '') || 'unknown'
       );
 
-      // 2. Resolve User ID if possible
       let resolvedUserId: string | null = null;
-      if (trace.userId && trace.userId.includes('@')) {
-        const user = await prisma.user.findUnique({
-          where: { email: trace.userId },
-          select: { id: true },
-        });
-        if (user) resolvedUserId = user.id;
+      if (trace.userId && typeof trace.userId === 'string' && trace.userId.includes('@')) {
+        resolvedUserId = userLookup.get(trace.userId) || null;
       }
 
-      // 3. Manual Upsert to support historical correction since langfuseTraceId is not @unique in schema
-      const existing = await prisma.analyticsEvent.findFirst({
-        where: { langfuseTraceId: trace.id },
-      });
+      const existingId = trace.id ? existingEventsLookup.get(trace.id) : undefined;
 
       const eventData = {
         skillName: normalizedSkill,
@@ -115,21 +145,30 @@ export async function syncTracesFromLangfuse(limit?: number, force = false) {
         },
       };
 
-      if (existing) {
-        await prisma.analyticsEvent.update({
-          where: { id: existing.id },
-          data: eventData,
-        });
+      if (existingId) {
+        operations.push(
+          prisma.analyticsEvent.update({
+            where: { id: existingId },
+            data: eventData,
+          })
+        );
       } else {
-        await prisma.analyticsEvent.create({
-          data: {
-            ...eventData,
-            langfuseTraceId: trace.id,
-            createdAt: new Date(trace.timestamp),
-          },
-        });
+        operations.push(
+          prisma.analyticsEvent.create({
+            data: {
+              ...eventData,
+              langfuseTraceId: trace.id,
+              createdAt: new Date(trace.timestamp),
+            },
+          })
+        );
       }
       syncedCount++;
+    }
+
+    // 4. Execute all queries in a single transaction
+    if (operations.length > 0) {
+      await prisma.$transaction(operations);
     }
 
     console.log(
