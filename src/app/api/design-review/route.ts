@@ -113,7 +113,7 @@ export async function GET(req: Request) {
  * @desc Creates a new design review session. Internally this creates a Chat
  * record tagged with design-review metadata. Returns the new ReviewSession.
  *
- * @body `{ projectId, component, figmaUrl? }`
+ * @body `{ projectId, component, figmaUrl?, chromaticBuildUrl? }`
  */
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -122,10 +122,11 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { projectId, component, figmaUrl } = (await req.json()) as {
+    const { projectId, component, figmaUrl, chromaticBuildUrl } = (await req.json()) as {
       projectId: string;
       component: string;
       figmaUrl?: string;
+      chromaticBuildUrl?: string;
     };
 
     if (!projectId || !component?.trim()) {
@@ -139,6 +140,7 @@ export async function POST(req: Request) {
       reviewType: 'design-system-review',
       component: component.trim(),
       figmaUrl: figmaUrl?.trim() || undefined,
+      chromaticBuildUrl: chromaticBuildUrl?.trim() || undefined,
       iteration: 1,
       status: 'IN_PROGRESS',
       gateResults: [],

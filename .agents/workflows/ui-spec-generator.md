@@ -35,9 +35,13 @@ git checkout -b feature/ui-spec-<feature-name>
 *(Replace `<feature-name>` with a concise, kebab-case representation of the feature).*
 
 ### Step 3: Skeleton Generation
-1. Implement the requested feature inside the appropriate directory (e.g., `app/(routes)/[feature]/page.tsx` or `components/features/[feature].tsx`).
-2. Use dummy data or mocked interfaces where backend APIs are not yet defined.
-3. Ensure all code is strictly typed (TypeScript) and uses Tailwind CSS for layout.
+1. For each required Shadcn component, run the add command using the project's detected package manager **before** writing any code that imports it:
+   ```bash
+   npx shadcn-ui@latest add <component>
+   ```
+2. Implement the requested feature inside the appropriate directory (e.g., `app/(routes)/[feature]/page.tsx` or `components/features/[feature].tsx`).
+3. Use dummy data or mocked interfaces where backend APIs are not yet defined.
+4. Ensure all code is strictly typed (TypeScript) and uses Tailwind CSS for layout.
 
 ### Step 4: Commit & Push
 Once the code is implemented and verified locally via linting or visual inspection (if applicable):
@@ -49,8 +53,8 @@ git push -u origin feature/ui-spec-<feature-name>
 
 ### Step 5: Task Handoff & Dev Notification
 1. Generate a `task.md` document for the developer in the root of the target project outlining:
-   - The required `npx shadcn-ui@latest add <component>` commands if new primitives are needed.
-   - The data wiring required to make the skeleton fully functional.
+   - **Note:** All Shadcn/Radix components have already been added and installed. The developer only needs to run `pnpm install` (or the project's package manager) to sync their local `node_modules`.
+   - The data wiring required to make the skeleton fully functional (API calls, Prisma queries, React Query hooks, form actions, etc.).
 2. Hit the Tech-Lead Stack API to notify the developers that the branch is ready:
    ```bash
    curl -X POST <TECH_LEAD_STACK_URL>/api/notify/devs \
