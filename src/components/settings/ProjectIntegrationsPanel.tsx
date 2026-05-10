@@ -19,12 +19,14 @@ interface Project {
   settings: {
     discordWebhookUrl?: string;
     discordDevWebhookUrl?: string;
+    designSystemPath?: string;
   } | null;
 }
 
 interface ProjectFormState {
   discordWebhookUrl: string;
   discordDevWebhookUrl: string;
+  designSystemPath: string;
   isSaving: boolean;
   isSaved: boolean;
 }
@@ -47,6 +49,7 @@ export default function ProjectIntegrationsPanel() {
           initialState[p.id] = {
             discordWebhookUrl: p.settings?.discordWebhookUrl ?? '',
             discordDevWebhookUrl: p.settings?.discordDevWebhookUrl ?? '',
+            designSystemPath: p.settings?.designSystemPath ?? '',
             isSaving: false,
             isSaved: false,
           };
@@ -67,7 +70,7 @@ export default function ProjectIntegrationsPanel() {
     init();
   }, [fetchProjects]);
 
-  const handleChange = (projectId: string, field: keyof Pick<ProjectFormState, 'discordWebhookUrl' | 'discordDevWebhookUrl'>, value: string) => {
+  const handleChange = (projectId: string, field: keyof Pick<ProjectFormState, 'discordWebhookUrl' | 'discordDevWebhookUrl' | 'designSystemPath'>, value: string) => {
     setFormState((prev) => ({
       ...prev,
       [projectId]: { ...prev[projectId], [field]: value, isSaved: false },
@@ -81,12 +84,12 @@ export default function ProjectIntegrationsPanel() {
     }));
 
     try {
-      const { discordWebhookUrl, discordDevWebhookUrl } = formState[projectId];
+      const { discordWebhookUrl, discordDevWebhookUrl, designSystemPath } = formState[projectId];
       await fetch(`/api/projects/${projectId}/settings`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          settings: { discordWebhookUrl, discordDevWebhookUrl },
+          settings: { discordWebhookUrl, discordDevWebhookUrl, designSystemPath },
         }),
       });
       setFormState((prev) => ({
@@ -160,6 +163,23 @@ export default function ProjectIntegrationsPanel() {
                   value={state.discordDevWebhookUrl}
                   onChange={(e) => handleChange(project.id, 'discordDevWebhookUrl', e.target.value)}
                   className="bg-zinc-950 border-zinc-700 text-zinc-100"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor={`design-system-path-${project.id}`} className="text-zinc-300">
+                  Component Output Path
+                </Label>
+                <p className="text-xs text-zinc-500">
+                  Where should the AI place generated UI components? Leave blank for auto-detection.
+                  <br />
+                  <span className="font-mono text-zinc-400">e.g. libs/gilly-ui/src/components</span>
+                </p>
+                <Input
+                  id={`design-system-path-${project.id}`}
+                  placeholder="libs/my-ui/src/components or leave blank to auto-detect"
+                  value={state.designSystemPath}
+                  onChange={(e) => handleChange(project.id, 'designSystemPath', e.target.value)}
+                  className="bg-zinc-950 border-zinc-700 text-zinc-100 font-mono text-sm"
                 />
               </div>
               <div className="flex items-center gap-3">

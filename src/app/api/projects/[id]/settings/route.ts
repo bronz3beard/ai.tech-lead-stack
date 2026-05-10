@@ -8,14 +8,15 @@ const UpdateProjectSettingsSchema = z.object({
   settings: z.object({
     discordWebhookUrl: z.string().url().optional().or(z.literal('')),
     discordDevWebhookUrl: z.string().url().optional().or(z.literal('')),
+    designSystemPath: z.string().optional().or(z.literal('')),
   }),
 });
 
 /**
- * @desc Updates the integration settings (webhook URLs) for a project.
+ * @desc Updates the integration settings for a project.
  * Only the project owner (ownerId) may update settings.
  *
- * @param req Body: { settings: { discordWebhookUrl?, discordDevWebhookUrl? } }
+ * @param req Body: { settings: { discordWebhookUrl?, discordDevWebhookUrl?, designSystemPath? } }
  * @returns 200 { project: { id, settings } }
  */
 export async function PATCH(
@@ -47,16 +48,20 @@ export async function PATCH(
   }
 
   // Deep-merge new settings into existing settings JSON
+  // Empty strings are treated as deletions (the key is removed from the JSON)
   const existingSettings = (project.settings ?? {}) as Record<string, unknown>;
+  const { discordWebhookUrl, discordDevWebhookUrl, designSystemPath } = parsed.data.settings;
   const newSettings = {
     ...existingSettings,
-    // Treat empty strings as deletions (remove key)
-    ...(parsed.data.settings.discordWebhookUrl !== ''
-      ? { discordWebhookUrl: parsed.data.settings.discordWebhookUrl }
+    ...(discordWebhookUrl !== ''
+      ? { discordWebhookUrl }
       : { discordWebhookUrl: undefined }),
-    ...(parsed.data.settings.discordDevWebhookUrl !== ''
-      ? { discordDevWebhookUrl: parsed.data.settings.discordDevWebhookUrl }
+    ...(discordDevWebhookUrl !== ''
+      ? { discordDevWebhookUrl }
       : { discordDevWebhookUrl: undefined }),
+    ...(designSystemPath !== ''
+      ? { designSystemPath }
+      : { designSystemPath: undefined }),
   };
 
   const updated = await prisma.project.update({
