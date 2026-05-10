@@ -164,6 +164,16 @@ safe_ln "$SOURCE_DIR/.ai" "$TARGET_DIR/.ai"
 safe_ln "$SOURCE_DIR/.agents" "$TARGET_DIR/.agents"
 cp "$SOURCE_DIR/templates/PULL_REQUEST_TEMPLATE.md" "$TARGET_DIR/.github/PULL_REQUEST_TEMPLATE.md"
 
+if [[ ! -d "$TARGET_DIR/.github/workflows" ]]; then
+    mkdir -p "$TARGET_DIR/.github/workflows"
+fi
+
+if [[ ! -f "$TARGET_DIR/.github/workflows/design-review-trigger.yml" ]]; then
+    cp "$SOURCE_DIR/docs/github-action-example.yml" "$TARGET_DIR/.github/workflows/design-review-trigger.yml"
+    echo "   ✅ Added GitHub Action for Design Review triggers"
+else
+    echo "   - GitHub Action design-review-trigger.yml already exists"
+fi
 # 2. Python Setup
 echo "🐍 Ensuring Python dependencies are met..."
 python3 -m pip install -r "$SOURCE_DIR/requirements.txt" --quiet
