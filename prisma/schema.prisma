@@ -94,6 +94,7 @@ model Project {
   description    String?
   repoUrl        String?
   githubFullName String?         @unique
+  settings       Json?
   ownerId        String?
   createdAt      DateTime        @default(now())
   chats          Chat[]

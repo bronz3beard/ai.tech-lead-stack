@@ -255,16 +255,55 @@ export async function PATCH(req: Request) {
     const updatedChat = await prisma.chat.update({
       where: { id: sessionId },
       data: { metadata: updatedMeta as any },
-      select: {
-        id: true,
-        projectId: true,
-        metadata: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      include: { project: true },
     });
 
-    return NextResponse.json({ session: toReviewSession(updatedChat) });
+    const sessionData = toReviewSession(updatedChat);
+
+    // If status just changed to READY_FOR_DESIGNER_GATE, fire the webhook
+    if (
+      reviewStatus === 'READY_FOR_DESIGNER_GATE' &&
+      currentMeta.status !== 'READY_FOR_DESIGNER_GATE'
+    ) {
+      const projectSettings = updatedChat.project.settings as { discordWebhookUrl?: string } | null;
+      const webhookUrl = projectSettings?.discordWebhookUrl;
+
+      if (webhookUrl) {
+        // Fire-and-forget Discord webhook
+        const discordPayload = {
+          content: `🎨 **Design Review Ready**\nThe AI Tech-Lead has approved the implementation for **${updatedMeta.component}** (Iteration ${updatedMeta.iteration}). Final designer approval is required.`,
+          embeds: [
+            {
+              title: "Review Session Dashboard",
+              url: `${process.env.NEXTAUTH_URL}/design-review?projectId=${updatedChat.projectId}`,
+              color: 3447003,
+              fields: [
+                {
+                  name: "Alignment Score",
+                  value: `${updatedMeta.alignmentScore ?? 0}%`,
+                  inline: true,
+                },
+                {
+                  name: "Chromatic URL",
+                  value: updatedMeta.chromaticBuildUrl ? `[View Build](${updatedMeta.chromaticBuildUrl})` : "Not provided",
+                  inline: true,
+                }
+              ]
+            }
+          ]
+        };
+
+        fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(discordPayload)
+        }).catch(err => {
+          console.error('[design-review] Failed to send Discord webhook:', err);
+        });
+      }
+    }
+
+    return NextResponse.json({ session: sessionData });
   } catch (error) {
     console.error('[design-review] PATCH error:', error);
     return NextResponse.json(

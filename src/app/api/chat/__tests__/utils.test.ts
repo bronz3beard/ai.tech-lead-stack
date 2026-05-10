@@ -77,7 +77,7 @@ describe('resolveGeminiApiKeys', () => {
   });
 
   it('logs info in development mode when keys are found', () => {
-    process.env.NODE_ENV = 'development';
+    Object.defineProperty(process.env, 'NODE_ENV', { value: 'development', configurable: true });
     process.env.GEMINI_API_KEY = 'env_key_very_long_for_masking';
 
     resolveGeminiApiKeys({ geminiApiKey: null }, mockDecrypt);
@@ -88,7 +88,7 @@ describe('resolveGeminiApiKeys', () => {
   });
 
   it('does not log info in production mode', () => {
-    process.env.NODE_ENV = 'production';
+    Object.defineProperty(process.env, 'NODE_ENV', { value: 'production', configurable: true });
     process.env.GEMINI_API_KEY = 'env_key_very_long_for_masking';
 
     resolveGeminiApiKeys({ geminiApiKey: null }, mockDecrypt);

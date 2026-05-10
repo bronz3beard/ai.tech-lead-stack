@@ -23,12 +23,10 @@ Call the `get_skill` tool:
 Before any analysis, use the `sequential-thinking` tool to initialize your
 session context:
 
-1. **Thought 1** — Identify the component under review (from user message or
-   active file context).
-2. **Thought 2** — Check for an existing session file at:
-   `scratch/design-review/<project-name>/session-<YYYY-MM-DD>.md`
-   - If found: read it and restore iteration count + status.
-   - If not found: create it using the template in the skill.
+1. **Thought 1** — Identify the `sessionId` from the user message.
+2. **Thought 2** — Fetch the current session state via the local API:
+   `curl http://localhost:3000/api/design-review/session/<sessionId>`
+   - Restore iteration count, current status, and check if a `figmaUrl` was provided.
 3. **Thought 3** — Confirm: "Session initialized. Iteration N. Status: X."
 
 ---
@@ -50,29 +48,29 @@ Execute the full skill workflow (Phase 0 → Gate 5):
 
 - Use `sequential-thinking` to track each gate result as a separate thought.
 - After each gate: record PASS / FAIL and the specific evidence.
-- After Gate 4 (Storybook/Figma): pause if Figma URL is needed, wait for user.
+- After Gate 4 (Storybook/Figma): If a `figmaUrl` exists in the session, verify against it. If NO Figma URL exists, evaluate the component purely based on base Shadcn/Radix foundations and the project's brand tokens.
 - After Gate 5 (Chromatic): pause if credentials are needed, wait for user.
-- Update the session file after all gates are complete.
+- Update the session state via the API (using `PATCH /api/design-review/session/<sessionId>`) after all gates are complete.
 
 ---
 
 ## Phase 4: Iteration Decision
 
-**After Iteration 1:**
+**When the audit is complete (Score < 90%):**
 
 - Present the "Must Fix" list (🔴 Critical / 🟡 Recommended / 🟢 Advisory).
-- Instruct the user: "Apply these fixes, then reply `/design-system-review iterate`
-  to trigger Iteration 2."
+- Instruct the user: "Apply these fixes, then reply `/design-system-review iterate` to trigger the next iteration."
 - **STOP here.** Do not proceed until the user responds.
 
-**After Iteration 2 (`/design-system-review iterate`):**
+**On subsequent iterations (`/design-system-review iterate`):**
 
-- Re-read session file to confirm iteration = 2.
+- Re-fetch the session state to confirm the current iteration count.
 - Re-run only failed gates.
-- Calculate alignment score.
+- Calculate the new alignment score.
+- *Note:* There is a minimum of 2 iterations required, but you may scale upwards as needed to reach UI parity.
 - Branch:
-  - **≥ 90%** → Call `create_knowledge_item` → Mark `READY_FOR_DESIGNER_GATE`
-  - **< 90%** → Write to `docs/design-debt.md` → Mark `ESCALATED`
+  - **≥ 90%** → Call `create_knowledge_item` → `PATCH` status to `READY_FOR_DESIGNER_GATE`
+  - **Still failing after multiple attempts & stuck** → `PATCH` status to `ESCALATED` and write to `docs/design-debt.md`
 
 ---
 
@@ -81,7 +79,8 @@ Execute the full skill workflow (Phase 0 → Gate 5):
 On **any** session completion (pass or escalation):
 
 - Final `sequential-thinking` thought: summarize the full session outcome.
-- Update the session file with final status and decision.
+- Update the session state using:
+  `curl -X PATCH http://localhost:3000/api/design-review/session/<sessionId> -H "Content-Type: application/json" -d '{"status": "<STATUS>", "alignmentScore": <SCORE>, "gateResults": [...]}'`
 - If `READY_FOR_DESIGNER_GATE`: call `create_knowledge_item` with the KI
   schema from the skill.
 - If `ESCALATED`: append a new entry to `docs/design-debt.md`:
@@ -89,10 +88,10 @@ On **any** session completion (pass or escalation):
 ```markdown
 ## [YYYY-MM-DD] <Component Name>
 
-- **Status**: ESCALATED after 2 iterations
+- **Status**: ESCALATED
 - **Alignment Score**: N%
 - **Unresolved Gates**: <list>
-- **Session File**: `scratch/design-review/<project>/session-<date>.md`
+- **Session ID**: `<sessionId>`
 - **Action Required**: Manual designer review
 ```
 
