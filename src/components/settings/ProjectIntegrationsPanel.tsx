@@ -168,19 +168,48 @@ export default function ProjectIntegrationsPanel() {
               <div className="space-y-2">
                 <Label htmlFor={`design-system-path-${project.id}`} className="text-zinc-300">
                   Component Output Path
+                  <span className="ml-2 text-xs font-normal text-zinc-500">(optional — leave blank for auto-detection)</span>
                 </Label>
-                <p className="text-xs text-zinc-500">
-                  Where should the AI place generated UI components? Leave blank for auto-detection.
-                  <br />
-                  <span className="font-mono text-zinc-400">e.g. libs/gilly-ui/src/components</span>
-                </p>
+
+                {/* Explanation block */}
+                <div className="rounded-md border border-zinc-700 bg-zinc-950/60 p-3 text-xs text-zinc-400 space-y-2">
+                  <p>
+                    This tells the AI <strong className="text-zinc-200">where to place generated UI components</strong> inside
+                    the target repository. It must be a <strong className="text-zinc-200">relative path from the project root</strong> — i.e. the
+                    folder you see when you open the repo in your code editor.
+                  </p>
+                  <div className="space-y-1">
+                    <p className="text-zinc-500">✅ Correct (relative paths):</p>
+                    <code className="block pl-2 text-emerald-400">libs/gilly-ui/src/components</code>
+                    <code className="block pl-2 text-emerald-400">packages/ui/src/components</code>
+                    <code className="block pl-2 text-emerald-400">src/components</code>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-zinc-500">❌ Wrong (absolute paths — will be rejected):</p>
+                    <code className="block pl-2 text-rose-400">/Users/dan/repos/gilly/libs/gilly-ui/src/components</code>
+                    <code className="block pl-2 text-rose-400">~/repos/gilly/src/components</code>
+                    <code className="block pl-2 text-rose-400">C:\repos\gilly\src\components</code>
+                  </div>
+                </div>
+
                 <Input
                   id={`design-system-path-${project.id}`}
-                  placeholder="libs/my-ui/src/components or leave blank to auto-detect"
+                  placeholder="e.g. libs/gilly-ui/src/components"
                   value={state.designSystemPath}
                   onChange={(e) => handleChange(project.id, 'designSystemPath', e.target.value)}
                   className="bg-zinc-950 border-zinc-700 text-zinc-100 font-mono text-sm"
                 />
+
+                {/* Client-side absolute path warning */}
+                {state.designSystemPath &&
+                  (state.designSystemPath.startsWith('/') ||
+                    state.designSystemPath.startsWith('~') ||
+                    /^[A-Za-z]:\\/.test(state.designSystemPath)) && (
+                  <p className="text-xs text-rose-400 flex items-center gap-1">
+                    ⚠️ This looks like an absolute path. Please enter a path relative to your project root (e.g.{' '}
+                    <code>libs/gilly-ui/src/components</code>).
+                  </p>
+                )}
               </div>
               <div className="flex items-center gap-3">
                 <Button

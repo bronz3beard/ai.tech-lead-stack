@@ -8,7 +8,14 @@ const UpdateProjectSettingsSchema = z.object({
   settings: z.object({
     discordWebhookUrl: z.string().url().optional().or(z.literal('')),
     discordDevWebhookUrl: z.string().url().optional().or(z.literal('')),
-    designSystemPath: z.string().optional().or(z.literal('')),
+    designSystemPath: z
+      .string()
+      .refine((val) => val === '' || (!val.startsWith('/') && !val.startsWith('~') && !val.match(/^[A-Z]:\\/i)), {
+        message:
+          'designSystemPath must be a relative path from the project root (e.g. "libs/gilly-ui/src/components"). Do not use an absolute path starting with /, ~, or a Windows drive letter.',
+      })
+      .optional()
+      .or(z.literal('')),
   }),
 });
 
