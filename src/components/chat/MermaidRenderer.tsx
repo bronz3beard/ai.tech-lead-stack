@@ -93,7 +93,7 @@ export default function MermaidRenderer({ chart }: MermaidRendererProps) {
       // ── Rule 6: Strip trailing dangling edge arrows ─────────────────
       chart = chart.replace(/-->[ \t]*$/gm, '');
 
-      // ── Rule 7: Statement Separation (Resolving "Expecting SQE" errors) ──
+      // ── Rule 7: Statement Separation (Prevents "Expecting SQE" errors) ──
       // If multiple node definitions appear on one line without a connection,
       // force a newline to satisfy the Mermaid parser.
       chart = chart.replace(/([\]\)])[ \t]{2,}([a-zA-Z0-9_-]+[\[\(])/g, '$1\n$2');
