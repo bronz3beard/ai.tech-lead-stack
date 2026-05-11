@@ -51,7 +51,7 @@ export default function MermaidRenderer({ chart }: MermaidRendererProps) {
       // ── Rule 1: Normalise line endings and whitespace ────────────────
       let chart = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-      // ── Rule 2: Fix unclosed double quotes in labels ──────────────────
+      // ── Rule 2: Resolve unclosed double quotes in labels ──────────────────
       // If a line has an odd number of double quotes, append one before the closing bracket.
       chart = chart.split('\n').map(line => {
         const quoteCount = (line.match(/"/g) || []).length;
