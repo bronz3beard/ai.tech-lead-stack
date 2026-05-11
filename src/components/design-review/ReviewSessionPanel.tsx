@@ -18,6 +18,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useState } from 'react';
+import { DesignResourcePanel } from './DesignResourcePanel';
 
 // ─── Gate Status Icon ─────────────────────────────────────────────────────────
 
@@ -300,6 +301,11 @@ export function ReviewSessionPanel({
           )}
         </div>
       )}
+
+      {/* Design Resources */}
+      <div className="px-4 py-2 border-b border-zinc-800">
+        <DesignResourcePanel />
+      </div>
 
       {/* Action Buttons */}
       <div className="px-4 py-4 mt-auto space-y-2">

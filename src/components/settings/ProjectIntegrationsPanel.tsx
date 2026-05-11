@@ -20,6 +20,8 @@ interface Project {
     discordWebhookUrl?: string;
     discordDevWebhookUrl?: string;
     designSystemPath?: string;
+    figmaApiKey?: string;
+    chromaticApiKey?: string;
   } | null;
 }
 
@@ -27,6 +29,8 @@ interface ProjectFormState {
   discordWebhookUrl: string;
   discordDevWebhookUrl: string;
   designSystemPath: string;
+  figmaApiKey: string;
+  chromaticApiKey: string;
   isSaving: boolean;
   isSaved: boolean;
 }
@@ -50,6 +54,8 @@ export default function ProjectIntegrationsPanel() {
             discordWebhookUrl: p.settings?.discordWebhookUrl ?? '',
             discordDevWebhookUrl: p.settings?.discordDevWebhookUrl ?? '',
             designSystemPath: p.settings?.designSystemPath ?? '',
+            figmaApiKey: p.settings?.figmaApiKey ?? '',
+            chromaticApiKey: p.settings?.chromaticApiKey ?? '',
             isSaving: false,
             isSaved: false,
           };
@@ -70,7 +76,7 @@ export default function ProjectIntegrationsPanel() {
     init();
   }, [fetchProjects]);
 
-  const handleChange = (projectId: string, field: keyof Pick<ProjectFormState, 'discordWebhookUrl' | 'discordDevWebhookUrl' | 'designSystemPath'>, value: string) => {
+  const handleChange = (projectId: string, field: keyof Pick<ProjectFormState, 'discordWebhookUrl' | 'discordDevWebhookUrl' | 'designSystemPath' | 'figmaApiKey' | 'chromaticApiKey'>, value: string) => {
     setFormState((prev) => ({
       ...prev,
       [projectId]: { ...prev[projectId], [field]: value, isSaved: false },
@@ -84,12 +90,24 @@ export default function ProjectIntegrationsPanel() {
     }));
 
     try {
-      const { discordWebhookUrl, discordDevWebhookUrl, designSystemPath } = formState[projectId];
+      const { 
+        discordWebhookUrl, 
+        discordDevWebhookUrl, 
+        designSystemPath,
+        figmaApiKey,
+        chromaticApiKey
+      } = formState[projectId];
       await fetch(`/api/projects/${projectId}/settings`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          settings: { discordWebhookUrl, discordDevWebhookUrl, designSystemPath },
+          settings: { 
+            discordWebhookUrl, 
+            discordDevWebhookUrl, 
+            designSystemPath,
+            figmaApiKey,
+            chromaticApiKey
+          },
         }),
       });
       setFormState((prev) => ({
@@ -211,6 +229,46 @@ export default function ProjectIntegrationsPanel() {
                   </p>
                 )}
               </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                   <Label htmlFor={`figma-api-key-${project.id}`} className="text-zinc-300 flex items-center justify-between">
+                    Figma API Key
+                    {state.figmaApiKey === '********' && (
+                      <span className="text-[10px] text-emerald-500 font-medium bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                        Configured
+                      </span>
+                    )}
+                  </Label>
+                  <Input
+                    id={`figma-api-key-${project.id}`}
+                    type="password"
+                    placeholder="figd_..."
+                    value={state.figmaApiKey}
+                    onChange={(e) => handleChange(project.id, 'figmaApiKey', e.target.value)}
+                    className="bg-zinc-950 border-zinc-700 text-zinc-100 font-mono text-xs"
+                  />
+                </div>
+                <div className="space-y-2">
+                   <Label htmlFor={`chromatic-api-key-${project.id}`} className="text-zinc-300 flex items-center justify-between">
+                    Chromatic API Key
+                    {state.chromaticApiKey === '********' && (
+                      <span className="text-[10px] text-emerald-500 font-medium bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                        Configured
+                      </span>
+                    )}
+                  </Label>
+                  <Input
+                    id={`chromatic-api-key-${project.id}`}
+                    type="password"
+                    placeholder="ch_..."
+                    value={state.chromaticApiKey}
+                    onChange={(e) => handleChange(project.id, 'chromaticApiKey', e.target.value)}
+                    className="bg-zinc-950 border-zinc-700 text-zinc-100 font-mono text-xs"
+                  />
+                </div>
+              </div>
+
               <div className="flex items-center gap-3">
                 <Button
                   onClick={() => handleSave(project.id)}
