@@ -39,7 +39,8 @@ function GateStatusIcon({ status }: { status: GateStatus }) {
 
 const STATUS_STYLES: Record<ReviewStatus, string> = {
   IN_PROGRESS: 'bg-violet-900/40 text-violet-300 border-violet-700/50',
-  READY_FOR_DESIGNER_GATE: 'bg-emerald-900/40 text-emerald-300 border-emerald-700/50',
+  READY_FOR_DESIGNER_GATE:
+    'bg-emerald-900/40 text-emerald-300 border-emerald-700/50',
   ESCALATED: 'bg-amber-900/40 text-amber-300 border-amber-700/50',
 };
 
@@ -304,7 +305,10 @@ export function ReviewSessionPanel({
 
       {/* Design Resources */}
       <div className="px-4 py-2 border-b border-zinc-800">
-        <DesignResourcePanel />
+        <DesignResourcePanel
+          figmaUrl={session.figmaUrl}
+          chromaticUrl={session.chromaticBuildUrl}
+        />
       </div>
 
       {/* Action Buttons */}
