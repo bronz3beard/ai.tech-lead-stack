@@ -24,6 +24,7 @@ import {
   SYSTEM_INSTRUCTION_WORKFLOW_PREFIX,
 } from './constants';
 import {
+  extractTextFromContent,
   getChatTools,
   getErrorMessage,
   initializeModel,
@@ -105,10 +106,7 @@ export async function GET(req: Request) {
             parts = (parsed.content as any[]).filter(
               (p) => RENDERABLE_PART_TYPES.has(p.type)
             );
-            content = (parsed.content as any[])
-              .filter((p) => p.type === 'text')
-              .map((p) => p.text)
-              .join('\n\n');
+            content = extractTextFromContent(parsed.content);
           }
 
           return {
@@ -379,12 +377,14 @@ export async function POST(req: Request) {
             },
           });
 
+          const lastUserMessageText = extractTextFromContent(lastUserMessage?.content);
+
           if (
             lastUserMessage &&
-            typeof lastUserMessage.content === 'string' &&
-            lastUserMessage.content.startsWith('/')
+            lastUserMessageText &&
+            lastUserMessageText.startsWith('/')
           ) {
-            const command = lastUserMessage.content
+            const command = lastUserMessageText
               .substring(1)
               .trim()
               .split(' ')[0];
@@ -579,20 +579,7 @@ export async function POST(req: Request) {
                       // of ContentPart in the AI SDK — never a raw string. The old
                       // `typeof === 'string'` guard always failed, so title stayed "New Chat".
                       if (msg.role === 'assistant') {
-                        const content = msg.content;
-                        let extractedText = '';
-
-                        if (typeof content === 'string') {
-                          extractedText = content;
-                        } else if (Array.isArray(content)) {
-                          for (const part of content) {
-                            const p = part as any;
-                            if (p.type === 'text' && typeof p.text === 'string' && p.text.trim().length > 0) {
-                              extractedText = p.text;
-                              break;
-                            }
-                          }
-                        }
+                        const extractedText = extractTextFromContent(msg.content);
 
                         if (extractedText.trim().length > 0) {
                           lastExtractedText = extractedText;
@@ -697,15 +684,7 @@ export async function POST(req: Request) {
                         if (msg.role !== 'assistant') continue;
 
                         // Extract text content (always an array of ContentPart in AI SDK)
-                        let summaryText = '';
-                        if (typeof msg.content === 'string') {
-                          summaryText = msg.content;
-                        } else if (Array.isArray(msg.content)) {
-                          summaryText = (msg.content as any[])
-                            .filter((p: any) => p.type === 'text')
-                            .map((p: any) => p.text)
-                            .join('\n\n');
-                        }
+                        const summaryText = extractTextFromContent(msg.content);
 
                         if (summaryText.trim().length === 0) continue;
 
@@ -876,9 +855,7 @@ async function updateChatSummary(chatId: string, model: any): Promise<void> {
     .map((m) => {
       try {
         const parsed = JSON.parse(m.content);
-        const text = typeof parsed.content === 'string'
-          ? parsed.content
-          : (parsed.content as any[])?.filter((p: any) => p.type === 'text').map((p: any) => p.text).join(' ');
+        const text = extractTextFromContent(parsed.content);
         return `${m.role.toUpperCase()}: ${text?.substring(0, 500) ?? ''}`;
       } catch {
         return `${m.role.toUpperCase()}: ${m.content.substring(0, 500)}`;

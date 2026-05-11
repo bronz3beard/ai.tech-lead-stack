@@ -39,6 +39,22 @@ export function getErrorMessage(error: unknown): string {
 }
 
 /**
+ * Extracts plain text from AI SDK content structures, handling both raw strings
+ * and arrays of ContentPart objects.
+ */
+export function extractTextFromContent(content: string | any[] | undefined | null): string {
+  if (!content) return '';
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return content
+      .filter((p: any) => p.type === 'text' && p.text)
+      .map((p: any) => p.text)
+      .join('\n\n');
+  }
+  return '';
+}
+
+/**
  * Robustly detects if an error is a Gemini/AI quota or rate-limit error.
  * Uses aggressive recursive scanning to catch keywords in any property.
  */
