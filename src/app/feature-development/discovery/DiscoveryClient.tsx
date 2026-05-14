@@ -46,10 +46,27 @@ export default function DiscoveryClient({ projects }: { projects: Project[] }) {
   };
 
   const handleFinishDiscovery = async () => {
-    // TODO: Trigger Phase 3 (GitHub Action / Audit Phase)
-    // Pass selectedProjectId to the backend
-    console.log('Starting Phase 3 with project:', selectedProjectId);
-    router.push('/feature-development/in-progress');
+    try {
+      const response = await fetch('/api/orchestrator/audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          branchName: `feature/discovery-${Date.now()}`,
+          creatorModelUsed: 'gemini', // In a real app, this would be tracked from the chat session
+          projectId: selectedProjectId,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Failed to trigger audit');
+      }
+
+      router.push('/feature-development/in-progress');
+    } catch (err: any) {
+      console.error('Error finishing discovery:', err);
+      alert(`Error: ${err.message}`);
+    }
   };
 
   const hasStarted = messages.length > 0;

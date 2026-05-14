@@ -3,12 +3,18 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getOrchestratorModels, validateDistinctModels } from '@/lib/ai/orchestrator';
+import { getProjectAccessFilter } from '@/lib/access';
 
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
+    
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     let userConfig = null;
-    if (session?.user?.id) {
+    if (session.user.id) {
       userConfig = await prisma.user.findUnique({
         where: { id: session.user.id },
         select: { requirementsModel: true, auditModel: true }
@@ -16,13 +22,25 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { branchName, creatorModelUsed } = body;
+    const { branchName, creatorModelUsed, projectId } = body;
 
-    if (!branchName || !creatorModelUsed) {
+    if (!branchName || !creatorModelUsed || !projectId) {
       return NextResponse.json(
-        { error: 'branchName and creatorModelUsed are required' },
+        { error: 'branchName, creatorModelUsed, and projectId are required' },
         { status: 400 }
       );
+    }
+
+    // Verify project access
+    const project = await prisma.project.findFirst({
+      where: {
+        id: projectId,
+        ...getProjectAccessFilter(session.user as any),
+      },
+    });
+
+    if (!project) {
+      return NextResponse.json({ error: 'Project not found or access denied' }, { status: 404 });
     }
 
     const { auditorModel } = getOrchestratorModels(userConfig);
