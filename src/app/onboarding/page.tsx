@@ -155,77 +155,70 @@ export default function OnboardingPage() {
           </div>
         </section>
 
-        {/* Section 3: The G-Stack Methodology */}
-        <section className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-10 md:p-16 space-y-8 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/5 blur-[100px] -z-10" />
-          <div className="space-y-4">
-            <h2 className="text-3xl font-bold text-white flex flex-wrap items-center gap-x-4 gap-y-2">
-              Proven Engineering Methodologies
-              <span className="text-blue-500 font-medium">G-Stack</span>
-              <span className="text-slate-600 font-light">&</span>
-              <span className="text-emerald-500 font-medium">MinimumCD</span>
+        {/* Section 3: The Pillars of Excellence */}
+        <section className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-10 md:p-16 space-y-12 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 blur-[100px] -z-10" />
+          <div className="space-y-4 text-center">
+            <h2 className="text-3xl font-bold text-white">
+              The Three Pillars of Excellence
             </h2>
-            <p className="text-xl text-indigo-400 font-medium italic">
-              &quot;Diagnosis before Advice &amp; Small Batch Engineering&quot;
+            <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+              Our agents are built on a foundation of elite engineering methodologies that ensure high-integrity collaboration.
             </p>
           </div>
-          <div className="prose prose-invert prose-slate max-w-none text-lg text-slate-300 space-y-6">
-            <p>
-              Our agents don&apos;t just guess. They follow the{' '}
-              <strong>G-Stack Methodology</strong>. Before an agent recommends a
-              change, it performs a <em>Phase 0: Tech-Stack Discovery</em>. This
-              ensures the agent understands your project—identifying whether
-              you&apos;re using React, Python, or Go—before it ever suggests a
-              line of code.
-            </p>
-            <p>
-              Furthermore, we adhere strictly to <strong>MinimumCD</strong>{' '}
-              principles, prioritizing small, atomic batches of work, continuous
-              automated verification, and early detection of regression risks.
-              This reduces complex delivery problems and ensures a stable
-              codebase.
-            </p>
-            <div className="flex flex-wrap gap-4 pt-2">
-              <a
-                href="https://github.com/garrytan/gstack"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 text-sm transition-colors text-blue-400 font-medium"
-              >
-                Explore G-Stack
-                <ArrowRight className="w-4 h-4" />
-              </a>
-              <a
-                href="https://minimumcd.org/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 text-sm transition-colors text-emerald-400 font-medium"
-              >
-                Learn MinimumCD
-                <ArrowRight className="w-4 h-4" />
-              </a>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-            <div className="bg-slate-950/50 p-6 rounded-xl border border-slate-800">
-              <h4 className="font-bold text-white mb-2 flex items-center gap-2">
-                <Search className="w-4 h-4 text-blue-400" />
-                Context Aware
-              </h4>
-              <p className="text-slate-400 text-sm">
-                Agents understand your codebase before acting, reducing errors
-                and hallucinations.
+
+          <div className="grid gap-8">
+            {/* G-Stack */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                  <Search className="w-6 h-6 text-blue-400" />
+                </div>
+                <h3 className="text-2xl font-bold text-white">G-Stack <span className="text-slate-500 font-normal text-lg">(Modularity & Diagnosis-First)</span></h3>
+              </div>
+              <p className="text-lg text-slate-300 leading-relaxed">
+                Inspired by the <a href="https://github.com/garrytan/gstack" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">garrytan/gstack</a> philosophy, this pillar mandates <strong>Diagnosis before Advice</strong>. Every skill begins with <em>Phase 0: Tech-Stack Discovery</em>. Agents must understand the project&apos;s language, framework, and constraints before proposing a single line of code.
               </p>
             </div>
-            <div className="bg-slate-950/50 p-6 rounded-xl border border-slate-800">
-              <h4 className="font-bold text-white mb-2 flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                MinimumCD Compliant
-              </h4>
-              <p className="text-slate-400 text-sm">
-                Every change follows a rebase-first, squash-and-merge workflow
-                for clean history.
+
+            {/* MinimumCD */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                  <ShieldCheck className="w-6 h-6 text-emerald-400" />
+                </div>
+                <h3 className="text-2xl font-bold text-white">MinimumCD <span className="text-slate-500 font-normal text-lg">(Atomic Batches & Continuous Verification)</span></h3>
+              </div>
+              <p className="text-lg text-slate-300 leading-relaxed">
+                This pillar prioritizes <strong>small, atomic batches of work</strong> (&lt;100 lines per task) and continuous automated verification. It is designed to prevent &quot;Big Bang&quot; integrations by enforcing <a href="https://beyond.minimumcd.org/docs/" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline">vertical slicing</a> and early detection of regression risks.
               </p>
+            </div>
+
+            {/* Agent Skills */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                  <Sparkles className="w-6 h-6 text-purple-400" />
+                </div>
+                <h3 className="text-2xl font-bold text-white">Agent Skills <span className="text-slate-500 font-normal text-lg">(Production-Grade Ethos)</span></h3>
+              </div>
+              <p className="text-lg text-slate-300 leading-relaxed">
+                Based on Addy Osmani&apos;s <a href="https://github.com/addyosmani/agent-skills" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline">agent-skills</a>, this pillar treats AI agents as disciplined senior engineers rather than shortcut-taking assistants.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                <div className="p-4 rounded-xl bg-slate-950/50 border border-slate-800">
+                  <div className="font-bold text-white mb-1">Process over Prose</div>
+                  <div className="text-sm text-slate-400">Structured workflows with specific verification gates.</div>
+                </div>
+                <div className="p-4 rounded-xl bg-slate-950/50 border border-slate-800">
+                  <div className="font-bold text-white mb-1">Anti-Rationalization</div>
+                  <div className="text-sm text-slate-400">Documented rebuttals to combat AI &quot;shortcuts&quot;.</div>
+                </div>
+                <div className="p-4 rounded-xl bg-slate-950/50 border border-slate-800">
+                  <div className="font-bold text-white mb-1">Verification is Non-Negotiable</div>
+                  <div className="text-sm text-slate-400">Every task ends with hard evidence. No guessing.</div>
+                </div>
+              </div>
             </div>
           </div>
         </section>

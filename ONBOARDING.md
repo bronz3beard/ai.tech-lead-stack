@@ -3,21 +3,18 @@
 Welcome to our automated engineering workflows! This guide will help you set up
 and use the custom agent skills we've developed.
 
-The "Lead Stack" is a set of modular **agent skills** designed to enhance your
-day-to-day processes, automate repetitive tasks, and uplevel overall engineering
-quality. These skills are built to be **Tech-Stack Agnostic** and
-**Agent-Ambiguous**, meaning they adapt to your project's specific language (C#,
-Python, JS, etc.) and work with various large language model agents like
-**Google Antigravity**, **Claude Code**, or **Cursor**.
+The "Lead Stack" is a set of modular **agent skills** designed to enhance your day-to-day processes, automate repetitive tasks, and uplevel overall engineering quality. These skills are built to be **Tech-Stack Agnostic** and **Agent-Ambiguous**, meaning they adapt to your project's specific language (C#, Python, JS, etc.) and work with various large language model agents.
 
-By leveraging these workflows, we follow the **G-Stack Methodology** — a
-framework inspired by the **garrytan/gstack** ethos and **MinimumCD**
-principles, focusing on "Diagnosis before Advice" and "User Sovereignty."
+## 🧠 The Methodology: Three Pillars
 
-> [!NOTE] **G-Stack is a Methodology, not a Stack**: The Tech-Lead Stack treats
-> "G-Stack" as an engineering philosophy. It is designed to work seamlessly with
-> C#, Python, JavaScript, Java, Go, and any other ecosystem by performing a
-> **Phase 0: Tech-Stack Discovery** before any action.
+The "Lead Stack" is built upon three foundational pillars of modern engineering excellence:
+
+1.  **G-Stack (Modularity & Diagnosis-First)**: Inspired by the [garrytan/gstack](https://github.com/garrytan/gstack) philosophy, this pillar mandates **Diagnosis before Advice**. Every skill begins with **Phase 0: Tech-Stack Discovery**. Agents must understand the project's language, framework, and constraints before proposing a single line of code.
+2.  **MinimumCD (Atomic Batches & Continuous Verification)**: This pillar prioritizes **small, atomic batches of work** (<100 lines per task) and continuous automated verification. It is designed to prevent "Big Bang" integrations by enforcing [vertical slicing](https://beyond.minimumcd.org/docs/) and early detection of regression risks.
+3.  **Agent Skills (Production-Grade Ethos)**: Based on Addy Osmani's [agent-skills](https://github.com/addyosmani/agent-skills), this pillar treats AI agents as disciplined senior engineers rather than shortcut-taking assistants.
+    - **Process over Prose**: Skills are structured workflows (not vague advice) with specific verification gates.
+    - **Anti-Rationalization**: It uses documented rebuttals to combat common AI excuses (e.g., "I'll add tests later" or "The fix seems right").
+    - **Verification is Non-Negotiable**: Every task must end with hard evidence (tests, logs, or screenshots). "Seems right" is never an acceptable exit criterion.
 
 ---
 
