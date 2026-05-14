@@ -60,6 +60,8 @@ export const MODELS = {
   FALLBACK_GEMINI: 'gemini-2.5-flash',
   CLAUDE: 'claude-opus-4.6',
   OPENAI: 'gpt-5.4',
+  JULES: 'gemini-3.1-pro',
+  FALLBACK_JULES: 'gemini-3.1-flash',
 } as const;
 
-export type ModelProvider = 'gemini' | 'claude' | 'openai';
+export type ModelProvider = 'gemini' | 'claude' | 'openai' | 'jules';

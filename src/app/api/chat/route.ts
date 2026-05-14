@@ -422,23 +422,31 @@ export async function POST(req: Request) {
           }
 
           let stepCount = 0;
-          const configs = [
-            {
-              modelId: MODELS.GEMINI,
-              keyIndex: 0,
-              label: 'Primary Model',
-            },
-            {
-              modelId: MODELS.FALLBACK_GEMINI,
-              keyIndex: 0,
-              label: 'Stable Model (Primary Key)',
-            },
-            {
-              modelId: MODELS.FALLBACK_GEMINI,
-              keyIndex: 1,
-              label: 'Stable Model (Alternative Key)',
-            },
-          ];
+          const preferredProvider = user.preferredModel || 'gemini';
+          
+          let configs: { modelId: string, keyIndex: number, label: string }[] = [];
+          
+          if (preferredProvider === 'gemini') {
+            configs = [
+              { modelId: MODELS.GEMINI, keyIndex: 0, label: 'Primary Model' },
+              { modelId: MODELS.FALLBACK_GEMINI, keyIndex: 0, label: 'Stable Model (Primary Key)' },
+              { modelId: MODELS.FALLBACK_GEMINI, keyIndex: 1, label: 'Stable Model (Alternative Key)' },
+            ];
+          } else if (preferredProvider === 'jules') {
+            configs = [
+              { modelId: MODELS.JULES, keyIndex: 0, label: 'Primary Model' },
+              { modelId: MODELS.FALLBACK_JULES, keyIndex: 0, label: 'Stable Model (Primary Key)' },
+              { modelId: MODELS.FALLBACK_JULES, keyIndex: 1, label: 'Stable Model (Alternative Key)' },
+            ];
+          } else if (preferredProvider === 'claude') {
+            configs = [
+              { modelId: MODELS.CLAUDE, keyIndex: 0, label: 'Primary Model' }
+            ];
+          } else if (preferredProvider === 'openai') {
+            configs = [
+              { modelId: MODELS.OPENAI, keyIndex: 0, label: 'Primary Model' }
+            ];
+          }
 
           for (let i = 0; i < configs.length; i++) {
             const config = configs[i];
