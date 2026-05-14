@@ -38,9 +38,15 @@ const navigation = [
     protected: true,
   },
   {
-    name: 'Design Review',
-    href: '/design-review',
-    icon: Palette,
+    name: 'Feature Discovery',
+    href: '/feature-development/discovery',
+    icon: Sparkles,
+    protected: true,
+  },
+  {
+    name: 'In-Progress Features',
+    href: '/feature-development/in-progress',
+    icon: LayoutDashboard,
     protected: true,
   },
   {
@@ -200,6 +206,10 @@ export function Navbar() {
   const isAuthenticated = status === 'authenticated';
 
   const activeLink = (href: string) => pathname === href;
+
+  if (pathname === '/feature-development/discovery') {
+    return null;
+  }
 
   const filteredNavigation = navigation.filter(
     (item) => !item.protected || isAuthenticated
