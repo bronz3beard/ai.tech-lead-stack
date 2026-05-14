@@ -40,4 +40,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# design-review session scratch files (project-specific, never commit)
+scratch/design-review/
+
 /src/generated/prisma

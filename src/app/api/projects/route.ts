@@ -29,10 +29,20 @@ export async function GET() {
   const projects = await prisma.project.findMany({
     where: getProjectAccessFilter(session.user),
     orderBy: { name: 'asc' },
-    select: { id: true, name: true, githubFullName: true, repoUrl: true, description: true },
+    select: { id: true, name: true, githubFullName: true, repoUrl: true, description: true, settings: true },
   });
 
-  return NextResponse.json({ projects });
+  // Mask sensitive keys in settings
+  const sanitizedProjects = projects.map(p => ({
+    ...p,
+    settings: p.settings ? {
+      ...(p.settings as Record<string, unknown>),
+      figmaApiKey: (p.settings as any).figmaApiKey ? '********' : undefined,
+      chromaticApiKey: (p.settings as any).chromaticApiKey ? '********' : undefined,
+    } : null
+  }));
+
+  return NextResponse.json({ projects: sanitizedProjects });
 }
 
 /**

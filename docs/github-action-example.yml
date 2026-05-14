@@ -1,0 +1,46 @@
+name: Trigger AI Design Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, labeled]
+
+jobs:
+  trigger-design-review:
+    # Only run if the PR has the specific UI label. 
+    # Change 'gilly-ui' to match your project's configured label.
+    if: contains(github.event.pull_request.labels.*.name, 'gilly-ui')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract Chromatic URL from PR body
+        id: chromatic
+        run: |
+          CHROMATIC_URL=$(echo "${{ github.event.pull_request.body }}" | grep -oP 'https://www\.chromatic\.com/build\?appId=[^\s]+' | head -1 || echo "")
+          echo "url=$CHROMATIC_URL" >> $GITHUB_OUTPUT
+
+      - name: Trigger Tech-Lead Stack Review Session
+        # Replace <TECH_LEAD_STACK_URL> with your deployed dashboard URL.
+        # Replace <PROJECT_ID> with your project's ID in the dashboard.
+        # The API key should be stored in GitHub Secrets and match the 
+        # authentication mechanism configured in your Tech-Lead Stack instance.
+        run: |
+          curl -X POST https://<TECH_LEAD_STACK_URL>/api/design-review \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.TECH_LEAD_API_KEY }}" \
+            -d '{
+              "projectId": "<PROJECT_ID>",
+              "component": "${{ github.event.pull_request.title }}",
+              "status": "AWAITING_REVIEW",
+              "chromaticBuildUrl": "${{ steps.chromatic.outputs.url }}"
+            }'
+            
+      # Optional: Post a comment back to the PR letting the author know the review started
+      - name: Comment PR
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🤖 **AI Design Review Triggered**\nA design review session has been automatically started in the Tech-Lead Stack dashboard for this PR.'
+            })

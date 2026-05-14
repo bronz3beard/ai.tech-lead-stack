@@ -6,6 +6,7 @@ import ProfileForm from './ProfileForm';
 import ApiKeyCard from './ApiKeyCard';
 import ProjectSharingPanel from './ProjectSharingPanel';
 import SharedProjectsReadOnly from './SharedProjectsReadOnly';
+import ProjectIntegrationsPanel from './ProjectIntegrationsPanel';
 
 interface SettingsPageClientProps {
   role: string;
@@ -17,10 +18,13 @@ export default function SettingsPageClient({ role }: SettingsPageClientProps) {
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 max-w-[400px]">
+        <TabsList className="grid w-full grid-cols-4 max-w-[540px]">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="api-keys">API Keys</TabsTrigger>
           <TabsTrigger value="projects">Project Access</TabsTrigger>
+          {(role === 'DEVELOPER' || role === 'ADMIN') && (
+            <TabsTrigger value="integrations">Integrations</TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="profile" className="mt-6">
@@ -46,6 +50,12 @@ export default function SettingsPageClient({ role }: SettingsPageClientProps) {
             <SharedProjectsReadOnly />
           )}
         </TabsContent>
+
+        {(role === 'DEVELOPER' || role === 'ADMIN') && (
+          <TabsContent value="integrations" className="mt-6">
+            <ProjectIntegrationsPanel />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

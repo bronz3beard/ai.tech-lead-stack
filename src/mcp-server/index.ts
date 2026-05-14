@@ -254,7 +254,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       LIST_KI_TOOL,
       READ_KI_TOOL,
       CREATE_KI_TOOL,
-      ...dynamicTools,
     ],
   };
 });

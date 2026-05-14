@@ -98,37 +98,27 @@ lead-init
 3. **Mission Control**: Your `lead-init` will now automatically run a pre-flight
    check to make sure you didn't miss a step.
 
----
-
 ## 🧠 The Methodology: Three Pillars
 
 The "Tech-Lead Stack" is built upon three foundational pillars of modern
 engineering excellence:
 
-1. **G-Stack**: A technology-agnostic engineering framework inspired by the
-   **garrytan/gstack** ethos, focusing on modularity and diagnosis-first
-   planning.
-2. **MinimumCD**: A priority on small, atomic batches of work, continuous
-   automated verification, and early detection of regression risks.
-3. **Agent Skills**: A high-discipline
-   [Production-Grade Ethos](https://github.com/addyosmani/agent-skills) that
-   prevents "shortcut" logic and ensures AI agents default to professional
-   engineering standards.
-
-### Core Tenets:
-
-1. **Diagnosis before Advice**: Every skill begins with a **Tech-Stack Discovery
-   (Phase 0)** phase. The agent must understand the project's language,
-   framework, and constraints (by inspecting `package.json`, `pyproject.toml`,
-   `csproj`, etc.) before proposing a plan.
-2. **User Sovereignty**: The AI provides high-fidelity recommendations, but the
-   human is the final decision-maker. We favor "AI Recommends, User Decides"
-   over black-box automation.
-3. **MinimumCD Alignment**: We prioritize small, atomic batches of work (<100
-   lines per task), continuous automated verification, and early detection of
-   regression risks.
-4. **Clean Context & RTK Execution**: We use dedicated RTK tools to maintain
-   "Context Hygiene" and ensure every action is repeatable and auditable.
+1.  **G-Stack (Modularity & Diagnosis-First)**: Inspired by the
+    [garrytan/gstack](https://github.com/garrytan/gstack) philosophy, this
+    pillar mandates **Diagnosis before Advice**. Every skill begins with **Phase
+    0: Tech-Stack Discovery**. Agents must understand the project's language,
+    framework, and constraints (by inspecting `package.json`, `tsconfig.json`,
+    etc.) before proposing a single line of code.
+2.  **MinimumCD (Atomic Batches & Continuous Verification)**: This pillar
+    prioritizes **small, atomic batches of work** (<100 lines per task) and
+    continuous automated verification. It is designed to prevent "Big Bang"
+    integrations by enforcing
+    [vertical slicing](https://beyond.minimumcd.org/docs/) and early detection
+    of regression risks.
+3.  **Agent Skills (Production-Grade Ethos)**: Based on Addy Osmani's
+    [agent-skills](https://github.com/addyosmani/agent-skills), this pillar
+    treats AI agents as disciplined senior engineers rather than shortcut-taking
+    assistants.
 
 ### Production-Grade Ethos
 
@@ -136,12 +126,13 @@ Our methodology is reinforced by the
 [Agent Skills](https://github.com/addyosmani/agent-skills) ethos, ensuring AI
 agents default to high-discipline engineering rather than the shortest path:
 
-- **Process over Prose**: We follow structured workflows with specific
-  verification gates.
-- **Anti-Rationalization**: We combat common AI excuses (e.g., "I'll add tests
-  later") with mandatory quality gates.
+- **Process over Prose**: Skills are structured workflows (not vague advice)
+  with specific verification gates.
+- **Anti-Rationalization**: It uses documented rebuttals to combat common AI
+  excuses (e.g., "I'll add tests later" or "The fix seems right").
 - **Verification is Non-Negotiable**: Every task must end with hard evidence
-  (tests, logs, or screenshots).
+  (tests, logs, or screenshots). "Seems right" is never an acceptable exit
+  criterion.
 
 > [!NOTE] **G-Stack is a Methodology, not a Stack**: While the name implies a
 > specific technology set, the Tech-Lead Stack treats "G-Stack" as an
