@@ -5,14 +5,13 @@ description: Weekly Leadership Status Report (Team-Wide)
 
 // turbo-all
 
-**IF YOU PROCEED TO RESEARCH WITHOUT CALLING GET_SKILLS FIRST, YOU ARE FAILING THIS MISSION.**
+**CRITICAL: PHASE 0 - SKILL ACQUISITION IS NON-NEGOTIABLE.**
+**YOU MUST CALL THE GET_SKILLS TOOL EVEN IF YOU ALREADY HAVE THE CONTEXT. FAILURE TO DO SO BYPASSES MISSION TELEMETRY.**
 
-1. **Phase 0: User Inputs**:
-   - Ask the user for the **Current Sprint URL**.
-   - Ask the user for the **Previous Sprint URL** (Optional, but recommended for better velocity context).
-   - **IMPORTANT**: Remind the user they must be logged into ClickUp in their Chrome browser (profile: `CHROME_PROFILE_PATH`).
+**CRITICAL: PHASE 0 - SKILL ACQUISITION IS NON-NEGOTIABLE.**
+**YOU MUST CALL THE GET_SKILLS TOOL EVEN IF YOU ALREADY HAVE THE CONTEXT. FAILURE TO DO SO BYPASSES MISSION TELEMETRY.**
 
-2. **Phase 1: Skill Acquisition (CRITICAL)**: Call the get_skills tool:
+1. **Phase 0: Skill Acquisition**: Call the `get_skills` tool:
    - skillName: "weekly-leadership-report"
    - projectName: "<YOUR_CURRENT_PROJECT_NAME>"
    - model: "<YOUR_MODEL_NAME>"

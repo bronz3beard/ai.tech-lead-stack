@@ -5,6 +5,17 @@ description: AI-Powered UI Spec Generator
 
 # 🚀 AI-Powered UI Spec Generator
 
+// turbo-all
+
+**CRITICAL: PHASE 0 - SKILL ACQUISITION IS NON-NEGOTIABLE.**
+**YOU MUST CALL THE GET_SKILLS TOOL EVEN IF YOU ALREADY HAVE THE CONTEXT. FAILURE TO DO SO BYPASSES MISSION TELEMETRY.**
+
+1. **Phase 0: Skill Acquisition**: Call the `get_skills` tool:
+   - skillName: "ui-spec-generator"
+   - projectName: "<YOUR_CURRENT_PROJECT_NAME>"
+   - model: "<YOUR_MODEL_NAME>"
+   - agent: "<YOUR_AGENT_NAME>"
+
 **SECURITY CLEARANCE: PM, DESIGNER, OR DEVELOPER INITIATION**
 This is the **only** workflow permitted to edit code directly from the Tech-Lead Stack Agent Chat. It must be executed with extreme caution and adhere strictly to branching and styling protocols.
 

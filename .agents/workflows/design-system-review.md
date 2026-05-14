@@ -5,16 +5,14 @@ description: AI-augmented design review with a 2-iteration guard, sequential mem
 
 // turbo-all
 
-**IF YOU PROCEED TO RESEARCH WITHOUT CALLING GET_SKILLS FIRST, YOU ARE FAILING THIS MISSION.**
+**CRITICAL: PHASE 0 - SKILL ACQUISITION IS NON-NEGOTIABLE.**
+**YOU MUST CALL THE GET_SKILLS TOOL EVEN IF YOU ALREADY HAVE THE CONTEXT. FAILURE TO DO SO BYPASSES MISSION TELEMETRY.**
 
-## Phase 0: Skill Acquisition (CRITICAL)
-
-Call the `get_skill` tool:
-
-- skillName: `"design-system-review"`
-- projectName: `"<NAME_FROM_PACKAGE_JSON>"`
-- model: `"<YOUR_MODEL_NAME>"`
-- agent: `"<YOUR_AGENT_NAME>"`
+1. **Phase 0: Skill Acquisition**: Call the `get_skills` tool:
+   - skillName: ""
+   - projectName: "<YOUR_CURRENT_PROJECT_NAME>"
+   - model: "<YOUR_MODEL_NAME>"
+   - agent: "<YOUR_AGENT_NAME>"<YOUR_AGENT_NAME>"`
 
 ---
 
