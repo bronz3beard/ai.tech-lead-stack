@@ -51,6 +51,8 @@ export async function GET(
       component: meta.component,
       figmaUrl: meta.figmaUrl,
       chromaticBuildUrl: meta.chromaticBuildUrl,
+      prUrl: meta.prUrl,
+      initiatedBy: meta.initiatedBy || 'PM',
       iteration: meta.iteration,
       status: meta.status,
       alignmentScore: meta.alignmentScore,
@@ -58,6 +60,7 @@ export async function GET(
       projectId: chat.projectId,
       createdAt: chat.createdAt.toISOString(),
       updatedAt: chat.updatedAt.toISOString(),
+      deletedAt: meta.deletedAt,
     };
 
     return NextResponse.json({ session: reviewSession });

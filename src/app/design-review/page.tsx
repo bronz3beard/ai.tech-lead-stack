@@ -77,6 +77,8 @@ export default async function DesignReviewPage({ searchParams }: PageProps) {
         component: meta.component,
         figmaUrl: meta.figmaUrl,
         chromaticBuildUrl: meta.chromaticBuildUrl,
+        prUrl: meta.prUrl,
+        initiatedBy: meta.initiatedBy || 'PM',
         iteration: meta.iteration,
         status: meta.status,
         alignmentScore: meta.alignmentScore,
@@ -84,6 +86,7 @@ export default async function DesignReviewPage({ searchParams }: PageProps) {
         projectId: chat.projectId,
         createdAt: chat.createdAt.toISOString(),
         updatedAt: chat.updatedAt.toISOString(),
+        deletedAt: meta.deletedAt,
       });
       return acc;
     },

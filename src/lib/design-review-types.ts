@@ -44,11 +44,14 @@ export interface ReviewSessionMetadata {
   component: string;
   figmaUrl?: string;
   chromaticBuildUrl?: string;
+  prUrl?: string;
+  initiatedBy: 'PM' | 'DESIGNER' | 'DEVELOPER';
   iteration: 1 | 2;
   status: ReviewStatus;
   /** @desc 0–100 alignment score set by the AI after Iteration 2. */
   alignmentScore?: number;
   gateResults?: GateResult[];
+  deletedAt?: string;
 }
 
 /**
@@ -61,6 +64,8 @@ export interface ReviewSession {
   component: string;
   figmaUrl?: string;
   chromaticBuildUrl?: string;
+  prUrl?: string;
+  initiatedBy: 'PM' | 'DESIGNER' | 'DEVELOPER';
   iteration: 1 | 2;
   status: ReviewStatus;
   alignmentScore?: number;
@@ -68,4 +73,5 @@ export interface ReviewSession {
   projectId: string;
   createdAt: string;
   updatedAt: string;
+  deletedAt?: string;
 }

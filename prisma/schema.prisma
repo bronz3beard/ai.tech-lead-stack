@@ -94,9 +94,9 @@ model Project {
   description    String?
   repoUrl        String?
   githubFullName String?         @unique
-  settings       Json?
   ownerId        String?
   createdAt      DateTime        @default(now())
+  settings       Json?
   chats          Chat[]
   owner          User?           @relation(fields: [ownerId], references: [id])
   accessGrants   ProjectAccess[]
@@ -115,19 +115,18 @@ model ProjectAccess {
 model Chat {
   id            String    @id @default(cuid())
   title         String    @default("New Chat")
-  isPinned      Boolean   @default(false)
-  isCustomTitle Boolean   @default(false)
-  summary       String?
-  metadata      Json?
   userId        String
   projectId     String
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  isCustomTitle Boolean   @default(false)
+  isPinned      Boolean   @default(false)
+  summary       String?
+  metadata      Json?
   project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages      Message[]
 }
-
 
 model Message {
   id        String   @id @default(cuid())

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { DesignResourcePanel } from './DesignResourcePanel';
+import { HowToGuidePanel } from './HowToGuidePanel';
 
 // ─── Gate Status Icon ─────────────────────────────────────────────────────────
 
@@ -309,6 +310,7 @@ export function ReviewSessionPanel({
           figmaUrl={session.figmaUrl}
           chromaticUrl={session.chromaticBuildUrl}
         />
+        <HowToGuidePanel />
       </div>
 
       {/* Action Buttons */}

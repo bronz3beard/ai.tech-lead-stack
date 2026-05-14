@@ -5,7 +5,7 @@ description: AI-Powered UI Spec Generator
 
 # 🚀 AI-Powered UI Spec Generator
 
-**SECURITY CLEARANCE REQUIRED: PM INITIATION ONLY**
+**SECURITY CLEARANCE: PM, DESIGNER, OR DEVELOPER INITIATION**
 This is the **only** workflow permitted to edit code directly from the Tech-Lead Stack Agent Chat. It must be executed with extreme caution and adhere strictly to branching and styling protocols.
 
 ## Objective
@@ -29,8 +29,10 @@ Review the following files to understand the target project's architecture:
 - `components.json` — Shadcn configuration and component alias paths.
 - `tailwind.config.ts` — brand tokens and theme extensions.
 
-#### 1b. Component Mapping
-Analyze the PM's requirements and map them to standard Shadcn components (e.g., "data table" → `DataTable`, "calendar" → `Calendar` + `Popover`).
+#### 1b. Component & Design Mapping
+- Analyze the requirements and map them to standard Shadcn components.
+- **Source of Truth Check**: If a Figma Link was provided during initiation, scrape the link (using `firecrawl_scrape`) to extract layout, colors, and typography constraints before generating code.
+
 
 #### 1c. 🗂️ Design System Discovery (3-Tier Protocol)
 Determine where new UI atom components should be created. Execute the following tiers **in order**, stopping at the first match:
@@ -97,7 +99,8 @@ git checkout -b feature/ui-spec-<feature-name>
    - If Storybook stories are co-located in this project, create a `<ComponentName>.stories.tsx` stub alongside each new atom.
 3. Use dummy data or mocked interfaces where backend APIs are not yet defined.
 4. Ensure all code is strictly typed (TypeScript) and uses Tailwind CSS for layout.
-5. Follow the exact naming and import patterns identified in Step 1e.
+5. **Figma Alignment**: If a Figma link was provided, ensure the generated Tailwind classes match the extracted tokens from Step 1b.
+6. Follow the exact naming and import patterns identified in Step 1e.
 
 ---
 

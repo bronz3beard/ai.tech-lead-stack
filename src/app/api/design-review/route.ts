@@ -41,6 +41,8 @@ function toReviewSession(chat: {
     component: meta.component,
     figmaUrl: meta.figmaUrl,
     chromaticBuildUrl: meta.chromaticBuildUrl,
+    prUrl: meta.prUrl,
+    initiatedBy: meta.initiatedBy || 'PM',
     iteration: meta.iteration,
     status: meta.status,
     alignmentScore: meta.alignmentScore,
@@ -48,6 +50,7 @@ function toReviewSession(chat: {
     projectId: chat.projectId,
     createdAt: chat.createdAt.toISOString(),
     updatedAt: chat.updatedAt.toISOString(),
+    deletedAt: meta.deletedAt,
   };
 }
 
@@ -93,9 +96,17 @@ export async function GET(req: Request) {
       },
     });
 
+    const showDeleted = searchParams.get('showDeleted') === 'true';
+
     const sessions = chats
       .map(toReviewSession)
-      .filter((s): s is ReviewSession => s !== null);
+      .filter((s): s is ReviewSession => {
+        if (!s) return false;
+        // If showDeleted is false (default), hide items with deletedAt
+        if (!showDeleted && s.deletedAt) return false;
+        // If showDeleted is true, show everything (including deleted)
+        return true;
+      });
 
     return NextResponse.json({ sessions });
   } catch (error) {
@@ -122,11 +133,13 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { projectId, component, figmaUrl, chromaticBuildUrl } = (await req.json()) as {
+    const { projectId, component, figmaUrl, chromaticBuildUrl, prUrl, initiatedBy } = (await req.json()) as {
       projectId: string;
       component: string;
       figmaUrl?: string;
       chromaticBuildUrl?: string;
+      prUrl?: string;
+      initiatedBy?: 'PM' | 'DESIGNER' | 'DEVELOPER';
     };
 
     if (!projectId || !component?.trim()) {
@@ -141,6 +154,8 @@ export async function POST(req: Request) {
       component: component.trim(),
       figmaUrl: figmaUrl?.trim() || undefined,
       chromaticBuildUrl: chromaticBuildUrl?.trim() || undefined,
+      prUrl: prUrl?.trim() || undefined,
+      initiatedBy: initiatedBy || 'PM',
       iteration: 1,
       status: 'IN_PROGRESS',
       gateResults: [],
@@ -197,6 +212,7 @@ export async function PATCH(req: Request) {
       iteration,
       status: reviewStatus,
       chromaticBuildUrl,
+      deletedAt,
     } = (await req.json()) as {
       sessionId: string;
       gateResults?: GateResult[];
@@ -204,6 +220,7 @@ export async function PATCH(req: Request) {
       iteration?: 1 | 2;
       status?: ReviewStatus;
       chromaticBuildUrl?: string;
+      deletedAt?: string | null;
     };
 
     if (!sessionId) {
@@ -252,6 +269,7 @@ export async function PATCH(req: Request) {
       ...(iteration !== undefined && { iteration }),
       ...(reviewStatus !== undefined && { status: reviewStatus }),
       ...(chromaticBuildUrl !== undefined && { chromaticBuildUrl }),
+      ...(deletedAt !== undefined && { deletedAt: deletedAt ?? undefined }),
     };
 
     const updatedChat = await prisma.chat.update({
@@ -308,6 +326,70 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ session: sessionData });
   } catch (error) {
     console.error('[design-review] PATCH error:', error);
+    return NextResponse.json(
+      { message: 'Internal server error.' },
+      { status: 500 }
+    );
+  }
+}
+
+// ─── DELETE /api/design-review?sessionId=X ────────────────────────────────────
+
+/**
+ * @desc Performs a soft delete on a design review session by setting `deletedAt`
+ * in the metadata.
+ */
+export async function DELETE(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const sessionId = searchParams.get('sessionId');
+
+  if (!sessionId) {
+    return NextResponse.json(
+      { message: 'sessionId is required.' },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const chat = await prisma.chat.findUnique({
+      where: { id: sessionId },
+      select: { id: true, userId: true, metadata: true },
+    });
+
+    if (!chat) {
+      return NextResponse.json({ message: 'Session not found.' }, { status: 404 });
+    }
+
+    if (chat.userId !== session.user.id) {
+      return NextResponse.json({ message: 'Access denied.' }, { status: 403 });
+    }
+
+    const currentMeta = parseReviewMetadata(chat.metadata);
+    if (!currentMeta) {
+      return NextResponse.json(
+        { message: 'Chat is not a design review session.' },
+        { status: 400 }
+      );
+    }
+
+    const updatedMeta: ReviewSessionMetadata = {
+      ...currentMeta,
+      deletedAt: new Date().toISOString(),
+    };
+
+    await prisma.chat.update({
+      where: { id: sessionId },
+      data: { metadata: updatedMeta as any },
+    });
+
+    return NextResponse.json({ message: 'Session soft-deleted.' });
+  } catch (error) {
+    console.error('[design-review] DELETE error:', error);
     return NextResponse.json(
       { message: 'Internal server error.' },
       { status: 500 }
