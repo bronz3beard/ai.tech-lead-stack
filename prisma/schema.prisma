@@ -44,6 +44,9 @@ model User {
   claudeApiKey    String?          @map("claudApiKey")
   openaiApiKey    String?
   geminiApiKey    String?
+  julesApiKey     String?
+  requirementsModel String?
+  auditModel      String?
   createdAt       DateTime         @default(now())
   firstName       String?
   lastName        String?

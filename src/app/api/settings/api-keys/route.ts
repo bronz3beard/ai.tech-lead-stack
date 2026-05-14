@@ -6,12 +6,12 @@ import { z } from 'zod';
 import { encrypt } from '@/lib/crypto';
 
 const SaveApiKeySchema = z.object({
-  provider: z.enum(['claude', 'openai', 'gemini']),
+  provider: z.enum(['claude', 'openai', 'gemini', 'jules']),
   key: z.string().min(1),
 });
 
 const DeleteApiKeySchema = z.object({
-  provider: z.enum(['claude', 'openai', 'gemini']),
+  provider: z.enum(['claude', 'openai', 'gemini', 'jules']),
 });
 
 export async function GET() {
@@ -27,6 +27,7 @@ export async function GET() {
       claudeApiKey: true,
       openaiApiKey: true,
       geminiApiKey: true,
+      julesApiKey: true,
       preferredModel: true,
     },
   });
@@ -39,6 +40,7 @@ export async function GET() {
     hasClaudeKey: !!user.claudeApiKey,
     hasOpenaiKey: !!user.openaiApiKey,
     hasGeminiKey: !!user.geminiApiKey,
+    hasJulesKey: !!user.julesApiKey,
     preferredModel: user.preferredModel ?? 'gemini',
   });
 }
@@ -74,6 +76,8 @@ export async function POST(req: Request) {
       updateData.openaiApiKey = encryptedKey;
     } else if (provider === 'gemini') {
       updateData.geminiApiKey = encryptedKey;
+    } else if (provider === 'jules') {
+      updateData.julesApiKey = encryptedKey;
     }
 
     await prisma.user.update({
@@ -123,6 +127,8 @@ export async function DELETE(req: Request) {
       updateData.openaiApiKey = null;
     } else if (provider === 'gemini') {
       updateData.geminiApiKey = null;
+    } else if (provider === 'jules') {
+      updateData.julesApiKey = null;
     }
 
     // Reset preferredModel to default if the deleted key was the preferred one

@@ -147,6 +147,15 @@ export function readGeminiKeysFromEnv(): string | undefined {
 }
 
 /**
+ * Reads Jules API keys from the environment.
+ */
+export function readJulesKeysFromEnv(): string | undefined {
+  const jules = process.env.JULES_API_KEY?.trim();
+  if (jules) return jules;
+  return undefined;
+}
+
+/**
  * Whether to prefer server env keys over the user row (self-hosted: paid key in .env, stale free key in DB).
  * Set GEMINI_API_KEY_PRECEDENCE=env to use GEMINI_API_KEY / GOOGLE_GENERATIVE_AI_API_KEY first.
  */
@@ -201,6 +210,37 @@ export function resolveGeminiApiKeys(
 }
 
 /**
+ * Resolves the Jules API keys available: user DB and environment.
+ * @returns Array of available keys [preferred, fallback]
+ */
+export function resolveJulesApiKeys(
+  user: Pick<User, 'julesApiKey'>,
+  decrypt: (ciphertext: string) => string
+): string[] {
+  const envKey = readJulesKeysFromEnv();
+  const stored = user.julesApiKey?.trim();
+  let dbKey: string | null = null;
+
+  if (stored) {
+    const key = decrypt(stored).trim();
+    if (key) dbKey = key;
+  }
+
+  // Jules doesn't use the GEMINI precedence env var, we just prefer DB then Env
+  const keys: string[] = [];
+  if (dbKey) keys.push(dbKey);
+  if (envKey && !keys.includes(envKey)) keys.push(envKey);
+
+  if (keys.length === 0) {
+    throw new Error(
+      'No Jules API key configured. Add one in Settings, or set JULES_API_KEY in your .env file.'
+    );
+  }
+
+  return keys;
+}
+
+/**
  * Factory for initializing the AI model based on user preference and API keys.
  * Supports fallback rotation via modelId and keyIndex.
  */
@@ -230,6 +270,16 @@ export async function initializeModel(user: User, modelId?: string, keyIndex = 0
       apiKey: decrypt(user.openaiApiKey.trim()).trim(),
     });
     return openai(modelId ?? MODELS.OPENAI);
+  }
+
+  if (preferredModel === 'jules') {
+    const julesKeys = resolveJulesApiKeys(user, decrypt);
+    const targetKey = julesKeys[keyIndex] || julesKeys[0];
+    if (!targetKey) {
+      throw new Error('Resolved Jules API key was empty.');
+    }
+    const google = createGoogleGenerativeAI({ apiKey: targetKey });
+    return google(modelId ?? MODELS.JULES);
   }
 
   // Gemini specific logic with key rotation

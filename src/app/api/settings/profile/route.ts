@@ -7,7 +7,9 @@ import { z } from 'zod';
 const UpdateProfileSchema = z.object({
   firstName: z.string().optional(),
   lastName: z.string().optional(),
-  preferredModel: z.enum(['gemini', 'claude', 'openai']).optional(),
+  preferredModel: z.enum(['gemini', 'claude', 'openai', 'jules']).optional(),
+  requirementsModel: z.string().optional(),
+  auditModel: z.string().optional(),
 });
 
 export async function GET() {
@@ -26,6 +28,8 @@ export async function GET() {
       name: true,
       image: true,
       preferredModel: true,
+      requirementsModel: true,
+      auditModel: true,
     },
   });
 
@@ -54,7 +58,7 @@ export async function PATCH(req: Request) {
       );
     }
 
-    const { firstName, lastName, preferredModel } = parsed.data;
+    const { firstName, lastName, preferredModel, requirementsModel, auditModel } = parsed.data;
 
     const updatedUser = await prisma.user.update({
       where: { id: session.user.id },
@@ -62,6 +66,8 @@ export async function PATCH(req: Request) {
         ...(firstName !== undefined ? { firstName } : {}),
         ...(lastName !== undefined ? { lastName } : {}),
         ...(preferredModel !== undefined ? { preferredModel } : {}),
+        ...(requirementsModel !== undefined ? { requirementsModel } : {}),
+        ...(auditModel !== undefined ? { auditModel } : {}),
       },
       select: {
         email: true,
@@ -70,6 +76,8 @@ export async function PATCH(req: Request) {
         name: true,
         image: true,
         preferredModel: true,
+        requirementsModel: true,
+        auditModel: true,
       },
     });
 

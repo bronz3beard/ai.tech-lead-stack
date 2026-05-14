@@ -39,6 +39,7 @@ export default function SettingsPageClient({ role }: SettingsPageClientProps) {
             key is being used; enable billing on that Google AI project for higher limits.
           </p>
           <ApiKeyCard provider="gemini" label="Gemini (Google)" isSystemDefault />
+          <ApiKeyCard provider="jules" label="Google Jules (Agentic)" />
           <ApiKeyCard provider="claude" label="Claude (Anthropic)" />
           <ApiKeyCard provider="openai" label="ChatGPT (OpenAI)" />
         </TabsContent>

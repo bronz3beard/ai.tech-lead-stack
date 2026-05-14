@@ -1,8 +1,20 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 import { getOrchestratorModels, validateDistinctModels } from '@/lib/ai/orchestrator';
 
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    let userConfig = null;
+    if (session?.user?.id) {
+      userConfig = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { requirementsModel: true, auditModel: true }
+      });
+    }
+
     const body = await req.json();
     const { branchName, creatorModelUsed } = body;
 
@@ -13,7 +25,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { auditorModel } = getOrchestratorModels();
+    const { auditorModel } = getOrchestratorModels(userConfig);
 
     try {
       // Enforce model distinction rule

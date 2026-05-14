@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
 
@@ -14,13 +15,20 @@ interface ProfileData {
   lastName: string | null;
   name: string | null;
   image: string | null;
+  requirementsModel?: string;
+  auditModel?: string;
 }
 
 export default function ProfileForm() {
   const [data, setData] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [formData, setFormData] = useState({ firstName: '', lastName: '' });
+  const [formData, setFormData] = useState({ 
+    firstName: '', 
+    lastName: '',
+    requirementsModel: '',
+    auditModel: '' 
+  });
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -32,6 +40,8 @@ export default function ProfileForm() {
           setFormData({
             firstName: profile.firstName || '',
             lastName: profile.lastName || '',
+            requirementsModel: profile.requirementsModel || '',
+            auditModel: profile.auditModel || '',
           });
         }
       } catch (e) {
@@ -119,6 +129,41 @@ export default function ProfileForm() {
                 className="bg-zinc-800 border-zinc-700"
                 placeholder="Optional"
               />
+            </div>
+          </div>
+
+          <div className="pt-6 border-t border-zinc-800">
+            <h3 className="text-lg font-medium text-zinc-200 mb-4">Orchestrator Defaults</h3>
+            <p className="text-sm text-zinc-400 mb-4">Select your preferred models for AI workflows. Overrides system defaults.</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="requirementsModel" className="text-zinc-300">Creator Agent Model</Label>
+                <Select
+                  value={formData.requirementsModel}
+                  onChange={(val) => setFormData({ ...formData, requirementsModel: val })}
+                  options={[
+                    { label: 'System Default (.env)', value: '' },
+                    { label: 'Gemini', value: 'gemini' },
+                    { label: 'Claude', value: 'claude' },
+                    { label: 'OpenAI', value: 'openai' },
+                    { label: 'Google Jules', value: 'jules' }
+                  ]}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="auditModel" className="text-zinc-300">Auditor Agent Model</Label>
+                <Select
+                  value={formData.auditModel}
+                  onChange={(val) => setFormData({ ...formData, auditModel: val })}
+                  options={[
+                    { label: 'System Default (.env)', value: '' },
+                    { label: 'Gemini', value: 'gemini' },
+                    { label: 'Claude', value: 'claude' },
+                    { label: 'OpenAI', value: 'openai' },
+                    { label: 'Google Jules', value: 'jules' }
+                  ]}
+                />
+              </div>
             </div>
           </div>
 

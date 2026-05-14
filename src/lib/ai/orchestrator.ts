@@ -1,11 +1,13 @@
+import { User } from '@prisma/client';
+
 export interface OrchestratorModels {
   creatorModel: string;
   auditorModel: string;
 }
 
-export function getOrchestratorModels(): OrchestratorModels {
-  const creatorModel = process.env.REQUIREMENTS_DEVELOPMENT_MODEL || 'gemini';
-  const auditorModel = process.env.CODE_AUDIT_MODEL || 'claude';
+export function getOrchestratorModels(user?: Pick<User, 'requirementsModel' | 'auditModel'> | null): OrchestratorModels {
+  const creatorModel = user?.requirementsModel || process.env.REQUIREMENTS_DEVELOPMENT_MODEL || 'gemini';
+  const auditorModel = user?.auditModel || process.env.CODE_AUDIT_MODEL || 'jules';
   return { creatorModel, auditorModel };
 }
 
