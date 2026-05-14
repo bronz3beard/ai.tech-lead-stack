@@ -23,5 +23,14 @@ export default async function DiscoveryPage() {
     }
   });
 
-  return <DiscoveryClient projects={authorizedProjects} />;
+  // Fetch user config for model defaults
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { requirementsModel: true }
+  });
+
+  return <DiscoveryClient 
+    projects={authorizedProjects} 
+    defaultCreatorModel={user?.requirementsModel || 'gemini'} 
+  />;
 }

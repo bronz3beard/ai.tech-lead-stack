@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { ArrowLeft, Folder } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { Folder, ArrowLeft } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 export interface Project {
   id: string;
@@ -13,9 +13,17 @@ export interface Project {
   githubFullName?: string | null;
 }
 
-export default function DiscoveryClient({ projects }: { projects: Project[] }) {
+export default function DiscoveryClient({
+  projects,
+  defaultCreatorModel,
+}: {
+  projects: Project[];
+  defaultCreatorModel: string;
+}) {
   const router = useRouter();
-  const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
+  const [messages, setMessages] = useState<{ role: string; content: string }[]>(
+    []
+  );
   const [input, setInput] = useState('');
   const [isSandboxReady, setIsSandboxReady] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
@@ -31,28 +39,73 @@ export default function DiscoveryClient({ projects }: { projects: Project[] }) {
 
   const handleSendMessage = () => {
     if (!input.trim() || !selectedProjectId) return;
-    
-    setMessages(prev => [...prev, { role: 'user', content: input }]);
+
+    setMessages((prev) => [...prev, { role: 'user', content: input }]);
     setInput('');
 
     // TODO: Send to tech-lead-stack API (Creator Model) and stream response
     // Simulated response:
     setTimeout(() => {
-      setMessages(prev => [
-        ...prev, 
-        { role: 'assistant', content: 'I am scaffolding the feature now. You will see the sandbox update shortly.' }
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content:
+            'I am scaffolding the feature now. You will see the sandbox update shortly.',
+        },
       ]);
     }, 1000);
   };
 
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationStarted, setGenerationStarted] = useState(false);
+
+  const handleStartGeneration = async () => {
+    if (!selectedProjectId || messages.length === 0) return;
+
+    setIsGenerating(true);
+    try {
+      const lastPrompt = messages[messages.length - 1].content;
+      const branchName = `feat/requirements-discovery-${Date.now()}`;
+
+      const response = await fetch('/api/orchestrator/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          branchName,
+          prompt: lastPrompt,
+          projectId: selectedProjectId,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Failed to trigger cloud runner');
+      }
+
+      setGenerationStarted(true);
+      // We could store the branch name for the audit phase
+      (window as any)._currentBranch = branchName;
+      alert('Cloud Runner triggered! Branch: ' + branchName);
+    } catch (err: any) {
+      console.error('Error starting generation:', err);
+      alert(`Error: ${err.message}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const handleFinishDiscovery = async () => {
+    const branchName =
+      (window as any)._currentBranch ||
+      `feat/requirements-discovery-${Date.now()}`;
     try {
       const response = await fetch('/api/orchestrator/audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          branchName: `feature/discovery-${Date.now()}`,
-          creatorModelUsed: 'gemini', // In a real app, this would be tracked from the chat session
+          branchName,
+          creatorModelUsed: defaultCreatorModel,
           projectId: selectedProjectId,
         }),
       });
@@ -75,26 +128,45 @@ export default function DiscoveryClient({ projects }: { projects: Project[] }) {
     <div className="flex h-dvh w-full flex-col bg-slate-950 text-slate-50 dark overflow-hidden">
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-slate-800 px-6 bg-slate-900">
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="sm" onClick={() => router.back()} className="text-slate-400 hover:text-white">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.back()}
+            className="text-slate-400 hover:text-white"
+          >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
-          <h1 className="text-lg font-semibold text-white">Requirements Discovery</h1>
+          <h1 className="text-lg font-semibold text-white">
+            Requirements Discovery
+          </h1>
         </div>
-        <Button 
-          onClick={handleFinishDiscovery} 
-          variant="default"
-          disabled={!hasStarted || !selectedProjectId}
-          className={!hasStarted || !selectedProjectId ? 'opacity-50 cursor-not-allowed bg-slate-700 text-slate-400' : 'bg-blue-600 hover:bg-blue-500 text-white'}
-        >
-          Finish Discovery & Audit
-        </Button>
+        <div className="flex items-center space-x-2">
+          {!generationStarted ? (
+            <Button
+              onClick={handleStartGeneration}
+              disabled={!hasStarted || !selectedProjectId || isGenerating}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50"
+            >
+              {isGenerating
+                ? 'Triggering...'
+                : 'Start Generation (Cloud Runner)'}
+            </Button>
+          ) : (
+            <Button
+              onClick={handleFinishDiscovery}
+              variant="default"
+              className="bg-blue-600 hover:bg-blue-500 text-white"
+            >
+              Trigger Audit
+            </Button>
+          )}
+        </div>
       </header>
 
       <main className="flex flex-1 overflow-hidden">
         {/* Chat Interface */}
         <section className="flex w-1/3 flex-col border-r border-slate-800 bg-slate-900">
-          
           {/* Project Selector */}
           <div className="p-4 border-b border-slate-800">
             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">
@@ -109,9 +181,13 @@ export default function DiscoveryClient({ projects }: { projects: Project[] }) {
                 onChange={(e) => setSelectedProjectId(e.target.value)}
                 disabled={hasStarted}
               >
-                <option value="" disabled>Choose a project…</option>
+                <option value="" disabled>
+                  Choose a project…
+                </option>
                 {projects.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -128,8 +204,13 @@ export default function DiscoveryClient({ projects }: { projects: Project[] }) {
               </div>
             ) : (
               messages.map((msg, i) => (
-                <div key={i} className={`p-3 rounded-lg ${msg.role === 'user' ? 'bg-blue-900/40 ml-8 border border-blue-800/50' : 'bg-slate-800 mr-8 border border-slate-700'}`}>
-                  <p className="text-sm font-medium mb-1">{msg.role === 'user' ? 'You' : 'AI Assistant'}</p>
+                <div
+                  key={i}
+                  className={`p-3 rounded-lg ${msg.role === 'user' ? 'bg-blue-900/40 ml-8 border border-blue-800/50' : 'bg-slate-800 mr-8 border border-slate-700'}`}
+                >
+                  <p className="text-sm font-medium mb-1">
+                    {msg.role === 'user' ? 'You' : 'AI Assistant'}
+                  </p>
                   <p className="text-sm">{msg.content}</p>
                 </div>
               ))
@@ -137,15 +218,26 @@ export default function DiscoveryClient({ projects }: { projects: Project[] }) {
           </div>
           <div className="p-4 border-t border-slate-800 bg-slate-900">
             <div className="flex space-x-2">
-              <Input 
-                value={input} 
-                onChange={e => setInput(e.target.value)}
-                placeholder={selectedProjectId ? "Describe the feature..." : "Select a project first"}
-                onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder={
+                  selectedProjectId
+                    ? 'Describe the feature...'
+                    : 'Select a project first'
+                }
+                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                 disabled={!selectedProjectId}
                 className="bg-slate-950 border-slate-700 text-slate-200 placeholder:text-slate-500 disabled:opacity-50"
               />
-              <Button onClick={handleSendMessage} variant="secondary" disabled={!selectedProjectId} className="bg-slate-800 hover:bg-slate-700 text-white disabled:opacity-50">Send</Button>
+              <Button
+                onClick={handleSendMessage}
+                variant="secondary"
+                disabled={!selectedProjectId}
+                className="bg-slate-800 hover:bg-slate-700 text-white disabled:opacity-50"
+              >
+                Send
+              </Button>
             </div>
           </div>
         </section>
@@ -159,19 +251,24 @@ export default function DiscoveryClient({ projects }: { projects: Project[] }) {
                 <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
                 <div className="w-3 h-3 rounded-full bg-green-400"></div>
               </div>
-              <div className="ml-4 text-xs font-mono text-slate-500">Live Preview (WebContainer)</div>
+              <div className="ml-4 text-xs font-mono text-slate-500">
+                Live Preview (WebContainer)
+              </div>
             </div>
             <div className="flex-1 flex items-center justify-center bg-slate-950 overflow-hidden">
               {!isSandboxReady ? (
                 <div className="flex flex-col items-center space-y-4">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-100"></div>
-                  <p className="text-sm text-slate-400">Booting Node.js environment...</p>
+                  <p className="text-sm text-slate-400">
+                    Booting Node.js environment...
+                  </p>
                 </div>
               ) : (
                 <div className="text-center">
                   <p className="text-slate-500 mb-2">Sandbox Ready</p>
                   <p className="text-sm text-slate-400 max-w-sm">
-                    The Next.js app is running in your browser. As the AI generates code, this view will hot-reload instantly.
+                    The Next.js app is running in your browser. As the AI
+                    generates code, this view will hot-reload instantly.
                   </p>
                 </div>
                 // TODO: Render the WebContainer iframe here

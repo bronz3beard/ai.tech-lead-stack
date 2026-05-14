@@ -1,4 +1,5 @@
 import { User } from '@prisma/client';
+import { MODELS } from '@/app/api/chat/constants';
 
 export interface OrchestratorModels {
   creatorModel: string;
@@ -6,8 +7,19 @@ export interface OrchestratorModels {
 }
 
 export function getOrchestratorModels(user?: Pick<User, 'requirementsModel' | 'auditModel'> | null): OrchestratorModels {
-  const creatorModel = user?.requirementsModel || process.env.REQUIREMENTS_DEVELOPMENT_MODEL || 'gemini';
-  const auditorModel = user?.auditModel || process.env.CODE_AUDIT_MODEL || 'jules';
+  const resolve = (m: string | null | undefined) => {
+    switch (m) {
+      case 'gemini': return MODELS.GEMINI;
+      case 'claude': return MODELS.CLAUDE;
+      case 'openai': return MODELS.OPENAI;
+      case 'jules': return MODELS.JULES;
+      default: return m || MODELS.GEMINI;
+    }
+  };
+
+  const creatorModel = resolve(user?.requirementsModel || process.env.REQUIREMENTS_DEVELOPMENT_MODEL);
+  const auditorModel = resolve(user?.auditModel || process.env.CODE_AUDIT_MODEL || 'jules');
+
   return { creatorModel, auditorModel };
 }
 
