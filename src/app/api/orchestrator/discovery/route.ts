@@ -36,6 +36,8 @@ OUTPUT FORMATTING (MANDATORY):
 - Use **GitHub Alerts** (> [!TIP], > [!IMPORTANT]) to highlight key architectural decisions.
 - DO NOT provide raw, unformatted walls of text.
 
+ENVIRONMENT ALERT: You are operating inside a CLONED instance of the actual project codebase. Prioritize modifying existing files and components over creating new ones from scratch. Check the filesystem before suggesting implementations.
+
 METHODOLOGY ALIGNMENT:
 - **Phase 0 Discovery**: Define the 'What' and 'Why' before the 'How'.
 - **Architecture Mapping**: Consider impact on the broader system.

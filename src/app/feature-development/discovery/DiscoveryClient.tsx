@@ -76,6 +76,18 @@ export default function DiscoveryClient({
   // Modal State
   const [isSetupOpen, setIsSetupOpen] = useState(true);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [isHydrating, setIsHydrating] = useState(false);
+  const [hydrationStatus, setHydrationStatus] = useState('');
+  const [localEnv, setLocalEnv] = useState<string | undefined>();
+
+  // Trigger hydration when project is selected, if not already hydrating
+  useEffect(() => {
+    async function hydrate() {
+      if (!selectedProjectId || isHydrating) return;
+      // We assume if localEnv is defined or modal is closed, the user has completed setup.
+      // But we should only run this if we haven't mounted yet. Let's just rely on a ref to track if we already hydrated for this project.
+    }
+  }, [selectedProjectId]);
 
   // WebContainer Initialization
   useEffect(() => {
@@ -166,8 +178,15 @@ export default function DiscoveryClient({
         })
       );
 
-      instance.on('server-ready', (port, url) => {
-        if (port === 3000) setPreviewUrl(url);
+      return new Promise<void>((resolve) => {
+        instance.on('server-ready', (port, url) => {
+          if (port === 3000) {
+            setPreviewUrl(url);
+            resolve();
+          }
+        });
+        // Also resolve after a timeout in case server-ready is missed or doesn't fire
+        setTimeout(() => resolve(), 15000);
       });
     } catch (err) {
       console.error('Dev server failed:', err);
@@ -462,8 +481,48 @@ export default function DiscoveryClient({
                 id="project-select"
                 className="w-full bg-slate-950/50 border border-slate-800 rounded-lg py-2.5 pl-10 pr-3 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all appearance-none disabled:opacity-50"
                 value={selectedProjectId}
-                onChange={(e) => setSelectedProjectId(e.target.value)}
-                disabled={hasStarted}
+                onChange={async (e) => {
+                  const newProjectId = e.target.value;
+                  setSelectedProjectId(newProjectId);
+
+                  // Hydrate automatically when a project is selected
+                  if (newProjectId && !isSetupOpen) {
+                    setIsHydrating(true);
+                    setHydrationStatus('Fetching project bundle...');
+                    try {
+                      const res = await fetch(`/api/orchestrator/discovery/project-bundle?projectId=${newProjectId}`);
+                      if (!res.ok) throw new Error('Failed to fetch bundle');
+                      const { bundle } = await res.json();
+
+                      setHydrationStatus('Booting sandbox...');
+                      let instance = webContainer;
+                      if (!instance) {
+                        instance = await getWebContainerInstance();
+                        if (instance) setWebContainer(instance);
+                      }
+
+                      if (instance) {
+                        setHydrationStatus('Mounting repository...');
+                        await instance.mount(bundle);
+
+                        if (localEnv) {
+                          setHydrationStatus('Writing .env file...');
+                          await instance.fs.writeFile('.env', localEnv);
+                        }
+
+                        setHydrationStatus('Starting dev server...');
+                        await startDevServer(instance);
+                      }
+                    } catch (err: any) {
+                      console.error('Hydration failed:', err);
+                      toast.error('Hydration failed, falling back to Template Mode.');
+                    } finally {
+                      setIsHydrating(false);
+                      setHydrationStatus('');
+                    }
+                  }
+                }}
+                disabled={hasStarted || isHydrating}
               >
                 <option value="" disabled>
                   Select a repository…
@@ -548,16 +607,18 @@ export default function DiscoveryClient({
                 onChange={handleInputChange}
                 placeholder={
                   selectedProjectId
-                    ? 'Type a message...'
+                    ? isHydrating
+                      ? 'Hydrating sandbox...'
+                      : 'Type a message...'
                     : 'Select target first'
                 }
-                disabled={!selectedProjectId || isLoading}
+                disabled={!selectedProjectId || isLoading || isHydrating}
                 className="bg-slate-950/50 border-slate-800 rounded-xl text-slate-200 placeholder:text-slate-600 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all"
               />
               <Button
                 type="submit"
                 size="icon"
-                disabled={!selectedProjectId || !input.trim() || isLoading}
+                disabled={!selectedProjectId || !input.trim() || isLoading || isHydrating}
                 className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl shrink-0 transition-all active:scale-90"
               >
                 <Send className="w-4 h-4" />
@@ -627,7 +688,22 @@ export default function DiscoveryClient({
                 }}
               />
 
-              {!isSandboxReady ? (
+              {isHydrating ? (
+                <div className="flex-1 flex flex-col items-center justify-center space-y-6 z-10">
+                  <div className="relative">
+                    <div className="w-16 h-16 rounded-full border-t-2 border-r-2 border-emerald-500 animate-spin" />
+                    <div className="absolute inset-2 rounded-full border-t-2 border-l-2 border-slate-800 animate-spin-reverse" />
+                  </div>
+                  <div className="text-center space-y-1">
+                    <p className="text-sm font-medium text-slate-200">
+                      Hydrating Project Context
+                    </p>
+                    <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest">
+                      {hydrationStatus}
+                    </p>
+                  </div>
+                </div>
+              ) : !isSandboxReady ? (
                 <div className="flex-1 flex flex-col items-center justify-center space-y-6 z-10">
                   <div className="relative">
                     <div className="w-16 h-16 rounded-full border-t-2 border-r-2 border-blue-500 animate-spin" />
@@ -793,11 +869,49 @@ export default function DiscoveryClient({
 
       <DiscoverySetupModal
         isOpen={isSetupOpen}
-        onComplete={(data) => {
+        onComplete={async (data) => {
+          setIsSetupOpen(false);
           setComponentName(data.componentName);
           setFigmaUrl(data.figmaUrl);
           setBranchUrl(data.branchUrl);
-          setIsSetupOpen(false);
+          setLocalEnv(data.localEnv);
+
+          // We defer hydration if no project ID is selected yet. We will catch this in a useEffect.
+          if (!selectedProjectId) return;
+
+          setIsHydrating(true);
+          setHydrationStatus('Fetching project bundle...');
+          try {
+            const res = await fetch(`/api/orchestrator/discovery/project-bundle?projectId=${selectedProjectId}`);
+            if (!res.ok) throw new Error('Failed to fetch bundle');
+            const { bundle } = await res.json();
+
+            setHydrationStatus('Booting sandbox...');
+            let instance = webContainer;
+            if (!instance) {
+              instance = await getWebContainerInstance();
+              if (instance) setWebContainer(instance);
+            }
+
+            if (instance) {
+              setHydrationStatus('Mounting repository...');
+              await instance.mount(bundle);
+
+              if (data.localEnv) {
+                setHydrationStatus('Writing .env file...');
+                await instance.fs.writeFile('.env', data.localEnv);
+              }
+
+              setHydrationStatus('Starting dev server...');
+              await startDevServer(instance);
+            }
+          } catch (e: any) {
+            console.error('Hydration failed:', e);
+            toast.error('Hydration failed, falling back to Template Mode.');
+          } finally {
+            setIsHydrating(false);
+            setHydrationStatus('');
+          }
         }}
       />
 
