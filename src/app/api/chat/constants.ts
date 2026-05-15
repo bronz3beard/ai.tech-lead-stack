@@ -58,7 +58,7 @@ export const MAX_ANALYTICAL_STEPS = 12;
 export const MODELS = {
   GEMINI: 'gemini-3-flash-preview',
   FALLBACK_GEMINI: 'gemini-2.5-flash',
-  CLAUDE: 'claude-opus-4.6',
+  CLAUDE: 'claude-sonnet-4-6',
   OPENAI: 'gpt-5.4',
   JULES: 'gemini-3.1-pro',
   FALLBACK_JULES: 'gemini-3.1-flash',
