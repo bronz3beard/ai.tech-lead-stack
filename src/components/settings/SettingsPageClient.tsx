@@ -7,6 +7,7 @@ import ApiKeyCard from './ApiKeyCard';
 import ProjectSharingPanel from './ProjectSharingPanel';
 import SharedProjectsReadOnly from './SharedProjectsReadOnly';
 import ProjectIntegrationsPanel from './ProjectIntegrationsPanel';
+import ConfigGuide from './ConfigGuide';
 
 interface SettingsPageClientProps {
   role: string;
@@ -25,6 +26,7 @@ export default function SettingsPageClient({ role }: SettingsPageClientProps) {
           {(role === 'DEVELOPER' || role === 'ADMIN') && (
             <TabsTrigger value="integrations">Integrations</TabsTrigger>
           )}
+          <TabsTrigger value="setup">Setup Guide</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="mt-6">
@@ -57,6 +59,9 @@ export default function SettingsPageClient({ role }: SettingsPageClientProps) {
             <ProjectIntegrationsPanel />
           </TabsContent>
         )}
+        <TabsContent value="setup" className="mt-6">
+          <ConfigGuide />
+        </TabsContent>
       </Tabs>
     </div>
   );
