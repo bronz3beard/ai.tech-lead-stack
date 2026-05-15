@@ -41,13 +41,13 @@ describe('crypto', () => {
     it('should throw an error if ENCRYPTION_KEY is not set', () => {
       delete process.env.ENCRYPTION_KEY;
       expect(() => encrypt('test')).toThrow('ENCRYPTION_KEY environment variable is not set');
-      expect(() => decrypt('test')).toThrow('ENCRYPTION_KEY environment variable is not set');
+      expect(() => decrypt('part1:part2:part3')).toThrow('ENCRYPTION_KEY environment variable is not set');
     });
 
     it('should throw an error if ENCRYPTION_KEY is not 64 characters', () => {
       process.env.ENCRYPTION_KEY = 'short';
       expect(() => encrypt('test')).toThrow('ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes)');
-      expect(() => decrypt('test')).toThrow('ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes)');
+      expect(() => decrypt('part1:part2:part3')).toThrow('ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes)');
     });
   });
 
