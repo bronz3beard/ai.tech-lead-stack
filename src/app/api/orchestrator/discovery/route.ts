@@ -1,17 +1,17 @@
+import { getOrchestratorModels } from '@/lib/ai/orchestrator';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import {
-  convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
   streamText,
   UIMessage,
   UIMessageStreamWriter,
+  type ModelMessage,
 } from 'ai';
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { initializeModel } from '../../chat/utils';
-import { getOrchestratorModels } from '@/lib/ai/orchestrator';
 
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
@@ -37,6 +37,20 @@ STYLE:
 - Always provide a clear summary of the refined specification when requested.
 
 IMPORTANT: You are currently helping the user arrive at a state where they can click "Start Generation". Do not write code here; focus on the SPECIFICATION and DISCOVERY. Ensure the resulting discovery and feat branch logic follows the highest level of Tech-Lead Stack methodologies.`;
+
+/**
+ * @desc Extracts plain text from a UIMessage's parts array.
+ * Handles the common text part shape: { type: 'text', text: string }.
+ */
+function extractTextFromParts(parts: unknown[]): string {
+  return parts
+    .filter((p: unknown): p is { type: 'text'; text: string } => {
+      const part = p as Record<string, unknown>;
+      return part.type === 'text' && typeof part.text === 'string';
+    })
+    .map((p) => p.text)
+    .join('\n\n');
+}
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -86,12 +100,18 @@ export async function POST(req: Request) {
     return createUIMessageStreamResponse({
       stream: createUIMessageStream({
         execute: async ({ writer }: { writer: UIMessageStreamWriter }) => {
-          const convertedMessages = await convertToModelMessages(messages);
+          const modelMessages: ModelMessage[] = messages.map((m: any) => {
+            const text = extractTextFromParts(m.parts || []);
+            return {
+              role: m.role,
+              content: text || (typeof m.content === 'string' ? m.content : ''),
+            };
+          });
 
           const result = await streamText({
             model,
             system: DISCOVERY_SYSTEM_INSTRUCTION,
-            messages: convertedMessages,
+            messages: modelMessages,
           });
 
           for await (const chunk of result.toUIMessageStream()) {

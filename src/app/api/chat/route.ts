@@ -5,13 +5,13 @@ import { GitHubCodeProvider } from '@/lib/skills/providers/github-provider';
 import { canAccessWorkflow } from '@/lib/workflow-roles';
 import { Role } from '@prisma/client';
 import {
-  convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
   stepCountIs,
   streamText,
   UIMessage,
   UIMessageStreamWriter,
+  type ModelMessage,
 } from 'ai';
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
@@ -364,9 +364,15 @@ export async function POST(req: Request) {
           const tools = getChatTools(provider);
 
           // Prepare history
-          const convertedMessages = await convertToModelMessages(messages);
-          const lastUserMessage =
-            convertedMessages[convertedMessages.length - 1];
+          const modelMessages: ModelMessage[] = messages.map((m: any) => {
+            const text = extractTextFromContent(m.parts || m.content || m.text);
+            return {
+              role: m.role,
+              content: text,
+            } as any;
+          });
+
+          const lastUserMessage = modelMessages[modelMessages.length - 1];
 
           // Persist inbound user message
           await prisma.message.create({
@@ -477,7 +483,7 @@ export async function POST(req: Request) {
               const result = await streamText({
                 model,
                 system: finalSystemInstruction,
-                messages: convertedMessages,
+                messages: modelMessages,
                 tools,
                 maxRetries: 0, // Manual rotation handled here
                 stopWhen: stepCountIs(MAX_ANALYTICAL_STEPS),
@@ -662,7 +668,7 @@ export async function POST(req: Request) {
                     model,
                     system: finalSystemInstruction,
                     messages: [
-                      ...convertedMessages,
+                      ...modelMessages,
                       ...researchMessages,
                       { 
                         role: 'user', 
