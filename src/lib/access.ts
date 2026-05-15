@@ -1,16 +1,18 @@
 import { Role } from '@prisma/client';
 
 /**
- * List of emails that have full access to all projects regardless of role or ownership.
- */
-export const WHITELISTED_EMAILS = ['info2rory@gmail.com'];
-
-/**
- * Checks if a user email is in the superuser whitelist.
+ * Checks if a user email is in the superuser whitelist defined in the SUPER_ADMIN env variable.
  */
 export function isSuperUser(email?: string | null): boolean {
   if (!email) return false;
-  return WHITELISTED_EMAILS.includes(email);
+  
+  const superAdminEnv = process.env.SUPER_ADMIN || '';
+  const whitelistedEmails = superAdminEnv
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+    
+  return whitelistedEmails.includes(email.trim().toLowerCase());
 }
 
 /**

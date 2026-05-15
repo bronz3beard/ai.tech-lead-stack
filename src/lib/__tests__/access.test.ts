@@ -2,14 +2,26 @@ import { Role } from '@prisma/client';
 import { isSuperUser, getProjectAccessFilter } from '../access';
 
 describe('Access Logic Tests', () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    jest.resetModules();
+    process.env = { ...originalEnv };
+  });
+
+  afterAll(() => {
+    process.env = originalEnv;
+  });
+
   describe('isSuperUser', () => {
-    it('should return true for a whitelisted email', () => {
-      // Create a test mimicking the actual array to avoid conditional tests
-      const whitelistedEmail = 'info2rory@gmail.com';
-      expect(isSuperUser(whitelistedEmail)).toBe(true);
+    it('should return true for a whitelisted email in env', () => {
+      process.env.SUPER_ADMIN = 'admin1@example.com, admin2@example.com';
+      expect(isSuperUser('admin1@example.com')).toBe(true);
+      expect(isSuperUser('ADMIN2@example.com')).toBe(true); // check case insensitivity
     });
 
     it('should return false for a non-whitelisted email', () => {
+      process.env.SUPER_ADMIN = 'admin1@example.com';
       expect(isSuperUser('not.whitelisted@example.com')).toBe(false);
     });
 
@@ -21,10 +33,11 @@ describe('Access Logic Tests', () => {
 
   describe('getProjectAccessFilter', () => {
     it('should return an empty object for a super user', () => {
+      process.env.SUPER_ADMIN = 'super@example.com';
       const superUser = {
         id: 'user-1',
         role: Role.DEVELOPER,
-        email: 'info2rory@gmail.com', // Match the exported list for deterministic execution
+        email: 'super@example.com',
       };
 
       expect(getProjectAccessFilter(superUser)).toEqual({});
