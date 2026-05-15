@@ -33,14 +33,18 @@ export async function GET() {
   });
 
   // Mask sensitive keys in settings
-  const sanitizedProjects = projects.map(p => ({
-    ...p,
-    settings: p.settings ? {
-      ...(p.settings as Record<string, unknown>),
-      figmaApiKey: (p.settings as any).figmaApiKey ? '********' : undefined,
-      chromaticApiKey: (p.settings as any).chromaticApiKey ? '********' : undefined,
-    } : null
-  }));
+  const sanitizedProjects = projects.map(p => {
+    const hasConfig = p.settings && typeof p.settings === 'object' && Object.values(p.settings).some(v => typeof v === 'string' && v.trim().length > 0 && v !== '********');
+    return {
+      ...p,
+      hasConfig: !!hasConfig,
+      settings: p.settings ? {
+        ...(p.settings as Record<string, unknown>),
+        figmaApiKey: (p.settings as any).figmaApiKey ? '********' : undefined,
+        chromaticApiKey: (p.settings as any).chromaticApiKey ? '********' : undefined,
+      } : null
+    };
+  });
 
   return NextResponse.json({ projects: sanitizedProjects });
 }

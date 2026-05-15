@@ -46,3 +46,7 @@ scratch/design-review/
 /src/generated/prisma
 
 tmp/*
+
+# AI Agent session state and telemetry
+.ai/.mission-alignment.json
+.ai/rtk-run

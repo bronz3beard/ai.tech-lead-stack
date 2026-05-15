@@ -12,8 +12,8 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, UserPlus, X } from 'lucide-react';
-import { useOptimistic, useState, useTransition } from 'react';
+import { Loader2, UserPlus, X, Search } from 'lucide-react';
+import { useOptimistic, useState, useTransition, useMemo } from 'react';
 
 interface UserGrant {
   id: string;
@@ -26,6 +26,7 @@ export interface UIProjectAccess {
   id: string;
   name: string;
   userGrants: UserGrant[];
+  hasConfig?: boolean;
 }
 
 interface UserSearchResult {
@@ -67,11 +68,24 @@ export default function ProjectSharingPanel({
     }
   );
 
+  const [projectSearchQuery, setProjectSearchQuery] = useState('');
   const [searchQuery, setSearchQuery] = useState<Record<string, string>>({});
   const [searchResults, setSearchResults] = useState<
     Record<string, UserSearchResult[]>
   >({});
   const [isSearching, setIsSearching] = useState<Record<string, boolean>>({});
+
+  const sortedAndFilteredProjects = useMemo(() => {
+    const filtered = optimisticProjects.filter((p) =>
+      p.name.toLowerCase().includes(projectSearchQuery.toLowerCase())
+    );
+
+    return filtered.sort((a, b) => {
+      if (a.hasConfig && !b.hasConfig) return -1;
+      if (!a.hasConfig && b.hasConfig) return 1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [optimisticProjects, projectSearchQuery]);
 
   const handleAddUser = async (projectId: string, user: UserSearchResult) => {
     setSearchQuery((prev) => ({ ...prev, [projectId]: '' }));
@@ -140,112 +154,135 @@ export default function ProjectSharingPanel({
             You haven&apos;t connected any projects yet.
           </p>
         ) : (
-          <div className="space-y-8">
-            {optimisticProjects.map((project) => (
-              <div
-                key={project.id}
-                className="border border-zinc-800 rounded-lg p-6 bg-zinc-950/50"
-              >
-                <h3 className="text-lg font-semibold text-zinc-100 mb-6">
-                  {project.name}
-                </h3>
+          <div className="space-y-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
+              <Input
+                placeholder="Search projects..."
+                value={projectSearchQuery}
+                onChange={(e) => setProjectSearchQuery(e.target.value)}
+                className="pl-9 bg-zinc-950 border-zinc-800 text-zinc-100"
+              />
+            </div>
+            
+            {sortedAndFilteredProjects.length === 0 ? (
+              <p className="text-sm text-zinc-500 text-center py-8 border border-dashed border-zinc-800 rounded-lg">
+                No projects match your search.
+              </p>
+            ) : (
+              <div className="space-y-8">
+                {sortedAndFilteredProjects.map((project) => (
+                  <div
+                    key={project.id}
+                    className="border border-zinc-800 rounded-lg p-6 bg-zinc-950/50"
+                  >
+                    <h3 className="text-lg font-semibold text-zinc-100 mb-6 flex items-center justify-between">
+                      {project.name}
+                      {project.hasConfig && (
+                         <span className="text-[10px] text-emerald-500 font-medium bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 uppercase tracking-wider">
+                           Configured
+                         </span>
+                      )}
+                    </h3>
 
-                <div className="space-y-6">
-                  <div>
-                    <Label className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-3 block">
-                      Specific User Access
-                    </Label>
+                    <div className="space-y-6">
+                      <div>
+                        <Label className="text-xs font-bold uppercase tracking-wider text-zinc-500 mb-3 block">
+                          Specific User Access
+                        </Label>
 
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {project.userGrants.length === 0 ? (
-                        <span className="text-sm text-zinc-500 italic">
-                          No specific users assigned. This project is currently
-                          private to you.
-                        </span>
-                      ) : (
-                        project.userGrants.map((ug) => (
-                          <Badge
-                            key={ug.userId}
-                            variant="secondary"
-                            className="bg-zinc-800 text-zinc-200 py-1 pl-2 pr-1 flex items-center gap-1 border-zinc-700"
-                          >
-                            <span
-                              className="max-w-[200px] truncate"
-                              title={ug.email}
-                            >
-                              {ug.email}
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {project.userGrants.length === 0 ? (
+                            <span className="text-sm text-zinc-500 italic">
+                              No specific users assigned. This project is currently
+                              private to you.
                             </span>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-4 w-4 rounded-full p-0"
-                              onClick={() =>
-                                handleRemoveUser(project.id, ug.userId)
-                              }
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </Badge>
-                        ))
-                      )}
-                    </div>
-
-                    <div className="relative max-w-sm">
-                      <div className="relative">
-                        <Input
-                          placeholder="Add user by email..."
-                          value={searchQuery[project.id] || ''}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setSearchQuery((prev) => ({
-                              ...prev,
-                              [project.id]: val,
-                            }));
-                            searchUsers(project.id, val);
-                          }}
-                          className="bg-zinc-900 border-zinc-800 pr-8"
-                        />
-                        {isSearching[project.id] && (
-                          <Loader2 className="absolute right-2 top-2.5 h-4 w-4 animate-spin text-zinc-500" />
-                        )}
-                      </div>
-
-                      {(searchResults[project.id]?.length ?? 0) > 0 && (
-                        <div className="absolute z-10 w-full mt-1 bg-zinc-900 border border-zinc-800 rounded-md shadow-lg overflow-hidden">
-                          {searchResults[project.id]?.map((user) => {
-                            const alreadyAdded = project.userGrants.some(
-                              (ug) => ug.userId === user.id
-                            );
-                            return (
-                              <button
-                                key={user.id}
-                                disabled={alreadyAdded}
-                                className="w-full text-left px-4 py-2 text-sm hover:bg-zinc-800 flex items-center justify-between disabled:opacity-50"
-                                onClick={() => handleAddUser(project.id, user)}
+                          ) : (
+                            project.userGrants.map((ug) => (
+                              <Badge
+                                key={ug.userId}
+                                variant="secondary"
+                                className="bg-zinc-800 text-zinc-200 py-1 pl-2 pr-1 flex items-center gap-1 border-zinc-700"
                               >
-                                <div className="flex flex-col">
-                                  <span className="font-medium text-zinc-200">
-                                    {user.email}
-                                  </span>
-                                  {user.name && (
-                                    <span className="text-xs text-zinc-500">
-                                      {user.name}
-                                    </span>
-                                  )}
-                                </div>
-                                {!alreadyAdded && (
-                                  <UserPlus className="h-4 w-4 text-zinc-500" />
-                                )}
-                              </button>
-                            );
-                          })}
+                                <span
+                                  className="max-w-[200px] truncate"
+                                  title={ug.email}
+                                >
+                                  {ug.email}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-4 w-4 rounded-full p-0"
+                                  onClick={() =>
+                                    handleRemoveUser(project.id, ug.userId)
+                                  }
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </Badge>
+                            ))
+                          )}
                         </div>
-                      )}
+
+                        <div className="relative max-w-sm">
+                          <div className="relative">
+                            <Input
+                              placeholder="Add user by email..."
+                              value={searchQuery[project.id] || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setSearchQuery((prev) => ({
+                                  ...prev,
+                                  [project.id]: val,
+                                }));
+                                searchUsers(project.id, val);
+                              }}
+                              className="bg-zinc-900 border-zinc-800 pr-8"
+                            />
+                            {isSearching[project.id] && (
+                              <Loader2 className="absolute right-2 top-2.5 h-4 w-4 animate-spin text-zinc-500" />
+                            )}
+                          </div>
+
+                          {(searchResults[project.id]?.length ?? 0) > 0 && (
+                            <div className="absolute z-10 w-full mt-1 bg-zinc-900 border border-zinc-800 rounded-md shadow-lg overflow-hidden">
+                              {searchResults[project.id]?.map((user) => {
+                                const alreadyAdded = project.userGrants.some(
+                                  (ug) => ug.userId === user.id
+                                );
+                                return (
+                                  <button
+                                    key={user.id}
+                                    disabled={alreadyAdded}
+                                    className="w-full text-left px-4 py-2 text-sm hover:bg-zinc-800 flex items-center justify-between disabled:opacity-50"
+                                    onClick={() => handleAddUser(project.id, user)}
+                                  >
+                                    <div className="flex flex-col">
+                                      <span className="font-medium text-zinc-200">
+                                        {user.email}
+                                      </span>
+                                      {user.name && (
+                                        <span className="text-xs text-zinc-500">
+                                          {user.name}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {!alreadyAdded && (
+                                      <UserPlus className="h-4 w-4 text-zinc-500" />
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
         )}
       </CardContent>

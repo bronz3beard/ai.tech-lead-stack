@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect, useTransition } from 'react';
-import { ChevronDown, Check, Loader2 } from 'lucide-react';
+import { useState, useRef, useEffect, useTransition, useMemo } from 'react';
+import { ChevronDown, Check, Loader2, Search } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -16,6 +16,7 @@ function cn(...inputs: ClassValue[]) {
 export type Project = {
   id: string;
   name: string;
+  hasConfig?: boolean;
 };
 
 interface ProjectSelectProps {
@@ -33,6 +34,7 @@ export function ProjectSelect({
   selectedProjectId,
 }: ProjectSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -41,6 +43,24 @@ export function ProjectSelect({
   const selectedProject =
     projects.find((p) => p.id === selectedProjectId) || projects[0];
 
+  const sortedAndFilteredProjects = useMemo(() => {
+    // 1. Filter
+    const filtered = projects.filter((p) =>
+      p.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    // 2. Sort: 'all' always first, then config true, then config false, then alpha
+    return filtered.sort((a, b) => {
+      if (a.id === 'all') return -1;
+      if (b.id === 'all') return 1;
+
+      if (a.hasConfig && !b.hasConfig) return -1;
+      if (!a.hasConfig && b.hasConfig) return 1;
+
+      return a.name.localeCompare(b.name);
+    });
+  }, [projects, searchQuery]);
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -48,6 +68,7 @@ export function ProjectSelect({
         !dropdownRef.current.contains(event.target as Node)
       ) {
         setIsOpen(false);
+        setSearchQuery(''); // Reset search on close
       }
     }
 
@@ -64,6 +85,7 @@ export function ProjectSelect({
     startTransition(() => {
       router.push(`?${params.toString()}`);
       setIsOpen(false);
+      setSearchQuery('');
     });
   };
 
@@ -96,18 +118,32 @@ export function ProjectSelect({
 
       {isOpen && (
         <div
-          className="absolute right-0 z-10 mt-2 w-64 origin-top-right rounded-xl border border-border/40 bg-card/95 backdrop-blur-md shadow-lg outline-none ring-1 ring-ring/10 animate-in fade-in zoom-in duration-200"
+          className="absolute right-0 z-10 mt-2 w-64 origin-top-right rounded-xl border border-border/40 bg-card/95 backdrop-blur-md shadow-lg outline-none ring-1 ring-ring/10 animate-in fade-in zoom-in duration-200 flex flex-col"
           role="menu"
           aria-orientation="vertical"
           aria-labelledby="project-select-button"
         >
-          <div className="py-1" role="none">
-            {projects.length === 0 ? (
+          <div className="p-2 border-b border-border/10">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search projects..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-background/50 border border-border/40 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring text-foreground placeholder:text-muted-foreground"
+                onClick={(e) => e.stopPropagation()}
+                autoFocus
+              />
+            </div>
+          </div>
+          <div className="py-1 max-h-60 overflow-y-auto" role="none">
+            {sortedAndFilteredProjects.length === 0 ? (
               <div className="px-4 py-3 text-sm text-muted">
                 No projects found
               </div>
             ) : (
-              projects.map((project) => (
+              sortedAndFilteredProjects.map((project) => (
                 <button
                   key={project.id}
                   onClick={() => handleSelect(project.id)}

@@ -72,16 +72,20 @@ export async function getSettingsProjects() {
     },
   });
 
-  return projects.map((p) => ({
-    id: p.id,
-    name: p.name,
-    userGrants: p.accessGrants
-      .filter((ag) => ag.userId && ag.user)
-      .map((ag) => ({
-        id: ag.id,
-        userId: ag.userId!,
-        email: ag.user!.email || 'No Email',
-        name: ag.user!.name ?? undefined,
-      })),
-  }));
+  return projects.map((p) => {
+    const hasConfig = p.settings && typeof p.settings === 'object' && Object.values(p.settings).some(v => typeof v === 'string' && v.trim().length > 0 && v !== '********');
+    return {
+      id: p.id,
+      name: p.name,
+      hasConfig: !!hasConfig,
+      userGrants: p.accessGrants
+        .filter((ag) => ag.userId && ag.user)
+        .map((ag) => ({
+          id: ag.id,
+          userId: ag.userId!,
+          email: ag.user!.email || 'No Email',
+          name: ag.user!.name ?? undefined,
+        })),
+    };
+  });
 }

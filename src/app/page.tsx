@@ -33,16 +33,20 @@ async function getGlobalMetrics(projectId?: string, session?: any) {
           { accessGrants: { some: { role: session.user.role as any } } }
         ]
       }) : {},
-      select: { name: true },
+      select: { name: true, settings: true },
       orderBy: { name: 'asc' }
     });
 
     const projects: Project[] = [
       { id: 'all', name: 'All Projects' },
-      ...dbProjects.map((p) => ({
-        id: p.name,
-        name: p.name.charAt(0).toUpperCase() + p.name.slice(1).replace(/-/g, ' '),
-      })),
+      ...dbProjects.map((p) => {
+        const hasConfig = p.settings && typeof p.settings === 'object' && Object.values(p.settings).some(v => typeof v === 'string' && v.trim().length > 0 && v !== '********');
+        return {
+          id: p.name,
+          name: p.name.charAt(0).toUpperCase() + p.name.slice(1).replace(/-/g, ' '),
+          hasConfig: !!hasConfig,
+        };
+      }),
     ];
 
     // Filtering logic for Global Dashboard vs Project view
