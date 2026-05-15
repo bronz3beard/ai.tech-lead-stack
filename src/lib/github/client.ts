@@ -141,6 +141,16 @@ export class GitHubClient {
   }
 
   /**
+   * Lists branches matching the discovery pattern.
+   */
+  async listDiscoveryBranches() {
+    const branches = await this.request('/branches', {
+      method: 'GET',
+    });
+    return branches.filter((b: any) => b.name.startsWith('discovery/feature-requirements-'));
+  }
+
+  /**
    * High-level helper to commit multiple files to a branch.
    */
   async commitFiles(branch: string, message: string, files: Record<string, string | { content: string, encoding: 'utf-8' | 'base64' }>) {

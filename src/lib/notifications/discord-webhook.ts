@@ -9,14 +9,20 @@ export interface DiscordWebhookPayload {
     image?: { url: string };
     thumbnail?: { url: string };
     footer?: { text: string };
+    timestamp?: string;
   }>;
 }
 
-export async function sendDiscordNotification(payload: DiscordWebhookPayload): Promise<boolean> {
-  const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
-  
+export async function sendDiscordNotification(
+  payload: DiscordWebhookPayload,
+  customUrl?: string
+): Promise<boolean> {
+  const webhookUrl = customUrl || process.env.DISCORD_WEBHOOK_URL;
+
   if (!webhookUrl) {
-    console.warn('DISCORD_WEBHOOK_URL is not configured. Skipping notification.');
+    console.warn(
+      'DISCORD_WEBHOOK_URL is not configured. Skipping notification.'
+    );
     return false;
   }
 
@@ -24,11 +30,14 @@ export async function sendDiscordNotification(payload: DiscordWebhookPayload): P
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
-      console.error('Failed to send Discord notification:', await response.text());
+      console.error(
+        'Failed to send Discord notification:',
+        await response.text()
+      );
       return false;
     }
 

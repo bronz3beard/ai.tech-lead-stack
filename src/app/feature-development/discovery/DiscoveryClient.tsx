@@ -71,7 +71,9 @@ export default function DiscoveryClient({
 
   const isLoading = status === 'streaming';
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
+  ) => {
     setInput(e.target.value);
   };
 
@@ -106,7 +108,7 @@ export default function DiscoveryClient({
           .join('\n') ||
         (lastMessage as any).content ||
         '';
-      const branchName = `feat/requirements-discovery-${Date.now()}`;
+      const branchName = `discovery/feature-requirements-${Date.now()}`;
 
       const response = await fetch('/api/orchestrator/generate', {
         method: 'POST',
@@ -137,7 +139,7 @@ export default function DiscoveryClient({
   const handleFinishDiscovery = async () => {
     const branchName =
       (window as any)._currentBranch ||
-      `feat/requirements-discovery-${Date.now()}`;
+      `discovery/feature-requirements-${Date.now()}`;
     try {
       const response = await fetch('/api/orchestrator/audit', {
         method: 'POST',

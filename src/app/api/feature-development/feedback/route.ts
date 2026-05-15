@@ -1,5 +1,6 @@
 import { authOptions } from '@/lib/auth';
 import { createGitHubClient } from '@/lib/github/client';
+import { prisma } from '@/lib/prisma';
 import { sendDiscordNotification } from '@/lib/notifications/discord-webhook';
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
@@ -51,19 +52,29 @@ export async function POST(req: Request) {
       console.warn(`No active PR found for branch ${branch}. Discord notification will still be sent.`);
     }
 
+    // 4. Fetch Project Settings for Discord Webhook
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { name: true, settings: true }
+    });
+    const settings = project?.settings as { discordWebhookUrl?: string } | null;
+    const projectWebhookUrl = settings?.discordWebhookUrl;
+
     // Send Discord Notification
     await sendDiscordNotification({
-      content: `New Design Feedback on Feature Branch: \`${branch}\``,
+      content: `New Design Feedback on **${project?.name || 'Project'}**`,
       embeds: [
         {
-          title: 'Feedback Details',
+          title: `Feature: ${branch.replace('discovery/feature-requirements-', '')}`,
           description: feedback || 'Visual feedback attached.',
           color: 0x3b82f6,
           image: imageUrl ? { url: imageUrl } : undefined,
-          url: pr ? pr.html_url : undefined
+          url: pr ? pr.html_url : undefined,
+          footer: { text: `Branch: ${branch}` },
+          timestamp: new Date().toISOString()
         }
       ]
-    });
+    }, projectWebhookUrl);
 
     return NextResponse.json({ 
       success: true, 
