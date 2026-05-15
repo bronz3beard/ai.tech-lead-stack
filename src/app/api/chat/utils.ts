@@ -2,7 +2,7 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
 import { User } from '@prisma/client';
-import { tool } from 'ai';
+import { tool, jsonSchema } from 'ai';
 import { z } from 'zod';
 import { MODELS } from './constants';
 import { skillsService } from '@/lib/skills';
@@ -301,7 +301,10 @@ export function getChatTools(provider: CodeProvider = skillsService) {
   return {
     list_skills: tool({
       description: 'Lists all available skills and workflows.',
-      parameters: z.object({}),
+      inputSchema: jsonSchema<Record<string, never>>({
+        type: 'object',
+        properties: {},
+      }),
       execute: async () => {
         try {
           const skillsMap = await provider.getDynamicSkills();
@@ -318,16 +321,19 @@ export function getChatTools(provider: CodeProvider = skillsService) {
           return { error: `Skills discovery failed: ${getErrorMessage(e)}` };
         }
       },
-    } as any),
+    }),
     get_skill: tool({
       description: 'Reads the specific content of a skill or workflow.',
-      parameters: z.object({
-        name: z.string().optional().describe('Skill/Workflow name'),
-        skillName: z.string().optional().describe('Skill/Workflow name (alias)'),
-        skill_id: z.string().optional().describe('Skill/Workflow name (alias 2)'),
-        type: z.enum(['skill', 'workflow']).default('skill'),
+      inputSchema: jsonSchema<{ name?: string; skillName?: string; skill_id?: string; type?: 'skill' | 'workflow' }>({
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Skill/Workflow name' },
+          skillName: { type: 'string', description: 'Skill/Workflow name (alias)' },
+          skill_id: { type: 'string', description: 'Skill/Workflow name (alias 2)' },
+          type: { type: 'string', enum: ['skill', 'workflow'], description: 'Asset type', default: 'skill' },
+        },
       }),
-      execute: async (args: any) => {
+      execute: async (args: { name?: string; skillName?: string; skill_id?: string; type?: 'skill' | 'workflow' }) => {
         const name = args.name || args.skillName || args.skill_id;
         const type = args.type || 'skill';
         
@@ -344,14 +350,17 @@ export function getChatTools(provider: CodeProvider = skillsService) {
           return { error: `Lookup failed for ${name}: ${getErrorMessage(e)}` };
         }
       },
-    } as any),
+    }),
     read_file: tool({
       description: 'Reads a file from the project for analysis.',
-      parameters: z.object({
-        path: z.string().optional().describe('Relative path to the file'),
-        filepath: z.string().optional().describe('Relative path to the file (alias)'),
+      inputSchema: jsonSchema<{ path?: string; filepath?: string }>({
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Relative path to the file' },
+          filepath: { type: 'string', description: 'Relative path to the file (alias)' },
+        },
       }),
-      execute: async (args: any) => {
+      execute: async (args: { path?: string; filepath?: string }) => {
         const filePath = args.path || args.filepath;
         if (!filePath) return { error: 'Missing file path parameter (expected path or filepath)' };
 
@@ -376,6 +385,6 @@ export function getChatTools(provider: CodeProvider = skillsService) {
           };
         }
       },
-    } as any),
+    }),
   };
 }

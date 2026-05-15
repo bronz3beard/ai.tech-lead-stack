@@ -48,7 +48,8 @@
     "dev": "prisma generate && next dev",
     "build": "prisma generate && next build",
     "start": "next start",
-    "lint:next": "eslint src"
+    "lint:next": "eslint src",
+    "check-types": "tsc --noEmit --pretty --skipLibCheck"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.68",

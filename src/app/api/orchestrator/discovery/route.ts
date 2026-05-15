@@ -8,12 +8,12 @@ import {
   UIMessage,
   UIMessageStreamWriter,
   tool,
+  jsonSchema,
   type ModelMessage,
 } from 'ai';
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { initializeModel } from '../../chat/utils';
-import { z } from 'zod';
 
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
@@ -145,15 +145,19 @@ export async function POST(req: Request) {
             tools: {
               write_to_sandbox: tool({
                 description: 'Writes a file to the ephemeral development environment (WebContainer) for live prototyping.',
-                parameters: z.object({
-                  path: z.string().describe('The relative path of the file (e.g., "src/components/Gauge.tsx")'),
-                  content: z.string().describe('The code or text content to write to the file.'),
+                inputSchema: jsonSchema<{ path: string; content: string }>({
+                  type: 'object',
+                  properties: {
+                    path: { type: 'string', description: 'The relative path of the file (e.g., "src/components/Gauge.tsx")' },
+                    content: { type: 'string', description: 'The code or text content to write to the file.' },
+                  },
+                  required: ['path', 'content'],
                 }),
                 execute: async ({ path }: { path: string }) => {
                   // Handled on client, but required for type inference
                   return { success: true, path };
                 },
-              } as any),
+              }),
             },
           });
 

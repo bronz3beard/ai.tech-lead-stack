@@ -233,3 +233,71 @@ describe('isQuotaError', () => {
   });
 });
 
+
+// ---------------------------------------------------------------------------
+// getChatTools — jsonSchema + inputSchema regression guard (Zod v4 + AI SDK v6)
+//
+// AI SDK v6 renamed `parameters` → `inputSchema` on the Tool type.
+// These tests assert that each tool's inputSchema produces a valid JSON Schema
+// object (type: 'object', with expected properties) when serialized.
+//
+// Error guarded: tools.0.custom.input_schema.type: Field required
+// ---------------------------------------------------------------------------
+jest.mock('@/lib/skills', () => ({
+  skillsService: {
+    getDynamicSkills: jest.fn().mockResolvedValue(new Map()),
+    readSkill: jest.fn().mockResolvedValue(null),
+    readFile: jest.fn().mockResolvedValue(''),
+  },
+}));
+
+describe('getChatTools — inputSchema regression (Zod v4 + AI SDK v6)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { getChatTools } = require('../utils') as typeof import('../utils');
+
+  function getJsonSchema(t: Record<string, unknown>): Record<string, unknown> {
+    // AI SDK v6: the key is inputSchema, not parameters
+    return (t.inputSchema as any).jsonSchema as Record<string, unknown>;
+  }
+
+  it('list_skills: inputSchema.jsonSchema.type is "object"', () => {
+    const tools = getChatTools();
+    const schema = getJsonSchema(tools.list_skills as any);
+    expect(schema).toBeDefined();
+    expect(schema.type).toBe('object');
+  });
+
+  it('get_skill: inputSchema.jsonSchema.type is "object" and has expected properties', () => {
+    const tools = getChatTools();
+    const schema = getJsonSchema(tools.get_skill as any);
+    expect(schema.type).toBe('object');
+    const props = schema.properties as Record<string, unknown>;
+    expect(props.name).toBeDefined();
+    expect(props.skillName).toBeDefined();
+    expect(props.skill_id).toBeDefined();
+    expect(props.type).toBeDefined();
+  });
+
+  it('read_file: inputSchema.jsonSchema.type is "object" and has path/filepath properties', () => {
+    const tools = getChatTools();
+    const schema = getJsonSchema(tools.read_file as any);
+    expect(schema.type).toBe('object');
+    const props = schema.properties as Record<string, unknown>;
+    expect(props.path).toBeDefined();
+    expect(props.filepath).toBeDefined();
+  });
+
+  it('no tool has a raw Zod v4 "def" key on its inputSchema (broken schema guard)', () => {
+    const tools = getChatTools();
+    for (const [name, t] of Object.entries(tools)) {
+      const inputSchema = (t as any).inputSchema;
+      expect(inputSchema?.def).toBeUndefined();
+      expect(inputSchema?.jsonSchema).toBeDefined();
+      if (inputSchema?.def !== undefined) {
+        throw new Error(
+          `Tool "${name}" has a raw Zod v4 "def" key — jsonSchema() wrapper is missing.`
+        );
+      }
+    }
+  });
+});
