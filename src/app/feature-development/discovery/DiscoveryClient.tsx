@@ -20,6 +20,20 @@ export interface Project {
   githubFullName?: string | null;
 }
 
+/**
+ * Singleton promise to ensure WebContainer.boot() is only called once
+ * throughout the application lifecycle.
+ */
+let webContainerInstancePromise: Promise<WebContainer> | null = null;
+
+async function getWebContainerInstance() {
+  if (typeof window === 'undefined') return null;
+  if (!webContainerInstancePromise) {
+    webContainerInstancePromise = WebContainer.boot();
+  }
+  return webContainerInstancePromise;
+}
+
 export default function DiscoveryClient({
   projects,
   defaultCreatorModel,
@@ -51,10 +65,12 @@ export default function DiscoveryClient({
     async function boot() {
       try {
         console.log('Booting WebContainer...');
-        const instance = await WebContainer.boot();
-        setWebContainer(instance);
-        setIsSandboxReady(true);
-        console.log('WebContainer ready.');
+        const instance = await getWebContainerInstance();
+        if (instance) {
+          setWebContainer(instance);
+          setIsSandboxReady(true);
+          console.log('WebContainer ready.');
+        }
       } catch (err) {
         console.error('WebContainer boot failed:', err);
       }
