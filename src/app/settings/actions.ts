@@ -32,6 +32,54 @@ export async function addProjectUser(projectId: string, targetUserId: string) {
   revalidatePath('/settings');
 }
 
+export async function addProjectUserByEmail(projectId: string, email: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) throw new Error('Unauthorized');
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { ownerId: true },
+  });
+
+  const isOwner = project?.ownerId === session.user.id;
+  const isSuperAdmin = isSuperUser(session.user.email);
+
+  if (!project || (!isOwner && !isSuperAdmin)) {
+    throw new Error('Unauthorized');
+  }
+
+  // Find or create a placeholder user for this email
+  let user = await prisma.user.findUnique({ where: { email } });
+  if (!user) {
+    user = await prisma.user.create({
+      data: {
+        email,
+        role: 'DEVELOPER', // Default role for new placeholder users
+      },
+    });
+  }
+
+  // Check if they already have access
+  const existingAccess = await prisma.projectAccess.findFirst({
+    where: {
+      projectId,
+      userId: user.id,
+    },
+  });
+
+  if (!existingAccess) {
+    await prisma.projectAccess.create({
+      data: {
+        projectId,
+        userId: user.id,
+      },
+    });
+  }
+
+  revalidatePath('/settings');
+  return user;
+}
+
 export async function removeProjectUser(
   projectId: string,
   targetUserId: string
@@ -95,6 +143,7 @@ export async function getSettingsProjects() {
       id: p.id,
       name: p.name,
       hasConfig: !!hasConfig,
+      roleGrants: p.accessGrants.filter((ag) => ag.role).map((ag) => ag.role as string),
       userGrants: p.accessGrants
         .filter((ag) => ag.userId && ag.user)
         .map((ag) => ({
