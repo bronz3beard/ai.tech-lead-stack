@@ -8,8 +8,8 @@ import DiscoveryClient from './DiscoveryClient';
 export default async function DiscoveryPage() {
   const session = await getServerSession(authOptions);
 
-  if (!session || !session.user) {
-    redirect('/signin');
+  if (!session?.user) {
+    return null;
   }
 
   // Fetch only projects the user is authorized to see
