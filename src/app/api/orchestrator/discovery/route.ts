@@ -9,6 +9,7 @@ import {
   UIMessageStreamWriter,
   tool,
   jsonSchema,
+  stepCountIs,
   type ModelMessage,
 } from 'ai';
 import { getServerSession } from 'next-auth';
@@ -142,6 +143,7 @@ export async function POST(req: Request) {
             model,
             system: getEnhancedSystemInstruction({ figmaUrl, branchUrl, componentName }),
             messages: modelMessages,
+            stopWhen: stepCountIs(50),
             tools: {
               write_to_sandbox: tool({
                 description: 'Writes a file to the ephemeral development environment (WebContainer) for live prototyping.',
