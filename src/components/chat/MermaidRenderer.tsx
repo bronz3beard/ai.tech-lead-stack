@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import mermaid from 'mermaid';
+import DOMPurify from 'dompurify';
 
 interface MermaidRendererProps {
   chart: string;
@@ -176,7 +177,7 @@ export default function MermaidRenderer({ chart }: MermaidRendererProps) {
       <div
         ref={containerRef}
         className="min-w-max mx-auto px-4"
-        dangerouslySetInnerHTML={{ __html: svg }}
+        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(svg) }}
       />
     </div>
   );
