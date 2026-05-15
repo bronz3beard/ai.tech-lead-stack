@@ -30,14 +30,19 @@ export default function SettingsPageClient({
           {(role === 'DEVELOPER' || role === 'ADMIN') && (
             <TabsTrigger value="integrations">Integrations</TabsTrigger>
           )}
-          <TabsTrigger value="setup">Setup Guide</TabsTrigger>
+          <TabsTrigger
+            value="setup"
+            className="mt-2.5 border-gray-50 cursor-pointer"
+          >
+            Setup Guide
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="profile" className="mt-6">
+        <TabsContent value="profile" className="mt-8">
           <ProfileForm />
         </TabsContent>
 
-        <TabsContent value="api-keys" className="mt-6 space-y-6">
+        <TabsContent value="api-keys" className="mt-10 space-y-6">
           <p className="text-sm text-muted-foreground mb-4">
             Manage your API keys for different AI models. For Gemini, a key
             saved here takes priority over GEMINI_API_KEY /
@@ -57,7 +62,7 @@ export default function SettingsPageClient({
           <ApiKeyCard provider="openai" label="ChatGPT (OpenAI)" />
         </TabsContent>
 
-        <TabsContent value="projects" className="mt-6">
+        <TabsContent value="projects" className="mt-10">
           {role === 'DEVELOPER' || role === 'ADMIN' ? (
             <ProjectSharingPanel initialProjects={projects} />
           ) : (
@@ -66,11 +71,11 @@ export default function SettingsPageClient({
         </TabsContent>
 
         {(role === 'DEVELOPER' || role === 'ADMIN') && (
-          <TabsContent value="integrations" className="mt-6">
+          <TabsContent value="integrations" className="mt-10">
             <ProjectIntegrationsPanel />
           </TabsContent>
         )}
-        <TabsContent value="setup" className="mt-6">
+        <TabsContent value="setup" className="mt-8">
           <ConfigGuide />
         </TabsContent>
       </Tabs>
