@@ -6,9 +6,11 @@ import { Input } from '@/components/ui/input';
 import { useChat } from '@ai-sdk/react';
 import { WebContainer } from '@webcontainer/api';
 import { DefaultChatTransport } from 'ai';
-import { ArrowLeft, Folder, Loader2, Send } from 'lucide-react';
+import { ArrowLeft, Folder, Loader2, Send, Terminal as TerminalIcon, Eye } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export interface Project {
   id: string;
@@ -27,6 +29,10 @@ export default function DiscoveryClient({
   const [isSandboxReady, setIsSandboxReady] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [webContainer, setWebContainer] = useState<WebContainer | null>(null);
+  const [hasFiles, setHasFiles] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isDevServerStarted, setIsDevServerStarted] = useState(false);
+  const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // WebContainer Initialization
@@ -60,11 +66,76 @@ export default function DiscoveryClient({
     [selectedProjectId]
   );
 
+  // Helper to start dev server
+  const startDevServer = async (instance: WebContainer) => {
+    if (isDevServerStarted) return;
+    setIsDevServerStarted(true);
+    setTerminalOutput(prev => [...prev, '$ npm install && npm run dev']);
+    
+    try {
+      // Mocking a package.json if it doesn't exist to ensure dev server can start
+      try {
+        await instance.fs.readFile('package.json');
+      } catch {
+        await instance.fs.writeFile('package.json', JSON.stringify({
+          name: 'prototype',
+          type: 'module',
+          dependencies: {
+            'react': '^19.0.0',
+            'react-dom': '^19.0.0',
+            'lucide-react': 'latest'
+          },
+          scripts: {
+            'dev': 'next dev -p 3000'
+          }
+        }, null, 2));
+      }
+
+      const installProcess = await instance.spawn('npm', ['install']);
+      installProcess.output.pipeTo(new WritableStream({
+        write(data) { setTerminalOutput(prev => [...prev, data]); }
+      }));
+      await installProcess.exit;
+
+      const devProcess = await instance.spawn('npm', ['run', 'dev']);
+      devProcess.output.pipeTo(new WritableStream({
+        write(data) { setTerminalOutput(prev => [...prev, data]); }
+      }));
+
+      instance.on('server-ready', (port, url) => {
+        if (port === 3000) setPreviewUrl(url);
+      });
+    } catch (err) {
+      console.error('Dev server failed:', err);
+      setIsDevServerStarted(false);
+    }
+  };
+
   // Streaming AI Chat
   const { messages, status, sendMessage } = useChat({
     transport,
+    onToolCall: async ({ toolCall }) => {
+      if (toolCall.toolName === 'write_to_sandbox') {
+        const { path, content } = (toolCall as any).args as { path: string; content: string };
+        if (webContainer) {
+          // Ensure directory exists
+          const parts = path.split('/');
+          if (parts.length > 1) {
+            let current = '';
+            for (let i = 0; i < parts.length - 1; i++) {
+              current += (current ? '/' : '') + parts[i];
+              try {
+                await webContainer.fs.mkdir(current, { recursive: true });
+              } catch (e) {}
+            }
+          }
+          await webContainer.fs.writeFile(path, content);
+          setHasFiles(true);
+          startDevServer(webContainer);
+        }
+      }
+    },
     onFinish: () => {
-      // Scroll to bottom
       scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
     },
   });
@@ -267,16 +338,18 @@ export default function DiscoveryClient({
                     {msg.role === 'user' ? 'User' : 'Discovery Agent'}
                   </span>
                   <div
-                    className={`max-w-[90%] p-4 rounded-2xl text-sm leading-relaxed ${
+                    className={`max-w-[90%] p-4 rounded-2xl text-sm leading-relaxed chat-prose ${
                       msg.role === 'user'
                         ? 'bg-blue-600 text-white rounded-tr-none'
                         : 'bg-slate-800 text-slate-200 border border-slate-700/50 rounded-tl-none'
                     }`}
                   >
-                    {msg.parts
-                      ?.filter((p: any) => p.type === 'text')
-                      .map((p: any) => (p as any).text)
-                      .join('\n') || (msg as any).content}
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {msg.parts
+                        ?.filter((p: any) => p.type === 'text')
+                        .map((p: any) => (p as any).text)
+                        .join('\n') || (msg as any).content}
+                    </ReactMarkdown>
                   </div>
                 </div>
               ))
@@ -373,19 +446,42 @@ export default function DiscoveryClient({
                     </p>
                   </div>
                 </div>
+              ) : previewUrl ? (
+                <div className="w-full h-full flex flex-col">
+                  <div className="flex-1 bg-white relative">
+                    <iframe 
+                      src={previewUrl} 
+                      className="w-full h-full border-none"
+                      title="Live Prototyping Preview"
+                    />
+                  </div>
+                  <div className="h-32 bg-slate-950 border-t border-slate-800 font-mono text-[10px] p-3 overflow-y-auto text-slate-400">
+                    <div className="flex items-center space-x-2 text-slate-500 mb-1">
+                      <TerminalIcon className="w-3 h-3" />
+                      <span className="uppercase tracking-widest font-bold">Live Output</span>
+                    </div>
+                    {terminalOutput.map((line, i) => (
+                      <div key={i}>{line}</div>
+                    ))}
+                  </div>
+                </div>
               ) : (
                 <div className="max-w-md text-center space-y-6 z-10 px-8">
                   <div className="w-20 h-20 mx-auto rounded-3xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
-                    <Loader2 className="w-10 h-10 text-blue-500 animate-pulse" />
+                    {hasFiles ? (
+                      <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
+                    ) : (
+                      <Eye className="w-10 h-10 text-blue-500" />
+                    )}
                   </div>
                   <div className="space-y-3">
                     <h3 className="text-xl font-semibold text-white">
-                      Development Sandbox Ready
+                      {hasFiles ? 'Generating Visual Prototype…' : 'Development Sandbox Ready'}
                     </h3>
                     <p className="text-sm text-slate-400 leading-relaxed">
-                      Your ephemeral development environment is active. Once
-                      generation begins, real-time previews and terminal outputs
-                      will populate this pane.
+                      {hasFiles 
+                        ? 'The agent is writing prototype files. The preview will update automatically once the dev server starts.'
+                        : 'Your ephemeral development environment is active. As requirements are refined, the agent will provide live visual mockups here.'}
                     </p>
                   </div>
                   <div className="pt-4 flex items-center justify-center space-x-4">

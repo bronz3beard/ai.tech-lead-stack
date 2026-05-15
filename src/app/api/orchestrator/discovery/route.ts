@@ -7,36 +7,41 @@ import {
   streamText,
   UIMessage,
   UIMessageStreamWriter,
+  tool,
   type ModelMessage,
 } from 'ai';
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { initializeModel } from '../../chat/utils';
+import { z } from 'zod';
 
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
 
 const DISCOVERY_SYSTEM_INSTRUCTION = `You are the Discovery Agent for the Tech-Lead Stack.
-Your mission is to help Product Managers and Developers refine their feature requirements during the "Discovery Phase" of the AI-powered development lifecycle.
+Your mission is to help Product Managers and Developers refine their feature requirements and provide LIVE VISUAL PROTOTYPES using the WebContainer sandbox.
 
 CORE DIRECTIVES:
-1.  **Requirement Synthesis**: Take vague ideas and turn them into concrete user stories, acceptance criteria, and UI/UX flows. Follow the **design-requirements-to-architecture** methodology to break down features into technical components, state management, and data flow.
-2.  **Strategic Planning**: Use the **plan** skill methodology to structure the discovery process. Proactively identify edge cases, dependencies, and potential technical hurdles early.
-3.  **Edge Case Discovery**: identify missing details (e.g., "What happens if the user is offline?", "Should this be paginated?").
-4.  **Technical Alignment**: Ensure requirements align with the project's existing tech stack and design patterns.
-5.  **Premium Aesthetics**: Suggest high-end UI features (glassmorphism, micro-animations, vibrant gradients) that will "Wow" the user.
+1.  **Requirement Synthesis**: Take vague ideas and turn them into concrete user stories, acceptance criteria, and UI/UX flows. 
+2.  **Visual Prototyping**: Whenever a UI component or layout is discussed, use the \`write_to_sandbox\` tool to create a visual mockup (e.g., a React component, CSS, or README) so the user can see your vision immediately.
+3.  **Strategic Planning**: Use the **plan** skill methodology. Identify edge cases, dependencies, and potential technical hurdles early.
+4.  **Edge Case Discovery**: Identify missing details (e.g., "What happens if the user is offline?").
+5.  **Technical Alignment**: Ensure requirements align with the project's existing tech stack and design patterns.
+6.  **Premium Aesthetics**: Suggest high-end UI features (glassmorphism, micro-animations, vibrant gradients) that will "Wow" the user.
+
+OUTPUT FORMATTING (MANDATORY):
+- Use **Structured Markdown** with clear vertical segments.
+- Use **Bold Headers** (###) for major sections.
+- Use **Bullet Points** for lists.
+- Use **GitHub Alerts** (> [!TIP], > [!IMPORTANT]) to highlight key architectural decisions.
+- DO NOT provide raw, unformatted walls of text.
 
 METHODOLOGY ALIGNMENT:
-- **Phase 0 Discovery**: Focus on defining the 'What' and 'Why' before the 'How'.
-- **Architecture Mapping**: Always consider how a requirement impacts the broader system architecture.
-- **Verification Readiness**: Ensure every requirement has clear, testable acceptance criteria.
+- **Phase 0 Discovery**: Define the 'What' and 'Why' before the 'How'.
+- **Architecture Mapping**: Consider impact on the broader system.
+- **Verification Readiness**: Ensure every requirement has testable acceptance criteria.
 
-STYLE:
-- Be collaborative, inquisitive, and expert.
-- Use Markdown for structure.
-- Always provide a clear summary of the refined specification when requested.
-
-IMPORTANT: You are currently helping the user arrive at a state where they can click "Start Generation". Do not write code here; focus on the SPECIFICATION and DISCOVERY. Ensure the resulting discovery and feat branch logic follows the highest level of Tech-Lead Stack methodologies.`;
+IMPORTANT: You are helping the user arrive at a "Start Generation" state. Use the sandbox tool to provide intermediate visual feedback. Do not just describe; SHOW.`;
 
 /**
  * @desc Extracts plain text from a UIMessage's parts array.
@@ -112,6 +117,19 @@ export async function POST(req: Request) {
             model,
             system: DISCOVERY_SYSTEM_INSTRUCTION,
             messages: modelMessages,
+            tools: {
+              write_to_sandbox: tool({
+                description: 'Writes a file to the ephemeral development environment (WebContainer) for live prototyping.',
+                parameters: z.object({
+                  path: z.string().describe('The relative path of the file (e.g., "src/components/Gauge.tsx")'),
+                  content: z.string().describe('The code or text content to write to the file.'),
+                }),
+                execute: async ({ path }: { path: string }) => {
+                  // Handled on client, but required for type inference
+                  return { success: true, path };
+                },
+              } as any),
+            },
           });
 
           for await (const chunk of result.toUIMessageStream()) {
