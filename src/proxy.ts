@@ -1,6 +1,6 @@
 import { default as authMiddleware } from 'next-auth/middleware';
-import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 /**
  * Next.js 16 Proxy layer.
@@ -26,5 +26,6 @@ export const config = {
     '/dashboard/:path*',
     '/skills/new/:path*',
     '/settings/:path*',
+    '/feature-development/:path*',
   ],
 };
