@@ -65,6 +65,7 @@
     "@types/bcryptjs": "^3.0.0",
     "@types/pg": "^8.20.0",
     "@types/react-syntax-highlighter": "^15.5.13",
+    "@webcontainer/api": "^1.6.4",
     "ai": "^6.0.157",
     "autoevals": "latest",
     "bcryptjs": "^3.0.3",
