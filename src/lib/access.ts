@@ -21,7 +21,7 @@ export function isSuperUser(email?: string | null): boolean {
  * - ADMIN role sees everything (optional, but usually desired).
  * - Others see:
  *   - Projects they own.
- *   - Projects where they have an explicit access grant for their role.
+ *   - Projects where they have an explicit user-based access grant.
  */
 export function getProjectAccessFilter(user: { id: string; role: string; email?: string | null }) {
   if (isSuperUser(user.email) || user.role === Role.ADMIN) {
@@ -34,7 +34,7 @@ export function getProjectAccessFilter(user: { id: string; role: string; email?:
       {
         accessGrants: {
           some: {
-            role: user.role as Role,
+            userId: user.id,
           },
         },
       },

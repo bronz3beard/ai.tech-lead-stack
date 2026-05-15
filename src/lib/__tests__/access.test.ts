@@ -55,7 +55,7 @@ describe('Access Logic Tests', () => {
           {
             accessGrants: {
               some: {
-                role: regularUser.role,
+                userId: regularUser.id,
               },
             },
           },
@@ -78,7 +78,7 @@ describe('Access Logic Tests', () => {
           {
             accessGrants: {
               some: {
-                role: pmUser.role,
+                userId: pmUser.id,
               },
             },
           },

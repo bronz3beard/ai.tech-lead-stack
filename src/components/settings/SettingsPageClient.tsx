@@ -1,19 +1,23 @@
 'use client';
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useState } from 'react';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import ProfileForm from './ProfileForm';
 import ApiKeyCard from './ApiKeyCard';
-import ProjectSharingPanel from './ProjectSharingPanel';
-import SharedProjectsReadOnly from './SharedProjectsReadOnly';
-import ProjectIntegrationsPanel from './ProjectIntegrationsPanel';
 import ConfigGuide from './ConfigGuide';
+import ProfileForm from './ProfileForm';
+import ProjectIntegrationsPanel from './ProjectIntegrationsPanel';
+import ProjectSharingPanel, { UIProjectAccess } from './ProjectSharingPanel';
+import SharedProjectsReadOnly from './SharedProjectsReadOnly';
 
 interface SettingsPageClientProps {
   role: string;
+  projects: Array<UIProjectAccess>;
 }
 
-export default function SettingsPageClient({ role }: SettingsPageClientProps) {
+export default function SettingsPageClient({
+  role,
+  projects,
+}: SettingsPageClientProps) {
   const [activeTab, setActiveTab] = useState('profile');
 
   return (
@@ -35,20 +39,27 @@ export default function SettingsPageClient({ role }: SettingsPageClientProps) {
 
         <TabsContent value="api-keys" className="mt-6 space-y-6">
           <p className="text-sm text-muted-foreground mb-4">
-            Manage your API keys for different AI models. For Gemini, a key saved here takes priority over
-            GEMINI_API_KEY / GOOGLE_GENERATIVE_AI_API_KEY in the server environment unless you set
-            GEMINI_API_KEY_PRECEDENCE=env. Google&apos;s &quot;free_tier_requests&quot; quota errors still mean your
-            key is being used; enable billing on that Google AI project for higher limits.
+            Manage your API keys for different AI models. For Gemini, a key
+            saved here takes priority over GEMINI_API_KEY /
+            GOOGLE_GENERATIVE_AI_API_KEY in the server environment unless you
+            set GEMINI_API_KEY_PRECEDENCE=env. Google&apos;s
+            &quot;free_tier_requests&quot; quota errors still mean your key is
+            being used; enable billing on that Google AI project for higher
+            limits.
           </p>
-          <ApiKeyCard provider="gemini" label="Gemini (Google)" isSystemDefault />
+          <ApiKeyCard
+            provider="gemini"
+            label="Gemini (Google)"
+            isSystemDefault
+          />
           <ApiKeyCard provider="jules" label="Google Jules (Agentic)" />
           <ApiKeyCard provider="claude" label="Claude (Anthropic)" />
           <ApiKeyCard provider="openai" label="ChatGPT (OpenAI)" />
         </TabsContent>
 
         <TabsContent value="projects" className="mt-6">
-          {(role === 'DEVELOPER' || role === 'ADMIN') ? (
-            <ProjectSharingPanel />
+          {role === 'DEVELOPER' || role === 'ADMIN' ? (
+            <ProjectSharingPanel initialProjects={projects} />
           ) : (
             <SharedProjectsReadOnly />
           )}

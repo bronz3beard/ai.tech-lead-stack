@@ -6,10 +6,15 @@ import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
-const GrantAccessSchema = z.object({
-  projectId: z.string().min(1),
-  role: z.enum(Role),
-});
+const GrantAccessSchema = z
+  .object({
+    projectId: z.string().min(1),
+    role: z.enum(Role).optional(),
+    userId: z.string().optional(),
+  })
+  .refine((data) => data.role || data.userId, {
+    message: 'Either role or userId must be provided',
+  });
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -18,7 +23,6 @@ export async function GET() {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  // Only Developers/Admins manage project access (unless they are superusers)
   const isSuper = isSuperUser(session.user.email);
   if (
     session.user.role !== 'DEVELOPER' &&
@@ -38,7 +42,15 @@ export async function GET() {
       repoUrl: true,
       accessGrants: {
         select: {
+          id: true,
           role: true,
+          userId: true,
+          user: {
+            select: {
+              email: true,
+              name: true,
+            },
+          },
         },
       },
     },
@@ -47,7 +59,15 @@ export async function GET() {
 
   const formattedProjects = projects.map((p) => ({
     ...p,
-    accessGrants: p.accessGrants.map((ag) => ag.role),
+    roleGrants: p.accessGrants.filter((ag) => ag.role).map((ag) => ag.role),
+    userGrants: p.accessGrants
+      .filter((ag) => ag.userId)
+      .map((ag) => ({
+        id: ag.id,
+        userId: ag.userId,
+        email: ag.user?.email,
+        name: ag.user?.name,
+      })),
   }));
 
   return NextResponse.json({ projects: formattedProjects });
@@ -71,7 +91,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { projectId, role } = parsed.data;
+    const { projectId, role, userId } = parsed.data;
 
     const isSuper = isSuperUser(session.user.email);
     const project = await prisma.project.findFirst({
@@ -87,18 +107,28 @@ export async function POST(req: Request) {
       );
     }
 
-    await prisma.projectAccess.upsert({
+    // Check if grant already exists to avoid duplicates
+    const existing = await prisma.projectAccess.findFirst({
       where: {
-        projectId_role: {
-          projectId,
-          role,
-        },
+        projectId,
+        role: role || null,
+        userId: userId || null,
       },
-      create: {
+    });
+
+    if (existing) {
+      return NextResponse.json({
+        success: true,
+        message: 'Access already granted',
+      });
+    }
+
+    await prisma.projectAccess.create({
+      data: {
         projectId,
         role,
+        userId,
       },
-      update: {}, // Do nothing if it exists
     });
 
     return NextResponse.json({ success: true });
@@ -129,7 +159,7 @@ export async function DELETE(req: Request) {
       );
     }
 
-    const { projectId, role } = parsed.data;
+    const { projectId, role, userId } = parsed.data;
 
     const isSuper = isSuperUser(session.user.email);
     const project = await prisma.project.findFirst({
@@ -148,7 +178,8 @@ export async function DELETE(req: Request) {
     await prisma.projectAccess.deleteMany({
       where: {
         projectId,
-        role,
+        role: role || null,
+        userId: userId || null,
       },
     });
 

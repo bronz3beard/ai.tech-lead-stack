@@ -56,6 +56,7 @@ model User {
   chats           Chat[]
   projects        Project[]
   sessions        Session[]
+  accessGrants    ProjectAccess[]
 }
 
 model AnalyticsEvent {
@@ -108,11 +109,14 @@ model Project {
 model ProjectAccess {
   id        String   @id @default(cuid())
   projectId String
-  role      Role
+  userId    String?
+  role      Role?
   createdAt DateTime @default(now())
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([projectId, role])
+  @@index([projectId])
+  @@index([userId])
 }
 
 model Chat {
