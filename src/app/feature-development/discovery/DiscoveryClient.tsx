@@ -80,14 +80,6 @@ export default function DiscoveryClient({
   const [hydrationStatus, setHydrationStatus] = useState('');
   const [localEnv, setLocalEnv] = useState<string | undefined>();
 
-  // Trigger hydration when project is selected, if not already hydrating
-  useEffect(() => {
-    async function hydrate() {
-      if (!selectedProjectId || isHydrating) return;
-      // We assume if localEnv is defined or modal is closed, the user has completed setup.
-      // But we should only run this if we haven't mounted yet. Let's just rely on a ref to track if we already hydrated for this project.
-    }
-  }, [selectedProjectId]);
 
   // WebContainer Initialization
   useEffect(() => {
@@ -216,7 +208,7 @@ export default function DiscoveryClient({
           current += (current ? '/' : '') + parts[i];
           try {
             await webContainer.fs.mkdir(current, { recursive: true });
-          } catch (e) {}
+          } catch (_) {}
         }
       }
       await webContainer.fs.writeFile(path, content);
