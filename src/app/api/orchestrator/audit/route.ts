@@ -71,6 +71,23 @@ export async function POST(req: Request) {
       );
     }
 
+    // Fetch triggering user's GitHub login to assign as reviewer
+    let triggererLogin = '';
+    try {
+      const userGhResponse = await fetch('https://api.github.com/user', {
+        headers: {
+          Authorization: `Bearer ${account.access_token}`,
+          Accept: 'application/vnd.github+json',
+        },
+      });
+      if (userGhResponse.ok) {
+        const userData = await userGhResponse.json();
+        triggererLogin = userData.login;
+      }
+    } catch (e) {
+      console.warn('Failed to fetch GitHub user login:', e);
+    }
+
     // Trigger GitHub Action (Audit Phase)
     const [owner, repo] = project.githubFullName.split('/');
     const githubResponse = await fetch(
@@ -88,6 +105,7 @@ export async function POST(req: Request) {
             branch_name: branchName,
             creator_model: creatorModel,
             auditor_model: auditorModel,
+            reviewer_login: triggererLogin || '', // Pass the login for PR assignment
           },
         }),
       }
