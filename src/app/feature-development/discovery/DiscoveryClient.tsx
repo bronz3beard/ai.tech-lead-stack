@@ -6,11 +6,13 @@ import { Input } from '@/components/ui/input';
 import { useChat } from '@ai-sdk/react';
 import { WebContainer } from '@webcontainer/api';
 import { DefaultChatTransport } from 'ai';
-import { ArrowLeft, Folder, Loader2, Send, Terminal as TerminalIcon, Eye } from 'lucide-react';
+import { ArrowLeft, Folder, Loader2, Send, Terminal as TerminalIcon, Eye, HelpCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { DiscoverySetupModal } from '@/components/feature-development/DiscoverySetupModal';
+import { FeatureDevelopmentModal } from '@/components/feature-development/FeatureDevelopmentModal';
 
 export interface Project {
   id: string;
@@ -34,6 +36,15 @@ export default function DiscoveryClient({
   const [isDevServerStarted, setIsDevServerStarted] = useState(false);
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Discovery Context State
+  const [componentName, setComponentName] = useState<string | undefined>();
+  const [figmaUrl, setFigmaUrl] = useState<string | undefined>();
+  const [branchUrl, setBranchUrl] = useState<string | undefined>();
+  
+  // Modal State
+  const [isSetupOpen, setIsSetupOpen] = useState(true);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
 
   // WebContainer Initialization
   useEffect(() => {
@@ -61,9 +72,12 @@ export default function DiscoveryClient({
         api: '/api/orchestrator/discovery',
         body: {
           projectId: selectedProjectId,
+          figmaUrl,
+          branchUrl,
+          componentName,
         },
       }),
-    [selectedProjectId]
+    [selectedProjectId, figmaUrl, branchUrl, componentName]
   );
 
   // Helper to start dev server
@@ -253,8 +267,26 @@ export default function DiscoveryClient({
           <h1 className="text-sm font-semibold text-white tracking-tight uppercase">
             Feature Discovery
           </h1>
+          {componentName && (
+            <>
+              <div className="h-4 w-px bg-slate-800 mx-2" />
+              <span className="text-xs font-medium text-slate-400">
+                {componentName}
+              </span>
+            </>
+          )}
         </div>
         <div className="flex items-center space-x-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsGuideOpen(true)}
+            className="text-slate-400 hover:text-white"
+          >
+            <HelpCircle className="w-4 h-4 mr-2" />
+            Guide
+          </Button>
+          <div className="h-4 w-px bg-slate-800 mx-2" />
           {!generationStarted ? (
             <Button
               onClick={handleStartGeneration}
@@ -530,6 +562,22 @@ export default function DiscoveryClient({
           scrollbar-width: none;
         }
       `}</style>
+
+      <DiscoverySetupModal
+        isOpen={isSetupOpen}
+        onComplete={(data) => {
+          setComponentName(data.componentName);
+          setFigmaUrl(data.figmaUrl);
+          setBranchUrl(data.branchUrl);
+          setIsSetupOpen(false);
+        }}
+      />
+
+      <FeatureDevelopmentModal
+        isOpen={isGuideOpen}
+        onClose={() => setIsGuideOpen(false)}
+        figmaUrl={figmaUrl}
+      />
     </div>
   );
 }

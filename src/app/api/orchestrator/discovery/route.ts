@@ -43,6 +43,28 @@ METHODOLOGY ALIGNMENT:
 
 IMPORTANT: You are helping the user arrive at a "Start Generation" state. Use the sandbox tool to provide intermediate visual feedback. Do not just describe; SHOW.`;
 
+function getEnhancedSystemInstruction(context: {
+  figmaUrl?: string;
+  branchUrl?: string;
+  componentName?: string;
+}) {
+  let instruction = DISCOVERY_SYSTEM_INSTRUCTION;
+  
+  if (context.componentName || context.figmaUrl || context.branchUrl) {
+    instruction = `CONTEXT FOR THIS SESSION:
+${context.componentName ? `- TARGET FEATURE: ${context.componentName}` : ''}
+${context.figmaUrl ? `- FIGMA DESIGN: ${context.figmaUrl}` : ''}
+${context.branchUrl ? `- EXISTING BRANCH: ${context.branchUrl}` : ''}
+
+CRITICAL: Since the user has provided these resources, you MUST automatically analyze and use them to influence your technical specifications and visual prototyping. Reference these specific designs and existing code patterns throughout the discovery iteration.
+
+---
+${instruction}`;
+  }
+  
+  return instruction;
+}
+
 /**
  * @desc Extracts plain text from a UIMessage's parts array.
  * Handles the common text part shape: { type: 'text', text: string }.
@@ -65,9 +87,12 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { messages, projectId } = (await req.json()) as {
+    const { messages, projectId, figmaUrl, branchUrl, componentName } = (await req.json()) as {
       messages: UIMessage[];
       projectId: string;
+      figmaUrl?: string;
+      branchUrl?: string;
+      componentName?: string;
     };
 
     if (!projectId) {
@@ -115,7 +140,7 @@ export async function POST(req: Request) {
 
           const result = await streamText({
             model,
-            system: DISCOVERY_SYSTEM_INSTRUCTION,
+            system: getEnhancedSystemInstruction({ figmaUrl, branchUrl, componentName }),
             messages: modelMessages,
             tools: {
               write_to_sandbox: tool({
