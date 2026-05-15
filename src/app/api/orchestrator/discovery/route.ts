@@ -4,13 +4,12 @@ import { prisma } from '@/lib/prisma';
 import {
   createUIMessageStream,
   createUIMessageStreamResponse,
-  streamText,
-  UIMessage,
-  UIMessageStreamWriter,
-  tool,
   jsonSchema,
   stepCountIs,
-  type ModelMessage,
+  streamText,
+  tool,
+  UIMessage,
+  UIMessageStreamWriter,
 } from 'ai';
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
@@ -50,7 +49,7 @@ function getEnhancedSystemInstruction(context: {
   componentName?: string;
 }) {
   let instruction = DISCOVERY_SYSTEM_INSTRUCTION;
-  
+
   if (context.componentName || context.figmaUrl || context.branchUrl) {
     instruction = `CONTEXT FOR THIS SESSION:
 ${context.componentName ? `- TARGET FEATURE: ${context.componentName}` : ''}
@@ -62,7 +61,7 @@ CRITICAL: Since the user has provided these resources, you MUST automatically an
 ---
 ${instruction}`;
   }
-  
+
   return instruction;
 }
 
@@ -88,13 +87,14 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { messages, projectId, figmaUrl, branchUrl, componentName } = (await req.json()) as {
-      messages: UIMessage[];
-      projectId: string;
-      figmaUrl?: string;
-      branchUrl?: string;
-      componentName?: string;
-    };
+    const { messages, projectId, figmaUrl, branchUrl, componentName } =
+      (await req.json()) as {
+        messages: UIMessage[];
+        projectId: string;
+        figmaUrl?: string;
+        branchUrl?: string;
+        componentName?: string;
+      };
 
     if (!projectId) {
       return NextResponse.json(
@@ -131,34 +131,105 @@ export async function POST(req: Request) {
     return createUIMessageStreamResponse({
       stream: createUIMessageStream({
         execute: async ({ writer }: { writer: UIMessageStreamWriter }) => {
-          const modelMessages: ModelMessage[] = messages.map((m: any) => {
-            const text = extractTextFromParts(m.parts || []);
-            return {
-              role: m.role,
-              content: text || (typeof m.content === 'string' ? m.content : ''),
-            };
+          // Convert UIMessages to CoreMessages for streamText
+          const modelMessages: any[] = messages.flatMap((m: any) => {
+            if (m.role === 'user') {
+              const text =
+                extractTextFromParts(m.parts || []) ||
+                (typeof m.content === 'string' ? m.content : '');
+              return [{ role: 'user', content: text }];
+            }
+
+            if (m.role === 'assistant') {
+              const assistantContent: any[] = (m.parts || [])
+                .map((p: any) => {
+                  if (p.type === 'text') return { type: 'text', text: p.text };
+                  if (p.type === 'tool-invocation') {
+                    const { toolCallId, toolName, args } = p.toolInvocation;
+                    return { type: 'tool-call', toolCallId, toolName, args };
+                  }
+                  return null;
+                })
+                .filter(Boolean);
+
+              const toolResults: any[] = (m.parts || [])
+                .filter(
+                  (p: any) =>
+                    p.type === 'tool-invocation' &&
+                    p.toolInvocation.state === 'result'
+                )
+                .map((p: any) => {
+                  const { toolCallId, toolName, result } = p.toolInvocation;
+                  return { type: 'tool-result', toolCallId, toolName, result };
+                });
+
+              const msgs: any[] = [];
+              if (assistantContent.length > 0) {
+                msgs.push({ role: 'assistant', content: assistantContent });
+              }
+              if (toolResults.length > 0) {
+                msgs.push({ role: 'tool', content: toolResults });
+              }
+
+              // Fallback if no parts but has content
+              if (msgs.length === 0 && m.content) {
+                msgs.push({ role: 'assistant', content: m.content });
+              }
+
+              return msgs;
+            }
+
+            if (m.role === 'tool') {
+              const toolResults = (m.parts || [])
+                .map((p: any) => {
+                  if (p.type === 'tool-invocation') {
+                    const { toolCallId, toolName, result } = p.toolInvocation;
+                    return {
+                      type: 'tool-result',
+                      toolCallId,
+                      toolName,
+                      result,
+                    };
+                  }
+                  return null;
+                })
+                .filter(Boolean);
+
+              return [{ role: 'tool', content: toolResults }];
+            }
+
+            return [];
           });
 
           const result = await streamText({
             model,
-            system: getEnhancedSystemInstruction({ figmaUrl, branchUrl, componentName }),
+            system: getEnhancedSystemInstruction({
+              figmaUrl,
+              branchUrl,
+              componentName,
+            }),
             messages: modelMessages,
             stopWhen: stepCountIs(50),
             tools: {
               write_to_sandbox: tool({
-                description: 'Writes a file to the ephemeral development environment (WebContainer) for live prototyping.',
+                description:
+                  'Write a file to the sandbox filesystem. (webContainer)',
                 inputSchema: jsonSchema<{ path: string; content: string }>({
                   type: 'object',
                   properties: {
-                    path: { type: 'string', description: 'The relative path of the file (e.g., "src/components/Gauge.tsx")' },
-                    content: { type: 'string', description: 'The code or text content to write to the file.' },
+                    path: {
+                      type: 'string',
+                      description:
+                        'The relative path of the file (e.g., "src/components/Gauge.tsx")',
+                    },
+                    content: {
+                      type: 'string',
+                      description:
+                        'The code or text content to write to the file.',
+                    },
                   },
                   required: ['path', 'content'],
                 }),
-                execute: async ({ path }: { path: string }) => {
-                  // Handled on client, but required for type inference
-                  return { success: true, path };
-                },
               }),
             },
           });

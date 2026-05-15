@@ -1,12 +1,11 @@
+import { skillsService } from '@/lib/skills';
+import { CodeProvider } from '@/lib/skills/providers/base-provider';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
 import { User } from '@prisma/client';
-import { tool, jsonSchema } from 'ai';
-import { z } from 'zod';
+import { jsonSchema, tool } from 'ai';
 import { MODELS } from './constants';
-import { skillsService } from '@/lib/skills';
-import { CodeProvider } from '@/lib/skills/providers/base-provider';
 
 /**
  * Strictly extracts a string message from an unknown error object.
@@ -42,7 +41,9 @@ export function getErrorMessage(error: unknown): string {
  * Extracts plain text from AI SDK content structures, handling both raw strings
  * and arrays of ContentPart objects.
  */
-export function extractTextFromContent(content: string | any[] | undefined | null): string {
+export function extractTextFromContent(
+  content: string | any[] | undefined | null
+): string {
   if (!content) return '';
   if (typeof content === 'string') return content;
   if (Array.isArray(content)) {
@@ -62,7 +63,9 @@ export function isQuotaError(err: any): boolean {
   if (!err) return false;
 
   // 1. Direct check on status/code properties
-  const status = Number(err.status || err.statusCode || err.code || err.error_code);
+  const status = Number(
+    err.status || err.statusCode || err.code || err.error_code
+  );
   if (status === 429) return true;
 
   // 2. String mapping check for common Resource Exhausted codes
@@ -82,7 +85,10 @@ export function isQuotaError(err: any): boolean {
   const msg = getErrorMessage(err).toLowerCase();
   let raw = '';
   try {
-    raw = typeof err === 'object' ? JSON.stringify(err).toLowerCase() : String(err).toLowerCase();
+    raw =
+      typeof err === 'object'
+        ? JSON.stringify(err).toLowerCase()
+        : String(err).toLowerCase();
   } catch (e) {
     // If stringification fails (e.g., circular structure), fall back to String()
     raw = String(err).toLowerCase();
@@ -100,7 +106,7 @@ export function isQuotaError(err: any): boolean {
     'too many requests',
   ];
 
-  return keywords.some(k => msg.includes(k) || raw.includes(k));
+  return keywords.some((k) => msg.includes(k) || raw.includes(k));
 }
 
 /**
@@ -184,7 +190,8 @@ export function resolveGeminiApiKeys(
   const precedence = getGeminiKeyPrecedence();
   const keys: string[] = [];
 
-  const mask = (k: string) => `${k.substring(0, 4)}...${k.substring(k.length - 2)}`;
+  const mask = (k: string) =>
+    `${k.substring(0, 4)}...${k.substring(k.length - 2)}`;
 
   if (precedence === 'env') {
     if (envKey) keys.push(envKey);
@@ -244,9 +251,24 @@ export function resolveJulesApiKeys(
  * Factory for initializing the AI model based on user preference and API keys.
  * Supports fallback rotation via modelId and keyIndex.
  */
-export async function initializeModel(user: User, modelId?: string, keyIndex = 0) {
+export async function initializeModel(
+  user: User,
+  modelId?: string,
+  keyIndex = 0
+) {
   const preferredModel = user.preferredModel ?? 'gemini';
   const { decrypt } = await import('@/lib/crypto');
+
+  const decryptKey = (key: string, name: string) => {
+    try {
+      return decrypt(key.trim()).trim();
+    } catch (err) {
+      console.error(`Failed to decrypt ${name} key:`, err);
+      throw new Error(
+        `Authentication Error: Failed to decrypt your ${name} API key. This usually happens if the ENCRYPTION_KEY in your .env has changed. Please go to Settings and re-save your API key.`
+      );
+    }
+  };
 
   if (preferredModel === 'claude') {
     if (!user.claudeApiKey?.trim()) {
@@ -255,7 +277,7 @@ export async function initializeModel(user: User, modelId?: string, keyIndex = 0
       );
     }
     const anthropic = createAnthropic({
-      apiKey: decrypt(user.claudeApiKey.trim()).trim(),
+      apiKey: decryptKey(user.claudeApiKey, 'Claude'),
     });
     return anthropic(modelId ?? MODELS.CLAUDE);
   }
@@ -267,7 +289,7 @@ export async function initializeModel(user: User, modelId?: string, keyIndex = 0
       );
     }
     const openai = createOpenAI({
-      apiKey: decrypt(user.openaiApiKey.trim()).trim(),
+      apiKey: decryptKey(user.openaiApiKey, 'OpenAI'),
     });
     return openai(modelId ?? MODELS.OPENAI);
   }
@@ -324,27 +346,53 @@ export function getChatTools(provider: CodeProvider = skillsService) {
     }),
     get_skill: tool({
       description: 'Reads the specific content of a skill or workflow.',
-      inputSchema: jsonSchema<{ name?: string; skillName?: string; skill_id?: string; type?: 'skill' | 'workflow' }>({
+      inputSchema: jsonSchema<{
+        name?: string;
+        skillName?: string;
+        skill_id?: string;
+        type?: 'skill' | 'workflow';
+      }>({
         type: 'object',
         properties: {
           name: { type: 'string', description: 'Skill/Workflow name' },
-          skillName: { type: 'string', description: 'Skill/Workflow name (alias)' },
-          skill_id: { type: 'string', description: 'Skill/Workflow name (alias 2)' },
-          type: { type: 'string', enum: ['skill', 'workflow'], description: 'Asset type', default: 'skill' },
+          skillName: {
+            type: 'string',
+            description: 'Skill/Workflow name (alias)',
+          },
+          skill_id: {
+            type: 'string',
+            description: 'Skill/Workflow name (alias 2)',
+          },
+          type: {
+            type: 'string',
+            enum: ['skill', 'workflow'],
+            description: 'Asset type',
+            default: 'skill',
+          },
         },
       }),
-      execute: async (args: { name?: string; skillName?: string; skill_id?: string; type?: 'skill' | 'workflow' }) => {
+      execute: async (args: {
+        name?: string;
+        skillName?: string;
+        skill_id?: string;
+        type?: 'skill' | 'workflow';
+      }) => {
         const name = args.name || args.skillName || args.skill_id;
         const type = args.type || 'skill';
-        
-        if (!name) return { error: 'Missing skill name parameter (expected name, skillName, or skill_id)' };
+
+        if (!name)
+          return {
+            error:
+              'Missing skill name parameter (expected name, skillName, or skill_id)',
+          };
 
         try {
           // Strip extension if provided by model
           const safeName = name.replace(/\.md$/, '');
           const result = await provider.readSkill(safeName, type);
-          
-          if (!result) return { error: `Skill or workflow '${name}' not found.` };
+
+          if (!result)
+            return { error: `Skill or workflow '${name}' not found.` };
           return { content: result.content };
         } catch (e: unknown) {
           return { error: `Lookup failed for ${name}: ${getErrorMessage(e)}` };
@@ -357,12 +405,18 @@ export function getChatTools(provider: CodeProvider = skillsService) {
         type: 'object',
         properties: {
           path: { type: 'string', description: 'Relative path to the file' },
-          filepath: { type: 'string', description: 'Relative path to the file (alias)' },
+          filepath: {
+            type: 'string',
+            description: 'Relative path to the file (alias)',
+          },
         },
       }),
       execute: async (args: { path?: string; filepath?: string }) => {
         const filePath = args.path || args.filepath;
-        if (!filePath) return { error: 'Missing file path parameter (expected path or filepath)' };
+        if (!filePath)
+          return {
+            error: 'Missing file path parameter (expected path or filepath)',
+          };
 
         try {
           const content = await provider.readFile(filePath);

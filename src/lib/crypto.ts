@@ -40,6 +40,10 @@ export function encrypt(plaintext: string): string {
  * @returns Original plaintext
  */
 export function decrypt(ciphertext: string): string {
+  if (!ciphertext || !ciphertext.includes(':')) {
+    throw new Error('Invalid ciphertext format. Expected <iv>:<ciphertext>:<authtag>. It seems the value is not encrypted.');
+  }
+
   const key = getEncryptionKey();
   const parts = ciphertext.split(':');
 
@@ -52,11 +56,16 @@ export function decrypt(ciphertext: string): string {
   const iv = Buffer.from(ivHex, 'hex');
   const authTag = Buffer.from(authTagHex, 'hex');
 
-  const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-  decipher.setAuthTag(authTag);
+  try {
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(authTag);
 
-  let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
-  decrypted += decipher.final('utf8');
+    let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
 
-  return decrypted;
+    return decrypted;
+  } catch (err) {
+    console.error('Decryption failed:', err);
+    throw new Error('Decryption failed. This usually means the ENCRYPTION_KEY has changed or the data is corrupted.');
+  }
 }

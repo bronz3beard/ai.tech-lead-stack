@@ -1,18 +1,31 @@
 'use client';
 
+import { DiscoverySetupModal } from '@/components/feature-development/DiscoverySetupModal';
+import { FeatureDevelopmentModal } from '@/components/feature-development/FeatureDevelopmentModal';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useChat } from '@ai-sdk/react';
 import { WebContainer } from '@webcontainer/api';
 import { DefaultChatTransport } from 'ai';
-import { ArrowLeft, Folder, Loader2, Send, Terminal as TerminalIcon, Eye, HelpCircle, Check, FileCode, AlertCircle, XCircle } from 'lucide-react';
+import {
+  AlertCircle,
+  ArrowLeft,
+  Check,
+  Eye,
+  FileCode,
+  Folder,
+  HelpCircle,
+  Loader2,
+  Send,
+  Terminal as TerminalIcon,
+  XCircle,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { DiscoverySetupModal } from '@/components/feature-development/DiscoverySetupModal';
-import { FeatureDevelopmentModal } from '@/components/feature-development/FeatureDevelopmentModal';
+import { toast } from 'sonner';
 
 export interface Project {
   id: string;
@@ -45,7 +58,9 @@ export default function DiscoveryClient({
   const [isSandboxReady, setIsSandboxReady] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('');
   const [webContainer, setWebContainer] = useState<WebContainer | null>(null);
-  const [writtenFiles, setWrittenFiles] = useState<{ path: string; status: 'writing' | 'done' | 'error' }[]>([]);
+  const [writtenFiles, setWrittenFiles] = useState<
+    { path: string; status: 'writing' | 'done' | 'error' }[]
+  >([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isDevServerStarted, setIsDevServerStarted] = useState(false);
   const [terminalOutput, setTerminalOutput] = useState<string[]>([]);
@@ -57,7 +72,7 @@ export default function DiscoveryClient({
   const [componentName, setComponentName] = useState<string | undefined>();
   const [figmaUrl, setFigmaUrl] = useState<string | undefined>();
   const [branchUrl, setBranchUrl] = useState<string | undefined>();
-  
+
   // Modal State
   const [isSetupOpen, setIsSetupOpen] = useState(true);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
@@ -103,38 +118,53 @@ export default function DiscoveryClient({
   const startDevServer = async (instance: WebContainer) => {
     if (isDevServerStarted) return;
     setIsDevServerStarted(true);
-    setTerminalOutput(prev => [...prev, '$ npm install && npm run dev']);
-    
+    setTerminalOutput((prev) => [...prev, '$ npm install && npm run dev']);
+
     try {
       // Ensure a basic package.json exists if the agent hasn't written one yet
       try {
         await instance.fs.readFile('package.json');
       } catch {
-        await instance.fs.writeFile('package.json', JSON.stringify({
-          name: 'prototype',
-          type: 'module',
-          dependencies: {
-            'react': '^19.0.0',
-            'react-dom': '^19.0.0',
-            'lucide-react': 'latest',
-            'next': 'latest'
-          },
-          scripts: {
-            'dev': 'next dev -p 3000'
-          }
-        }, null, 2));
+        await instance.fs.writeFile(
+          'package.json',
+          JSON.stringify(
+            {
+              name: 'prototype',
+              type: 'module',
+              dependencies: {
+                react: '^19.0.0',
+                'react-dom': '^19.0.0',
+                'lucide-react': 'latest',
+                next: 'latest',
+              },
+              scripts: {
+                dev: 'next dev -p 3000',
+              },
+            },
+            null,
+            2
+          )
+        );
       }
 
-      const installProcess = await instance.spawn('pnpm', ['install']);
-      installProcess.output.pipeTo(new WritableStream({
-        write(data) { setTerminalOutput(prev => [...prev, data]); }
-      }));
+      const installProcess = await instance.spawn('npm', ['install']);
+      installProcess.output.pipeTo(
+        new WritableStream({
+          write(data) {
+            setTerminalOutput((prev) => [...prev, data]);
+          },
+        })
+      );
       await installProcess.exit;
 
-      const devProcess = await instance.spawn('pnpm', ['run', 'dev']);
-      devProcess.output.pipeTo(new WritableStream({
-        write(data) { setTerminalOutput(prev => [...prev, data]); }
-      }));
+      const devProcess = await instance.spawn('npm', ['run', 'dev']);
+      devProcess.output.pipeTo(
+        new WritableStream({
+          write(data) {
+            setTerminalOutput((prev) => [...prev, data]);
+          },
+        })
+      );
 
       instance.on('server-ready', (port, url) => {
         if (port === 3000) setPreviewUrl(url);
@@ -148,10 +178,13 @@ export default function DiscoveryClient({
 
   const handleWriteFile = async (path: string, content: string) => {
     if (!webContainer) return;
-    
-    setWrittenFiles(prev => {
-      const exists = prev.find(f => f.path === path);
-      if (exists) return prev.map(f => f.path === path ? { ...f, status: 'writing' } : f);
+
+    setWrittenFiles((prev) => {
+      const exists = prev.find((f) => f.path === path);
+      if (exists)
+        return prev.map((f) =>
+          f.path === path ? { ...f, status: 'writing' } : f
+        );
       return [...prev, { path, status: 'writing' }];
     });
 
@@ -168,62 +201,96 @@ export default function DiscoveryClient({
         }
       }
       await webContainer.fs.writeFile(path, content);
-      
-      setWrittenFiles(prev => prev.map(f => f.path === path ? { ...f, status: 'done' } : f));
+
+      setWrittenFiles((prev) =>
+        prev.map((f) => (f.path === path ? { ...f, status: 'done' } : f))
+      );
 
       // Reset dev server timeout
-      if (devServerTimeoutRef.current) clearTimeout(devServerTimeoutRef.current);
+      if (devServerTimeoutRef.current)
+        clearTimeout(devServerTimeoutRef.current);
       devServerTimeoutRef.current = setTimeout(() => {
         startDevServer(webContainer);
       }, 2500);
-
     } catch (err) {
       console.error('Failed to write file:', path, err);
-      setWrittenFiles(prev => prev.map(f => f.path === path ? { ...f, status: 'error' } : f));
+      setWrittenFiles((prev) =>
+        prev.map((f) => (f.path === path ? { ...f, status: 'error' } : f))
+      );
       setSandboxError(`Failed to write file: ${path}`);
     }
   };
 
   // Streaming AI Chat
-  const { messages, status, sendMessage } = useChat({
+  const { messages, status, sendMessage, addToolOutput } = useChat({
     transport,
+    async onToolCall({ toolCall }) {
+      if (toolCall.toolName === 'write_to_sandbox') {
+        const { path, content } = (toolCall as any).args as {
+          path: string;
+          content: string;
+        };
+        console.log(`[onToolCall] Writing to sandbox: ${path}`);
+
+        // Mark as processed immediately to prevent duplicate triggers from useEffect
+        processedToolCalls.current.add(toolCall.toolCallId);
+
+        try {
+          await handleWriteFile(path, content);
+          addToolOutput({
+            toolCallId: toolCall.toolCallId,
+            tool: toolCall.toolName,
+            output: { success: true, path },
+          });
+        } catch (error: any) {
+          console.error(
+            `[onToolCall] Failed to write to sandbox: ${path}`,
+            error
+          );
+          addToolOutput({
+            toolCallId: toolCall.toolCallId,
+            tool: toolCall.toolName,
+            state: 'output-error',
+            errorText: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+    },
     onError: (err) => {
       console.error('Chat error:', err);
       setSandboxError(`Stream error: ${err.message}`);
+      toast.error(`Discovery Error: ${err.message}`);
     },
-    onFinish: () => {
+    onFinish: (message) => {
+      console.log('Chat finished:', message);
       scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
     },
   });
 
-  // Watch messages for toolInvocations (Fix for Bug 1: onToolCall is bypassed for server-executed tools)
+  const processedToolCalls = useRef<Set<string>>(new Set());
+
+  // Keep visual sync for streaming tool calls (optional but good for UX)
   useEffect(() => {
-    const lastMessage = messages[messages.length - 1] as any;
-    if (lastMessage?.toolInvocations) {
-      lastMessage.toolInvocations.forEach((invocation: any) => {
-        if (invocation.toolName === 'write_to_sandbox' && invocation.state === 'result') {
-          // File was already written and result is in the stream
-          // We sync our local state if it's not already there
-          const { path } = invocation.args as { path: string };
-          setWrittenFiles(prev => {
-            if (prev.find(f => f.path === path && f.status === 'done')) return prev;
-            const exists = prev.find(f => f.path === path);
-            if (exists) return prev.map(f => f.path === path ? { ...f, status: 'done' } : f);
-            return [...prev, { path, status: 'done' }];
-          });
-        } else if (invocation.toolName === 'write_to_sandbox' && invocation.state === 'call') {
-          // This fires when the tool call is emitted but not yet finished on server
-          // In SDK v6 with providerExecuted: true, we can't reliably catch the call delta here 
-          // without experimental_onToolCallStart, but the server execution will finish it.
-          // However, since we WANT to write on client for immediate WebContainer updates:
-          const { path, content } = invocation.args as { path: string; content: string };
-          if (path && content) {
-             handleWriteFile(path, content);
+    messages.forEach((message: any) => {
+      if (message.toolInvocations) {
+        message.toolInvocations.forEach((invocation: any) => {
+          const { toolCallId, toolName, args } = invocation;
+          if (
+            toolName === 'write_to_sandbox' &&
+            args?.path &&
+            !processedToolCalls.current.has(toolCallId)
+          ) {
+            // Check if it's the first time we see this path in this call
+            setWrittenFiles((prev) => {
+              const exists = prev.find((f) => f.path === args.path);
+              if (exists) return prev;
+              return [...prev, { path: args.path, status: 'writing' }];
+            });
           }
-        }
-      });
-    }
-  }, [messages, webContainer]);
+        });
+      }
+    });
+  }, [messages]);
 
   const isLoading = status === 'streaming';
 
@@ -540,9 +607,9 @@ export default function DiscoveryClient({
                     <AlertCircle className="w-4 h-4" />
                     <span className="text-xs font-medium">{sandboxError}</span>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className="h-6 w-6 text-red-500 hover:bg-red-500/20"
                     onClick={() => setSandboxError(null)}
                   >
@@ -578,8 +645,8 @@ export default function DiscoveryClient({
               ) : previewUrl ? (
                 <div className="w-full h-full flex flex-col">
                   <div className="flex-1 bg-white relative">
-                    <iframe 
-                      src={previewUrl} 
+                    <iframe
+                      src={previewUrl}
                       className="w-full h-full border-none"
                       title="Live Prototyping Preview"
                     />
@@ -588,55 +655,79 @@ export default function DiscoveryClient({
                     <div className="flex items-center justify-between text-slate-500 mb-2 border-b border-slate-800/50 pb-1">
                       <div className="flex items-center space-x-2">
                         <TerminalIcon className="w-3 h-3" />
-                        <span className="uppercase tracking-widest font-bold">Live Output</span>
+                        <span className="uppercase tracking-widest font-bold">
+                          Live Output
+                        </span>
                       </div>
                       <div className="flex items-center space-x-2">
-                         <span className="text-[9px] text-emerald-500 font-bold">● ONLINE</span>
+                        <span className="text-[9px] text-emerald-500 font-bold">
+                          ● ONLINE
+                        </span>
                       </div>
                     </div>
                     {terminalOutput.map((line, i) => (
-                      <div key={i} className="mb-0.5">{line}</div>
+                      <div key={i} className="mb-0.5">
+                        {line}
+                      </div>
                     ))}
                   </div>
                 </div>
               ) : writtenFiles.length > 0 ? (
                 <div className="flex-1 flex flex-col overflow-hidden z-10">
-                   <div className="p-6 border-b border-slate-800/50 flex items-center justify-between bg-slate-900/50">
-                      <div>
-                        <h3 className="text-sm font-semibold text-white">Constructing Application</h3>
-                        <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Live Sandbox Sync Active</p>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <div className="text-right">
-                          <div className="text-[10px] font-mono text-slate-500 uppercase">Status</div>
-                          <div className="text-xs font-mono text-blue-400">Installing...</div>
+                  <div className="p-6 border-b border-slate-800/50 flex items-center justify-between bg-slate-900/50">
+                    <div>
+                      <h3 className="text-sm font-semibold text-white">
+                        Constructing Application
+                      </h3>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">
+                        Live Sandbox Sync Active
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <div className="text-right">
+                        <div className="text-[10px] font-mono text-slate-500 uppercase">
+                          Status
                         </div>
-                        <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+                        <div className="text-xs font-mono text-blue-400">
+                          Installing...
+                        </div>
                       </div>
-                   </div>
-                   <div className="flex-1 overflow-y-auto p-4 space-y-1 font-mono">
-                      {writtenFiles.map((file, i) => (
-                        <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-slate-900/50 border border-slate-800/30 group hover:border-blue-500/30 transition-all">
-                          <div className="flex items-center space-x-3">
-                            {file.status === 'writing' ? (
-                              <Loader2 className="w-3.5 h-3.5 text-blue-500 animate-spin" />
-                            ) : file.status === 'error' ? (
-                              <AlertCircle className="w-3.5 h-3.5 text-red-500" />
-                            ) : (
-                              <Check className="w-3.5 h-3.5 text-emerald-500" />
-                            )}
-                            <FileCode className="w-3.5 h-3.5 text-slate-500" />
-                            <span className="text-xs text-slate-300">{file.path}</span>
-                          </div>
-                          <span className={`text-[9px] uppercase font-bold ${
-                            file.status === 'writing' ? 'text-blue-500' : 
-                            file.status === 'error' ? 'text-red-500' : 'text-slate-600'
-                          }`}>
-                            {file.status}
+                      <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-4 space-y-1 font-mono">
+                    {writtenFiles.map((file, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between p-2 rounded-lg bg-slate-900/50 border border-slate-800/30 group hover:border-blue-500/30 transition-all"
+                      >
+                        <div className="flex items-center space-x-3">
+                          {file.status === 'writing' ? (
+                            <Loader2 className="w-3.5 h-3.5 text-blue-500 animate-spin" />
+                          ) : file.status === 'error' ? (
+                            <AlertCircle className="w-3.5 h-3.5 text-red-500" />
+                          ) : (
+                            <Check className="w-3.5 h-3.5 text-emerald-500" />
+                          )}
+                          <FileCode className="w-3.5 h-3.5 text-slate-500" />
+                          <span className="text-xs text-slate-300">
+                            {file.path}
                           </span>
                         </div>
-                      ))}
-                   </div>
+                        <span
+                          className={`text-[9px] uppercase font-bold ${
+                            file.status === 'writing'
+                              ? 'text-blue-500'
+                              : file.status === 'error'
+                                ? 'text-red-500'
+                                : 'text-slate-600'
+                          }`}
+                        >
+                          {file.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ) : (
                 <div className="max-w-md text-center space-y-6 z-10 px-8">
@@ -648,7 +739,9 @@ export default function DiscoveryClient({
                       Development Sandbox Ready
                     </h3>
                     <p className="text-sm text-slate-400 leading-relaxed">
-                      Your ephemeral development environment is active. As requirements are refined, the agent will provide live visual mockups here.
+                      Your ephemeral development environment is active. As
+                      requirements are refined, the agent will provide live
+                      visual mockups here.
                     </p>
                   </div>
                   <div className="pt-4 flex items-center justify-center space-x-4">
