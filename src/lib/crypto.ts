@@ -40,11 +40,12 @@ export function encrypt(plaintext: string): string {
  * @returns Original plaintext
  */
 export function decrypt(ciphertext: string): string {
+  const key = getEncryptionKey();
+
   if (!ciphertext || !ciphertext.includes(':')) {
     throw new Error('Invalid ciphertext format. Expected <iv>:<ciphertext>:<authtag>. It seems the value is not encrypted.');
   }
 
-  const key = getEncryptionKey();
   const parts = ciphertext.split(':');
 
   if (parts.length !== 3) {
