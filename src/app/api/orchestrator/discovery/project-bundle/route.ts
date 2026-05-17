@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import AdmZip from 'adm-zip';
+import { Octokit } from 'octokit';
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
@@ -34,7 +36,6 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Project does not have a linked GitHub repository' }, { status: 400 });
     }
 
-    // We fetch the account to get the token directly, since githubClient.accessToken is private
     const account = await prisma.account.findFirst({
       where: { userId: session.user.id, provider: 'github' },
     });
@@ -46,80 +47,70 @@ export async function GET(req: Request) {
     const [owner, repo] = project.githubFullName.split('/');
     const accessToken = account.access_token;
 
-    const ghFetch = async (path: string) => {
-      const res = await fetch(`https://api.github.com/repos/${owner}/${repo}${path}`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: 'application/vnd.github+json',
-          'X-GitHub-Api-Version': '2022-11-28',
-        }
-      });
-      if (!res.ok) {
-        throw new Error(`GitHub API error: ${res.statusText}`);
-      }
-      return res.json();
-    };
+    console.log(`[Bundle] Hydrating ${owner}/${repo} for user ${session.user.id}`);
+    const octokit = new Octokit({ auth: accessToken });
 
-    // Get repo to find default branch
-    const repoData = await ghFetch('');
+    // 1. Get repo metadata to find default branch
+    const { data: repoData } = await octokit.rest.repos.get({
+      owner,
+      repo,
+    });
     const defaultBranch = repoData.default_branch;
 
-    // Get tree recursively
-    const treeData = await ghFetch(`/git/trees/${defaultBranch}?recursive=1`);
-    const tree = treeData.tree;
+    // 2. Fetch the repo as a ZIP archive (single call to avoid rate limits)
+    console.log(`[Bundle] Fetching zipball for ${owner}/${repo} on branch ${defaultBranch}...`);
+    const zipResponse = await octokit.rest.repos.downloadZipballArchive({
+      owner,
+      repo,
+      ref: defaultBranch,
+    });
 
-    const excludedDirs = ['node_modules', '.next', '.git', 'dist', 'build'];
-    const excludedExts = ['.png', '.jpg', '.jpeg', '.gif', '.pdf', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.eot', '.mp4', '.webm', '.zip', '.tar', '.gz'];
+    const buffer = Buffer.from(zipResponse.data as ArrayBuffer);
+    const zip = new AdmZip(Buffer.from(buffer));
+    const zipEntries = zip.getEntries();
+
+    if (zipEntries.length === 0) {
+      throw new Error('Repository is empty');
+    }
+
+    // GitHub zips contain a root directory like "owner-repo-sha/"
+    const rootDir = zipEntries[0].entryName.split('/')[0];
 
     const fileSystemTree: any = {};
+    const excludedDirs = ['node_modules', '.next', '.git', 'dist', 'build', '.vercel', 'tmp'];
+    const excludedExts = ['.png', '.jpg', '.jpeg', '.gif', '.pdf', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.eot', '.mp4', '.webm', '.zip', '.tar', '.gz'];
+
     let totalSize = 0;
     const MAX_SIZE = 100 * 1024 * 1024; // 100MB
 
-    const validItems = tree.filter((item: any) => {
-      if (item.type !== 'blob') return false;
-      const pathParts = item.path.split('/');
-      if (pathParts.some((part: string) => excludedDirs.includes(part))) return false;
-      const extMatch = item.path.match(/\.[^.]+$/);
+    for (const entry of zipEntries) {
+      if (entry.isDirectory) continue;
+      
+      // Remove the root directory prefix
+      const relativePath = entry.entryName.substring(rootDir.length + 1);
+      if (!relativePath) continue;
+
+      const parts = relativePath.split('/');
+      
+      // Filtering directories
+      if (parts.some(part => excludedDirs.includes(part))) continue;
+      
+      // Filtering extensions
+      const extMatch = relativePath.match(/\.[^.]+$/);
       const ext = extMatch ? extMatch[0].toLowerCase() : '';
-      if (excludedExts.includes(ext)) return false;
-      return true;
-    });
+      if (excludedExts.includes(ext)) continue;
 
-    const files = [];
+      // Check size (skip files > 2MB to avoid memory issues)
+      const data = entry.getData();
+      if (data.length > 2 * 1024 * 1024) continue;
 
-    // Parallel fetch blobs in small batches to not hit rate limits or memory issues
-    const BATCH_SIZE = 20;
-    for (let i = 0; i < validItems.length; i += BATCH_SIZE) {
-      if (totalSize > MAX_SIZE) break;
-      const batch = validItems.slice(i, i + BATCH_SIZE);
-      const batchPromises = batch.map(async (item: any) => {
-        if (item.size > 2 * 1024 * 1024) return null; // Skip files > 2MB
-        try {
-          const contentData = await ghFetch(`/git/blobs/${item.sha}`);
-          const contentStr = Buffer.from(contentData.content, 'base64').toString('utf8');
-          return { path: item.path, content: contentStr };
-        } catch (error) {
-          console.error(`Failed to fetch blob ${item.path}`, error);
-          return null;
-        }
-      });
-
-      const results = await Promise.all(batchPromises);
-      for (const res of results) {
-        if (res) {
-          totalSize += Buffer.byteLength(res.content, 'utf8');
-          if (totalSize <= MAX_SIZE) {
-            files.push(res);
-          }
-        }
+      totalSize += data.length;
+      if (totalSize > MAX_SIZE) {
+        console.warn(`[Bundle] Reached max bundle size limit (100MB)`);
+        break;
       }
-    }
 
-    for (const file of files) {
-      if (!file) continue;
-      const parts = file.path.split('/');
       let currentLevel = fileSystemTree;
-
       for (let i = 0; i < parts.length - 1; i++) {
         const part = parts[i];
         if (!currentLevel[part]) {
@@ -131,17 +122,47 @@ export async function GET(req: Request) {
       const fileName = parts[parts.length - 1];
       currentLevel[fileName] = {
         file: {
-          contents: file.content
-        }
+          contents: data.toString('utf8'),
+        },
       };
     }
 
+    // Inject decrypted .env from project settings if available
+    const projectSettings = project.settings as any;
+    if (projectSettings?.encryptedEnvVars) {
+      const { decrypt } = await import('@/lib/crypto');
+      try {
+        const envContent = decrypt(projectSettings.encryptedEnvVars);
+        fileSystemTree['.env'] = {
+          file: {
+            contents: envContent,
+          },
+        };
+      } catch (err) {
+        console.error('Failed to decrypt project env vars:', err);
+      }
+    }
+
+    // Ensure Node version 22 is requested
+    fileSystemTree['.node-version'] = {
+      file: {
+        contents: '22',
+      },
+    };
+
+    console.log(`[Bundle] Successfully constructed bundle with ${Object.keys(fileSystemTree).length} root items`);
     return NextResponse.json({ bundle: fileSystemTree });
 
   } catch (error: any) {
     console.error('Project Bundle API Error:', error);
+    let details = error.message;
+    if (error.status === 403) {
+      details = 'GitHub API Forbidden: Likely a rate limit or missing repository permissions (ensure your token has "repo" scope).';
+    } else if (error.status === 401) {
+      details = 'GitHub API Unauthorized: Your session or GitHub token may have expired.';
+    }
     return NextResponse.json(
-      { error: 'Failed to fetch project bundle', details: error.message },
+      { error: 'Failed to fetch project bundle', details },
       { status: 500 }
     );
   }

@@ -147,7 +147,8 @@ export async function POST(req: Request) {
                 .map((p: any) => {
                   if (p.type === 'text') return { type: 'text', text: p.text };
                   if (p.type === 'tool-invocation') {
-                    const { toolCallId, toolName, args } = p.toolInvocation;
+                    const { toolCallId, toolName } = p.toolInvocation;
+                    const args = p.toolInvocation.args || p.toolInvocation.input || p.toolInvocation.parameters || {};
                     return { type: 'tool-call', toolCallId, toolName, args };
                   }
                   return null;

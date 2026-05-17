@@ -9,7 +9,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
@@ -19,7 +18,6 @@ interface DiscoverySetupModalProps {
     componentName?: string;
     figmaUrl?: string;
     branchUrl?: string;
-    localEnv?: string;
   }) => void;
 }
 
@@ -34,7 +32,6 @@ export function DiscoverySetupModal({
   const [componentName, setComponentName] = useState('');
   const [figmaUrl, setFigmaUrl] = useState('');
   const [branchUrl, setBranchUrl] = useState('');
-  const [localEnv, setLocalEnv] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -47,7 +44,6 @@ export function DiscoverySetupModal({
         componentName: componentName.trim() || undefined,
         figmaUrl: figmaUrl.trim() || undefined,
         branchUrl: branchUrl.trim() || undefined,
-        localEnv: localEnv.trim() || undefined,
       });
       setIsSubmitting(false);
     }, 600);
@@ -128,30 +124,6 @@ export function DiscoverySetupModal({
                 value={branchUrl}
                 onChange={(e) => setBranchUrl(e.target.value)}
                 className="bg-zinc-900 border-zinc-800 focus:ring-violet-500/20 focus:border-violet-500/50"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label
-                htmlFor="local-env"
-                className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold flex items-center justify-between"
-              >
-                <span>
-                  LOCAL .ENV{' '}
-                  <span className="text-zinc-700 font-normal ml-1">
-                    (OPTIONAL)
-                  </span>
-                </span>
-              </Label>
-              <p className="text-[11px] text-zinc-500">
-                Paste your local environment variables to run the app in the sandbox.
-              </p>
-              <Textarea
-                id="local-env"
-                placeholder="NEXT_PUBLIC_API_URL=...\nDB_HOST=..."
-                value={localEnv}
-                onChange={(e) => setLocalEnv(e.target.value)}
-                className="bg-zinc-900 border-zinc-800 focus:ring-violet-500/20 focus:border-violet-500/50 font-mono text-xs min-h-[80px]"
               />
             </div>
           </div>

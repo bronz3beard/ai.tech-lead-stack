@@ -1,6 +1,9 @@
 {
   "name": "@bronz3beard/tech-lead-stack",
   "version": "1.0.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "description": "RTK-powered agent skills for Tech Leads.",
   "bin": {
     "lead-init": "./install.sh",
@@ -67,6 +70,7 @@
     "@types/pg": "^8.20.0",
     "@types/react-syntax-highlighter": "^15.5.13",
     "@webcontainer/api": "^1.6.4",
+    "adm-zip": "^0.5.17",
     "ai": "^6.0.157",
     "autoevals": "latest",
     "bcryptjs": "^3.0.3",
@@ -111,6 +115,7 @@
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
+    "@types/adm-zip": "^0.5.8",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
