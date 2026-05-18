@@ -475,13 +475,50 @@ export function useWebContainerSandbox() {
           try { await instance.fs.rm(`${appDir}/.swcrc`); } catch {}
 
           const configFiles = ['next.config.js', 'next.config.mjs', 'next.config.ts'];
+          let hasConfig = false;
           for (const cf of configFiles) {
             const target = appDir === '.' ? cf : `${appDir}/${cf}`;
             try {
               await instance.fs.readFile(target);
-              const safe = `{ reactStrictMode: true, images: { unoptimized: true }, eslint: { ignoreDuringBuilds: true }, typescript: { ignoreBuildErrors: true } }`;
-              await instance.fs.writeFile(target, target.endsWith('.js') ? `module.exports = ${safe};` : `export default ${safe};`);
+              hasConfig = true;
             } catch {}
+          }
+
+          const safeConfig = `{
+            reactStrictMode: true,
+            images: { unoptimized: true },
+            eslint: { ignoreDuringBuilds: true },
+            typescript: { ignoreBuildErrors: true },
+            webpack: (config, { dev }) => {
+              if (dev) {
+                config.watchOptions = {
+                  poll: 1000,
+                  aggregateTimeout: 300,
+                  ignored: ['**/node_modules/**', '**/.next/**']
+                };
+              }
+              return config;
+            }
+          }`;
+
+          if (!hasConfig) {
+            const target = appDir === '.' ? 'next.config.mjs' : `${appDir}/next.config.mjs`;
+            await instance.fs.writeFile(target, `export default ${safeConfig};`);
+            console.log(`[Sanitizer] Created fallback next.config.mjs at: ${target}`);
+          } else {
+            for (const cf of configFiles) {
+              const target = appDir === '.' ? cf : `${appDir}/${cf}`;
+              try {
+                await instance.fs.readFile(target);
+                await instance.fs.writeFile(
+                  target,
+                  cf.endsWith('.js')
+                    ? `module.exports = ${safeConfig};`
+                    : `export default ${safeConfig};`
+                );
+                console.log(`[Sanitizer] Overwrote next config with safe watchOptions at: ${target}`);
+              } catch {}
+            }
           }
 
           const instrs = ['instrumentation.ts', 'instrumentation.js', 'sentry.client.config.ts', 'sentry.server.config.ts', 'sentry.edge.config.ts'];

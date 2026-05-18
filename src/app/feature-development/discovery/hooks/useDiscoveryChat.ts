@@ -1,6 +1,9 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
 import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from 'ai';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { WriteToSandboxArgs } from '../types';
 
@@ -13,7 +16,9 @@ interface UseDiscoveryChatProps {
   selectedFile: string | null;
   setFileContent: (content: string) => void;
   setWrittenFiles: React.Dispatch<
-    React.SetStateAction<{ path: string; status: 'writing' | 'done' | 'error' }[]>
+    React.SetStateAction<
+      { path: string; status: 'writing' | 'done' | 'error' }[]
+    >
   >;
   setSandboxError: (err: string | null) => void;
 }
@@ -48,6 +53,7 @@ export function useDiscoveryChat({
   );
 
   const { messages, status, sendMessage, addToolOutput } = useChat({
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
     transport,
     async onToolCall({ toolCall }) {
       if (toolCall.toolName === 'write_to_sandbox') {
