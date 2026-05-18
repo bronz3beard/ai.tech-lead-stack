@@ -27,10 +27,16 @@ function mapUIMessagesToCoreMessages(messages: any[]): any[] {
       const toolResults: any[] = (m.parts || [])
         .filter(
           (p: any) =>
-            p.type === 'tool-invocation' && p.toolInvocation.state === 'result'
+            p.type === 'tool-invocation' &&
+            (p.toolInvocation.state === 'result' ||
+              p.toolInvocation.state === 'output-available')
         )
         .map((p: any) => {
-          const { toolCallId, toolName, result } = p.toolInvocation;
+          const { toolCallId, toolName } = p.toolInvocation;
+          const result =
+            p.toolInvocation.result !== undefined
+              ? p.toolInvocation.result
+              : p.toolInvocation.output;
           return { type: 'tool-result', toolCallId, toolName, result };
         });
 
@@ -53,7 +59,11 @@ function mapUIMessagesToCoreMessages(messages: any[]): any[] {
       const toolResults = (m.parts || [])
         .map((p: any) => {
           if (p.type === 'tool-invocation') {
-            const { toolCallId, toolName, result } = p.toolInvocation;
+            const { toolCallId, toolName } = p.toolInvocation;
+            const result =
+              p.toolInvocation.result !== undefined
+                ? p.toolInvocation.result
+                : p.toolInvocation.output;
             return { type: 'tool-result', toolCallId, toolName, result };
           }
           return null;
@@ -138,6 +148,33 @@ describe('Discovery Route Message Mapping (flatMap)', () => {
     expect(result[1].role).toBe('tool');
     expect(result[1].content[0].type).toBe('tool-result');
     expect(result[1].content[0].result).toEqual({ success: true });
+  });
+
+  it('splits assistant message with output (instead of result) into assistant + tool messages', () => {
+    const messages = [
+      {
+        role: 'assistant',
+        parts: [
+          {
+            type: 'tool-invocation',
+            toolInvocation: {
+              toolCallId: 'call_2',
+              toolName: 'write_to_sandbox',
+              args: { path: 'test2.txt', content: 'hello' },
+              output: { success: true, path: 'test2.txt' },
+              state: 'output-available',
+            },
+          },
+        ],
+      },
+    ];
+    const result = mapUIMessagesToCoreMessages(messages);
+    expect(result).toHaveLength(2);
+    expect(result[0].role).toBe('assistant');
+    expect(result[0].content[0].type).toBe('tool-call');
+    expect(result[1].role).toBe('tool');
+    expect(result[1].content[0].type).toBe('tool-result');
+    expect(result[1].content[0].result).toEqual({ success: true, path: 'test2.txt' });
   });
 
   it('handles explicit tool role messages', () => {

@@ -167,7 +167,11 @@ export async function POST(req: Request) {
                       p.toolInvocation.state === 'output-available')
                 )
                 .map((p: any) => {
-                  const { toolCallId, toolName, result } = p.toolInvocation;
+                  const { toolCallId, toolName } = p.toolInvocation;
+                  const result =
+                    p.toolInvocation.result !== undefined
+                      ? p.toolInvocation.result
+                      : p.toolInvocation.output;
                   return { type: 'tool-result', toolCallId, toolName, result };
                 });
 
@@ -191,7 +195,11 @@ export async function POST(req: Request) {
               const toolResults = (m.parts || [])
                 .map((p: any) => {
                   if (p.type === 'tool-invocation') {
-                    const { toolCallId, toolName, result } = p.toolInvocation;
+                    const { toolCallId, toolName } = p.toolInvocation;
+                    const result =
+                      p.toolInvocation.result !== undefined
+                        ? p.toolInvocation.result
+                        : p.toolInvocation.output;
                     return {
                       type: 'tool-result',
                       toolCallId,
