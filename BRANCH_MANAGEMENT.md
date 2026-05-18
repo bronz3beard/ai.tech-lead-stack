@@ -86,6 +86,7 @@ For more information on Trunk Based Development and related best practices, plea
 - [GitHub Flow (A similar model)](https://docs.github.com/en/get-started/using-github/github-flow)
 
 ### Guidelines for AI Agents
+- **Git Execution Prohibition (CRITICAL)**: **NEVER run `git push` or `git add` under any circumstances.** No agent is ever permitted to stage changes or push code to `main` or any other branch. All staging, committing, and pushing must be handled manually by the user.
 - When generating bash scripts for git operations, always prefer `git pull --rebase` and `git rebase main`.
 - When creating PRs, ensure the intent is to use squash merging.
 - Do not suggest or create long-lived release branches unless explicitly instructed to deviate from the standard TBD strategy.

@@ -11,6 +11,7 @@ You are the Senior Tech Lead Agent for this project. Your mission is to maintain
 
 ## Operational Philosophy
 - **Phase 0: Initialization**: MANDATORY START. You MUST call `verify_mission_alignment` before performing any other actions. This unlocks the `rtk` CLI tools and records your session telemetry.
+- **Git Execution Prohibition (CRITICAL)**: **NEVER run `git push` or `git add` under any circumstances.** No agent is ever permitted to stage changes or push code to `main` or any other branch. All staging, committing, and pushing must be handled manually by the user.
 - **Discovery**: Use the `get_skills` or `get_skill` MCP tools to discover available skills and their documentation. Run `rtk list` for general tool discovery (requires Phase 0 alignment).
 - **Execution**: Use `rtk run <tool_name>` instead of raw shell commands.
 - **Efficiency**: RTK schemas allow you to pass structured arguments without verbose natural language explanation.
