@@ -163,7 +163,8 @@ export async function POST(req: Request) {
                 .filter(
                   (p: any) =>
                     p.type === 'tool-invocation' &&
-                    p.toolInvocation.state === 'result'
+                    (p.toolInvocation.state === 'result' ||
+                      p.toolInvocation.state === 'output-available')
                 )
                 .map((p: any) => {
                   const { toolCallId, toolName, result } = p.toolInvocation;
