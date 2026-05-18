@@ -272,12 +272,20 @@ export function useWebContainerSandbox() {
           console.warn('[Discovery] Failed to create stub package:', err);
         }
 
-        // Clean up binary folders
-        const foldersToClean = ['.next', 'node_modules', '.nx', '.turbo', 'dist', '.swc', '.pnpm-store'];
-        for (const folder of foldersToClean) {
+        // Clean up binary folders recursively to prevent VFS SharedArrayBuffer memory limits crashes
+        const cleanCommands = [
+          ['rm', '-rf', '.next', 'client/.next', 'node_modules', '.nx', 'client/.nx', '.turbo', 'dist', '.swc', '.pnpm-store', 'storybook/storybook-static'],
+          ['find', '.', '-name', '*.tsbuildinfo', '-delete'],
+          ['find', '.', '-name', '*.js.map', '-delete'],
+          ['find', '.', '-name', '*.schema.json', '-delete'],
+          ['find', '.', '-name', 'pnpm-lock.yaml', '-delete'],
+          ['find', '.', '-name', 'package-lock.json', '-delete'],
+          ['find', '.', '-name', 'yarn.lock', '-delete'],
+        ];
+        for (const [cmd, ...args] of cleanCommands) {
           try {
-             const rm = await instance.spawn('rm', ['-rf', folder]);
-             await rm.exit;
+            const proc = await instance.spawn(cmd, args);
+            await proc.exit;
           } catch {}
         }
 
@@ -395,7 +403,10 @@ export function useWebContainerSandbox() {
               } catch (e) {
                 console.warn('[Code Sanitizer] Failed to rewrite file:', path, e);
               }
-            } else if (file.isDirectory() && !['node_modules', '.git', '.next', 'dist', 'webcontainer-stubs'].includes(file.name)) {
+            } else if (
+              file.isDirectory() && 
+              !['node_modules', '.git', '.next', '.nx', '.cache', 'dist', 'build', 'storybook-static', 'webcontainer-stubs', 'public', 'generated'].includes(file.name)
+            ) {
               await linkStubsAndSanitizeRecursively(path);
             }
           }

@@ -54,7 +54,7 @@ if (args[0] === 'build' || args[0] === 'run') {
             return { dir, parsed };
           }
         } catch {}
-      } else if (file.isDirectory() && !['node_modules', '.git', '.next', 'dist', 'webcontainer-stubs'].includes(file.name)) {
+      } else if (file.isDirectory() && !['node_modules', '.git', '.next', '.nx', '.cache', 'dist', 'build', 'storybook-static', 'webcontainer-stubs', 'public', 'generated'].includes(file.name)) {
         const found = findProjectJson(p);
         if (found) return found;
       }
