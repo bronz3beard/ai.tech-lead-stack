@@ -543,11 +543,17 @@ export default function DiscoveryClient({
         try {
           await instance.fs.mkdir('webcontainer-stubs', { recursive: true });
           await instance.fs.mkdir('webcontainer-stubs/src', { recursive: true });
+          await instance.fs.mkdir('webcontainer-stubs/bin', { recursive: true });
+          
           await instance.fs.writeFile('webcontainer-stubs/package.json', JSON.stringify({
             name: 'webcontainer-stubs',
             version: '1.0.0',
-            main: 'index.js'
+            main: 'index.js',
+            bin: {
+              "nx": "./bin/nx.js"
+            }
           }, null, 2));
+
           await instance.fs.writeFile('webcontainer-stubs/index.js', `
             const noop = () => new Proxy(noop, { 
               get: (t, p) => {
@@ -560,15 +566,97 @@ export default function DiscoveryClient({
             module.exports.default = stub;
             module.exports.createGlobPatternsForDependencies = () => [];
           `);
+
+          await instance.fs.writeFile('webcontainer-stubs/bin/nx.js', `#!/usr/bin/env node
+            const { spawn } = require('child_process');
+            const fs = require('fs');
+            const path = require('path');
+
+            const args = process.argv.slice(2);
+            console.log('[Mock NX CLI] Intercepted command:', args.join(' '));
+
+            if (args[0] === 'build' || args[0] === 'run') {
+              let project = '';
+              let target = 'build';
+
+              if (args[0] === 'build') {
+                project = args[1];
+              } else if (args[0] === 'run') {
+                const parts = args[1].split(':');
+                project = parts[0];
+                target = parts[1] || 'build';
+              }
+
+              console.log('[Mock NX CLI] Building project "' + project + '" target "' + target + '"...');
+
+              // Recursively search for project.json representing this project
+              const findProjectJson = (dir) => {
+                const files = fs.readdirSync(dir, { withFileTypes: true });
+                for (const file of files) {
+                  const p = path.join(dir, file.name);
+                  if (file.name === 'project.json') {
+                    try {
+                      const parsed = JSON.parse(fs.readFileSync(p, 'utf-8'));
+                      if (parsed.name === project) {
+                        return { dir, parsed };
+                      }
+                    } catch {}
+                  } else if (file.isDirectory() && !['node_modules', '.git', '.next', 'dist', 'webcontainer-stubs'].includes(file.name)) {
+                    const found = findProjectJson(p);
+                    if (found) return found;
+                  }
+                }
+                return null;
+              };
+
+              const found = findProjectJson(process.cwd());
+              if (found) {
+                const { dir, parsed } = found;
+                const targetConfig = parsed.targets?.[target];
+                if (targetConfig) {
+                  console.log('[Mock NX CLI] Found project executor: ' + targetConfig.executor);
+                  
+                  if (targetConfig.executor === '@nx/vite:build') {
+                    console.log('[Mock NX CLI] Running Vite compiler in ' + dir + '...');
+                    const proc = spawn('npx', ['vite', 'build'], {
+                      cwd: dir,
+                      stdio: 'inherit',
+                      shell: true
+                    });
+                    
+                    proc.on('close', (code) => {
+                      process.exit(code);
+                    });
+                    return;
+                  }
+                }
+              }
+            }
+
+            console.log('[Mock NX CLI] Command completed successfully.');
+            process.exit(0);
+          `);
+
           await instance.fs.writeFile('webcontainer-stubs/tailwind.js', `
             module.exports = {
               createGlobPatternsForDependencies: () => []
             };
           `);
+
           await instance.fs.writeFile('webcontainer-stubs/src/devkit-exports.js', `
+            const fs = require('fs');
             const path = require('path');
+            let root = process.cwd();
+            while (root && root !== '/') {
+              if (fs.existsSync(path.join(root, 'pnpm-workspace.yaml')) || fs.existsSync(path.join(root, 'nx.json'))) {
+                break;
+              }
+              const parent = path.dirname(root);
+              if (parent === root) break;
+              root = parent;
+            }
             module.exports = {
-              workspaceRoot: path.resolve(__dirname, '../..')
+              workspaceRoot: root
             };
           `);
           console.log('[Discovery] Successfully created comprehensive webcontainer-stubs package at root');
@@ -625,6 +713,20 @@ export default function DiscoveryClient({
                 link(p.devDependencies);
                 link(p.peerDependencies);
 
+                // Inject tRPC strict version overrides in root package.json to prevent pnpm resolution mismatches
+                if (p.name && (dir === '.' || p.workspaces || p.devDependencies?.nx)) {
+                  p.pnpm = p.pnpm || {};
+                  p.pnpm.overrides = p.pnpm.overrides || {};
+                  p.resolutions = p.resolutions || {};
+                  
+                  const trpcVersion = '11.1.2';
+                  ['@trpc/client', '@trpc/next', '@trpc/react-query', '@trpc/server'].forEach(name => {
+                    p.pnpm.overrides[name] = trpcVersion;
+                    p.resolutions[name] = trpcVersion;
+                  });
+                  changed = true;
+                }
+
                 if (p.scripts) {
                   ['postinstall', 'prepare', 'preinstall'].forEach(s => {
                     if (p.scripts[s]) {
@@ -642,33 +744,50 @@ export default function DiscoveryClient({
                   await instance.fs.writeFile(path, JSON.stringify(p, null, 2));
                 }
               } catch {}
-            } else if (file.name === 'fonts.ts' || file.name === 'fonts.tsx') {
+            } else if (file.name.endsWith('.ts') || file.name.endsWith('.tsx') || file.name.endsWith('.js') || file.name.endsWith('.jsx')) {
               try {
-                const content = await instance.fs.readFile(path, 'utf-8');
-                if (content.includes('next/font/google') || content.includes('next/font')) {
-                  console.log(`[Font Fixer] Mocking next/font inside ${path}`);
-                  const fontStubs = `
-                    const mockFont = (variable) => ({
-                      className: 'mock-font-' + variable,
-                      variable: variable,
-                      style: { fontFamily: 'sans-serif' }
-                    });
-                    
-                    export const open = mockFont('--font-open');
-                    export const oswald = mockFont('--font-oswald');
-                    export const caveat = mockFont('--font-caveat');
-                    export const cookie = mockFont('--font-cookie');
-                    export const dancing = mockFont('--font-dancing');
-                    export const sedgwick = mockFont('--font-sedgwick');
-                    export const mr = mockFont('--font-mr');
-                    export const inter = mockFont('--font-inter');
-                    export const geist = mockFont('--font-geist');
-                    export const geistMono = mockFont('--font-geist-mono');
-                  `;
-                  await instance.fs.writeFile(path, fontStubs);
+                let content = await instance.fs.readFile(path, 'utf-8');
+                let changed = false;
+
+                // 1. Sanitize modern ES2018 Unicode property escape regex that crashes Babel's parser/transpiler (charCodeAt error)
+                if (content.includes('[\\p{Cc}\\p{Cf}]') || content.includes('[\\p{Cc}]')) {
+                  console.log(`[Regex Fixer] Sanitizing Unicode property escape regex in ${path}`);
+                  content = content.replace(/\/\[\\p\{Cc\}\\p\{Cf\}\]\/gu/g, '/[\\x00-\\x1F\\x7F-\\x9F]/g');
+                  content = content.replace(/\/\[\\p\{Cc\}\]\/gu/g, '/[\\x00-\\x1F\\x7F-\\x9F]/g');
+                  changed = true;
+                }
+
+                // 2. Intercept and mock next/font google loader imports
+                if (file.name === 'fonts.ts' || file.name === 'fonts.tsx') {
+                  if (content.includes('next/font/google') || content.includes('next/font')) {
+                    console.log(`[Font Fixer] Mocking next/font inside ${path}`);
+                    content = `
+                      const mockFont = (variable) => ({
+                        className: 'mock-font-' + variable,
+                        variable: variable,
+                        style: { fontFamily: 'sans-serif' }
+                      });
+                      
+                      export const open = mockFont('--font-open');
+                      export const oswald = mockFont('--font-oswald');
+                      export const caveat = mockFont('--font-caveat');
+                      export const cookie = mockFont('--font-cookie');
+                      export const dancing = mockFont('--font-dancing');
+                      export const sedgwick = mockFont('--font-sedgwick');
+                      export const mr = mockFont('--font-mr');
+                      export const inter = mockFont('--font-inter');
+                      export const geist = mockFont('--font-geist');
+                      export const geistMono = mockFont('--font-geist-mono');
+                    `;
+                    changed = true;
+                  }
+                }
+
+                if (changed) {
+                  await instance.fs.writeFile(path, content);
                 }
               } catch (e) {
-                console.warn('Failed to rewrite fonts:', e);
+                console.warn('[Code Sanitizer] Failed to rewrite file:', path, e);
               }
             } else if (file.isDirectory() && !['node_modules', '.git', '.next', 'dist', 'webcontainer-stubs'].includes(file.name)) {
               await linkStubsAndSanitizeRecursively(path);
@@ -735,9 +854,6 @@ export default function DiscoveryClient({
 
       const installExitCode = await installProcess.exit;
 
-      // Sync filesystem after install and stubbing
-      await syncFilesystem(instance);
-
       if (installExitCode !== 0) {
         setSandboxError(
           `${pkgManager} install failed. Check terminal for details.`
@@ -751,36 +867,75 @@ export default function DiscoveryClient({
       // and builds any local packages before the main server runs.
       try {
         const localPackages: Array<{ name: string; dir: string; buildScript?: string }> = [];
+        const nxLibrariesToBuild: Array<{ name: string; dir: string }> = [];
 
-        // Recursive scanner to map out all workspace packages
+        // Recursive scanner to map out all workspace packages, config files, and Nx projects
         const scanWorkspacePackages = async (dir: string) => {
-          const files = await instance.fs.readdir(dir, { withFileTypes: true });
-          for (const file of files) {
-            const path = dir === '.' ? file.name : `${dir}/${file.name}`;
-            if (file.name === 'package.json') {
-              try {
-                const content = await instance.fs.readFile(path, 'utf-8');
-                const parsed = JSON.parse(content);
-                if (parsed.name && path !== 'package.json') {
-                  localPackages.push({
-                    name: parsed.name,
-                    dir,
-                    buildScript: parsed.scripts?.build ? 'build' : parsed.scripts?.compile ? 'compile' : undefined
-                  });
+          try {
+            const files = await instance.fs.readdir(dir, { withFileTypes: true });
+            for (const file of files) {
+              const path = dir === '.' ? file.name : `${dir}/${file.name}`;
+              if (file.name === 'package.json') {
+                try {
+                  const content = await instance.fs.readFile(path, 'utf-8');
+                  const parsed = JSON.parse(content);
+                  if (parsed.name && path !== 'package.json') {
+                    localPackages.push({
+                      name: parsed.name,
+                      dir,
+                      buildScript: parsed.scripts?.build ? 'build' : parsed.scripts?.compile ? 'compile' : undefined
+                    });
+                  }
+                } catch {}
+              } else if (file.name === 'project.json') {
+                try {
+                  const content = await instance.fs.readFile(path, 'utf-8');
+                  const parsed = JSON.parse(content);
+                  if (parsed.targets?.build?.executor === '@nx/vite:build') {
+                    nxLibrariesToBuild.push({
+                      name: parsed.name || dir.split('/').pop() || 'lib',
+                      dir
+                    });
+                  }
+                } catch {}
+              } else if (file.name === 'vite.config.ts' || file.name === 'vite.config.js') {
+                try {
+                  let content = await instance.fs.readFile(path, 'utf-8');
+                  if (content.includes('@nx/vite')) {
+                    console.log(`[Vite Fixer] Sanitizing Nx plugins in ${path}`);
+                    content = content.replace(/import\s+\{\s*nxViteTsPaths\s*\}\s+from\s+['"]@nx\/vite\/plugins\/nx-tsconfig-paths\.plugin['"];?/g, 'const nxViteTsPaths = () => ({ name: "nx-tsconfig-paths-mock" });');
+                    content = content.replace(/import\s+\{\s*nxCopyAssetsPlugin\s*\}\s+from\s+['"]@nx\/vite\/plugins\/nx-copy-assets\.plugin['"];?/g, 'const nxCopyAssetsPlugin = () => ({ name: "nx-copy-assets-mock" });');
+                    await instance.fs.writeFile(path, content);
+                  }
+                } catch (e) {
+                  console.warn('[Vite Fixer] Failed to sanitize vite config:', e);
                 }
-              } catch {}
-            } else if (file.isDirectory() && !['node_modules', '.git', '.next', 'dist', 'webcontainer-stubs'].includes(file.name)) {
-              await scanWorkspacePackages(path);
+              } else if (file.isDirectory() && !['node_modules', '.git', '.next', 'dist', 'webcontainer-stubs'].includes(file.name)) {
+                try {
+                  await scanWorkspacePackages(path);
+                } catch (e) {
+                  console.warn(`[Workspace Discoverer] Skip directory crawl ${path}:`, e);
+                }
+              }
             }
+          } catch (e) {
+            console.warn(`[Workspace Discoverer] Skip readdir ${dir}:`, e);
           }
         };
 
         await scanWorkspacePackages('.');
         console.log('[Workspace Discoverer] Discovered local packages:', localPackages);
+        console.log('[Workspace Discoverer] Discovered Nx libraries:', nxLibrariesToBuild);
 
         // Find dependencies of the main application
         const appPkgPath = appDir === '.' ? 'package.json' : `${appDir}/package.json`;
-        const appPkgContent = await instance.fs.readFile(appPkgPath, 'utf-8');
+        let appPkgContent = '';
+        try {
+          appPkgContent = await instance.fs.readFile(appPkgPath, 'utf-8');
+        } catch {
+          console.log(`[Workspace Discoverer] Client package.json not found at ${appPkgPath}, falling back to root package.json`);
+          appPkgContent = await instance.fs.readFile('package.json', 'utf-8');
+        }
         const appPkg = JSON.parse(appPkgContent);
 
         const appDeps = {
@@ -820,15 +975,45 @@ export default function DiscoveryClient({
           }
         }
 
-        // 2. Fallback Root Setup & Bootstrap scripts
+        // 2. Build Nx Vite Libraries directly (to generate dist folders required by TS paths)
+        if (nxLibrariesToBuild.length > 0) {
+          console.log('[Workspace Discoverer] Nx libraries to pre-compile via Vite:', nxLibrariesToBuild);
+          for (const lib of nxLibrariesToBuild) {
+            setHydrationStatus(`Compiling library ${lib.name} via Vite...`);
+            setTerminalOutput((prev) => [
+              ...prev, 
+              `\n$ cd ${lib.dir} && npx vite build`
+            ]);
+
+            const buildProc = await instance.spawn('npx', ['vite', 'build'], {
+              cwd: lib.dir
+            });
+
+            buildProc.output.pipeTo(
+              new WritableStream({
+                write(data) {
+                  setTerminalOutput((prev) => [...prev, data]);
+                },
+              })
+            );
+
+            const buildExitCode = await buildProc.exit;
+            console.log(`[Workspace Discoverer] Library ${lib.name} compile finished with code ${buildExitCode}`);
+            await syncFilesystem(instance);
+          }
+        }
+
+        // 3. Fallback Root Setup & Bootstrap scripts
         if (pkg.scripts) {
           const setupScripts = Object.keys(pkg.scripts).filter(name => 
             /^(ui:build|build:libs|build-libs|build:ui|libs:build|bootstrap|setup|predev)$/i.test(name)
           );
 
           for (const script of setupScripts) {
-            // Check if this package wasn't already built in the dependency pass
+            // Check if this package wasn't already built in the dependency or Nx Vite passes
             const isRedundant = packagesToBuild.some(p => 
+              script.includes(p.name.replace('@', '').split('/')[0])
+            ) || nxLibrariesToBuild.some(p => 
               script.includes(p.name.replace('@', '').split('/')[0])
             );
             if (isRedundant) continue;
@@ -850,8 +1035,12 @@ export default function DiscoveryClient({
             await syncFilesystem(instance);
           }
         }
-      } catch (err) {
+      } catch (err: any) {
         console.warn('[Workspace Discoverer] Failed during dynamic pre-build analysis:', err);
+        setTerminalOutput((prev) => [
+          ...prev,
+          `\n[Workspace Discoverer Error] Failed during dynamic pre-build analysis: ${err.message || err}`
+        ]);
       }
 
       // 3. Start Dev Server
