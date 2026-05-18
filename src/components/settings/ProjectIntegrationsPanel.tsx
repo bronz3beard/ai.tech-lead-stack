@@ -23,6 +23,7 @@ interface Project {
     designSystemPath?: string;
     figmaApiKey?: string;
     chromaticApiKey?: string;
+    encryptedEnvVars?: string;
   } | null;
 }
 
@@ -32,6 +33,7 @@ interface ProjectFormState {
   designSystemPath: string;
   figmaApiKey: string;
   chromaticApiKey: string;
+  encryptedEnvVars: string;
   isSaving: boolean;
   isSaved: boolean;
 }
@@ -72,6 +74,7 @@ export default function ProjectIntegrationsPanel() {
             designSystemPath: p.settings?.designSystemPath ?? '',
             figmaApiKey: p.settings?.figmaApiKey ?? '',
             chromaticApiKey: p.settings?.chromaticApiKey ?? '',
+            encryptedEnvVars: p.settings?.encryptedEnvVars ?? '',
             isSaving: false,
             isSaved: false,
           };
@@ -101,6 +104,7 @@ export default function ProjectIntegrationsPanel() {
       | 'designSystemPath'
       | 'figmaApiKey'
       | 'chromaticApiKey'
+      | 'encryptedEnvVars'
     >,
     value: string
   ) => {
@@ -123,6 +127,7 @@ export default function ProjectIntegrationsPanel() {
         designSystemPath,
         figmaApiKey,
         chromaticApiKey,
+        encryptedEnvVars,
       } = formState[projectId];
       const res = await fetch(`/api/projects/${projectId}/settings`, {
         method: 'PATCH',
@@ -134,6 +139,7 @@ export default function ProjectIntegrationsPanel() {
             designSystemPath,
             figmaApiKey,
             chromaticApiKey,
+            encryptedEnvVars,
           },
         }),
       });
@@ -416,6 +422,38 @@ export default function ProjectIntegrationsPanel() {
                         className="bg-zinc-950 border-zinc-700 text-zinc-100 font-mono text-xs"
                       />
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor={`env-vars-${project.id}`}
+                      className="text-zinc-300 flex items-center justify-between"
+                    >
+                      Project Environment Variables (.env)
+                      {state.encryptedEnvVars === '********' && (
+                        <span className="text-[10px] text-emerald-500 font-medium bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                          Configured
+                        </span>
+                      )}
+                    </Label>
+                    <p className="text-xs text-zinc-500">
+                      Paste the contents of your <code>.env</code> file here.
+                      These will be automatically injected into the Discovery
+                      sandbox.
+                    </p>
+                    <textarea
+                      id={`env-vars-${project.id}`}
+                      placeholder="KEY=VALUE"
+                      value={state.encryptedEnvVars}
+                      onChange={(e) =>
+                        handleChange(
+                          project.id,
+                          'encryptedEnvVars',
+                          e.target.value
+                        )
+                      }
+                      className="w-full bg-zinc-950 border border-zinc-700 rounded-md p-3 text-zinc-100 font-mono text-xs min-h-[120px] focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50"
+                    />
                   </div>
 
                   <div className="flex items-center gap-3">

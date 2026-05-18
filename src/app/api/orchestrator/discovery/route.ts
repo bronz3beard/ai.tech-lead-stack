@@ -36,6 +36,8 @@ OUTPUT FORMATTING (MANDATORY):
 - Use **GitHub Alerts** (> [!TIP], > [!IMPORTANT]) to highlight key architectural decisions.
 - DO NOT provide raw, unformatted walls of text.
 
+ENVIRONMENT ALERT: You are operating inside a CLONED instance of the actual project codebase. Prioritize modifying existing files and components over creating new ones from scratch. Check the filesystem before suggesting implementations.
+
 METHODOLOGY ALIGNMENT:
 - **Phase 0 Discovery**: Define the 'What' and 'Why' before the 'How'.
 - **Architecture Mapping**: Consider impact on the broader system.
@@ -145,7 +147,8 @@ export async function POST(req: Request) {
                 .map((p: any) => {
                   if (p.type === 'text') return { type: 'text', text: p.text };
                   if (p.type === 'tool-invocation') {
-                    const { toolCallId, toolName, args } = p.toolInvocation;
+                    const { toolCallId, toolName } = p.toolInvocation;
+                    const args = p.toolInvocation.args || p.toolInvocation.input || p.toolInvocation.parameters || {};
                     return { type: 'tool-call', toolCallId, toolName, args };
                   }
                   return null;
