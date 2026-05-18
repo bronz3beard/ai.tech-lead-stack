@@ -13,18 +13,36 @@ function mapUIMessagesToCoreMessages(messages: any[]): any[] {
     }
 
     if (m.role === 'assistant') {
-      const assistantContent: any[] = (m.parts || [])
+      // Normalize payload: construct parts from toolInvocations if absent
+      let parts = m.parts;
+      if (!parts && m.toolInvocations) {
+        parts = [];
+        if (m.content) {
+          parts.push({ type: 'text', text: m.content });
+        }
+        for (const invocation of m.toolInvocations) {
+          parts.push({ type: 'tool-invocation', toolInvocation: invocation });
+        }
+      }
+      parts = parts || [];
+
+      const assistantContent: any[] = parts
         .map((p: any) => {
           if (p.type === 'text') return { type: 'text', text: p.text };
           if (p.type === 'tool-invocation') {
-            const { toolCallId, toolName, args } = p.toolInvocation;
+            const { toolCallId, toolName } = p.toolInvocation;
+            const args =
+              p.toolInvocation.args ||
+              p.toolInvocation.input ||
+              p.toolInvocation.parameters ||
+              {};
             return { type: 'tool-call', toolCallId, toolName, args };
           }
           return null;
         })
         .filter(Boolean);
 
-      const toolResults: any[] = (m.parts || [])
+      const toolResults: any[] = parts
         .filter(
           (p: any) =>
             p.type === 'tool-invocation' &&
@@ -56,7 +74,16 @@ function mapUIMessagesToCoreMessages(messages: any[]): any[] {
     }
 
     if (m.role === 'tool') {
-      const toolResults = (m.parts || [])
+      let parts = m.parts;
+      if (!parts && m.toolInvocations) {
+        parts = m.toolInvocations.map((invocation: any) => ({
+          type: 'tool-invocation',
+          toolInvocation: invocation,
+        }));
+      }
+      parts = parts || [];
+
+      const toolResults = parts
         .map((p: any) => {
           if (p.type === 'tool-invocation') {
             const { toolCallId, toolName } = p.toolInvocation;
@@ -197,5 +224,60 @@ describe('Discovery Route Message Mapping (flatMap)', () => {
     const result = mapUIMessagesToCoreMessages(messages);
     expect(result[0].role).toBe('tool');
     expect(result[0].content[0].type).toBe('tool-result');
+  });
+
+  it('maps toolInvocations array on assistant message when parts is missing', () => {
+    const messages = [
+      {
+        role: 'assistant',
+        content: 'I have written the component.',
+        toolInvocations: [
+          {
+            toolCallId: 'call_3',
+            toolName: 'write_to_sandbox',
+            args: { path: 'src/App.tsx', content: 'export {}' },
+            output: { success: true, path: 'src/App.tsx' },
+            state: 'output-available',
+          },
+        ],
+      },
+    ];
+    const result = mapUIMessagesToCoreMessages(messages);
+    expect(result).toHaveLength(2);
+    expect(result[0].role).toBe('assistant');
+    expect(result[0].content).toContainEqual({
+      type: 'text',
+      text: 'I have written the component.',
+    });
+    expect(result[0].content).toContainEqual({
+      type: 'tool-call',
+      toolCallId: 'call_3',
+      toolName: 'write_to_sandbox',
+      args: { path: 'src/App.tsx', content: 'export {}' },
+    });
+    expect(result[1].role).toBe('tool');
+    expect(result[1].content[0].type).toBe('tool-result');
+    expect(result[1].content[0].result).toEqual({ success: true, path: 'src/App.tsx' });
+  });
+
+  it('maps toolInvocations array on tool message when parts is missing', () => {
+    const messages = [
+      {
+        role: 'tool',
+        toolInvocations: [
+          {
+            toolCallId: 'call_4',
+            toolName: 'write_to_sandbox',
+            output: { success: true },
+            state: 'output-available',
+          },
+        ],
+      },
+    ];
+    const result = mapUIMessagesToCoreMessages(messages);
+    expect(result).toHaveLength(1);
+    expect(result[0].role).toBe('tool');
+    expect(result[0].content[0].type).toBe('tool-result');
+    expect(result[0].content[0].result).toEqual({ success: true });
   });
 });

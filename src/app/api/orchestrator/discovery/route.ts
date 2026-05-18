@@ -143,7 +143,20 @@ export async function POST(req: Request) {
             }
 
             if (m.role === 'assistant') {
-              const assistantContent: any[] = (m.parts || [])
+              // Normalize payload: construct parts from toolInvocations if absent
+              let parts = m.parts;
+              if (!parts && m.toolInvocations) {
+                parts = [];
+                if (m.content) {
+                  parts.push({ type: 'text', text: m.content });
+                }
+                for (const invocation of m.toolInvocations) {
+                  parts.push({ type: 'tool-invocation', toolInvocation: invocation });
+                }
+              }
+              parts = parts || [];
+
+              const assistantContent: any[] = parts
                 .map((p: any) => {
                   if (p.type === 'text') return { type: 'text', text: p.text };
                   if (p.type === 'tool-invocation') {
@@ -159,7 +172,7 @@ export async function POST(req: Request) {
                 })
                 .filter(Boolean);
 
-              const toolResults: any[] = (m.parts || [])
+              const toolResults: any[] = parts
                 .filter(
                   (p: any) =>
                     p.type === 'tool-invocation' &&
@@ -183,7 +196,7 @@ export async function POST(req: Request) {
                 msgs.push({ role: 'tool', content: toolResults });
               }
 
-              // Fallback if no parts but has content
+              // Fallback if no parts/toolInvocations but has content
               if (msgs.length === 0 && m.content) {
                 msgs.push({ role: 'assistant', content: m.content });
               }
@@ -192,7 +205,16 @@ export async function POST(req: Request) {
             }
 
             if (m.role === 'tool') {
-              const toolResults = (m.parts || [])
+              let parts = m.parts;
+              if (!parts && m.toolInvocations) {
+                parts = m.toolInvocations.map((invocation: any) => ({
+                  type: 'tool-invocation',
+                  toolInvocation: invocation,
+                }));
+              }
+              parts = parts || [];
+
+              const toolResults = parts
                 .map((p: any) => {
                   if (p.type === 'tool-invocation') {
                     const { toolCallId, toolName } = p.toolInvocation;
