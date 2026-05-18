@@ -291,7 +291,7 @@ export function useWebContainerSandbox() {
             const path = dir === '.' ? file.name : `${dir}/${file.name}`;
             if (
               file.name.endsWith('.tsbuildinfo') ||
-              file.name.endsWith('.js.map') ||
+              file.name.endsWith('.map') ||
               file.name.endsWith('.schema.json') ||
               file.name === 'pnpm-lock.yaml' ||
               file.name === 'package-lock.json' ||
@@ -302,6 +302,58 @@ export function useWebContainerSandbox() {
                 console.log(`[Sanitizer] Removed VFS buffer overflow risk file: ${path}`);
               } catch {}
               continue;
+            }
+            if (file.name.endsWith('tsconfig.json') || file.name === 'tsconfig.base.json') {
+              try {
+                let content = await instance.fs.readFile(path, 'utf-8');
+                let changed = false;
+                
+                try {
+                  const cleanContent = content.replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '$1');
+                  const parsed = JSON.parse(cleanContent);
+                  if (parsed.compilerOptions) {
+                    if (parsed.compilerOptions.composite !== false) {
+                      parsed.compilerOptions.composite = false;
+                      changed = true;
+                    }
+                    if (parsed.compilerOptions.declarationMap !== false) {
+                      parsed.compilerOptions.declarationMap = false;
+                      changed = true;
+                    }
+                    if (parsed.compilerOptions.incremental !== false) {
+                      parsed.compilerOptions.incremental = false;
+                      changed = true;
+                    }
+                    if (parsed.compilerOptions.tsBuildInfoFile) {
+                      delete parsed.compilerOptions.tsBuildInfoFile;
+                      changed = true;
+                    }
+                  }
+                  if (changed) {
+                    content = JSON.stringify(parsed, null, 2);
+                  }
+                } catch {
+                  if (content.includes('"composite": true') || content.includes('"composite":true')) {
+                    content = content.replace(/"composite"\s*:\s*true/g, '"composite": false');
+                    changed = true;
+                  }
+                  if (content.includes('"declarationMap": true') || content.includes('"declarationMap":true')) {
+                    content = content.replace(/"declarationMap"\s*:\s*true/g, '"declarationMap": false');
+                    changed = true;
+                  }
+                  if (content.includes('"incremental": true') || content.includes('"incremental":true')) {
+                    content = content.replace(/"incremental"\s*:\s*true/g, '"incremental": false');
+                    changed = true;
+                  }
+                }
+
+                if (changed) {
+                  await instance.fs.writeFile(path, content);
+                  console.log(`[Sanitizer] Disabled composite/incremental/map in: ${path}`);
+                }
+              } catch (e) {
+                console.warn('[Sanitizer] Failed to rewrite tsconfig:', path, e);
+              }
             }
             if (file.name === 'package.json') {
               try {
@@ -445,6 +497,15 @@ export function useWebContainerSandbox() {
       }
 
       // 2. Install Dependencies
+      // 1.8 Create .npmrc for hoisted dependency layout to bypass WASM VFS symlink overflow
+      try {
+        await instance.fs.writeFile('.npmrc', 'node-linker=hoisted\nsymlink=false\n');
+        console.log('[Discovery] Created flat dependency node-linker .npmrc');
+      } catch (err) {
+        console.warn('[Discovery] Failed to write .npmrc:', err);
+      }
+
+      // 2. Install Dependencies
       const pkgManager = isPnpm ? 'pnpm' : 'npm';
       setHydrationStatus(`Installing dependencies (${pkgManager})...`);
       const installArgs = isPnpm
@@ -455,7 +516,9 @@ export function useWebContainerSandbox() {
         ...prev,
         `\n$ ${pkgManager} ${installArgs.join(' ')}`,
       ]);
-      const installProcess = await instance.spawn(pkgManager, installArgs);
+      const installProcess = await instance.spawn(pkgManager, installArgs, {
+        env: DEV_SERVER_ENV
+      });
 
       installProcess.output.pipeTo(
         new WritableStream({
@@ -562,7 +625,8 @@ export function useWebContainerSandbox() {
             ]);
 
             const buildProc = await instance.spawn(pkgManager, ['run', pkgToBuild.buildScript!], {
-              cwd: pkgToBuild.dir
+              cwd: pkgToBuild.dir,
+              env: DEV_SERVER_ENV
             });
 
             buildProc.output.pipeTo(
@@ -587,7 +651,8 @@ export function useWebContainerSandbox() {
             ]);
 
             const buildProc = await instance.spawn('npx', ['vite', 'build'], {
-              cwd: lib.dir
+              cwd: lib.dir,
+              env: DEV_SERVER_ENV
             });
 
             buildProc.output.pipeTo(
@@ -619,7 +684,9 @@ export function useWebContainerSandbox() {
             setHydrationStatus(`Running workspace setup script (${script})...`);
             setTerminalOutput((prev) => [...prev, `\n$ ${pkgManager} run ${script}`]);
             
-            const buildProc = await instance.spawn(pkgManager, ['run', script]);
+            const buildProc = await instance.spawn(pkgManager, ['run', script], {
+              env: DEV_SERVER_ENV
+            });
             buildProc.output.pipeTo(
               new WritableStream({
                 write(data) {

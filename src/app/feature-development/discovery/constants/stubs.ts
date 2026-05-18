@@ -126,6 +126,8 @@ export const DEV_SERVER_ENV = {
   PORT: '3000',
   WATCHPACK_WATCHER_LIMIT: '20',
   CHOKIDAR_INTERVAL: '500',
+  NX_CACHE_DIRECTORY: '/tmp/nx-cache',
+  NX_DAEMON: 'false',
 };
 
 export const INCOMPATIBLE_PACKAGES = [
