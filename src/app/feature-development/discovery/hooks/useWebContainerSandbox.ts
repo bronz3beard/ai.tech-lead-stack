@@ -273,18 +273,13 @@ export function useWebContainerSandbox() {
         }
 
         // Clean up binary folders recursively to prevent VFS SharedArrayBuffer memory limits crashes
-        const cleanCommands = [
-          ['rm', '-rf', '.next', 'client/.next', 'node_modules', '.nx', 'client/.nx', '.turbo', 'dist', '.swc', '.pnpm-store', 'storybook/storybook-static'],
-          ['find', '.', '-name', '*.tsbuildinfo', '-delete'],
-          ['find', '.', '-name', '*.js.map', '-delete'],
-          ['find', '.', '-name', '*.schema.json', '-delete'],
-          ['find', '.', '-name', 'pnpm-lock.yaml', '-delete'],
-          ['find', '.', '-name', 'package-lock.json', '-delete'],
-          ['find', '.', '-name', 'yarn.lock', '-delete'],
+        const foldersToClean = [
+          '.next', 'client/.next', 'node_modules', '.nx', 'client/.nx', 
+          '.turbo', 'dist', '.swc', '.pnpm-store', 'storybook/storybook-static'
         ];
-        for (const [cmd, ...args] of cleanCommands) {
+        for (const folder of foldersToClean) {
           try {
-            const proc = await instance.spawn(cmd, args);
+            const proc = await instance.spawn('rm', ['-rf', folder]);
             await proc.exit;
           } catch {}
         }
@@ -296,12 +291,14 @@ export function useWebContainerSandbox() {
             const path = dir === '.' ? file.name : `${dir}/${file.name}`;
             if (
               file.name.endsWith('.tsbuildinfo') ||
+              file.name.endsWith('.js.map') ||
+              file.name.endsWith('.schema.json') ||
               file.name === 'pnpm-lock.yaml' ||
               file.name === 'package-lock.json' ||
               file.name === 'yarn.lock'
             ) {
               try {
-                await instance.fs.rm(path);
+                await instance.fs.rm(path, { force: true });
                 console.log(`[Sanitizer] Removed VFS buffer overflow risk file: ${path}`);
               } catch {}
               continue;
@@ -403,11 +400,15 @@ export function useWebContainerSandbox() {
               } catch (e) {
                 console.warn('[Code Sanitizer] Failed to rewrite file:', path, e);
               }
-            } else if (
-              file.isDirectory() && 
-              !['node_modules', '.git', '.next', '.nx', '.cache', 'dist', 'build', 'storybook-static', 'webcontainer-stubs', 'public', 'generated'].includes(file.name)
-            ) {
-              await linkStubsAndSanitizeRecursively(path);
+            } else if (file.isDirectory()) {
+              if (['.next', '.nx', '.cache', 'dist', 'build', 'storybook-static', '.swc', '.pnpm-store'].includes(file.name)) {
+                try {
+                  await instance.fs.rm(path, { recursive: true, force: true });
+                  console.log(`[Sanitizer] Recursively purged large cache folder: ${path}`);
+                } catch {}
+              } else if (!['node_modules', '.git', 'webcontainer-stubs', 'public', 'generated'].includes(file.name)) {
+                await linkStubsAndSanitizeRecursively(path);
+              }
             }
           }
         };
