@@ -86,10 +86,16 @@ try {
 
     OriginalAsyncLocalStorage.prototype.run = function(store, callback, ...args) {
       const prevStore = this[lastActiveStoreSymbol];
+      const prevWasSeeded = this[wasSeededSymbol];
+
       if (store !== undefined && store !== null) {
         this[lastActiveStoreSymbol] = store;
         this[wasSeededSymbol] = true;
+      } else if (store === undefined) {
+        this[lastActiveStoreSymbol] = undefined;
+        this[wasSeededSymbol] = false;
       }
+
       try {
         return originalRun.call(this, store, () => {
           const result = callback();
@@ -100,12 +106,20 @@ try {
                 // Top-level stores (prevStore === undefined) are kept alive.
                 if (prevStore !== undefined && prevStore !== null) {
                   this[lastActiveStoreSymbol] = prevStore;
+                  this[wasSeededSymbol] = prevWasSeeded;
+                } else if (store === undefined) {
+                  this[lastActiveStoreSymbol] = prevStore;
+                  this[wasSeededSymbol] = prevWasSeeded;
                 }
                 return res;
               },
               (err) => {
                 if (prevStore !== undefined && prevStore !== null) {
                   this[lastActiveStoreSymbol] = prevStore;
+                  this[wasSeededSymbol] = prevWasSeeded;
+                } else if (store === undefined) {
+                  this[lastActiveStoreSymbol] = prevStore;
+                  this[wasSeededSymbol] = prevWasSeeded;
                 }
                 throw err;
               }
@@ -113,12 +127,20 @@ try {
           }
           if (prevStore !== undefined && prevStore !== null) {
             this[lastActiveStoreSymbol] = prevStore;
+            this[wasSeededSymbol] = prevWasSeeded;
+          } else if (store === undefined) {
+            this[lastActiveStoreSymbol] = prevStore;
+            this[wasSeededSymbol] = prevWasSeeded;
           }
           return result;
         }, ...args);
       } catch (err) {
         if (prevStore !== undefined && prevStore !== null) {
           this[lastActiveStoreSymbol] = prevStore;
+          this[wasSeededSymbol] = prevWasSeeded;
+        } else if (store === undefined) {
+          this[lastActiveStoreSymbol] = prevStore;
+          this[wasSeededSymbol] = prevWasSeeded;
         }
         throw err;
       }
