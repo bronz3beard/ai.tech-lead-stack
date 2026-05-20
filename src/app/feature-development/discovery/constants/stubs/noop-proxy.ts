@@ -79,3 +79,36 @@ while (root && root !== '/') {
 }
 module.exports = { workspaceRoot: root };
 `;
+
+/**
+ * Content written over any `middleware.ts` / `middleware.js` found in a hydrated
+ * Next.js project.
+ *
+ * ## Why middleware must be neutralised
+ * Next.js middleware executes in an **edge-like runtime** inside WebContainer.
+ * The WASM sandbox cannot reliably propagate the `Request` object through the
+ * edge adapter's `AsyncLocalStorage`-based context pipeline. As a result, the
+ * `request` parameter received by the middleware function is frequently
+ * `undefined`, causing:
+ *
+ * > `TypeError: Cannot read properties of undefined (reading 'url')`
+ *
+ * Since middleware (auth guards, redirects, header injection, etc.) serves no
+ * purpose in a **preview-only sandbox**, we replace the entire file with a safe
+ * passthrough that:
+ *  1. Defensively checks `request` before accessing any property.
+ *  2. Returns `NextResponse.next()` unconditionally — letting all requests
+ *     through to the page router.
+ *  3. Exports an empty `config.matcher` so Next.js doesn't apply it globally.
+ */
+export const MIDDLEWARE_NOOP_STUB = `
+import { NextResponse } from 'next/server';
+
+export function middleware(request) {
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: [],
+};
+`;

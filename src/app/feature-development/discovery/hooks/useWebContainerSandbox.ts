@@ -7,6 +7,7 @@ import {
   NX_JS_STUB,
   TAILWIND_JS_STUB,
   DEVKIT_EXPORTS_JS_STUB,
+  MIDDLEWARE_NOOP_STUB,
   DEV_SERVER_ENV,
   INCOMPATIBLE_PACKAGES,
   ASYNC_STORAGE_PATCH_STUB,
@@ -452,6 +453,18 @@ export function useWebContainerSandbox() {
                 let content = await instance.fs.readFile(path, 'utf-8');
                 let changed = false;
 
+                // Neutralise Next.js middleware files — edge runtime in WebContainer
+                // cannot reliably propagate the Request object, causing:
+                //   TypeError: Cannot read properties of undefined (reading 'url')
+                if (
+                  file.name === 'middleware.ts' ||
+                  file.name === 'middleware.js'
+                ) {
+                  console.log(`[Middleware Fixer] Replacing ${path} with safe passthrough stub`);
+                  content = MIDDLEWARE_NOOP_STUB;
+                  changed = true;
+                }
+
                 if (content.includes('[\\p{Cc}\\p{Cf}]') || content.includes('[\\p{Cc}]')) {
                   console.log(`[Regex Fixer] Sanitizing Unicode property escape regex in ${path}`);
                   content = content.replace(/\/\[\\p\{Cc\}\\p\{Cf\}\]\/gu/g, '/[\\x00-\\x1F\\x7F-\\x9F]/g');
@@ -565,6 +578,22 @@ export function useWebContainerSandbox() {
             try { await instance.fs.rm(`${appDir}/${f}`); } catch {}
             try { await instance.fs.rm(`src/${f}`); } catch {}
             try { await instance.fs.rm(`${appDir}/src/${f}`); } catch {}
+          }
+
+          // Neutralise middleware files at well-known Next.js locations.
+          // The recursive sanitizer already catches middleware inside arbitrary
+          // subdirectories; this block covers the canonical root/src positions
+          // that the recursive walk might skip (e.g. when `appDir` is '.').
+          const middlewareFiles = ['middleware.ts', 'middleware.js'];
+          for (const mw of middlewareFiles) {
+            const candidates = [mw, `${appDir}/${mw}`, `src/${mw}`, `${appDir}/src/${mw}`];
+            for (const candidate of candidates) {
+              try {
+                await instance.fs.readFile(candidate);
+                await instance.fs.writeFile(candidate, MIDDLEWARE_NOOP_STUB);
+                console.log(`[Middleware Fixer] Neutralised middleware at: ${candidate}`);
+              } catch {}
+            }
           }
         }
 
