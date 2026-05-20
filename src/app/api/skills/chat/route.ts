@@ -115,6 +115,14 @@ export async function POST(req: Request) {
       };
     });
 
+    // Ensure modelMessages strictly ends with a user message to prevent prefill constraint errors
+    while (
+      modelMessages.length > 0 &&
+      modelMessages[modelMessages.length - 1].role === 'assistant'
+    ) {
+      modelMessages.pop();
+    }
+
     // Inject current editor content as context into the last user message
     if (currentContent && modelMessages.length > 0) {
       const lastMessage = modelMessages[modelMessages.length - 1];

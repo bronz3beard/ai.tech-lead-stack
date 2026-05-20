@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import {
   AlertCircle,
   ArrowLeft,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Eye,
@@ -78,6 +79,7 @@ export default function DiscoveryClient({
     setSandboxError,
     setSelectedFile,
     setViewMode,
+    getWebContainer,
     handleWriteFile,
     hydrateProject,
     setFileContent,
@@ -97,6 +99,7 @@ export default function DiscoveryClient({
     branchUrl,
     componentName,
     handleWriteFile,
+    getWebContainer,
     selectedFile,
     setFileContent,
     setWrittenFiles,
@@ -317,30 +320,150 @@ export default function DiscoveryClient({
                 </p>
               </div>
             ) : (
-              messages.map((msg, i) => (
-                <div
-                  key={i}
-                  className={`flex flex-col space-y-2 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
-                >
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-1">
-                    {msg.role === 'user' ? 'User' : 'Discovery Agent'}
-                  </span>
+              messages.map((msg, i) => {
+                const msgAny = msg as any;
+                const textContent =
+                  msgAny.parts
+                    ?.filter((p: any) => p.type === 'text')
+                    .map((p: any) => (p as any).text)
+                    .join('\n') ||
+                  msgAny.content ||
+                  '';
+                const toolInvocations = msgAny.toolInvocations || [];
+                const hasNoContent =
+                  textContent.trim() === '' && toolInvocations.length === 0;
+
+                return (
                   <div
-                    className={`max-w-[90%] p-4 rounded-2xl text-sm leading-relaxed chat-prose ${
-                      msg.role === 'user'
-                        ? 'bg-blue-600 text-white rounded-tr-none'
-                        : 'bg-slate-800 text-slate-200 border border-slate-700/50 rounded-tl-none'
-                    }`}
+                    key={i}
+                    className={`flex flex-col space-y-2 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
                   >
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {msg.parts
-                        ?.filter((p: any) => p.type === 'text')
-                        .map((p: any) => (p as any).text)
-                        .join('\n') || (msg as any).content}
-                    </ReactMarkdown>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-1">
+                      {msg.role === 'user' ? 'User' : 'Discovery Agent'}
+                    </span>
+
+                    {textContent.trim() !== '' && (
+                      <div
+                        className={`max-w-[90%] p-4 rounded-2xl text-sm leading-relaxed chat-prose ${
+                          msg.role === 'user'
+                            ? 'bg-blue-600 text-white rounded-tr-none'
+                            : 'bg-slate-800 text-slate-200 border border-slate-700/50 rounded-tl-none'
+                        }`}
+                      >
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {textContent}
+                        </ReactMarkdown>
+                      </div>
+                    )}
+
+                    {toolInvocations.map((invocation: any) => {
+                      const { toolCallId, toolName, state, result } =
+                        invocation;
+                      const args =
+                        invocation.args ||
+                        invocation.input ||
+                        invocation.parameters ||
+                        {};
+
+                      const isFailed =
+                        state === 'output-error' || (result && result.error);
+                      const isSucceeded =
+                        state === 'result' || state === 'output-available';
+                      const isRunning = !isFailed && !isSucceeded;
+
+                      let statusStyle =
+                        'border-blue-500/30 bg-blue-500/5 text-blue-400';
+                      let statusLabel = 'Executing...';
+                      let StatusIcon = Loader2;
+
+                      if (isFailed) {
+                        statusStyle =
+                          'border-rose-500/30 bg-rose-500/5 text-rose-400';
+                        statusLabel = 'Failed';
+                        StatusIcon = XCircle;
+                      } else if (isSucceeded) {
+                        statusStyle =
+                          'border-emerald-500/30 bg-emerald-500/5 text-emerald-400';
+                        statusLabel = 'Completed';
+                        StatusIcon = CheckCircle2;
+                      }
+
+                      let toolActionLabel = 'Background task';
+                      let detailsText = '';
+                      let ToolIcon = FileCode;
+
+                      if (toolName === 'write_to_sandbox') {
+                        toolActionLabel = 'Writing File';
+                        detailsText = args.path || 'unknown path';
+                        ToolIcon = FileCode;
+                      } else if (toolName === 'read_sandbox_file') {
+                        toolActionLabel = 'Reading File';
+                        detailsText = args.path || 'unknown path';
+                        ToolIcon = Eye;
+                      } else if (toolName === 'list_sandbox_files') {
+                        toolActionLabel = 'Scanning Workspace';
+                        detailsText = 'Workspace Root';
+                        ToolIcon = Folder;
+                      }
+
+                      return (
+                        <div
+                          key={toolCallId}
+                          className={`flex flex-col p-3 rounded-xl border text-xs leading-relaxed max-w-[90%] transition-all ${statusStyle}`}
+                        >
+                          <div className="flex items-center justify-between space-x-4">
+                            <div className="flex items-center space-x-2">
+                              <ToolIcon className="w-4 h-4 text-slate-400" />
+                              <span className="font-semibold text-slate-300">
+                                {toolActionLabel}
+                              </span>
+                              {detailsText && (
+                                <code className="px-1.5 py-0.5 rounded bg-slate-950/60 text-slate-300 font-mono text-[10px] border border-slate-800/50">
+                                  {detailsText}
+                                </code>
+                              )}
+                            </div>
+                            <div className="flex items-center space-x-1.5">
+                              <StatusIcon
+                                className={`w-3.5 h-3.5 ${isRunning ? 'animate-spin' : ''}`}
+                              />
+                              <span className="font-medium text-[10px] uppercase tracking-wider">
+                                {statusLabel}
+                              </span>
+                            </div>
+                          </div>
+                          {isFailed && (
+                            <div className="mt-2 p-2 rounded bg-rose-950/40 border border-rose-900/30 text-rose-300 font-mono text-[10px] whitespace-pre-wrap">
+                              {(() => {
+                                if (!result) return invocation.errorText || 'Unknown error';
+                                if (typeof result === 'object') {
+                                  if (result.type === 'error-text') return result.value;
+                                  if (result.type === 'error-json') {
+                                    const val = result.value;
+                                    if (val && typeof val === 'object') {
+                                      return val.error || val.message || JSON.stringify(val);
+                                    }
+                                    return String(val);
+                                  }
+                                  return result.error || result.message || JSON.stringify(result);
+                                }
+                                return String(result);
+                              })()}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {hasNoContent && (
+                      <div className="flex items-center space-x-2 bg-slate-800/40 text-slate-400 p-3 rounded-2xl border border-slate-700/30 text-xs">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Processing action...</span>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
             {isLoading && (
               <div className="flex flex-col space-y-2 items-start animate-pulse">
@@ -361,12 +484,12 @@ export default function DiscoveryClient({
                 placeholder={
                   selectedProjectId
                     ? isHydrating
-                      ? 'Hydrating sandbox...'
+                      ? 'Preparing your workspace...'
                       : 'Type a message...'
                     : 'Select target first'
                 }
                 disabled={!selectedProjectId || isLoading || isHydrating}
-                className="bg-slate-950/50 border-slate-800 rounded-xl text-slate-200 placeholder:text-slate-600 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all"
+                className="bg-slate-950/50 border-slate-800 rounded-xl text-white placeholder:text-slate-600 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all"
               />
               <Button
                 type="submit"

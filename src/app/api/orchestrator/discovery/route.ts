@@ -81,6 +81,83 @@ function extractTextFromParts(parts: unknown[]): string {
     .join('\n\n');
 }
 
+/**
+ * @desc Parses a tool part from a UIMessage.
+ * Supports standard nested tool invocations (Shape A) and flat serialized tool parts (Shape B).
+ */
+function parseToolPart(p: any): {
+  toolCallId: string;
+  toolName: string;
+  args: any;
+  state?: string;
+  result?: any;
+  errorText?: string;
+} | null {
+  if (!p) return null;
+
+  let source: any = null;
+  let inferredToolName = '';
+
+  if (p.type === 'tool-invocation' && p.toolInvocation && typeof p.toolInvocation === 'object') {
+    source = p.toolInvocation;
+  } else if (typeof p.type === 'string' && p.type.startsWith('tool-')) {
+    source = p;
+    inferredToolName = p.type.slice(5);
+  } else if (p.toolCallId && p.toolName) {
+    source = p;
+  }
+
+  if (!source) return null;
+
+  const toolCallId = source.toolCallId || p.toolCallId;
+  const toolName = source.toolName || p.toolName || inferredToolName;
+  if (!toolCallId || !toolName) return null;
+
+  const args = source.args || source.input || source.parameters || {};
+  const state = source.state;
+  const result = source.result !== undefined ? source.result : source.output;
+  const errorText = source.errorText;
+
+  return {
+    toolCallId,
+    toolName,
+    args,
+    state,
+    result,
+    errorText,
+  };
+}
+
+function wrapToolResult(result: any, isError?: boolean): any {
+  if (result && typeof result === 'object' && 'type' in result) {
+    const type = result.type;
+    if (
+      type === 'text' ||
+      type === 'json' ||
+      type === 'execution-denied' ||
+      type === 'error-text' ||
+      type === 'error-json' ||
+      type === 'content'
+    ) {
+      return result;
+    }
+  }
+
+  if (isError) {
+    if (typeof result === 'string') {
+      return { type: 'error-text', value: result };
+    }
+    return { type: 'error-json', value: result };
+  }
+
+  if (typeof result === 'string') {
+    return { type: 'text', value: result };
+  }
+  return { type: 'json', value: result };
+}
+
+
+
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
 
@@ -159,34 +236,45 @@ export async function POST(req: Request) {
               const assistantContent: any[] = parts
                 .map((p: any) => {
                   if (p.type === 'text') return { type: 'text', text: p.text };
-                  if (p.type === 'tool-invocation') {
-                    const { toolCallId, toolName } = p.toolInvocation;
-                    const args =
-                      p.toolInvocation.args ||
-                      p.toolInvocation.input ||
-                      p.toolInvocation.parameters ||
-                      {};
-                    return { type: 'tool-call', toolCallId, toolName, args };
+                  const parsed = parseToolPart(p);
+                  if (parsed) {
+                    return {
+                      type: 'tool-call',
+                      toolCallId: parsed.toolCallId,
+                      toolName: parsed.toolName,
+                      input: parsed.args,
+                    };
                   }
                   return null;
                 })
                 .filter(Boolean);
 
               const toolResults: any[] = parts
-                .filter(
-                  (p: any) =>
-                    p.type === 'tool-invocation' &&
-                    (p.toolInvocation.state === 'result' ||
-                      p.toolInvocation.state === 'output-available')
-                )
                 .map((p: any) => {
-                  const { toolCallId, toolName } = p.toolInvocation;
-                  const result =
-                    p.toolInvocation.result !== undefined
-                      ? p.toolInvocation.result
-                      : p.toolInvocation.output;
-                  return { type: 'tool-result', toolCallId, toolName, result };
-                });
+                  const parsed = parseToolPart(p);
+                  if (
+                    parsed &&
+                    (parsed.state === 'result' ||
+                      parsed.state === 'output-available' ||
+                      parsed.state === 'output-error')
+                  ) {
+                    const isError =
+                      parsed.errorText !== undefined ||
+                      parsed.state === 'output-error';
+                    const rawResult =
+                      parsed.result !== undefined
+                        ? parsed.result
+                        : (parsed.errorText || 'Unknown error');
+                    return {
+                      type: 'tool-result',
+                      toolCallId: parsed.toolCallId,
+                      toolName: parsed.toolName,
+                      output: wrapToolResult(rawResult, isError),
+                    };
+                  }
+                  return null;
+                })
+                .filter(Boolean);
 
               const msgs: any[] = [];
               if (assistantContent.length > 0) {
@@ -216,17 +304,20 @@ export async function POST(req: Request) {
 
               const toolResults = parts
                 .map((p: any) => {
-                  if (p.type === 'tool-invocation') {
-                    const { toolCallId, toolName } = p.toolInvocation;
-                    const result =
-                      p.toolInvocation.result !== undefined
-                        ? p.toolInvocation.result
-                        : p.toolInvocation.output;
+                  const parsed = parseToolPart(p);
+                  if (parsed) {
+                    const isError =
+                      parsed.errorText !== undefined ||
+                      parsed.state === 'output-error';
+                    const rawResult =
+                      parsed.result !== undefined
+                        ? parsed.result
+                        : (parsed.errorText || 'Unknown error');
                     return {
                       type: 'tool-result',
-                      toolCallId,
-                      toolName,
-                      result,
+                      toolCallId: parsed.toolCallId,
+                      toolName: parsed.toolName,
+                      output: wrapToolResult(rawResult, isError),
                     };
                   }
                   return null;
@@ -236,8 +327,16 @@ export async function POST(req: Request) {
               return [{ role: 'tool', content: toolResults }];
             }
 
-            return [];
+              return [];
           });
+
+          // Ensure modelMessages strictly ends with a user message to prevent prefill constraint errors
+          while (
+            modelMessages.length > 0 &&
+            modelMessages[modelMessages.length - 1].role === 'assistant'
+          ) {
+            modelMessages.pop();
+          }
 
           const result = await streamText({
             model,
@@ -267,6 +366,29 @@ export async function POST(req: Request) {
                     },
                   },
                   required: ['path', 'content'],
+                }),
+              }),
+              read_sandbox_file: tool({
+                description:
+                  'Read the content of an existing file from the sandbox filesystem. (webContainer)',
+                inputSchema: jsonSchema<{ path: string }>({
+                  type: 'object',
+                  properties: {
+                    path: {
+                      type: 'string',
+                      description:
+                        'The relative path of the file to read (e.g., "src/components/Gauge.tsx")',
+                    },
+                  },
+                  required: ['path'],
+                }),
+              }),
+              list_sandbox_files: tool({
+                description:
+                  'List all files and directories in the WebContainer sandbox filesystem to inspect the existing codebase structure.',
+                inputSchema: jsonSchema<Record<string, never>>({
+                  type: 'object',
+                  properties: {},
                 }),
               }),
             },

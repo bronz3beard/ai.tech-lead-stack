@@ -9,6 +9,8 @@ import {
   DEVKIT_EXPORTS_JS_STUB,
   DEV_SERVER_ENV,
   INCOMPATIBLE_PACKAGES,
+  ASYNC_STORAGE_PATCH_STUB,
+  buildPackageJsonStub,
 } from '../constants/stubs';
 import { flattenTree } from '../utils/tree-helpers';
 import { scanFileSystem } from '../utils/fs-helpers';
@@ -45,6 +47,11 @@ export function useWebContainerSandbox() {
   const [viewMode, setViewMode] = useState<'preview' | 'code'>('preview');
 
   const devServerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const webContainerRef = useRef<WebContainer | null>(null);
+
+  useEffect(() => {
+    webContainerRef.current = webContainer;
+  }, [webContainer]);
 
   // Sync state for loading file content
   useEffect(() => {
@@ -261,12 +268,39 @@ export function useWebContainerSandbox() {
           await instance.fs.mkdir('webcontainer-stubs', { recursive: true });
           await instance.fs.mkdir('webcontainer-stubs/src', { recursive: true });
           await instance.fs.mkdir('webcontainer-stubs/bin', { recursive: true });
-          
+
           await instance.fs.writeFile('webcontainer-stubs/package.json', PACKAGE_JSON_STUB);
           await instance.fs.writeFile('webcontainer-stubs/index.js', INDEX_JS_STUB);
           await instance.fs.writeFile('webcontainer-stubs/bin/nx.js', NX_JS_STUB);
           await instance.fs.writeFile('webcontainer-stubs/tailwind.js', TAILWIND_JS_STUB);
           await instance.fs.writeFile('webcontainer-stubs/src/devkit-exports.js', DEVKIT_EXPORTS_JS_STUB);
+          await instance.fs.writeFile('webcontainer-stubs/async-storage-patch.js', ASYNC_STORAGE_PATCH_STUB);
+
+          // Create per-package stub dirs so pnpm's .pnpmfile.cjs name-check passes.
+          // Each package gets its own correctly-named package.json that re-exports
+          // the shared index.js via a relative path two levels up.
+          for (const pkgName of INCOMPATIBLE_PACKAGES) {
+            const isScoped = pkgName.startsWith('@');
+            const stubDir = isScoped
+              ? `webcontainer-stubs/${pkgName}` // e.g. webcontainer-stubs/@swc/core
+              : `webcontainer-stubs/${pkgName}`;
+
+            // For scoped packages we need to mkdir the scope dir first
+            if (isScoped) {
+              const scopeDir = `webcontainer-stubs/${pkgName.split('/')[0]}`;
+              await instance.fs.mkdir(scopeDir, { recursive: true });
+            }
+            await instance.fs.mkdir(stubDir, { recursive: true });
+            await instance.fs.writeFile(
+              `${stubDir}/package.json`,
+              buildPackageJsonStub(pkgName)
+            );
+            await instance.fs.writeFile(
+              `${stubDir}/index.js`,
+              INDEX_JS_STUB
+            );
+          }
+
           console.log('[Discovery] Successfully created comprehensive webcontainer-stubs package at root');
         } catch (err) {
           console.warn('[Discovery] Failed to create stub package:', err);
@@ -368,8 +402,12 @@ export function useWebContainerSandbox() {
                   if (!deps) return;
                   for (const name of INCOMPATIBLE_PACKAGES) {
                     if (deps[name]) {
-                      console.log(`[Linker] Linking ${name} in ${path} to ${relativeStubPath}`);
-                      deps[name] = relativeStubPath;
+                      // Point to the per-package stub dir (correctly named package.json inside).
+                      // relativeStubPath already includes the 'file:' protocol prefix — do NOT
+                      // prepend it again or pnpm receives 'file:file:...' and resolves the inner
+                      // string as a literal path, causing ERR_PNPM_LINKED_PKG_DIR_NOT_FOUND.
+                      deps[name] = `${relativeStubPath}/${name}`;
+                      console.log(`[Linker] Linking ${name} → ${deps[name]}`);;
                       changed = true;
                     }
                   }
@@ -778,10 +816,19 @@ export function useWebContainerSandbox() {
         }
       }
 
+      // Calculate dynamic patch path relative to the appDir where the server is spawned
+      const depth = appDir === '.' ? 0 : appDir.split('/').filter(Boolean).length;
+      const relativePatchPath = depth === 0 
+        ? './webcontainer-stubs/async-storage-patch.js' 
+        : `${'../'.repeat(depth)}webcontainer-stubs/async-storage-patch.js`;
+
       setTerminalOutput((prev) => [...prev, `\n$ ${cmd} ${args.join(' ')}`]);
       const devProcess = await instance.spawn(cmd, args, {
         cwd: appDir,
-        env: DEV_SERVER_ENV,
+        env: {
+          ...DEV_SERVER_ENV,
+          NODE_OPTIONS: `${DEV_SERVER_ENV.NODE_OPTIONS || ''} --require ${relativePatchPath}`.trim(),
+        },
       });
 
       devProcess.output.pipeTo(
@@ -809,7 +856,21 @@ export function useWebContainerSandbox() {
   };
 
   const handleWriteFile = async (path: string, content: string) => {
-    if (!webContainer) return;
+    let container = webContainerRef.current;
+    if (!container) {
+      console.log('webContainerRef is not initialized yet. Polling...');
+      for (let i = 0; i < 30; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        container = webContainerRef.current;
+        if (container) break;
+      }
+    }
+
+    if (!container) {
+      const errMsg = 'Development environment is not initialized yet. Please wait for it to boot and try again.';
+      setSandboxError(errMsg);
+      throw new Error(errMsg);
+    }
 
     setWrittenFiles((prev) => {
       const exists = prev.find((f) => f.path === path);
@@ -827,11 +888,11 @@ export function useWebContainerSandbox() {
         for (let i = 0; i < parts.length - 1; i++) {
           current += (current ? '/' : '') + parts[i];
           try {
-            await webContainer.fs.mkdir(current, { recursive: true });
+            await container.fs.mkdir(current, { recursive: true });
           } catch (_) {}
         }
       }
-      await webContainer.fs.writeFile(path, content);
+      await container.fs.writeFile(path, content);
 
       setWrittenFiles((prev) =>
         prev.map((f) => (f.path === path ? { ...f, status: 'done' } : f))
@@ -840,7 +901,7 @@ export function useWebContainerSandbox() {
       if (devServerTimeoutRef.current)
         clearTimeout(devServerTimeoutRef.current);
       devServerTimeoutRef.current = setTimeout(() => {
-        startDevServer(webContainer);
+        if (container) startDevServer(container);
       }, 2500);
     } catch (err) {
       console.error('Failed to write file:', path, err);
@@ -848,6 +909,7 @@ export function useWebContainerSandbox() {
         prev.map((f) => (f.path === path ? { ...f, status: 'error' } : f))
       );
       setSandboxError(`Failed to write file: ${path}`);
+      throw err;
     }
   };
 
@@ -892,6 +954,7 @@ export function useWebContainerSandbox() {
   return {
     isSandboxReady,
     webContainer,
+    getWebContainer: () => webContainerRef.current,
     writtenFiles,
     previewUrl,
     isDevServerStarted,

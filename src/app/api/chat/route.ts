@@ -372,16 +372,26 @@ export async function POST(req: Request) {
             } as any;
           });
 
+          // Ensure modelMessages strictly ends with a user message to prevent prefill constraint errors
+          while (
+            modelMessages.length > 0 &&
+            modelMessages[modelMessages.length - 1].role === 'assistant'
+          ) {
+            modelMessages.pop();
+          }
+
           const lastUserMessage = modelMessages[modelMessages.length - 1];
 
-          // Persist inbound user message
-          await prisma.message.create({
-            data: {
-              chatId: currentChatId ?? '',
-              role: lastUserMessage.role,
-              content: JSON.stringify(lastUserMessage),
-            },
-          });
+          if (lastUserMessage) {
+            // Persist inbound user message
+            await prisma.message.create({
+              data: {
+                chatId: currentChatId ?? '',
+                role: lastUserMessage.role,
+                content: JSON.stringify(lastUserMessage),
+              },
+            });
+          }
 
           const lastUserMessageText = extractTextFromContent(lastUserMessage?.content);
 
