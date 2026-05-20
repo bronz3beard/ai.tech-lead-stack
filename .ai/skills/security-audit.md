@@ -10,7 +10,9 @@ cost: ~550 tokens
 
 > [!IMPORTANT] **Diagnosis before Advice**: Every audit begins with **Tech-Stack
 > Discovery**. The auditor must understand the project's native exfiltration
-> sinks and secret storage patterns. Follow **G-Stack Ethos**.
+> sinks and secret storage patterns.
+>
+> **Methodology Alignment**: This skill strictly adheres to the four core pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web Guidance**.
 
 ## 🎯 Verification Gates
 

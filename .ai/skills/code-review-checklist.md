@@ -11,6 +11,8 @@ cost: ~650 tokens
 > [!TIP] **Methodology Alignment**: Use this checklist to catch 80% of issues
 > before they reach the official PR stage. Always follow **MinimumCD** (small
 > batches) and **G-Stack Ethos** (User Sovereignty).
+>
+> **Methodology Alignment**: This skill strictly adheres to the four core pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web Guidance**.
 
 ## 📋 Quality Gates
 

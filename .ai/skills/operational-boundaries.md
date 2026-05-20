@@ -12,6 +12,8 @@ cost: 1
 > They exist to prevent "Hallucination Hijacking" where workspace noise
 > (unrelated files/images) causes an agent to deviate from its technical
 > mission.
+>
+> **Methodology Alignment**: This skill strictly adheres to the four core pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web Guidance**.
 
 ## 🚫 Out of Bounds (DO NOT PERFORM)
 

@@ -19,6 +19,8 @@ cost: ~1100 tokens
 > is required during the audit, PAUSE execution, prompt the user for
 > credentials, wait for their response, then resume. Never assume credentials
 > are available. Never hard-code or log credential values.
+>
+> **Methodology Alignment**: This skill strictly adheres to the four core pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web Guidance**.
 
 ## 🎯 Verification Gates
 

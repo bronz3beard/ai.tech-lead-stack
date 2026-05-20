@@ -98,9 +98,9 @@ lead-init
 3. **Mission Control**: Your `lead-init` will now automatically run a pre-flight
    check to make sure you didn't miss a step.
 
-## 🧠 The Methodology: Three Pillars
+## 🧠 The Methodology: Four Pillars
 
-The "Tech-Lead Stack" is built upon three foundational pillars of modern
+The "Tech-Lead Stack" is built upon four foundational pillars of modern
 engineering excellence:
 
 1.  **G-Stack (Modularity & Diagnosis-First)**: Inspired by the
@@ -119,6 +119,10 @@ engineering excellence:
     [agent-skills](https://github.com/addyosmani/agent-skills), this pillar
     treats AI agents as disciplined senior engineers rather than shortcut-taking
     assistants.
+4.  **Modern Web Guidance**: Based on
+    [GoogleChrome/modern-web-guidance-src](https://github.com/GoogleChrome/modern-web-guidance-src),
+    this pillar helps coding agents build better web applications using modern,
+    high-performance, accessible, and secure APIs instead of legacy workarounds.
 
 ### Production-Grade Ethos
 

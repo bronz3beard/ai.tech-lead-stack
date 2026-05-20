@@ -14,7 +14,9 @@ cost: ~1200 tokens
 > Discovery**. Identify the project's base branch, PR template location, and
 > available labels before drafting. There is no reward for completion. The
 > reward comes from persistence on resolving the issue to an extremely high
-> standard. Follow **G-Stack Ethos**.
+> standard.
+>
+> **Methodology Alignment**: This skill strictly adheres to the four core pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web Guidance**.
 
 ## 🎯 Verification Gates
 

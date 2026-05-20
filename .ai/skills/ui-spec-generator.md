@@ -12,6 +12,8 @@ cost: ~850 tokens
 > Ethos**. You must resolve the project structure and design system path
 > (Discovery Phase) before generating any code. **MinimumCD** dictates that we
 > generate small, atomic skeletons that are easily verifiable.
+>
+> **Methodology Alignment**: This skill strictly adheres to the four core pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web Guidance**.
 
 ## 🎯 Implementation Loop
 

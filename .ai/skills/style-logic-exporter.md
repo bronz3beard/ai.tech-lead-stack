@@ -12,7 +12,9 @@ cost: ~550 tokens
 > one-off styles. [!IMPORTANT] **Diagnosis before Advice**: Every extraction
 > begins with **Tech-Stack Discovery**. Identify the project's styling engine
 > (Tailwind, CSS Modules, Styled Components, etc.) before analyzing patterns.
-> Follow **G-Stack Ethos**.
+>.
+>
+> **Methodology Alignment**: This skill strictly adheres to the four core pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web Guidance**.
 
 ## 🎯 Logic Extraction Workflow
 

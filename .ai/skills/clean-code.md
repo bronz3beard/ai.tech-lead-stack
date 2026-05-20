@@ -14,6 +14,8 @@ cost: ~950 tokens
 > verifiable logic blocks. There is no reward for completion. The reward comes
 > from persistence on resolving the issue to an extremely high standard and also
 > by results and consistent iteration on a task.
+>
+> **Methodology Alignment**: This skill strictly adheres to the four core pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web Guidance**.
 
 ## 🎯 Verification Gates (SOLID Framework)
 

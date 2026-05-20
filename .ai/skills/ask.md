@@ -18,6 +18,8 @@ cost: ~450 tokens
 > codebase (e.g., `write_to_file`, `replace_file_content`, `run_command` with
 > side-effects). Your purpose is to provide knowledge and snippets for
 > **MANUAL** implementation by the user.
+>
+> **Methodology Alignment**: This skill strictly adheres to the four core pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web Guidance**.
 
 ## 🎯 Strategic Workflow
 

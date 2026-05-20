@@ -13,8 +13,9 @@ also by results and consistent iteration on a task.
 
 > [!IMPORTANT] **Diagnosis before Advice**: Every verification begins with
 > **Tech-Stack Discovery**. Identify the project's dev command, port, and
-> authentication requirements before capturing evidence. Follow **G-Stack
-> Ethos**.
+> authentication requirements before capturing evidence.
+>
+> **Methodology Alignment**: This skill strictly adheres to the four core pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web Guidance**.
 
 ## 🎯 Verification Gates
 

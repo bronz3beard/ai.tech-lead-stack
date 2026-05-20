@@ -12,6 +12,8 @@ cost: ~850 tokens
 > [!TIP] **Ethos**: Diagnosis before Advice. Build in **Thin Vertical Slices**.
 > **Rule 0**: Simplicity first. **Rule 0.5**: Scope Discipline (Touch only what
 > is required).
+>
+> **Methodology Alignment**: This skill strictly adheres to the four core pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web Guidance**.
 
 ## 🎯 Strategic Workflow
 

@@ -152,6 +152,19 @@ export default function OnboardingPage() {
                 </div>
               </div>
             </div>
+
+            {/* Modern Web Guidance */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                  <Target className="w-6 h-6 text-amber-400" />
+                </div>
+                <h3 className="text-2xl font-bold text-white">Modern Web Guidance <span className="text-slate-500 font-normal text-lg">(High-Performance & Modern APIs)</span></h3>
+              </div>
+              <p className="text-lg text-slate-300 leading-relaxed">
+                Based on <a href="https://github.com/GoogleChrome/modern-web-guidance-src" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:underline">GoogleChrome/modern-web-guidance-src</a>, this pillar helps coding agents build better web applications using modern, high-performance, accessible, and secure APIs instead of legacy workarounds.
+              </p>
+            </div>
           </div>
         </section>
 
@@ -160,7 +173,7 @@ export default function OnboardingPage() {
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 blur-[100px] -z-10" />
           <div className="space-y-4 text-center">
             <h2 className="text-3xl font-bold text-white">
-              The Three Pillars of Excellence
+              The Four Pillars of Excellence
             </h2>
             <p className="text-lg text-slate-400 max-w-2xl mx-auto">
               Our agents are built on a foundation of elite engineering methodologies that ensure high-integrity collaboration.
