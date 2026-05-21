@@ -28,15 +28,51 @@
  *  - CJS require:       `const x = require('pkg')`
  *  - Nx helper:         `createGlobPatternsForDependencies()` → `[]`
  */
-export const INDEX_JS_STUB = `const noop = () => new Proxy(noop, {
+export const INDEX_JS_STUB = `
+let cachedRoot;
+function getRoot() {
+  if (cachedRoot) return cachedRoot;
+  if (typeof process === 'undefined' || typeof process.cwd !== 'function') return '/';
+  
+  let root = process.cwd();
+  try {
+    const req = typeof require !== 'undefined' ? require : null;
+    const fs = req ? req('f' + 's') : null;
+    const path = req ? req('p' + 'a' + 't' + 'h') : null;
+    if (fs && path) {
+      let current = root;
+      while (current && current !== '/') {
+        if (fs.existsSync(path.join(current, 'pnpm-workspace.yaml')) || fs.existsSync(path.join(current, 'nx.json'))) {
+          root = current;
+          break;
+        }
+        const parent = path.dirname(current);
+        if (parent === current) break;
+        current = parent;
+      }
+    }
+  } catch (e) {}
+  
+  cachedRoot = root;
+  return root;
+}
+
+const noop = () => new Proxy(noop, {
   get: (t, p) => {
     if (p === 'then') return undefined;
     return noop;
   }
 });
-const stub = new Proxy(noop, { get: () => noop });
+const stub = new Proxy(noop, { 
+  get: (t, p) => {
+    if (p === 'workspaceRoot') return getRoot();
+    if (p === 'createGlobPatternsForDependencies') return () => [];
+    return noop;
+  } 
+});
 module.exports = stub;
 module.exports.default = stub;
+module.exports.workspaceRoot = getRoot();
 module.exports.createGlobPatternsForDependencies = () => [];
 `;
 

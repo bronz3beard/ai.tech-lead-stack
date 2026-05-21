@@ -646,6 +646,7 @@ export function useWebContainerSandbox() {
       try {
         const localPackages: Array<{ name: string; dir: string; buildScript?: string }> = [];
         const nxLibrariesToBuild: Array<{ name: string; dir: string }> = [];
+        const allWorkspaceDeps = new Set<string>();
 
         const scanWorkspacePackages = async (dir: string) => {
           try {
@@ -656,6 +657,11 @@ export function useWebContainerSandbox() {
                 try {
                   const content = await instance.fs.readFile(path, 'utf-8');
                   const parsed = JSON.parse(content);
+                  
+                  if (parsed.dependencies) Object.keys(parsed.dependencies).forEach(d => allWorkspaceDeps.add(d));
+                  if (parsed.devDependencies) Object.keys(parsed.devDependencies).forEach(d => allWorkspaceDeps.add(d));
+                  if (parsed.peerDependencies) Object.keys(parsed.peerDependencies).forEach(d => allWorkspaceDeps.add(d));
+
                   if (parsed.name && path !== 'package.json') {
                     localPackages.push({
                       name: parsed.name,
@@ -717,7 +723,7 @@ export function useWebContainerSandbox() {
         };
 
         const packagesToBuild = localPackages.filter(pkg => 
-          appDeps[pkg.name] !== undefined && pkg.buildScript !== undefined
+          (appDeps[pkg.name] !== undefined || allWorkspaceDeps.has(pkg.name)) && pkg.buildScript !== undefined
         );
 
         if (packagesToBuild.length > 0) {

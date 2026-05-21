@@ -60,20 +60,22 @@ export const PACKAGE_JSON_STUB = JSON.stringify(
 export function buildPackageJsonStub(packageName: string): string {
   const version = STUB_PEER_VERSIONS[packageName] ?? '1.0.0';
 
-  return JSON.stringify(
-    {
-      name: packageName,
-      version,
-      main: './index.js',
-      exports: {
-        ".": "./index.js",
-        "./*": "./index.js"
-      },
-      // Empty peerDependenciesMeta signals zero peer requirements for the stub
-      // itself, suppressing residual "unmet peer" warnings from pnpm.
-      peerDependenciesMeta: {},
+  const manifest: any = {
+    name: packageName,
+    version,
+    main: './index.js',
+    exports: {
+      ".": "./index.js",
+      "./*": "./index.js"
     },
-    null,
-    2
-  );
+    // Empty peerDependenciesMeta signals zero peer requirements for the stub
+    // itself, suppressing residual "unmet peer" warnings from pnpm.
+    peerDependenciesMeta: {},
+  };
+
+  if (packageName === 'nx') {
+    manifest.bin = { nx: '../bin/nx.js' };
+  }
+
+  return JSON.stringify(manifest, null, 2);
 }
