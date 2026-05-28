@@ -81,6 +81,7 @@ if (args[0] === 'build' || args[0] === 'run') {
           cwd: dir,
           stdio: 'inherit',
           shell: true,
+          env: Object.assign({}, process.env),
         });
         proc.on('close', (code) => process.exit(code));
         return;

@@ -127,6 +127,44 @@ export async function GET(req: Request) {
       };
     }
 
+    // Backend Flattening & Monorepo Configuration
+    const rootDirs = Object.keys(fileSystemTree).filter(k => fileSystemTree[k]?.directory);
+    const monorepoIndicators = ['apps', 'libs', 'packages', 'client', 'server', 'frontend', 'backend', 'api'];
+    const detectedWorkspaces = rootDirs.filter(dir => monorepoIndicators.includes(dir));
+    const isMonorepo = detectedWorkspaces.length > 0 || fileSystemTree['project.json'] || fileSystemTree['nx.json'] || fileSystemTree['lerna.json'] || fileSystemTree['pnpm-workspace.yaml'];
+
+    if (isMonorepo && fileSystemTree['package.json']) {
+      try {
+        const pkgContent = fileSystemTree['package.json'].file.contents;
+        const pkg = JSON.parse(pkgContent);
+        
+        // Inject workspaces if not already present or if we need to ensure our detected ones are covered
+        if (!pkg.workspaces) {
+          pkg.workspaces = detectedWorkspaces.map(dir => {
+            // If it's a known plural container like apps/libs/packages, use wildcard
+            if (['apps', 'libs', 'packages'].includes(dir)) return `${dir}/*`;
+            return dir;
+          });
+          
+          // Ensure we don't have an empty workspace array
+          if (pkg.workspaces.length === 0) {
+            pkg.workspaces = ['apps/*', 'libs/*', 'packages/*'];
+          }
+          
+          fileSystemTree['package.json'].file.contents = JSON.stringify(pkg, null, 2);
+          console.log(`[Bundle] Injected workspaces into root package.json:`, pkg.workspaces);
+        }
+
+        // If it's a monorepo, we should eagerly clean up some heavy known files/folders
+        // that are often left in repos or generated, which we know we won't need in the sandbox.
+        // The file loop already excludes 'node_modules', '.next', etc.
+        // We can do further targeted cleanup if targetApp was passed, but for now we rely on the wildcard workspace.
+        
+      } catch (err) {
+        console.error('[Bundle] Failed to parse and flatten root package.json:', err);
+      }
+    }
+
     // Inject decrypted .env from project settings if available
     const projectSettings = project.settings as any;
     if (projectSettings?.encryptedEnvVars) {
@@ -150,7 +188,7 @@ export async function GET(req: Request) {
       },
     };
 
-    console.log(`[Bundle] Successfully constructed bundle with ${Object.keys(fileSystemTree).length} root items`);
+    console.log(`[Bundle] Successfully constructed bundle with ${Object.keys(fileSystemTree).length} root items (isMonorepo: ${!!isMonorepo})`);
     return NextResponse.json({ bundle: fileSystemTree });
 
   } catch (error: any) {

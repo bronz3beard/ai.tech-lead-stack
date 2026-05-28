@@ -19,6 +19,7 @@ import {
   Maximize2,
   MessageSquare,
   Minimize2,
+  RefreshCw,
   Send,
   Terminal as TerminalIcon,
   XCircle,
@@ -59,6 +60,7 @@ export default function DiscoveryClient({
   const [showSidebar, setShowSidebar] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isChatMinimized, setIsChatMinimized] = useState(false);
+  const [iframeKey, setIframeKey] = useState(0);
 
   // Cloud Generation Trigger States
   const [isGenerating, setIsGenerating] = useState(false);
@@ -73,6 +75,7 @@ export default function DiscoveryClient({
     sandboxError,
     isHydrating,
     hydrationStatus,
+    isRefreshingFiles,
     selectedFile,
     fileContent,
     viewMode,
@@ -82,6 +85,7 @@ export default function DiscoveryClient({
     getWebContainer,
     handleWriteFile,
     hydrateProject,
+    refreshProjectFiles,
     setFileContent,
     setWrittenFiles,
   } = useWebContainerSandbox();
@@ -542,6 +546,23 @@ export default function DiscoveryClient({
             </div>
 
             <div className="flex items-center gap-3">
+              {selectedProjectId && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => refreshProjectFiles(selectedProjectId)}
+                  disabled={isRefreshingFiles || isHydrating}
+                  className="text-slate-400 hover:text-white transition-all text-[10px] font-bold uppercase tracking-widest"
+                >
+                  {isRefreshingFiles ? (
+                    <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin text-blue-400" />
+                  ) : (
+                    <RefreshCw className="w-3.5 h-3.5 mr-2 text-blue-400" />
+                  )}
+                  Sync Files
+                </Button>
+              )}
+              {selectedProjectId && <div className="h-4 w-px bg-slate-800 mx-1" />}
               <Button
                 variant="ghost"
                 size="sm"
@@ -697,12 +718,23 @@ export default function DiscoveryClient({
                     </div>
                   ) : viewMode === 'preview' ? (
                     previewUrl ? (
-                      <div className="w-full h-full bg-white">
+                      <div className="w-full h-full bg-white relative">
                         <iframe
+                          key={iframeKey}
                           src={previewUrl}
                           className="w-full h-full border-none"
                           title="Live Prototyping Preview"
                         />
+                        {/* Elegant floating reload button for preview */}
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          onClick={() => setIframeKey(prev => prev + 1)}
+                          className="absolute bottom-4 right-4 h-10 w-10 rounded-full bg-slate-950/85 hover:bg-slate-900/90 text-white shadow-2xl border border-slate-800 transition-all hover:scale-105 active:scale-95 z-30"
+                          title="Reload Preview Page"
+                        >
+                          <RefreshCw className="w-4 h-4 text-blue-400" />
+                        </Button>
                       </div>
                     ) : (
                       <div className="flex-1 flex flex-col items-center justify-center p-12 text-center z-10">

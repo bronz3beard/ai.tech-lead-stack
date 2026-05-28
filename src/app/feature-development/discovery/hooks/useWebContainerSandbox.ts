@@ -1,20 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
 import { WebContainer } from '@webcontainer/api';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import {
-  PACKAGE_JSON_STUB,
-  INDEX_JS_STUB,
-  NX_JS_STUB,
-  TAILWIND_JS_STUB,
-  DEVKIT_EXPORTS_JS_STUB,
-  MIDDLEWARE_NOOP_STUB,
-  DEV_SERVER_ENV,
-  INCOMPATIBLE_PACKAGES,
-  ASYNC_STORAGE_PATCH_STUB,
-  buildPackageJsonStub,
-} from '../constants/stubs';
-import { flattenTree } from '../utils/tree-helpers';
+import { DEV_SERVER_ENV } from '../constants/stubs';
 import { scanFileSystem } from '../utils/fs-helpers';
+import { sanitizeSandboxEnvironment } from '../utils/sandbox-sanitizer';
+import { flattenTree } from '../utils/tree-helpers';
+import { flattenWorkspace } from '../utils/workspace-flattener';
 
 /**
  * Singleton promise to ensure WebContainer.boot() is only called once
@@ -42,6 +33,7 @@ export function useWebContainerSandbox() {
   const [sandboxError, setSandboxError] = useState<string | null>(null);
   const [isHydrating, setIsHydrating] = useState(false);
   const [hydrationStatus, setHydrationStatus] = useState('');
+  const [isRefreshingFiles, setIsRefreshingFiles] = useState(false);
 
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
@@ -104,6 +96,27 @@ export function useWebContainerSandbox() {
   const syncFilesystem = async (instance: WebContainer) => {
     const allFiles = await scanFileSystem(instance);
     setWrittenFiles(allFiles);
+  };
+
+  /**
+   * Build the full spawn environment with the NODE_OPTIONS --require patch.
+   * This ensures every child process (install, pre-builds, setup scripts, dev server)
+   * inherits the readFileSync large-file stabilizer that prevents RangeError VFS overflow crashes.
+   *
+   * @param appDir - The application directory relative to the VFS root, used to compute the
+   *   relative path to the async-storage-patch.js preloader stub.
+   */
+  const buildPatchedEnv = (appDir = '.') => {
+    const depth = appDir === '.' ? 0 : appDir.split('/').filter(Boolean).length;
+    const relativePatchPath =
+      depth === 0
+        ? './webcontainer-stubs/async-storage-patch.js'
+        : `${'../'.repeat(depth)}webcontainer-stubs/async-storage-patch.js`;
+    return {
+      ...DEV_SERVER_ENV,
+      NODE_OPTIONS:
+        `${DEV_SERVER_ENV.NODE_OPTIONS || ''} --require ${relativePatchPath}`.trim(),
+    };
   };
 
   const startDevServer = async (instance: WebContainer) => {
@@ -203,6 +216,40 @@ export function useWebContainerSandbox() {
         sanitizeDeps(pkg.dependencies);
         sanitizeDeps(pkg.devDependencies);
 
+        // Inject WebAssembly-based SWC compilers matching the local Next.js version.
+        // This ensures the local pnpm install writes the WASM binaries stably,
+        // completely bypassing Next.js's runtime downloader which crashes WebContainer's VFS.
+        const nextVersion = pkg.dependencies?.next || pkg.devDependencies?.next;
+        if (nextVersion) {
+          // Resolve exact matching version to prevent pnpm semver range mismatches
+          let exactVersion = nextVersion.replace(/[~^>=<]/g, '').trim();
+          if (exactVersion.startsWith('15.5.')) {
+            exactVersion = '15.5.15'; // Safe published fallback for 15.5.x line
+          } else if (exactVersion.startsWith('15.4.')) {
+            exactVersion = '15.4.8'; // Safe published fallback for 15.4.x line
+          } else if (exactVersion.startsWith('15.1.')) {
+            exactVersion = '15.1.9';
+          } else if (exactVersion.startsWith('15.0.')) {
+            exactVersion = '15.0.5';
+          } else if (exactVersion.startsWith('14.')) {
+            exactVersion = '14.2.33';
+          } else if (
+            exactVersion === 'latest' ||
+            exactVersion === 'canary' ||
+            !exactVersion
+          ) {
+            exactVersion = '15.5.15';
+          }
+
+          console.log(
+            `[SWC Injection] Pre-installing exact local WASM SWC compiler: ${exactVersion}`
+          );
+          pkg.devDependencies = pkg.devDependencies || {};
+          pkg.devDependencies['@next/swc-wasm-nodejs'] = exactVersion;
+          pkg.devDependencies['@next/swc-wasm-web'] = exactVersion;
+          hasChanges = true;
+        }
+
         // Sanitize engines.pnpm requirement
         if (pkg.engines?.pnpm) {
           console.log(
@@ -214,7 +261,23 @@ export function useWebContainerSandbox() {
           }
           hasChanges = true;
         }
-
+        // Sanitize scripts.dev to disable Next.js HMR which causes reload loops in iframes
+        if (pkg.scripts?.dev) {
+          const devScript = pkg.scripts.dev as string;
+          if (
+            devScript.includes('next dev') &&
+            !devScript.includes('FAST_REFRESH=false')
+          ) {
+            console.log(
+              `[Sanitizer] Injecting FAST_REFRESH=false to Next.js dev script to stabilize hot-reloading loops`
+            );
+            pkg.scripts.dev = devScript.replace(
+              'next dev',
+              'FAST_REFRESH=false next dev'
+            );
+            hasChanges = true;
+          }
+        }
         if (hasChanges) {
           setHydrationStatus('Sanitizing incompatible dependencies...');
           await instance.fs.writeFile(
@@ -260,350 +323,26 @@ export function useWebContainerSandbox() {
         pkg.devDependencies?.['@sveltejs/kit'];
       const hasDevScript = pkg.scripts?.dev;
 
-      // Compatibility/Nuclear stability patch injection
-      if (isNext || isRemix || isAngular) {
-        setHydrationStatus('Applying universal stability patches...');
-        console.log('[Discovery] Applying nuclear WebContainer compatibility patches...');
-
-        try {
-          await instance.fs.mkdir('webcontainer-stubs', { recursive: true });
-          await instance.fs.mkdir('webcontainer-stubs/src', { recursive: true });
-          await instance.fs.mkdir('webcontainer-stubs/bin', { recursive: true });
-
-          await instance.fs.writeFile('webcontainer-stubs/package.json', PACKAGE_JSON_STUB);
-          await instance.fs.writeFile('webcontainer-stubs/index.js', INDEX_JS_STUB);
-          await instance.fs.writeFile('webcontainer-stubs/bin/nx.js', NX_JS_STUB);
-          await instance.fs.writeFile('webcontainer-stubs/tailwind.js', TAILWIND_JS_STUB);
-          await instance.fs.writeFile('webcontainer-stubs/src/devkit-exports.js', DEVKIT_EXPORTS_JS_STUB);
-          await instance.fs.writeFile('webcontainer-stubs/async-storage-patch.js', ASYNC_STORAGE_PATCH_STUB);
-
-          // Create per-package stub dirs so pnpm's .pnpmfile.cjs name-check passes.
-          // Each package gets its own correctly-named package.json that re-exports
-          // the shared index.js via a relative path two levels up.
-          for (const pkgName of INCOMPATIBLE_PACKAGES) {
-            const isScoped = pkgName.startsWith('@');
-            const stubDir = isScoped
-              ? `webcontainer-stubs/${pkgName}` // e.g. webcontainer-stubs/@swc/core
-              : `webcontainer-stubs/${pkgName}`;
-
-            // For scoped packages we need to mkdir the scope dir first
-            if (isScoped) {
-              const scopeDir = `webcontainer-stubs/${pkgName.split('/')[0]}`;
-              await instance.fs.mkdir(scopeDir, { recursive: true });
-            }
-            await instance.fs.mkdir(stubDir, { recursive: true });
-            await instance.fs.writeFile(
-              `${stubDir}/package.json`,
-              buildPackageJsonStub(pkgName)
-            );
-            await instance.fs.writeFile(
-              `${stubDir}/index.js`,
-              INDEX_JS_STUB
-            );
-          }
-
-          console.log('[Discovery] Successfully created comprehensive webcontainer-stubs package at root');
-        } catch (err) {
-          console.warn('[Discovery] Failed to create stub package:', err);
-        }
-
-        // Clean up binary folders recursively to prevent VFS SharedArrayBuffer memory limits crashes
-        const foldersToClean = [
-          '.next', 'client/.next', 'node_modules', '.nx', 'client/.nx', 
-          '.turbo', 'dist', '.swc', '.pnpm-store', 'storybook/storybook-static'
-        ];
-        for (const folder of foldersToClean) {
-          try {
-            const proc = await instance.spawn('rm', ['-rf', folder]);
-            await proc.exit;
-          } catch {}
-        }
-
-        // Scan and sanitize packages recursively
-        const linkStubsAndSanitizeRecursively = async (dir: string) => {
-          const files = await instance.fs.readdir(dir, { withFileTypes: true });
-          for (const file of files) {
-            const path = dir === '.' ? file.name : `${dir}/${file.name}`;
-            if (
-              file.name.endsWith('.tsbuildinfo') ||
-              file.name.endsWith('.map') ||
-              file.name.endsWith('.schema.json') ||
-              file.name === 'pnpm-lock.yaml' ||
-              file.name === 'package-lock.json' ||
-              file.name === 'yarn.lock'
-            ) {
-              try {
-                await instance.fs.rm(path, { force: true });
-                console.log(`[Sanitizer] Removed VFS buffer overflow risk file: ${path}`);
-              } catch {}
-              continue;
-            }
-            if (file.name.endsWith('tsconfig.json') || file.name === 'tsconfig.base.json') {
-              try {
-                let content = await instance.fs.readFile(path, 'utf-8');
-                let changed = false;
-                
-                try {
-                  const cleanContent = content.replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '$1');
-                  const parsed = JSON.parse(cleanContent);
-                  if (parsed.compilerOptions) {
-                    if (parsed.compilerOptions.composite !== false) {
-                      parsed.compilerOptions.composite = false;
-                      changed = true;
-                    }
-                    if (parsed.compilerOptions.declarationMap !== false) {
-                      parsed.compilerOptions.declarationMap = false;
-                      changed = true;
-                    }
-                    if (parsed.compilerOptions.incremental !== false) {
-                      parsed.compilerOptions.incremental = false;
-                      changed = true;
-                    }
-                    if (parsed.compilerOptions.tsBuildInfoFile) {
-                      delete parsed.compilerOptions.tsBuildInfoFile;
-                      changed = true;
-                    }
-                  }
-                  if (changed) {
-                    content = JSON.stringify(parsed, null, 2);
-                  }
-                } catch {
-                  if (content.includes('"composite": true') || content.includes('"composite":true')) {
-                    content = content.replace(/"composite"\s*:\s*true/g, '"composite": false');
-                    changed = true;
-                  }
-                  if (content.includes('"declarationMap": true') || content.includes('"declarationMap":true')) {
-                    content = content.replace(/"declarationMap"\s*:\s*true/g, '"declarationMap": false');
-                    changed = true;
-                  }
-                  if (content.includes('"incremental": true') || content.includes('"incremental":true')) {
-                    content = content.replace(/"incremental"\s*:\s*true/g, '"incremental": false');
-                    changed = true;
-                  }
-                }
-
-                if (changed) {
-                  await instance.fs.writeFile(path, content);
-                  console.log(`[Sanitizer] Disabled composite/incremental/map in: ${path}`);
-                }
-              } catch (e) {
-                console.warn('[Sanitizer] Failed to rewrite tsconfig:', path, e);
-              }
-            }
-            if (file.name === 'package.json') {
-              try {
-                const content = await instance.fs.readFile(path, 'utf-8');
-                const p = JSON.parse(content);
-                let changed = false;
-
-                const depth = dir === '.' ? 0 : dir.split('/').length;
-                const relativeStubPath = depth === 0 ? 'file:./webcontainer-stubs' : `file:${'../'.repeat(depth)}webcontainer-stubs`;
-
-                const link = (deps?: Record<string, string>) => {
-                  if (!deps) return;
-                  for (const name of INCOMPATIBLE_PACKAGES) {
-                    if (deps[name]) {
-                      // Point to the per-package stub dir (correctly named package.json inside).
-                      // relativeStubPath already includes the 'file:' protocol prefix — do NOT
-                      // prepend it again or pnpm receives 'file:file:...' and resolves the inner
-                      // string as a literal path, causing ERR_PNPM_LINKED_PKG_DIR_NOT_FOUND.
-                      deps[name] = `${relativeStubPath}/${name}`;
-                      console.log(`[Linker] Linking ${name} → ${deps[name]}`);;
-                      changed = true;
-                    }
-                  }
-                };
-
-                link(p.dependencies);
-                link(p.devDependencies);
-                link(p.peerDependencies);
-
-                if (p.name && (dir === '.' || p.workspaces || p.devDependencies?.nx)) {
-                  p.pnpm = p.pnpm || {};
-                  p.pnpm.overrides = p.pnpm.overrides || {};
-                  p.resolutions = p.resolutions || {};
-                  
-                  const trpcVersion = '11.1.2';
-                  ['@trpc/client', '@trpc/next', '@trpc/react-query', '@trpc/server'].forEach(name => {
-                    p.pnpm.overrides[name] = trpcVersion;
-                    p.resolutions[name] = trpcVersion;
-                  });
-                  changed = true;
-                }
-
-                if (p.scripts) {
-                  ['postinstall', 'prepare', 'preinstall'].forEach(s => {
-                    if (p.scripts[s]) {
-                      delete p.scripts[s];
-                      changed = true;
-                    }
-                  });
-                  if (p.scripts.dev && p.scripts.dev.includes('--turbo')) {
-                    p.scripts.dev = p.scripts.dev.replace('--turbo', '');
-                    changed = true;
-                  }
-                }
-
-                if (changed) {
-                  await instance.fs.writeFile(path, JSON.stringify(p, null, 2));
-                }
-              } catch {}
-            } else if (file.name.endsWith('.ts') || file.name.endsWith('.tsx') || file.name.endsWith('.js') || file.name.endsWith('.jsx')) {
-              try {
-                let content = await instance.fs.readFile(path, 'utf-8');
-                let changed = false;
-
-                // Neutralise Next.js middleware files — edge runtime in WebContainer
-                // cannot reliably propagate the Request object, causing:
-                //   TypeError: Cannot read properties of undefined (reading 'url')
-                if (
-                  file.name === 'middleware.ts' ||
-                  file.name === 'middleware.js'
-                ) {
-                  console.log(`[Middleware Fixer] Replacing ${path} with safe passthrough stub`);
-                  content = MIDDLEWARE_NOOP_STUB;
-                  changed = true;
-                }
-
-                if (content.includes('[\\p{Cc}\\p{Cf}]') || content.includes('[\\p{Cc}]')) {
-                  console.log(`[Regex Fixer] Sanitizing Unicode property escape regex in ${path}`);
-                  content = content.replace(/\/\[\\p\{Cc\}\\p\{Cf\}\]\/gu/g, '/[\\x00-\\x1F\\x7F-\\x9F]/g');
-                  content = content.replace(/\/\[\\p\{Cc\}\]\/gu/g, '/[\\x00-\\x1F\\x7F-\\x9F]/g');
-                  changed = true;
-                }
-
-                if (file.name === 'fonts.ts' || file.name === 'fonts.tsx') {
-                  if (content.includes('next/font/google') || content.includes('next/font')) {
-                    console.log(`[Font Fixer] Mocking next/font inside ${path}`);
-                    content = `
-                      const mockFont = (variable) => ({
-                        className: 'mock-font-' + variable,
-                        variable: variable,
-                        style: { fontFamily: 'sans-serif' }
-                      });
-                      
-                      export const open = mockFont('--font-open');
-                      export const oswald = mockFont('--font-oswald');
-                      export const caveat = mockFont('--font-caveat');
-                      export const cookie = mockFont('--font-cookie');
-                      export const dancing = mockFont('--font-dancing');
-                      export const sedgwick = mockFont('--font-sedgwick');
-                      export const mr = mockFont('--font-mr');
-                      export const inter = mockFont('--font-inter');
-                      export const geist = mockFont('--font-geist');
-                      export const geistMono = mockFont('--font-geist-mono');
-                    `;
-                    changed = true;
-                  }
-                }
-
-                if (changed) {
-                  await instance.fs.writeFile(path, content);
-                }
-              } catch (e) {
-                console.warn('[Code Sanitizer] Failed to rewrite file:', path, e);
-              }
-            } else if (file.isDirectory()) {
-              if (['.next', '.nx', '.cache', 'dist', 'build', 'storybook-static', '.swc', '.pnpm-store'].includes(file.name)) {
-                try {
-                  await instance.fs.rm(path, { recursive: true, force: true });
-                  console.log(`[Sanitizer] Recursively purged large cache folder: ${path}`);
-                } catch {}
-              } else if (!['node_modules', '.git', 'webcontainer-stubs', 'public', 'generated'].includes(file.name)) {
-                await linkStubsAndSanitizeRecursively(path);
-              }
-            }
-          }
-        };
-
-        await linkStubsAndSanitizeRecursively('.');
-
-        if (isNext) {
-          const babelrc = JSON.stringify({ presets: ['next/babel'] }, null, 2);
-          await instance.fs.writeFile(appDir === '.' ? '.babelrc' : `${appDir}/.babelrc`, babelrc);
-          
-          try { await instance.fs.rm('.swcrc'); } catch {}
-          try { await instance.fs.rm(`${appDir}/.swcrc`); } catch {}
-
-          const configFiles = ['next.config.js', 'next.config.mjs', 'next.config.ts'];
-          let hasConfig = false;
-          for (const cf of configFiles) {
-            const target = appDir === '.' ? cf : `${appDir}/${cf}`;
-            try {
-              await instance.fs.readFile(target);
-              hasConfig = true;
-            } catch {}
-          }
-
-          const safeConfig = `{
-            reactStrictMode: true,
-            images: { unoptimized: true },
-            eslint: { ignoreDuringBuilds: true },
-            typescript: { ignoreBuildErrors: true },
-            webpack: (config, { dev }) => {
-              if (dev) {
-                config.watchOptions = {
-                  poll: 1000,
-                  aggregateTimeout: 300,
-                  ignored: ['**/node_modules/**', '**/.next/**']
-                };
-              }
-              return config;
-            }
-          }`;
-
-          if (!hasConfig) {
-            const target = appDir === '.' ? 'next.config.mjs' : `${appDir}/next.config.mjs`;
-            await instance.fs.writeFile(target, `export default ${safeConfig};`);
-            console.log(`[Sanitizer] Created fallback next.config.mjs at: ${target}`);
-          } else {
-            for (const cf of configFiles) {
-              const target = appDir === '.' ? cf : `${appDir}/${cf}`;
-              try {
-                await instance.fs.readFile(target);
-                await instance.fs.writeFile(
-                  target,
-                  cf.endsWith('.js')
-                    ? `module.exports = ${safeConfig};`
-                    : `export default ${safeConfig};`
-                );
-                console.log(`[Sanitizer] Overwrote next config with safe watchOptions at: ${target}`);
-              } catch {}
-            }
-          }
-
-          const instrs = ['instrumentation.ts', 'instrumentation.js', 'sentry.client.config.ts', 'sentry.server.config.ts', 'sentry.edge.config.ts'];
-          for (const f of instrs) {
-            try { await instance.fs.rm(f); } catch {}
-            try { await instance.fs.rm(`${appDir}/${f}`); } catch {}
-            try { await instance.fs.rm(`src/${f}`); } catch {}
-            try { await instance.fs.rm(`${appDir}/src/${f}`); } catch {}
-          }
-
-          // Neutralise middleware files at well-known Next.js locations.
-          // The recursive sanitizer already catches middleware inside arbitrary
-          // subdirectories; this block covers the canonical root/src positions
-          // that the recursive walk might skip (e.g. when `appDir` is '.').
-          const middlewareFiles = ['middleware.ts', 'middleware.js'];
-          for (const mw of middlewareFiles) {
-            const candidates = [mw, `${appDir}/${mw}`, `src/${mw}`, `${appDir}/src/${mw}`];
-            for (const candidate of candidates) {
-              try {
-                await instance.fs.readFile(candidate);
-                await instance.fs.writeFile(candidate, MIDDLEWARE_NOOP_STUB);
-                console.log(`[Middleware Fixer] Neutralised middleware at: ${candidate}`);
-              } catch {}
-            }
-          }
-        }
-
-        setTerminalOutput((prev) => [...prev, '\n[WebContainer] Nuclear link-mocking applied. System stabilized.']);
+      // Extracted Sandbox Utilities
+      setHydrationStatus('Sanitizing environment and flattening workspace...');
+      try {
+        await sanitizeSandboxEnvironment(instance, appDir);
+        await flattenWorkspace(instance);
+        setTerminalOutput((prev) => [
+          ...prev,
+          '\n[WebContainer] Workspace flattened and system stabilized.',
+        ]);
+      } catch (e) {
+        console.warn('[Discovery] Sandbox utilities failed:', e);
       }
 
       // 2. Install Dependencies
       // 1.8 Create .npmrc for hoisted dependency layout to bypass WASM VFS symlink overflow
       try {
-        await instance.fs.writeFile('.npmrc', 'node-linker=hoisted\nsymlink=false\n');
+        await instance.fs.writeFile(
+          '.npmrc',
+          'node-linker=hoisted\nsymlink=false\n'
+        );
         console.log('[Discovery] Created flat dependency node-linker .npmrc');
       } catch (err) {
         console.warn('[Discovery] Failed to write .npmrc:', err);
@@ -613,15 +352,26 @@ export function useWebContainerSandbox() {
       const pkgManager = isPnpm ? 'pnpm' : 'npm';
       setHydrationStatus(`Installing dependencies (${pkgManager})...`);
       const installArgs = isPnpm
-        ? ['install', '--no-frozen-lockfile', '--no-lockfile', '--ignore-scripts']
-        : ['install', '--prefer-offline', '--no-audit', '--no-package-lock', '--ignore-scripts'];
+        ? [
+            'install',
+            '--no-frozen-lockfile',
+            '--no-lockfile',
+            '--ignore-scripts',
+          ]
+        : [
+            'install',
+            '--prefer-offline',
+            '--no-audit',
+            '--no-package-lock',
+            '--ignore-scripts',
+          ];
 
       setTerminalOutput((prev) => [
         ...prev,
         `\n$ ${pkgManager} ${installArgs.join(' ')}`,
       ]);
       const installProcess = await instance.spawn(pkgManager, installArgs, {
-        env: DEV_SERVER_ENV
+        env: buildPatchedEnv('.'),
       });
 
       installProcess.output.pipeTo(
@@ -642,176 +392,7 @@ export function useWebContainerSandbox() {
         return;
       }
 
-      // 2.5 Pre-build Local Packages
-      try {
-        const localPackages: Array<{ name: string; dir: string; buildScript?: string }> = [];
-        const nxLibrariesToBuild: Array<{ name: string; dir: string }> = [];
-        const allWorkspaceDeps = new Set<string>();
-
-        const scanWorkspacePackages = async (dir: string) => {
-          try {
-            const files = await instance.fs.readdir(dir, { withFileTypes: true });
-            for (const file of files) {
-              const path = dir === '.' ? file.name : `${dir}/${file.name}`;
-              if (file.name === 'package.json') {
-                try {
-                  const content = await instance.fs.readFile(path, 'utf-8');
-                  const parsed = JSON.parse(content);
-                  
-                  if (parsed.dependencies) Object.keys(parsed.dependencies).forEach(d => allWorkspaceDeps.add(d));
-                  if (parsed.devDependencies) Object.keys(parsed.devDependencies).forEach(d => allWorkspaceDeps.add(d));
-                  if (parsed.peerDependencies) Object.keys(parsed.peerDependencies).forEach(d => allWorkspaceDeps.add(d));
-
-                  if (parsed.name && path !== 'package.json') {
-                    localPackages.push({
-                      name: parsed.name,
-                      dir,
-                      buildScript: parsed.scripts?.build ? 'build' : parsed.scripts?.compile ? 'compile' : undefined
-                    });
-                  }
-                } catch {}
-              } else if (file.name === 'project.json') {
-                try {
-                  const content = await instance.fs.readFile(path, 'utf-8');
-                  const parsed = JSON.parse(content);
-                  if (parsed.targets?.build?.executor === '@nx/vite:build') {
-                    nxLibrariesToBuild.push({
-                      name: parsed.name || dir.split('/').pop() || 'lib',
-                      dir
-                    });
-                  }
-                } catch {}
-              } else if (file.name === 'vite.config.ts' || file.name === 'vite.config.js') {
-                try {
-                  let content = await instance.fs.readFile(path, 'utf-8');
-                  if (content.includes('@nx/vite')) {
-                    console.log(`[Vite Fixer] Sanitizing Nx plugins in ${path}`);
-                    content = content.replace(/import\s+\{\s*nxViteTsPaths\s*\}\s+from\s+['"]@nx\/vite\/plugins\/nx-tsconfig-paths\.plugin['"];?/g, 'const nxViteTsPaths = () => ({ name: "nx-tsconfig-paths-mock" });');
-                    content = content.replace(/import\s+\{\s*nxCopyAssetsPlugin\s*\}\s+from\s+['"]@nx\/vite\/plugins\/nx-copy-assets\.plugin['"];?/g, 'const nxCopyAssetsPlugin = () => ({ name: "nx-copy-assets-mock" });');
-                    await instance.fs.writeFile(path, content);
-                  }
-                } catch (e) {
-                  console.warn('[Vite Fixer] Failed to sanitize vite config:', e);
-                }
-              } else if (file.isDirectory() && !['node_modules', '.git', '.next', 'dist', 'webcontainer-stubs'].includes(file.name)) {
-                try {
-                  await scanWorkspacePackages(path);
-                } catch (e) {
-                  console.warn(`[Workspace Discoverer] Skip directory crawl ${path}:`, e);
-                }
-              }
-            }
-          } catch (e) {
-            console.warn(`[Workspace Discoverer] Skip readdir ${dir}:`, e);
-          }
-        };
-
-        await scanWorkspacePackages('.');
-
-        const appPkgPath = appDir === '.' ? 'package.json' : `${appDir}/package.json`;
-        let appPkgContent = '';
-        try {
-          appPkgContent = await instance.fs.readFile(appPkgPath, 'utf-8');
-        } catch {
-          appPkgContent = await instance.fs.readFile('package.json', 'utf-8');
-        }
-        const appPkg = JSON.parse(appPkgContent);
-
-        const appDeps = {
-          ...(appPkg.dependencies || {}),
-          ...(appPkg.devDependencies || {})
-        };
-
-        const packagesToBuild = localPackages.filter(pkg => 
-          (appDeps[pkg.name] !== undefined || allWorkspaceDeps.has(pkg.name)) && pkg.buildScript !== undefined
-        );
-
-        if (packagesToBuild.length > 0) {
-          for (const pkgToBuild of packagesToBuild) {
-            setHydrationStatus(`Building workspace package ${pkgToBuild.name}...`);
-            setTerminalOutput((prev) => [
-              ...prev, 
-              `\n$ cd ${pkgToBuild.dir} && ${pkgManager} run ${pkgToBuild.buildScript}`
-            ]);
-
-            const buildProc = await instance.spawn(pkgManager, ['run', pkgToBuild.buildScript!], {
-              cwd: pkgToBuild.dir,
-              env: DEV_SERVER_ENV
-            });
-
-            buildProc.output.pipeTo(
-              new WritableStream({
-                write(data) {
-                  setTerminalOutput((prev) => [...prev, data]);
-                },
-              })
-            );
-
-            await buildProc.exit;
-            await syncFilesystem(instance);
-          }
-        }
-
-        if (nxLibrariesToBuild.length > 0) {
-          for (const lib of nxLibrariesToBuild) {
-            setHydrationStatus(`Compiling library ${lib.name} via Vite...`);
-            setTerminalOutput((prev) => [
-              ...prev, 
-              `\n$ cd ${lib.dir} && npx vite build`
-            ]);
-
-            const buildProc = await instance.spawn('npx', ['vite', 'build'], {
-              cwd: lib.dir,
-              env: DEV_SERVER_ENV
-            });
-
-            buildProc.output.pipeTo(
-              new WritableStream({
-                write(data) {
-                  setTerminalOutput((prev) => [...prev, data]);
-                },
-              })
-            );
-
-            await buildProc.exit;
-            await syncFilesystem(instance);
-          }
-        }
-
-        if (pkg.scripts) {
-          const setupScripts = Object.keys(pkg.scripts).filter(name => 
-            /^(ui:build|build:libs|build-libs|build:ui|libs:build|bootstrap|setup|predev)$/i.test(name)
-          );
-
-          for (const script of setupScripts) {
-            const isRedundant = packagesToBuild.some(p => 
-              script.includes(p.name.replace('@', '').split('/')[0])
-            ) || nxLibrariesToBuild.some(p => 
-              script.includes(p.name.replace('@', '').split('/')[0])
-            );
-            if (isRedundant) continue;
-
-            setHydrationStatus(`Running workspace setup script (${script})...`);
-            setTerminalOutput((prev) => [...prev, `\n$ ${pkgManager} run ${script}`]);
-            
-            const buildProc = await instance.spawn(pkgManager, ['run', script], {
-              env: DEV_SERVER_ENV
-            });
-            buildProc.output.pipeTo(
-              new WritableStream({
-                write(data) {
-                  setTerminalOutput((prev) => [...prev, data]);
-                },
-              })
-            );
-            
-            await buildProc.exit;
-            await syncFilesystem(instance);
-          }
-        }
-      } catch (err: any) {
-        console.warn('[Workspace Discoverer] Failed during dynamic pre-build analysis:', err);
-      }
+      // Native workspace linking bypasses the need for legacy Nx CLI mocking and pre-build stubs.
 
       // 3. Start Dev Server
       setHydrationStatus('Starting development server...');
@@ -846,24 +427,16 @@ export function useWebContainerSandbox() {
         const devScript = pkg.scripts.dev as string;
         if (devScript && devScript.includes('--turbo')) {
           pkg.scripts.dev = devScript.replace(/\s*--turbo\b/g, '');
-          const pkgPath = appDir === '.' ? 'package.json' : `${appDir}/package.json`;
+          const pkgPath =
+            appDir === '.' ? 'package.json' : `${appDir}/package.json`;
           await instance.fs.writeFile(pkgPath, JSON.stringify(pkg, null, 2));
         }
       }
 
-      // Calculate dynamic patch path relative to the appDir where the server is spawned
-      const depth = appDir === '.' ? 0 : appDir.split('/').filter(Boolean).length;
-      const relativePatchPath = depth === 0 
-        ? './webcontainer-stubs/async-storage-patch.js' 
-        : `${'../'.repeat(depth)}webcontainer-stubs/async-storage-patch.js`;
-
       setTerminalOutput((prev) => [...prev, `\n$ ${cmd} ${args.join(' ')}`]);
       const devProcess = await instance.spawn(cmd, args, {
         cwd: appDir,
-        env: {
-          ...DEV_SERVER_ENV,
-          NODE_OPTIONS: `${DEV_SERVER_ENV.NODE_OPTIONS || ''} --require ${relativePatchPath}`.trim(),
-        },
+        env: buildPatchedEnv(appDir),
       });
 
       devProcess.output.pipeTo(
@@ -902,7 +475,8 @@ export function useWebContainerSandbox() {
     }
 
     if (!container) {
-      const errMsg = 'Development environment is not initialized yet. Please wait for it to boot and try again.';
+      const errMsg =
+        'Development environment is not initialized yet. Please wait for it to boot and try again.';
       setSandboxError(errMsg);
       throw new Error(errMsg);
     }
@@ -986,6 +560,59 @@ export function useWebContainerSandbox() {
     }
   };
 
+  const refreshProjectFiles = async (projectId: string) => {
+    if (!projectId || !webContainer) return;
+
+    setIsRefreshingFiles(true);
+    setHydrationStatus('Refreshing files...');
+    try {
+      const res = await fetch(
+        `/api/orchestrator/discovery/project-bundle?projectId=${projectId}`
+      );
+      if (!res.ok) throw new Error('Failed to fetch bundle');
+      const { bundle } = await res.json();
+
+      setHydrationStatus('Writing updated files...');
+
+      const writeTree = async (tree: any, parentPath = '') => {
+        for (const name in tree) {
+          const item = tree[name];
+          const currentPath = parentPath ? `${parentPath}/${name}` : name;
+          if (item.directory) {
+            try {
+              await webContainer.fs.mkdir(currentPath, { recursive: true });
+            } catch (_) {}
+            await writeTree(item.directory, currentPath);
+          } else if (item.file) {
+            await webContainer.fs.writeFile(currentPath, item.file.contents);
+          }
+        }
+      };
+
+      await writeTree(bundle);
+
+      // Re-flatten the tree to sync file list in sidebar
+      const updatedFiles = flattenTree(bundle);
+      setWrittenFiles(updatedFiles);
+
+      // Re-read selected file if any is currently active to refresh the code editor view
+      if (selectedFile) {
+        try {
+          const content = await webContainer.fs.readFile(selectedFile, 'utf-8');
+          setFileContent(content);
+        } catch (_) {}
+      }
+
+      toast.success('Files refreshed successfully!');
+    } catch (err: any) {
+      console.error('File refresh failed:', err);
+      toast.error('Failed to refresh files.');
+    } finally {
+      setIsRefreshingFiles(false);
+      setHydrationStatus('');
+    }
+  };
+
   return {
     isSandboxReady,
     webContainer,
@@ -997,6 +624,7 @@ export function useWebContainerSandbox() {
     sandboxError,
     isHydrating,
     hydrationStatus,
+    isRefreshingFiles,
     selectedFile,
     fileContent,
     viewMode,
@@ -1007,6 +635,7 @@ export function useWebContainerSandbox() {
     syncFilesystem,
     handleWriteFile,
     hydrateProject,
+    refreshProjectFiles,
     setFileContent,
     setWrittenFiles,
   };

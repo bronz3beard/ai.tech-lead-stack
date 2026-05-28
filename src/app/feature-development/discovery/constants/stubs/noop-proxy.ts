@@ -67,6 +67,7 @@ const stub = new Proxy(noop, {
   get: (t, p) => {
     if (p === 'workspaceRoot') return getRoot();
     if (p === 'createGlobPatternsForDependencies') return () => [];
+    if (p === 'withNx' || p === 'withSentryConfig') return (config) => config;
     return noop;
   } 
 });
@@ -74,6 +75,8 @@ module.exports = stub;
 module.exports.default = stub;
 module.exports.workspaceRoot = getRoot();
 module.exports.createGlobPatternsForDependencies = () => [];
+module.exports.withNx = (config) => config;
+module.exports.withSentryConfig = (config) => config;
 `;
 
 /**

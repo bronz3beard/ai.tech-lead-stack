@@ -74,7 +74,7 @@ export function buildPackageJsonStub(packageName: string): string {
   };
 
   if (packageName === 'nx') {
-    manifest.bin = { nx: '../bin/nx.js' };
+    manifest.bin = { nx: './bin/nx.js' };
   }
 
   return JSON.stringify(manifest, null, 2);

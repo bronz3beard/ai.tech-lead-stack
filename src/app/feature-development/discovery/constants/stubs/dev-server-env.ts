@@ -31,9 +31,11 @@ export const DEV_SERVER_ENV: Record<string, string> = {
   // Enable polling for webpack's watchpack (used by Next.js HMR).
   WATCHPACK_POLLING: '1',
 
-  // Increase the Node.js heap and stack to handle large monorepo trees that
+  // Increase the Node.js heap to handle large monorepo trees that
   // would otherwise hit V8's default limits in the WASM sandbox.
-  NODE_OPTIONS: '--max-old-space-size=4096 --stack-size=8000',
+  // Note: We intentionally avoid setting custom --stack-size here, as custom V8 call stacks
+  // exceed native WebAssembly execution limits and trigger RangeError VFS crashes.
+  NODE_OPTIONS: '--max-old-space-size=4096',
 
   // Disable OpenTelemetry fetch tracing — outbound OTEL requests fail in the
   // sandbox and produce noisy error logs.
@@ -66,4 +68,9 @@ export const DEV_SERVER_ENV: Record<string, string> = {
   // Disable the Nx daemon — it spawns a persistent background process that
   // cannot survive in the WebContainer process model.
   NX_DAEMON: 'false',
+
+  // Disable React Fast Refresh/HMR client-side code instrumentation and WebSocket
+  // connection channels. In iframe environments like WebContainers, HMR socket
+  // connection loss triggers infinite client-side full-page reload loops.
+  FAST_REFRESH: 'false',
 };
