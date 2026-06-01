@@ -48,31 +48,51 @@ export async function syncTracesFromLangfuse(limit?: number, force = false) {
     console.log(`[AnalyticsSync] Starting sync... limit: ${limit || 'ALL'}`);
     const authHeader = `Basic ${Buffer.from(`${publicKey}:${secretKey}`).toString('base64')}`;
 
-    // Use enhanced fetchAllPages utility
+    // Query Observations API v2
     const queryParams = new URLSearchParams();
-    queryParams.set('orderBy', 'timestamp.desc');
+    queryParams.set('type', 'GENERATION');
+    queryParams.set('fields', 'core,basic,trace_context,usage,metadata,model');
 
-    const traces = await fetchAllPages<any>(
+    // Get the timestamp of the latest event in our DB to keep queries bounded
+    const latestEvent = await prisma.analyticsEvent.findFirst({
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
+    });
+
+    let fromStartTime: string;
+    if (latestEvent) {
+      // Buffer by 1 hour to prevent missing any events in transit
+      fromStartTime = new Date(latestEvent.createdAt.getTime() - 60 * 60 * 1000).toISOString();
+    } else {
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+      fromStartTime = ninetyDaysAgo.toISOString();
+    }
+    queryParams.set('fromStartTime', fromStartTime);
+
+    console.log(`[AnalyticsSync] Fetching generations since ${fromStartTime}`);
+
+    const observations = await fetchAllPages<any>(
       baseUrl,
-      '/api/public/traces',
+      '/api/public/v2/observations',
       queryParams,
       authHeader,
       limit
     );
     console.log(
-      `[AnalyticsSync] Fetched ${traces.length} total traces from Langfuse.`
+      `[AnalyticsSync] Fetched ${observations.length} total observations from Langfuse.`
     );
 
     let syncedCount = 0;
     console.log(
-      `[AnalyticsSync] Processing ${traces.length} traces from Langfuse...`
+      `[AnalyticsSync] Processing ${observations.length} observations from Langfuse...`
     );
 
     // 1. Batch resolve users by email
     const emails = [
       ...new Set(
-        traces
-          .map((t: any) => t.userId)
+        observations
+          .map((o: any) => o.userId)
           .filter((id: any) => id && typeof id === 'string' && id.includes('@'))
       ),
     ] as string[];
@@ -88,8 +108,10 @@ export async function syncTracesFromLangfuse(limit?: number, force = false) {
       }
     }
 
-    // 2. Batch resolve existing traces
-    const traceIds = traces.map((t: any) => t.id).filter(Boolean) as string[];
+    // 2. Batch resolve existing traces by parent trace ID (langfuseTraceId in DB)
+    const traceIds = [
+      ...new Set(observations.map((o: any) => o.traceId).filter(Boolean)),
+    ] as string[];
     const existingEventsLookup = new Map<string, string>();
 
     if (traceIds.length > 0) {
@@ -107,39 +129,63 @@ export async function syncTracesFromLangfuse(limit?: number, force = false) {
     // 3. Prepare batch operations
     const operations: any[] = [];
 
-    for (const trace of traces) {
+    for (const observation of observations) {
+      // Skip if traceId or traceName is missing
+      if (!observation.traceId) continue;
+
+      const tags = observation.trace_context?.tags || [];
       const rawProject =
-        trace.metadata?.projectName ||
-        trace.metadata?.projectId ||
-        trace.tags?.find((t: string) => !t.includes(':')) ||
+        observation.metadata?.projectName ||
+        observation.metadata?.projectId ||
+        tags.find((t: string) => !t.includes(':')) ||
         'tech-lead-stack';
 
       const normalizedProject = normalizeProjectName(rawProject);
+      
+      const traceName = observation.trace_context?.traceName || '';
       const normalizedSkill = normalizeSkillName(
-        trace.name?.replace('skill:', '') || 'unknown'
+        traceName.replace('skill:', '') ||
+        observation.name?.replace('generation:', '').replace('error:', '') ||
+        'unknown'
       );
 
       let resolvedUserId: string | null = null;
-      if (trace.userId && typeof trace.userId === 'string' && trace.userId.includes('@')) {
-        resolvedUserId = userLookup.get(trace.userId) || null;
+      if (observation.userId && typeof observation.userId === 'string' && observation.userId.includes('@')) {
+        resolvedUserId = userLookup.get(observation.userId) || null;
       }
 
-      const existingId = trace.id ? existingEventsLookup.get(trace.id) : undefined;
+      const existingId = existingEventsLookup.get(observation.traceId);
+
+      // Extract duration from observation startTime and endTime if available
+      let duration = 0;
+      if (observation.startTime && observation.endTime) {
+        duration = (new Date(observation.endTime).getTime() - new Date(observation.startTime).getTime()) / 1000;
+        if (duration < 0) duration = 0;
+      }
+
+      // Parse tokens and cost
+      const promptTokens = observation.usage?.input || observation.usage?.promptTokens || 0;
+      const completionTokens = observation.usage?.output || observation.usage?.completionTokens || 0;
+      const totalTokens = observation.usage?.total || observation.usage?.totalTokens || (promptTokens + completionTokens);
+      const totalCost = observation.usage?.totalPrice
+        ? parseFloat(observation.usage.totalPrice)
+        : (observation.usage?.totalCost || 0);
 
       const eventData = {
         skillName: normalizedSkill,
         projectName: normalizedProject,
         userId: resolvedUserId,
-        model: trace.metadata?.model || 'unknown',
-        agent: trace.metadata?.agent || 'unknown',
-        duration: trace.duration || 0,
-        status: trace.metadata?.status || 'SUCCESS',
-        promptTokens: trace.usage?.promptTokens || 0,
-        completionTokens: trace.usage?.completionTokens || 0,
-        totalTokens: trace.usage?.totalTokens || 0,
-        totalCost: trace.usage?.totalCost || 0,
+        model: observation.model || 'unknown',
+        agent: observation.metadata?.agent || 'unknown',
+        duration: duration,
+        status: observation.metadata?.status || 'SUCCESS',
+        promptTokens,
+        completionTokens,
+        totalTokens,
+        totalCost,
         metadata: {
-          ...trace.metadata,
+          ...observation.metadata,
+          traceContext: observation.trace_context,
           syncedAt: new Date().toISOString(),
           isSynced: true,
         },
@@ -157,8 +203,8 @@ export async function syncTracesFromLangfuse(limit?: number, force = false) {
           prisma.analyticsEvent.create({
             data: {
               ...eventData,
-              langfuseTraceId: trace.id,
-              createdAt: new Date(trace.timestamp),
+              langfuseTraceId: observation.traceId,
+              createdAt: new Date(observation.startTime || Date.now()),
             },
           })
         );
@@ -172,7 +218,7 @@ export async function syncTracesFromLangfuse(limit?: number, force = false) {
     }
 
     console.log(
-      `[AnalyticsSync] Sync completed. Persisted ${syncedCount} new records.`
+      `[AnalyticsSync] Sync completed. Persisted ${syncedCount} records.`
     );
     lastSyncTime = Date.now();
     return { count: syncedCount, status: 'SUCCESS' };

@@ -56,6 +56,28 @@
  * Node.js `--require` only supports CJS preloaders.
  */
 export const ASYNC_STORAGE_PATCH_STUB = `
+// ─── Layer 2: Process-Level Crash Guard ────────────────────────────────────────
+// WebContainer's builtins module bypasses our fs.readFileSync patch entirely.
+// The WASM VFS throws RangeError from DataView.prototype.setInt32 when reading
+// large files synchronously, and since our try/catch wrapper never executes,
+// the error propagates as an uncaught exception that kills the process.
+// This handler catches it at the process level as a nuclear safety net.
+process.on('uncaughtException', function(err) {
+  var isDataViewOverflow = err && (
+    err.name === 'RangeError' ||
+    (err.message && String(err.message).indexOf('DataView') !== -1) ||
+    (err.message && String(err.message).indexOf('bounds') !== -1)
+  );
+  if (isDataViewOverflow) {
+    console.warn('[WebContainer Patch] Caught fatal DataView RangeError at process level — suppressed to prevent crash:', err.message || err);
+    return; // Swallow — process survives
+  }
+  // Re-throw non-DataView errors so normal crash behavior is preserved.
+  // Using console.error + process.exit instead of throw to avoid infinite recursion.
+  console.error('[WebContainer Patch] Uncaught exception (non-DataView):', err);
+  process.exit(1);
+});
+
 let asyncHooks = null;
 try {
   asyncHooks = require('async_hooks');
@@ -188,7 +210,7 @@ try {
   const fs = require('fs');
   const path = require('path');
   const preloadedCache = new Map();
-  const SIZE_THRESHOLD = 512 * 1024; // 512KB — files above this are at high risk of VFS overflow
+  const SIZE_THRESHOLD = 128 * 1024; // 128KB — files above this are at high risk of VFS overflow
   const nameTargets = ['.wasm', '.node'];
 
   async function findAndPreload(dir) {
@@ -197,7 +219,8 @@ try {
       for (const file of files) {
         const fullPath = path.join(dir, file.name);
         if (file.isDirectory()) {
-          if (!['.git', '.next', 'dist', '.pnpm-store', 'public', 'generated', '.cache'].includes(file.name)) {
+          // Do not exclude 'generated' as it may contain large GraphQL codegen files needed by the compiler.
+          if (!['.git', '.next', 'dist', '.pnpm-store', 'public', '.cache'].includes(file.name)) {
             findAndPreload(fullPath);
           }
         } else {
@@ -235,44 +258,88 @@ try {
   // Also preload from the project root (covers libs/, packages/, etc.)
   findAndPreload(process.cwd());
 
+  function formatResult(buf, options) {
+    if (options) {
+      if (typeof options === 'string') {
+        return buf.toString(options);
+      } else if (options.encoding) {
+        return buf.toString(options.encoding);
+      }
+    }
+    return buf;
+  }
+
   // Prototype-patch fs.readFileSync to instantly intercept and serve from the async preloaded cache.
-  // If the file is not preloaded and the original readFileSync throws a RangeError (VFS overflow),
-  // we catch it and return a graceful fallback instead of crashing the process.
+  // If a file is too large and has not been preloaded yet, we read it in chunks of 64KB.
+  // This avoids overflowing the WebContainer sync-bridge SharedArrayBuffer.
   const originalReadFileSync = fs.readFileSync;
   fs.readFileSync = function(filePath, options) {
+    let resolved = '';
     try {
-      const resolved = path.resolve(typeof filePath === 'string' ? filePath : filePath.toString());
+      resolved = path.resolve(typeof filePath === 'string' ? filePath : filePath.toString());
       if (preloadedCache.has(resolved)) {
-        console.log('[WebContainer Patch] Intercepted sync read, returning preloaded memory buffer for:', resolved);
         const buf = preloadedCache.get(resolved);
-        if (options) {
-          if (typeof options === 'string') {
-            return buf.toString(options);
-          } else if (options.encoding) {
-            return buf.toString(options.encoding);
-          }
-        }
-        return buf;
+        return formatResult(buf, options);
       }
     } catch (e) {}
+
+    // Chunked reader fallback to prevent DataView RangeError on large un-cached files
+    try {
+      const stats = fs.statSync(filePath);
+      if (stats.isFile() && stats.size > SIZE_THRESHOLD) {
+        console.log('[WebContainer Patch] Sync reading large file in chunks to prevent VFS crash:', resolved, '(' + stats.size + ' bytes)');
+        const fd = fs.openSync(filePath, 'r');
+        try {
+          const chunks = [];
+          const buffer = Buffer.alloc(64 * 1024); // 64KB chunks
+          let totalBytesRead = 0;
+          while (totalBytesRead < stats.size) {
+            const toRead = Math.min(buffer.length, stats.size - totalBytesRead);
+            const bytesRead = fs.readSync(fd, buffer, 0, toRead, totalBytesRead);
+            if (bytesRead === 0) {
+              break;
+            }
+            const chunk = Buffer.alloc(bytesRead);
+            buffer.copy(chunk, 0, 0, bytesRead);
+            chunks.push(chunk);
+            totalBytesRead += bytesRead;
+          }
+          const buf = Buffer.concat(chunks);
+          preloadedCache.set(resolved, buf);
+          return formatResult(buf, options);
+        } finally {
+          try { fs.closeSync(fd); } catch (e) {}
+        }
+      }
+    } catch (err) {
+      // If chunked reading fails for any reason, log only if not a normal missing file (ENOENT/ENOTDIR)
+      if (err && err.code !== 'ENOENT' && err.code !== 'ENOTDIR') {
+        console.warn('[WebContainer Patch] Chunked read failed/skipped for:', resolved, err.message);
+      }
+    }
 
     try {
       return originalReadFileSync.apply(this, arguments);
     } catch (err) {
       // Catch the specific RangeError that crashes WebContainer's WASM VFS sync bridge
       // when reading files too large for the SharedArrayBuffer DataView.
-      if (err instanceof RangeError && err.message && err.message.includes('DataView')) {
-        const resolvedPath = typeof filePath === 'string' ? filePath : String(filePath);
-        console.warn('[WebContainer Patch] RangeError caught in readFileSync for:', resolvedPath, '— returning empty fallback to prevent crash.');
+      const isRangeError = err && (
+        err instanceof RangeError || 
+        err.name === 'RangeError' || 
+        (err.message && String(err.message).includes('DataView'))
+      );
+      if (isRangeError) {
+        console.warn('[WebContainer Patch] RangeError caught in readFileSync for:', resolved || filePath, '— returning empty fallback to prevent crash.');
 
         // Attempt async preload for next time this file is requested
-        const absPath = path.resolve(resolvedPath);
-        fs.promises.readFile(absPath)
-          .then(buf => {
-            preloadedCache.set(absPath, buf);
-            console.log('[WebContainer Patch] Late-preloaded file after RangeError:', absPath, '(' + buf.length + ' bytes)');
-          })
-          .catch(() => {});
+        if (resolved) {
+          fs.promises.readFile(resolved)
+            .then(buf => {
+              preloadedCache.set(resolved, buf);
+              console.log('[WebContainer Patch] Late-preloaded file after RangeError:', resolved, '(' + buf.length + ' bytes)');
+            })
+            .catch(() => {});
+        }
 
         // Return appropriate empty fallback based on requested encoding
         if (options) {

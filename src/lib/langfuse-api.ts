@@ -67,11 +67,19 @@ export async function fetchAllPages<T>(
 ): Promise<T[]> {
   const allData: T[] = [];
   let currentPage = 1;
+  let nextCursor: string | null = null;
   const batchSize = 100;
 
   while (true) {
     const params = new URLSearchParams(queryParams.toString());
-    params.set('page', currentPage.toString());
+    
+    if (nextCursor) {
+      params.set('cursor', nextCursor);
+    } else if (endpoint.includes('/v2/')) {
+      // For v2 endpoints, don't set a default page parameter
+    } else {
+      params.set('page', currentPage.toString());
+    }
     
     let currentBatchLimit = batchSize;
     if (totalLimit) {
@@ -107,7 +115,7 @@ export async function fetchAllPages<T>(
       return allData; // Be resilient: return partial data instead of crashing
     }
 
-    const json = (await response.json()) as LangfusePaginatedResponse<T>;
+    const json = (await response.json()) as any;
 
     if (json.data && Array.isArray(json.data)) {
       if (json.data.length === 0) {
@@ -123,12 +131,22 @@ export async function fetchAllPages<T>(
       break;
     }
 
-    if (!json.meta || json.meta.page >= json.meta.totalPages) {
+    if (json.meta) {
+      const cursor = json.meta.nextCursor || json.meta.cursor;
+      if (cursor) {
+        nextCursor = cursor;
+      } else if (json.meta.page !== undefined && json.meta.totalPages !== undefined) {
+        if (json.meta.page >= json.meta.totalPages) {
+          break;
+        }
+        currentPage++;
+      } else {
+        break;
+      }
+    } else {
       break;
     }
 
-    currentPage++;
-    
     // Add a 250ms delay between pages to be gentle with Langfuse
     await sleep(250);
   }
