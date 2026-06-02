@@ -56,6 +56,13 @@
  * Node.js `--require` only supports CJS preloaders.
  */
 export const ASYNC_STORAGE_PATCH_STUB = `
+// Propagate this patch to all child processes automatically
+if (!process.env.NODE_OPTIONS) {
+  process.env.NODE_OPTIONS = '--require /tmp/async-storage-patch.js';
+} else if (process.env.NODE_OPTIONS.indexOf('async-storage-patch.js') === -1) {
+  process.env.NODE_OPTIONS += ' --require /tmp/async-storage-patch.js';
+}
+
 // ─── Layer 2: Process-Level Crash Guard ────────────────────────────────────────
 // WebContainer's builtins module bypasses our fs.readFileSync patch entirely.
 // The WASM VFS throws RangeError from DataView.prototype.setInt32 when reading
@@ -182,6 +189,97 @@ try {
   console.error('[WebContainer Patch] Failed to patch AsyncLocalStorage prototype:', e);
 }
 
+let workerThreadsPatched = null;
+try {
+  const wt = require('worker_threads');
+  const OriginalWorker = wt.Worker;
+  class PatchedWorker extends OriginalWorker {
+    constructor(filename, options) {
+      const opts = options || {};
+      const execArgv = opts.execArgv ? [...opts.execArgv] : [...process.execArgv];
+      let hasRequire = false;
+      for (let i = 0; i < execArgv.length; i++) {
+        if (execArgv[i] === '--require' || execArgv[i] === '-r') {
+          if (execArgv[i+1] && execArgv[i+1].includes('async-storage-patch.js')) {
+            hasRequire = true;
+            break;
+          }
+        }
+      }
+      if (!hasRequire) {
+        execArgv.push('--require', '/tmp/async-storage-patch.js');
+      }
+      opts.execArgv = execArgv;
+      super(filename, opts);
+    }
+  }
+  Object.setPrototypeOf(PatchedWorker, OriginalWorker);
+  wt.Worker = PatchedWorker;
+  workerThreadsPatched = wt;
+  console.log('[WebContainer Patch] Intercepted worker_threads.Worker successfully.');
+} catch (e) {
+  // worker_threads not available
+}
+
+let childProcessPatched = null;
+try {
+  const cp = require('child_process');
+  
+  const originalSpawn = cp.spawn;
+  cp.spawn = function(command, args, options) {
+    let commandStr = String(command);
+    let patchedArgs = args ? [...args] : [];
+    let patchedOptions = options ? { ...options } : {};
+    
+    if (commandStr === 'node' || commandStr === 'nodejs' || commandStr === process.execPath) {
+      let hasRequire = false;
+      for (let i = 0; i < patchedArgs.length; i++) {
+        if (patchedArgs[i] === '--require' || patchedArgs[i] === '-r') {
+          if (patchedArgs[i+1] && patchedArgs[i+1].includes('async-storage-patch.js')) {
+            hasRequire = true;
+            break;
+          }
+        }
+      }
+      if (!hasRequire) {
+        let scriptIndex = patchedArgs.findIndex(arg => !arg.startsWith('-'));
+        if (scriptIndex === -1) {
+          patchedArgs.push('--require', '/tmp/async-storage-patch.js');
+        } else {
+          patchedArgs.splice(scriptIndex, 0, '--require', '/tmp/async-storage-patch.js');
+        }
+      }
+    }
+    return originalSpawn.call(this, command, patchedArgs, patchedOptions);
+  };
+  
+  const originalFork = cp.fork;
+  cp.fork = function(modulePath, args, options) {
+    const opts = options ? { ...options } : {};
+    const execArgv = opts.execArgv ? [...opts.execArgv] : [...process.execArgv];
+    
+    let hasRequire = false;
+    for (let i = 0; i < execArgv.length; i++) {
+      if (execArgv[i] === '--require' || execArgv[i] === '-r') {
+        if (execArgv[i+1] && execArgv[i+1].includes('async-storage-patch.js')) {
+          hasRequire = true;
+          break;
+        }
+      }
+    }
+    if (!hasRequire) {
+      execArgv.push('--require', '/tmp/async-storage-patch.js');
+    }
+    opts.execArgv = execArgv;
+    return originalFork.call(this, modulePath, args, opts);
+  };
+  
+  childProcessPatched = cp;
+  console.log('[WebContainer Patch] Intercepted child_process.spawn and fork successfully.');
+} catch (e) {
+  // child_process not available
+}
+
 // Intercept Module.require so that any dynamic require('async_hooks') or
 // require('node:async_hooks') call — including those inside node_modules —
 // receives the already-patched asyncHooks object rather than the raw module.
@@ -192,12 +290,19 @@ try {
     if (id === 'async_hooks' || id === 'node:async_hooks') {
       return asyncHooks;
     }
+    if ((id === 'worker_threads' || id === 'node:worker_threads') && workerThreadsPatched) {
+      return workerThreadsPatched;
+    }
+    if ((id === 'child_process' || id === 'node:child_process') && childProcessPatched) {
+      return childProcessPatched;
+    }
     return originalRequire.call(this, id);
   };
-  console.log('[WebContainer Patch] Intercepted Module require for async_hooks');
+  console.log('[WebContainer Patch] Intercepted Module require for async_hooks, worker_threads, child_process');
 } catch (e) {
   console.error('[WebContainer Patch] Failed to intercept Module require:', e);
 }
+
 
 // Large File Preloader & fs.readFileSync cache wrapper.
 // This completely solves the RangeError: Offset is outside the bounds of the DataView crash
@@ -210,7 +315,7 @@ try {
   const fs = require('fs');
   const path = require('path');
   const preloadedCache = new Map();
-  const SIZE_THRESHOLD = 128 * 1024; // 128KB — files above this are at high risk of VFS overflow
+  const SIZE_THRESHOLD = 32 * 1024; // 32KB — files above this are at high risk of VFS overflow
   const nameTargets = ['.wasm', '.node'];
 
   async function findAndPreload(dir) {
@@ -253,10 +358,39 @@ try {
     } catch (e) {}
   }
 
-  // Start background preloading from the node_modules directory
-  findAndPreload(path.join(process.cwd(), 'node_modules'));
-  // Also preload from the project root (covers libs/, packages/, etc.)
-  findAndPreload(process.cwd());
+  // Prioritize preloading known large system/CLI files
+  const priorityTargets = [
+    '/bin/jsh',
+    '/usr/local/lib/node_modules/npm/dist/common.js',
+    '/usr/local/lib/node_modules/npm/bin/npm-cli.js'
+  ];
+  for (const target of priorityTargets) {
+    fs.promises.readFile(target)
+      .then(buf => {
+        const resolved = path.resolve(target);
+        preloadedCache.set(resolved, buf);
+        console.log('[WebContainer Patch] Prioritized preload complete:', resolved, '(' + buf.length + ' bytes)');
+      })
+      .catch(() => {});
+  }
+
+  // Sleep the main thread for 50ms to allow the priority preloads to complete
+  try {
+    const sab = new SharedArrayBuffer(4);
+    const int32 = new Int32Array(sab);
+    Atomics.wait(int32, 0, 0, 50);
+  } catch (e) {}
+
+  let isMainThread = true;
+  try { isMainThread = require('worker_threads').isMainThread; } catch(e) {}
+  
+  if (isMainThread !== false) {
+    // Start background preloading from system directories only in main thread
+    findAndPreload('/bin');
+    findAndPreload('/usr/local/lib/node_modules');
+    // Also preload from the project root (covers libs/, packages/, etc.)
+    findAndPreload(process.cwd());
+  }
 
   function formatResult(buf, options) {
     if (options) {
@@ -272,85 +406,184 @@ try {
   // Prototype-patch fs.readFileSync to instantly intercept and serve from the async preloaded cache.
   // If a file is too large and has not been preloaded yet, we read it in chunks of 64KB.
   // This avoids overflowing the WebContainer sync-bridge SharedArrayBuffer.
+
   const originalReadFileSync = fs.readFileSync;
   fs.readFileSync = function(filePath, options) {
     let resolved = '';
+    let isFd = typeof filePath === 'number';
+    let fd = isFd ? filePath : null;
+
     try {
-      resolved = path.resolve(typeof filePath === 'string' ? filePath : filePath.toString());
-      if (preloadedCache.has(resolved)) {
-        const buf = preloadedCache.get(resolved);
-        return formatResult(buf, options);
+      if (!isFd) {
+        resolved = path.resolve(typeof filePath === 'string' ? filePath : filePath.toString());
+        if (preloadedCache.has(resolved)) {
+          return formatResult(preloadedCache.get(resolved), options);
+        }
       }
     } catch (e) {}
 
     // Chunked reader fallback to prevent DataView RangeError on large un-cached files
     try {
-      const stats = fs.statSync(filePath);
-      if (stats.isFile() && stats.size > SIZE_THRESHOLD) {
-        console.log('[WebContainer Patch] Sync reading large file in chunks to prevent VFS crash:', resolved, '(' + stats.size + ' bytes)');
-        const fd = fs.openSync(filePath, 'r');
+      const stats = isFd ? fs.fstatSync(fd) : fs.statSync(filePath);
+      if ((stats.isFile() || isFd) && stats.size > SIZE_THRESHOLD) {
+        console.log('[WebContainer Patch] Sync reading large file in chunks to prevent VFS crash:', resolved || ('FD:'+fd), '(' + stats.size + ' bytes)');
+        let openedFd = false;
+        if (!isFd) {
+          fd = fs.openSync(filePath, 'r');
+          openedFd = true;
+        }
         try {
           const chunks = [];
           const buffer = Buffer.alloc(64 * 1024); // 64KB chunks
           let totalBytesRead = 0;
           while (totalBytesRead < stats.size) {
             const toRead = Math.min(buffer.length, stats.size - totalBytesRead);
-            const bytesRead = fs.readSync(fd, buffer, 0, toRead, totalBytesRead);
-            if (bytesRead === 0) {
-              break;
-            }
+            const bytesRead = fs.readSync(fd, buffer, 0, toRead, null);
+            if (bytesRead === 0) break;
             const chunk = Buffer.alloc(bytesRead);
             buffer.copy(chunk, 0, 0, bytesRead);
             chunks.push(chunk);
             totalBytesRead += bytesRead;
           }
           const buf = Buffer.concat(chunks);
-          preloadedCache.set(resolved, buf);
+          if (resolved) preloadedCache.set(resolved, buf);
           return formatResult(buf, options);
         } finally {
-          try { fs.closeSync(fd); } catch (e) {}
+          if (openedFd) {
+            try { fs.closeSync(fd); } catch (e) {}
+          }
         }
       }
     } catch (err) {
-      // If chunked reading fails for any reason, log only if not a normal missing file (ENOENT/ENOTDIR)
       if (err && err.code !== 'ENOENT' && err.code !== 'ENOTDIR') {
-        console.warn('[WebContainer Patch] Chunked read failed/skipped for:', resolved, err.message);
+        console.warn('[WebContainer Patch] Chunked read failed/skipped for:', resolved || ('FD:'+fd), err.message);
       }
     }
 
     try {
       return originalReadFileSync.apply(this, arguments);
     } catch (err) {
-      // Catch the specific RangeError that crashes WebContainer's WASM VFS sync bridge
-      // when reading files too large for the SharedArrayBuffer DataView.
       const isRangeError = err && (
         err instanceof RangeError || 
         err.name === 'RangeError' || 
         (err.message && String(err.message).includes('DataView'))
       );
       if (isRangeError) {
-        console.warn('[WebContainer Patch] RangeError caught in readFileSync for:', resolved || filePath, '— returning empty fallback to prevent crash.');
-
-        // Attempt async preload for next time this file is requested
-        if (resolved) {
-          fs.promises.readFile(resolved)
-            .then(buf => {
-              preloadedCache.set(resolved, buf);
-              console.log('[WebContainer Patch] Late-preloaded file after RangeError:', resolved, '(' + buf.length + ' bytes)');
-            })
-            .catch(() => {});
+        console.warn('[WebContainer Patch] RangeError caught in readFileSync for:', resolved || ('FD:'+fd), '— falling back to chunked read.');
+        try {
+          const stats = isFd ? fs.fstatSync(fd) : fs.statSync(filePath);
+          let openedFd = false;
+          if (!isFd) { fd = fs.openSync(filePath, 'r'); openedFd = true; }
+          try {
+            const chunks = [];
+            const buffer = Buffer.alloc(64 * 1024);
+            let totalBytesRead = 0;
+            while (totalBytesRead < stats.size) {
+              const toRead = Math.min(buffer.length, stats.size - totalBytesRead);
+              const bytesRead = fs.readSync(fd, buffer, 0, toRead, null);
+              if (bytesRead === 0) break;
+              const chunk = Buffer.alloc(bytesRead);
+              buffer.copy(chunk, 0, 0, bytesRead);
+              chunks.push(chunk);
+              totalBytesRead += bytesRead;
+            }
+            const buf = Buffer.concat(chunks);
+            if (resolved) preloadedCache.set(resolved, buf);
+            return formatResult(buf, options);
+          } finally {
+            if (openedFd) { try { fs.closeSync(fd); } catch (e) {} }
+          }
+        } catch (fallbackErr) {
+          console.warn('[WebContainer Patch] Fallback chunked read failed:', fallbackErr.message);
+          if (options && (typeof options === 'string' || options.encoding)) return '';
+          return Buffer.alloc(0);
         }
+      }
+      throw err;
+    }
+  };
 
-        // Return appropriate empty fallback based on requested encoding
-        if (options) {
-          if (typeof options === 'string' || (options && options.encoding)) {
-            return '';
+  const originalReadFileAsync = fs.promises.readFile;
+  fs.promises.readFile = async function(filePath, options) {
+    let resolved = '';
+    let isFd = typeof filePath === 'number';
+    let fd = isFd ? filePath : null;
+
+    if (!isFd) {
+      try {
+        resolved = path.resolve(typeof filePath === 'string' ? filePath : filePath.toString());
+        if (preloadedCache.has(resolved)) {
+          return formatResult(preloadedCache.get(resolved), options);
+        }
+      } catch (e) {}
+    }
+
+    try {
+      const stats = isFd ? await fs.promises.fstat(fd) : await fs.promises.stat(filePath);
+      if ((stats.isFile() || isFd) && stats.size > SIZE_THRESHOLD) {
+        console.log('[WebContainer Patch] Async reading large file in chunks to prevent VFS crash:', resolved || ('FD:'+fd), '(' + stats.size + ' bytes)');
+        let openedFd = false;
+        let fileHandle = null;
+        if (!isFd) {
+          fileHandle = await fs.promises.open(filePath, 'r');
+          fd = fileHandle.fd;
+          openedFd = true;
+        }
+        try {
+          const chunks = [];
+          const buffer = Buffer.alloc(64 * 1024);
+          let totalBytesRead = 0;
+          while (totalBytesRead < stats.size) {
+            const toRead = Math.min(buffer.length, stats.size - totalBytesRead);
+            const { bytesRead } = await (fileHandle ? fileHandle.read(buffer, 0, toRead, null) : new Promise((res, rej) => fs.read(fd, buffer, 0, toRead, null, (err, br) => err ? rej(err) : res({bytesRead: br}))));
+            if (bytesRead === 0) break;
+            const chunk = Buffer.alloc(bytesRead);
+            buffer.copy(chunk, 0, 0, bytesRead);
+            chunks.push(chunk);
+            totalBytesRead += bytesRead;
+          }
+          const buf = Buffer.concat(chunks);
+          if (resolved) preloadedCache.set(resolved, buf);
+          return formatResult(buf, options);
+        } finally {
+          if (openedFd && fileHandle) {
+            try { await fileHandle.close(); } catch (e) {}
           }
         }
+      }
+    } catch (err) {
+      if (err && err.code !== 'ENOENT' && err.code !== 'ENOTDIR') {
+        console.warn('[WebContainer Patch] Chunked async read failed/skipped for:', resolved || ('FD:'+fd), err.message);
+      }
+    }
+
+    try {
+      return await originalReadFileAsync.apply(this, arguments);
+    } catch (err) {
+      const isRangeError = err && (err instanceof RangeError || err.name === 'RangeError' || (err.message && String(err.message).includes('DataView')));
+      if (isRangeError) {
+        console.warn('[WebContainer Patch] RangeError caught in async readFile for:', resolved || ('FD:'+fd), '— returning empty fallback to prevent crash.');
+        if (options && (typeof options === 'string' || options.encoding)) return '';
         return Buffer.alloc(0);
       }
       throw err;
     }
+  };
+
+  try {
+    const fsPromises = require('fs/promises');
+    fsPromises.readFile = fs.promises.readFile;
+  } catch(e) {}
+
+  const originalReadFileCb = fs.readFile;
+  fs.readFile = function(filePath, options, callback) {
+    if (typeof options === 'function') {
+      callback = options;
+      options = {};
+    }
+    fs.promises.readFile(filePath, options)
+      .then(res => callback(null, res))
+      .catch(err => callback(err));
   };
   console.log('[WebContainer Patch] Registered fs.readFileSync large-file stabilizer successfully.');
 } catch (e) {

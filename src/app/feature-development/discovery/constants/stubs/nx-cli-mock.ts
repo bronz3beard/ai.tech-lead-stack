@@ -77,7 +77,11 @@ if (args[0] === 'build' || args[0] === 'run') {
       // Vite builds are the only executor that can run inside WebContainer
       if (targetConfig.executor === '@nx/vite:build') {
         console.log('[Mock NX CLI] Running Vite compiler in ' + dir + '...');
-        const proc = spawn('npx', ['vite', 'build'], {
+        const isPnpm = fs.existsSync(path.join(process.cwd(), 'pnpm-lock.yaml')) || fs.existsSync(path.join(process.cwd(), 'pnpm-workspace.yaml'));
+        const cmd = isPnpm ? 'pnpm' : 'npx';
+        const spawnArgs = isPnpm ? ['exec', 'vite', 'build'] : ['vite', 'build'];
+        console.log('[Mock NX CLI] Running Vite compiler in ' + dir + ' via ' + cmd + '...');
+        const proc = spawn(cmd, spawnArgs, {
           cwd: dir,
           stdio: 'inherit',
           shell: true,

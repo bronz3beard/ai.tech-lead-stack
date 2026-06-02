@@ -25,6 +25,21 @@ export async function sanitizeSandboxEnvironment(
     console.log(
       '[Sanitizer] Injected async-storage-patch.js stability module.'
     );
+
+    // Use a spawned Node.js process to write to the global /tmp directory, 
+    // since WebContainer instance.fs is scoped only to the workspace root.
+    try {
+      const nodeProc = await instance.spawn('node', [
+        '-e',
+        "require('fs').writeFileSync('/tmp/async-storage-patch.js', require('fs').readFileSync('webcontainer-stubs/async-storage-patch.js'))"
+      ]);
+      await nodeProc.exit;
+      console.log(
+        '[Sanitizer] Copied stability module to global path /tmp/async-storage-patch.js via Node.js'
+      );
+    } catch (nodeErr) {
+      console.warn('[Sanitizer] Failed to copy stability module to /tmp via Node:', nodeErr);
+    }
   } catch (err) {
     console.warn('[Sanitizer] Failed to inject stability patches:', err);
   }
@@ -226,8 +241,25 @@ export async function sanitizeSandboxEnvironment(
   // 3. Next.js specific deep sanitization
   try {
     const pkgContent = await instance.fs.readFile('package.json', 'utf-8');
-    const pkg = JSON.parse(pkgContent);
-    const isNext = pkg.dependencies?.next || pkg.devDependencies?.next;
+    let pkg: any = {};
+    try {
+      const rootPkg = await instance.fs.readFile('package.json', 'utf-8');
+      pkg = JSON.parse(rootPkg);
+    } catch {}
+
+    let appPkg: any = {};
+    if (appDir && appDir !== '.') {
+      try {
+        const appPkgContent = await instance.fs.readFile(`${appDir}/package.json`, 'utf-8');
+        appPkg = JSON.parse(appPkgContent);
+      } catch {}
+    }
+
+    const isNext =
+      pkg.dependencies?.next ||
+      pkg.devDependencies?.next ||
+      appPkg.dependencies?.next ||
+      appPkg.devDependencies?.next;
 
     if (isNext) {
       // Force Next.js to use Babel instead of SWC. The SWC WASM binary is typically 30MB+

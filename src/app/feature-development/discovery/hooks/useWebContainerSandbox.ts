@@ -103,19 +103,14 @@ export function useWebContainerSandbox() {
    * This ensures every child process (install, pre-builds, setup scripts, dev server)
    * inherits the readFileSync large-file stabilizer that prevents RangeError VFS overflow crashes.
    *
-   * @param appDir - The application directory relative to the VFS root, used to compute the
-   *   relative path to the async-storage-patch.js preloader stub.
+   * @param appDir - The application directory relative to the VFS root.
    */
   const buildPatchedEnv = (appDir = '.') => {
-    const depth = appDir === '.' ? 0 : appDir.split('/').filter(Boolean).length;
-    const relativePatchPath =
-      depth === 0
-        ? './webcontainer-stubs/async-storage-patch.js'
-        : `${'../'.repeat(depth)}webcontainer-stubs/async-storage-patch.js`;
+    const absolutePatchPath = '/tmp/async-storage-patch.js';
     return {
       ...DEV_SERVER_ENV,
       NODE_OPTIONS:
-        `${DEV_SERVER_ENV.NODE_OPTIONS || ''} --require ${relativePatchPath}`.trim(),
+        `${DEV_SERVER_ENV.NODE_OPTIONS || ''} --require ${absolutePatchPath}`.trim(),
     };
   };
 
@@ -140,6 +135,7 @@ export function useWebContainerSandbox() {
           if (
             files.includes('next.config.js') ||
             files.includes('next.config.mjs') ||
+            files.includes('next.config.ts') ||
             files.includes('vite.config.ts') ||
             files.includes('vite.config.js')
           ) {
@@ -189,103 +185,111 @@ export function useWebContainerSandbox() {
         console.warn('Failed to readdir:', e);
       }
 
-      try {
-        const pkgContent = await instance.fs.readFile('package.json', 'utf-8');
-        pkg = JSON.parse(pkgContent);
+      const sanitizePackageJson = async (pkgPath: string) => {
+        try {
+          const content = await instance.fs.readFile(pkgPath, 'utf-8');
+          const p = JSON.parse(content);
+          let hasChanges = false;
 
-        // Sanitize incompatible dependencies
-        let hasChanges = false;
-        const sanitizeDeps = (deps?: Record<string, string>) => {
-          if (!deps) return;
-          for (const key in deps) {
-            const value = deps[key];
+          const sanitizeDeps = (deps?: Record<string, string>) => {
+            if (!deps) return;
+            for (const key in deps) {
+              const value = deps[key];
+              if (
+                typeof value === 'string' &&
+                (value.startsWith('file:') ||
+                  value.includes('.git') ||
+                  value.startsWith('workspace:') ||
+                  value.startsWith('link:') ||
+                  value.startsWith('github:'))
+              ) {
+                console.log(
+                  `[Sanitizer] Removing incompatible dependency from ${pkgPath}: ${key} -> ${value}`
+                );
+                delete deps[key];
+                hasChanges = true;
+              }
+            }
+          };
+
+          sanitizeDeps(p.dependencies);
+          sanitizeDeps(p.devDependencies);
+
+          const nextVersion = p.dependencies?.next || p.devDependencies?.next;
+          if (nextVersion) {
+            let exactVersion = nextVersion.replace(/[~^>=<]/g, '').trim();
+            if (exactVersion.startsWith('15.5.')) {
+              exactVersion = '15.5.15';
+            } else if (exactVersion.startsWith('15.4.')) {
+              exactVersion = '15.4.8';
+            } else if (exactVersion.startsWith('15.1.')) {
+              exactVersion = '15.1.9';
+            } else if (exactVersion.startsWith('15.0.')) {
+              exactVersion = '15.0.5';
+            } else if (exactVersion.startsWith('14.')) {
+              exactVersion = '14.2.33';
+            } else if (
+              exactVersion === 'latest' ||
+              exactVersion === 'canary' ||
+              !exactVersion
+            ) {
+              exactVersion = '15.5.15';
+            }
+
+            console.log(
+              `[SWC Injection] Pre-installing exact local WASM SWC compiler in ${pkgPath}: ${exactVersion}`
+            );
+            p.devDependencies = p.devDependencies || {};
+            p.devDependencies['@next/swc-wasm-nodejs'] = exactVersion;
+            p.devDependencies['@next/swc-wasm-web'] = exactVersion;
+            hasChanges = true;
+          }
+
+          if (p.engines?.pnpm) {
+            console.log(
+              `[Sanitizer] Removing engines.pnpm requirement from ${pkgPath}: ${p.engines.pnpm}`
+            );
+            delete p.engines.pnpm;
+            if (Object.keys(p.engines).length === 0) {
+              delete p.engines;
+            }
+            hasChanges = true;
+          }
+
+          if (p.scripts?.dev) {
+            const devScript = p.scripts.dev as string;
             if (
-              value.startsWith('file:') ||
-              value.includes('.git') ||
-              value.startsWith('github:')
+              devScript.includes('next dev') &&
+              !devScript.includes('FAST_REFRESH=false')
             ) {
               console.log(
-                `[Sanitizer] Removing incompatible dependency: ${key} -> ${value}`
+                `[Sanitizer] Injecting FAST_REFRESH=false to Next.js dev script in ${pkgPath} to stabilize hot-reloading loops`
               );
-              delete deps[key];
+              p.scripts.dev = devScript.replace(
+                'next dev',
+                'FAST_REFRESH=false next dev'
+              );
               hasChanges = true;
             }
           }
-        };
 
-        sanitizeDeps(pkg.dependencies);
-        sanitizeDeps(pkg.devDependencies);
-
-        // Inject WebAssembly-based SWC compilers matching the local Next.js version.
-        // This ensures the local pnpm install writes the WASM binaries stably,
-        // completely bypassing Next.js's runtime downloader which crashes WebContainer's VFS.
-        const nextVersion = pkg.dependencies?.next || pkg.devDependencies?.next;
-        if (nextVersion) {
-          // Resolve exact matching version to prevent pnpm semver range mismatches
-          let exactVersion = nextVersion.replace(/[~^>=<]/g, '').trim();
-          if (exactVersion.startsWith('15.5.')) {
-            exactVersion = '15.5.15'; // Safe published fallback for 15.5.x line
-          } else if (exactVersion.startsWith('15.4.')) {
-            exactVersion = '15.4.8'; // Safe published fallback for 15.4.x line
-          } else if (exactVersion.startsWith('15.1.')) {
-            exactVersion = '15.1.9';
-          } else if (exactVersion.startsWith('15.0.')) {
-            exactVersion = '15.0.5';
-          } else if (exactVersion.startsWith('14.')) {
-            exactVersion = '14.2.33';
-          } else if (
-            exactVersion === 'latest' ||
-            exactVersion === 'canary' ||
-            !exactVersion
-          ) {
-            exactVersion = '15.5.15';
+          if (hasChanges) {
+            await instance.fs.writeFile(pkgPath, JSON.stringify(p, null, 2));
           }
-
-          console.log(
-            `[SWC Injection] Pre-installing exact local WASM SWC compiler: ${exactVersion}`
-          );
-          pkg.devDependencies = pkg.devDependencies || {};
-          pkg.devDependencies['@next/swc-wasm-nodejs'] = exactVersion;
-          pkg.devDependencies['@next/swc-wasm-web'] = exactVersion;
-          hasChanges = true;
-        }
-
-        // Sanitize engines.pnpm requirement
-        if (pkg.engines?.pnpm) {
-          console.log(
-            `[Sanitizer] Removing engines.pnpm requirement: ${pkg.engines.pnpm}`
-          );
-          delete pkg.engines.pnpm;
-          if (Object.keys(pkg.engines).length === 0) {
-            delete pkg.engines;
+          return p;
+        } catch (err: any) {
+          if (err?.code !== 'ENOENT' && !err?.message?.includes('ENOENT')) {
+            console.warn(`[Sanitizer] Failed to sanitize package.json at ${pkgPath}:`, err.message || err);
           }
-          hasChanges = true;
+          return null;
         }
-        // Sanitize scripts.dev to disable Next.js HMR which causes reload loops in iframes
-        if (pkg.scripts?.dev) {
-          const devScript = pkg.scripts.dev as string;
-          if (
-            devScript.includes('next dev') &&
-            !devScript.includes('FAST_REFRESH=false')
-          ) {
-            console.log(
-              `[Sanitizer] Injecting FAST_REFRESH=false to Next.js dev script to stabilize hot-reloading loops`
-            );
-            pkg.scripts.dev = devScript.replace(
-              'next dev',
-              'FAST_REFRESH=false next dev'
-            );
-            hasChanges = true;
-          }
-        }
-        if (hasChanges) {
-          setHydrationStatus('Sanitizing incompatible dependencies...');
-          await instance.fs.writeFile(
-            'package.json',
-            JSON.stringify(pkg, null, 2)
-          );
-        }
-      } catch (e) {
+      };
+
+      try {
+        pkg = await sanitizePackageJson('package.json');
+      } catch {}
+
+      if (!pkg) {
         console.warn('No package.json found, creating fallback...');
         const fallbackPkg = {
           name: 'prototype',
@@ -306,22 +310,56 @@ export function useWebContainerSandbox() {
         pkg = fallbackPkg;
       }
 
-      const isNext = pkg.dependencies?.next || pkg.devDependencies?.next;
-      const isVite = pkg.dependencies?.vite || pkg.devDependencies?.vite;
+      let appPkg: any = null;
+      if (appDir && appDir !== '.') {
+        try {
+          appPkg = await sanitizePackageJson(`${appDir}/package.json`);
+        } catch {}
+      }
+
+      const activePkg = appPkg || pkg;
+
+      const isNext =
+        pkg?.dependencies?.next ||
+        pkg?.devDependencies?.next ||
+        appPkg?.dependencies?.next ||
+        appPkg?.devDependencies?.next;
+      const isVite =
+        pkg?.dependencies?.vite ||
+        pkg?.devDependencies?.vite ||
+        appPkg?.dependencies?.vite ||
+        appPkg?.devDependencies?.vite;
       const isAngular =
-        pkg.dependencies?.['@angular/core'] ||
-        pkg.devDependencies?.['@angular/core'];
+        pkg?.dependencies?.['@angular/core'] ||
+        pkg?.devDependencies?.['@angular/core'] ||
+        appPkg?.dependencies?.['@angular/core'] ||
+        appPkg?.devDependencies?.['@angular/core'];
       const isRemix =
-        pkg.dependencies?.['@remix-run/dev'] ||
-        pkg.devDependencies?.['@remix-run/dev'] ||
-        pkg.dependencies?.['@remix-run/react'] ||
-        pkg.devDependencies?.['@remix-run/react'];
-      const isNuxt = pkg.dependencies?.nuxt || pkg.devDependencies?.nuxt;
-      const isAstro = pkg.dependencies?.astro || pkg.devDependencies?.astro;
+        pkg?.dependencies?.['@remix-run/dev'] ||
+        pkg?.devDependencies?.['@remix-run/dev'] ||
+        pkg?.dependencies?.['@remix-run/react'] ||
+        pkg?.devDependencies?.['@remix-run/react'] ||
+        appPkg?.dependencies?.['@remix-run/dev'] ||
+        appPkg?.devDependencies?.['@remix-run/dev'] ||
+        appPkg?.dependencies?.['@remix-run/react'] ||
+        appPkg?.devDependencies?.['@remix-run/react'];
+      const isNuxt =
+        pkg?.dependencies?.nuxt ||
+        pkg?.devDependencies?.nuxt ||
+        appPkg?.dependencies?.nuxt ||
+        appPkg?.devDependencies?.nuxt;
+      const isAstro =
+        pkg?.dependencies?.astro ||
+        pkg?.devDependencies?.astro ||
+        appPkg?.dependencies?.astro ||
+        appPkg?.devDependencies?.astro;
       const isSvelteKit =
-        pkg.dependencies?.['@sveltejs/kit'] ||
-        pkg.devDependencies?.['@sveltejs/kit'];
-      const hasDevScript = pkg.scripts?.dev;
+        pkg?.dependencies?.['@sveltejs/kit'] ||
+        pkg?.devDependencies?.['@sveltejs/kit'] ||
+        appPkg?.dependencies?.['@sveltejs/kit'] ||
+        appPkg?.devDependencies?.['@sveltejs/kit'];
+
+      const hasDevScript = activePkg?.scripts?.dev;
 
       // Extracted Sandbox Utilities
       setHydrationStatus('Sanitizing environment and flattening workspace...');
@@ -401,35 +439,35 @@ export function useWebContainerSandbox() {
 
       if (!hasDevScript) {
         if (isNext) {
-          cmd = 'npx';
-          args = ['next', 'dev', '-p', '3000'];
+          cmd = isPnpm ? 'pnpm' : 'npx';
+          args = isPnpm ? ['exec', 'next', 'dev', '-p', '3000'] : ['next', 'dev', '-p', '3000'];
         } else if (isAngular) {
-          cmd = 'npx';
-          args = ['ng', 'serve', '--port', '3000', '--host', '0.0.0.0'];
+          cmd = isPnpm ? 'pnpm' : 'npx';
+          args = isPnpm ? ['exec', 'ng', 'serve', '--port', '3000', '--host', '0.0.0.0'] : ['ng', 'serve', '--port', '3000', '--host', '0.0.0.0'];
         } else if (isRemix) {
-          cmd = 'npx';
-          args = ['remix', 'vite:dev', '--port', '3000', '--host', '0.0.0.0'];
+          cmd = isPnpm ? 'pnpm' : 'npx';
+          args = isPnpm ? ['exec', 'remix', 'vite:dev', '--port', '3000', '--host', '0.0.0.0'] : ['remix', 'vite:dev', '--port', '3000', '--host', '0.0.0.0'];
         } else if (isNuxt) {
-          cmd = 'npx';
-          args = ['nuxi', 'dev', '--port', '3000', '--host', '0.0.0.0'];
+          cmd = isPnpm ? 'pnpm' : 'npx';
+          args = isPnpm ? ['exec', 'nuxi', 'dev', '--port', '3000', '--host', '0.0.0.0'] : ['nuxi', 'dev', '--port', '3000', '--host', '0.0.0.0'];
         } else if (isAstro) {
-          cmd = 'npx';
-          args = ['astro', 'dev', '--port', '3000', '--host', '0.0.0.0'];
+          cmd = isPnpm ? 'pnpm' : 'npx';
+          args = isPnpm ? ['exec', 'astro', 'dev', '--port', '3000', '--host', '0.0.0.0'] : ['astro', 'dev', '--port', '3000', '--host', '0.0.0.0'];
         } else if (isSvelteKit) {
-          cmd = 'npx';
-          args = ['vite', 'dev', '--port', '3000', '--host'];
+          cmd = isPnpm ? 'pnpm' : 'npx';
+          args = isPnpm ? ['exec', 'vite', 'dev', '--port', '3000', '--host'] : ['vite', 'dev', '--port', '3000', '--host'];
         } else if (isVite) {
-          cmd = 'npx';
-          args = ['vite', '--port', '3000', '--host'];
+          cmd = isPnpm ? 'pnpm' : 'npx';
+          args = isPnpm ? ['exec', 'vite', '--port', '3000', '--host'] : ['vite', '--port', '3000', '--host'];
         }
       } else if (isNext && hasDevScript) {
         // Strip --turbo from existing dev scripts to prevent Turbopack loading SWC
-        const devScript = pkg.scripts.dev as string;
+        const devScript = activePkg.scripts.dev as string;
         if (devScript && devScript.includes('--turbo')) {
-          pkg.scripts.dev = devScript.replace(/\s*--turbo\b/g, '');
+          activePkg.scripts.dev = devScript.replace(/\s*--turbo\b/g, '');
           const pkgPath =
-            appDir === '.' ? 'package.json' : `${appDir}/package.json`;
-          await instance.fs.writeFile(pkgPath, JSON.stringify(pkg, null, 2));
+            appPkg ? `${appDir}/package.json` : 'package.json';
+          await instance.fs.writeFile(pkgPath, JSON.stringify(activePkg, null, 2));
         }
       }
 
