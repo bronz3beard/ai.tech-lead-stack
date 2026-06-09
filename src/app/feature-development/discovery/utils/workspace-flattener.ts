@@ -112,7 +112,7 @@ export async function flattenWorkspace(instance: WebContainer) {
             const localTrpcVersion = deps['@trpc/client'] || deps['@trpc/server'] || deps['@trpc/react-query'] || deps['@trpc/next'];
             const trpcVersion = localTrpcVersion || globalTrpcVersion;
 
-            if (p.name && trpcVersion) {
+            if (p.name && trpcVersion && dir === '.') {
               const trpcPackages = ['@trpc/client', '@trpc/next', '@trpc/react-query', '@trpc/server'];
               
               // Apply the discovered tRPC version using the detected package manager's resolution strategy

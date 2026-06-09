@@ -122,37 +122,45 @@ export function useWebContainerSandbox() {
     setHydrationStatus('Detecting application structure...');
 
     try {
-      // 1. Detect App Directory (Exhaustive Search)
       try {
         const scanForApp = async (
           dir: string,
           depth = 0
         ): Promise<string | null> => {
-          if (depth > 2) return null;
-          const files = await instance.fs.readdir(dir);
+          if (depth > 3) return null;
+          let entries: any[] = [];
+          try {
+             entries = await instance.fs.readdir(dir, { withFileTypes: true });
+          } catch(e) { return null; }
 
-          // Primary signals
-          if (
-            files.includes('next.config.js') ||
-            files.includes('next.config.mjs') ||
-            files.includes('next.config.ts') ||
-            files.includes('vite.config.ts') ||
-            files.includes('vite.config.js')
-          ) {
-            return dir;
-          }
-
-          // Secondary signals (Next.js folders)
-          if (files.includes('app') || files.includes('pages')) {
-            return dir;
-          }
-
-          for (const file of files) {
-            if (file === 'node_modules' || file.startsWith('.')) continue;
+          const fileNames = entries.map((e: any) => e.name);
+          const hasConfig = fileNames.some((f: string) => f.includes('config.js') || f.includes('config.ts') || f.includes('config.mjs') || f === 'package.json' || f === 'project.json');
+          
+          let hasAppOrPages = false;
+          if (fileNames.includes('app') || fileNames.includes('pages')) {
+            hasAppOrPages = true;
+          } else if (fileNames.includes('src')) {
             try {
-              const path = dir === '.' ? file : `${dir}/${file}`;
-              const found = await scanForApp(path, depth + 1);
-              if (found) return found;
+              const srcFiles = await instance.fs.readdir(dir === '.' ? 'src' : `${dir}/src`);
+              if (srcFiles.includes('app') || srcFiles.includes('pages')) {
+                hasAppOrPages = true;
+              }
+            } catch (e) {}
+          }
+
+          // Robust match: Must have app/pages routing directory AND either some config file (package/project/next config) OR be in a subdirectory
+          if (hasAppOrPages && (hasConfig || depth > 0)) {
+            return dir;
+          }
+
+          for (const entry of entries) {
+            if (entry.name === 'node_modules' || entry.name.startsWith('.') || entry.name === 'src' || entry.name === 'dist' || entry.name === 'build') continue;
+            try {
+              if (entry.isDirectory()) {
+                const path = dir === '.' ? entry.name : `${dir}/${entry.name}`;
+                const found = await scanForApp(path, depth + 1);
+                if (found) return found;
+              }
             } catch {}
           }
           return null;
@@ -164,7 +172,7 @@ export function useWebContainerSandbox() {
           console.log(`[Discovery] Automatically detected app in: ${appDir}`);
         }
       } catch (e) {
-        console.warn('Exhaustive app detection failed:', e);
+        console.warn('Strict app detection failed:', e);
       }
 
       setHydrationStatus('Analyzing configuration...');
@@ -432,6 +440,9 @@ export function useWebContainerSandbox() {
 
       // Native workspace linking bypasses the need for legacy Nx CLI mocking and pre-build stubs.
 
+      // We rely on the chunked readFileSync patch in async-hooks-patch.ts
+      // to securely bypass the 1MB sync-bridge limit for large SWC WASM files,
+      // avoiding any fatal WASM traps during Next.js boot.
       // 3. Start Dev Server
       setHydrationStatus('Starting development server...');
       let cmd = isPnpm ? 'pnpm' : 'npm';
