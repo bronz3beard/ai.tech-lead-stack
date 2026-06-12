@@ -23,7 +23,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -32,7 +32,7 @@ import remarkGfm from 'remark-gfm';
 import { FileTree } from './components/FileTree';
 import { TerminalLogs } from './components/TerminalLogs';
 import { useDiscoveryChat } from './hooks/useDiscoveryChat';
-import { useWebContainerSandbox } from './hooks/useWebContainerSandbox';
+import { useE2BSandbox } from './hooks/useE2BSandbox';
 import { Project } from './types';
 import { buildTree } from './utils/tree-helpers';
 
@@ -82,7 +82,8 @@ export default function DiscoveryClient({
     hydrateProject,
     setFileContent,
     setWrittenFiles,
-  } = useWebContainerSandbox();
+    kill,
+  } = useE2BSandbox();
 
   const {
     messages,
@@ -105,6 +106,13 @@ export default function DiscoveryClient({
 
   const fileTree = useMemo(() => buildTree(writtenFiles), [writtenFiles]);
   const hasStarted = messages.length > 0;
+
+  // Sandbox Lifecycle & Teardown
+  useEffect(() => {
+    return () => {
+      kill(); // Ensures sandbox is destroyed on unmount to prevent runaway costs
+    };
+  }, [kill]);
 
   // Sync hydration when a project is selected
   const handleProjectSelect = async (projectId: string) => {

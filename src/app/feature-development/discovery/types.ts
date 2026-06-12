@@ -12,7 +12,7 @@ export interface Project {
 export interface FileNode {
   name: string;
   path: string;
-  children?: FileNode[];
+  children?: Array<FileNode>;
   isDirectory: boolean;
   status?: 'writing' | 'done' | 'error';
 }
