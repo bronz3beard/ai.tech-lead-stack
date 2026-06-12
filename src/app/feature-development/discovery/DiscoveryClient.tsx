@@ -393,7 +393,7 @@ export default function DiscoveryClient({
           </div>
         </section>
 
-        {/* WebContainer Sandbox Preview */}
+        {/* Remote Sandbox Preview */ }
         <section className="flex-1 bg-slate-950 p-6 relative flex flex-col gap-4 overflow-hidden">
           {/* Controls Bar */}
           <div className="flex items-center justify-between shrink-0 px-1">
@@ -576,7 +576,7 @@ export default function DiscoveryClient({
                           Booting Sandbox
                         </p>
                         <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest">
-                          Initializing WebContainer API...
+                          Initializing Sandbox API...
                         </p>
                       </div>
                     </div>

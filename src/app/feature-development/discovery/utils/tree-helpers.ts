@@ -1,7 +1,7 @@
 import { FileNode } from '../types';
 
 /**
- * Recursively flattens a WebContainer FileSystemTree into a flat list of file paths.
+ * Recursively flattens a FileSystemTree into a flat list of file paths.
  */
 export function flattenTree(
   tree: any,

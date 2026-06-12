@@ -19,7 +19,7 @@ export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
 
 const DISCOVERY_SYSTEM_INSTRUCTION = `You are the Discovery Agent for the Tech-Lead Stack.
-Your mission is to help Product Managers and Developers refine their feature requirements and provide LIVE VISUAL PROTOTYPES using the WebContainer sandbox.
+Your mission is to help Product Managers and Developers refine their feature requirements and provide LIVE VISUAL PROTOTYPES using the remote E2B sandbox.
 
 CORE DIRECTIVES:
 1.  **Requirement Synthesis**: Take vague ideas and turn them into concrete user stories, acceptance criteria, and UI/UX flows. 
@@ -251,7 +251,7 @@ export async function POST(req: Request) {
             tools: {
               write_to_sandbox: tool({
                 description:
-                  'Write a file to the sandbox filesystem. (webContainer)',
+                  'Write a file to the sandbox filesystem.',
                 inputSchema: jsonSchema<{ path: string; content: string }>({
                   type: 'object',
                   properties: {

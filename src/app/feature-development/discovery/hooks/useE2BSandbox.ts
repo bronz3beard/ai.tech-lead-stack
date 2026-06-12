@@ -11,7 +11,7 @@ export function useE2BSandbox() {
   const [hydrationStatus, setHydrationStatus] = useState('');
   const [isHydrating, setIsHydrating] = useState(false);
   
-  // UI State matching previous WebContainer logic
+  // UI State matching previous sandbox logic
   const [writtenFiles, setWrittenFiles] = useState<{ path: string; status: 'writing' | 'done' | 'error' }[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState<string | null>(null);
@@ -195,7 +195,7 @@ export function useE2BSandbox() {
       const flatFiles = flattenTree(bundle);
       setWrittenFiles(flatFiles);
 
-      // Convert WebContainer bundle format to flat Record<string, string>
+      // Convert project bundle format to flat Record<string, string>
       const filesRecord: Record<string, string> = {};
       
       // Helper to recursively parse the bundle
@@ -204,7 +204,7 @@ export function useE2BSandbox() {
           const itemPath = currentPath ? `${currentPath}/${name}` : name;
           const anyEntry = entry as any;
           if (anyEntry.file && anyEntry.file.contents) {
-            // Some WebContainer files are Uint8Arrays, E2B write takes string, Uint8Array
+            // Some bundle files are Uint8Arrays, E2B write takes string, Uint8Array
             let contents = anyEntry.file.contents;
             if (typeof contents !== 'string') {
                // naive string conversion for code files
