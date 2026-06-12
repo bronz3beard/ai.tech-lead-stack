@@ -451,7 +451,9 @@ export function useWebContainerSandbox() {
       if (!hasDevScript) {
         if (isNext) {
           cmd = isPnpm ? 'pnpm' : 'npx';
-          args = isPnpm ? ['exec', 'next', 'dev', '-p', '3000'] : ['next', 'dev', '-p', '3000'];
+          // Start next dev from root and pass appDir to avoid breaking workspace module resolution
+          const nextTargetDir = (appDir && appDir !== '.') ? appDir : '.';
+          args = isPnpm ? ['exec', 'next', 'dev', nextTargetDir, '-p', '3000'] : ['next', 'dev', nextTargetDir, '-p', '3000'];
         } else if (isAngular) {
           cmd = isPnpm ? 'pnpm' : 'npx';
           args = isPnpm ? ['exec', 'ng', 'serve', '--port', '3000', '--host', '0.0.0.0'] : ['ng', 'serve', '--port', '3000', '--host', '0.0.0.0'];
@@ -483,9 +485,14 @@ export function useWebContainerSandbox() {
       }
 
       setTerminalOutput((prev) => [...prev, `\n$ ${cmd} ${args.join(' ')}`]);
+      
+      // If we are passing appDir directly to Next.js as an argument, we MUST run from workspace root
+      // so that it can resolve workspace dependencies (like SWC).
+      const executionCwd = (isNext && !hasDevScript && appDir && appDir !== '.') ? '.' : (appDir || '.');
+      
       const devProcess = await instance.spawn(cmd, args, {
-        cwd: appDir,
-        env: buildPatchedEnv(appDir),
+        cwd: executionCwd,
+        env: buildPatchedEnv(executionCwd),
       });
 
       devProcess.output.pipeTo(

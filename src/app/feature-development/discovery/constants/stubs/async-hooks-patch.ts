@@ -11,66 +11,140 @@ if (!process.env.NODE_OPTIONS) {
 }
 
 // -----------------------------------------------------------------------------
-// WebContainer readFileUtf8 Guard (fs.readFileSync)
+// WebContainer readFile Guard (fs.readFileSync / fs.readFile)
 // -----------------------------------------------------------------------------
 try {
   const fs = require('fs');
   const originalReadFileSync = fs.readFileSync;
+  const originalReadFile = fs.readFile;
+  const originalPromisesReadFile = fs.promises ? fs.promises.readFile : null;
 
   // WebContainer's WASM bridge crashes (DataView out of bounds) when readFileUtf8
-  // is called on large files or files with certain character sequences.
-  // To completely bypass this, we force all readFileSync calls to read as a Buffer
-  // first (which uses the much safer readFileBuffer WASM binding) and then manually
-  // decode to a string in the Node.js context.
+  // is called on large files. The only 100% reliable way to bypass this natively
+  // without triggering string allocation bounds errors is to use chunked read/readSync.
+  function safeChunkedReadSync(path) {
+    let fd;
+    try {
+      fd = fs.openSync(path, 'r');
+      const stat = fs.fstatSync(fd);
+      const size = stat.size;
+      const buf = Buffer.allocUnsafe(size);
+      let bytesRead = 0;
+      const chunkSize = 65536; // 64KB
+      while (bytesRead < size) {
+        const toRead = Math.min(chunkSize, size - bytesRead);
+        const read = fs.readSync(fd, buf, bytesRead, toRead, bytesRead);
+        if (read === 0) break;
+        bytesRead += read;
+      }
+      return buf;
+    } finally {
+      if (fd !== undefined) {
+        try { fs.closeSync(fd); } catch(e){}
+      }
+    }
+  }
+
   fs.readFileSync = function (path, options) {
     let encoding = null;
-    let flag = 'r';
-    
     if (typeof options === 'string') {
       encoding = options;
     } else if (options && typeof options === 'object') {
       if (options.encoding) encoding = options.encoding;
-      if (options.flag) flag = options.flag;
     }
 
-    if (encoding) {
-      // Force read as Buffer by completely omitting the encoding property
-      let bufOptions = { flag: flag };
-      let buf = originalReadFileSync(path, bufOptions);
-      return buf.toString(encoding);
+    try {
+      // Chunked read completely bypasses the WASM string boundary crash
+      let buf = safeChunkedReadSync(path);
+      if (encoding) {
+        return buf.toString(encoding);
+      }
+      return buf;
+    } catch (e) {
+      return originalReadFileSync(path, options);
+    }
+  };
+  
+  fs.readFile = function(path, options, callback) {
+    let cb = callback;
+    let opts = options;
+    if (typeof options === 'function') {
+      cb = options;
+      opts = null;
     }
     
-    // If no encoding requested, read as Buffer normally
-    return originalReadFileSync(path, options);
+    let encoding = null;
+    if (typeof opts === 'string') {
+      encoding = opts;
+    } else if (opts && typeof opts === 'object') {
+      if (opts.encoding) encoding = opts.encoding;
+    }
+    
+    if (encoding) {
+      let bufOpts = typeof opts === 'string' ? null : { ...opts };
+      if (bufOpts) delete bufOpts.encoding;
+      
+      return originalReadFile(path, bufOpts, function(err, buf) {
+        if (err) return cb(err);
+        try {
+          cb(null, buf.toString(encoding));
+        } catch (e) {
+          cb(e);
+        }
+      });
+    }
+    return originalReadFile(path, opts, cb);
   };
-  console.log('[WebContainer Patch] Registered fs.readFileSync buffer fallback guard to bypass WASM crashes.');
+
+  if (originalPromisesReadFile) {
+    fs.promises.readFile = async function(path, options) {
+      let encoding = null;
+      if (typeof options === 'string') {
+        encoding = options;
+      } else if (options && typeof options === 'object') {
+        if (options.encoding) encoding = options.encoding;
+      }
+      
+      if (encoding) {
+        let bufOpts = typeof options === 'string' ? null : { ...options };
+        if (bufOpts) delete bufOpts.encoding;
+        const buf = await originalPromisesReadFile.call(fs.promises, path, bufOpts);
+        return buf.toString(encoding);
+      }
+      return originalPromisesReadFile.call(fs.promises, path, options);
+    };
+  }
+
+  // Attempt to intercept node:fs as well for ESM
+  try {
+    const nodeFs = require('node:fs');
+    nodeFs.readFileSync = fs.readFileSync;
+    nodeFs.readFile = fs.readFile;
+    if (nodeFs.promises) {
+      nodeFs.promises.readFile = fs.promises.readFile;
+    }
+  } catch(e){}
+
+  console.log('[WebContainer Patch] Registered comprehensive chunked readFile guard to bypass WASM crashes.');
 
   // =========================================================================
   // DEEP PATCH: Module Loader Override
-  // The Node.js module loader captures fs.readFileSync internally before our
-  // patch runs. When it requires large files like bundle5.js (2.4MB), it uses
-  // the unpatched version which requests 'utf8' and crashes the WASM bridge.
-  // We MUST reimplement the extensions to force buffer reading!
   // =========================================================================
   try {
     const Module = require('module');
     if (Module && Module._extensions) {
       
-      const originalJsExt = Module._extensions['.js'];
       Module._extensions['.js'] = function(module, filename) {
-        // Force reading as a buffer to avoid DataView crashes
-        let buf = originalReadFileSync(filename, { flag: 'r' });
+        let buf = safeChunkedReadSync(filename);
         let content = buf.toString('utf8');
-        // Strip BOM
         if (content.charCodeAt(0) === 0xFEFF) {
           content = content.slice(1);
         }
         module._compile(content, filename);
       };
 
-      const originalJsonExt = Module._extensions['.json'];
       Module._extensions['.json'] = function(module, filename) {
-        let buf = originalReadFileSync(filename, { flag: 'r' });
+        let buf = safeChunkedReadSync(filename);
         let content = buf.toString('utf8');
         if (content.charCodeAt(0) === 0xFEFF) {
           content = content.slice(1);
@@ -83,13 +157,13 @@ try {
         }
       };
       
-      console.log('[WebContainer Patch] Successfully deep-patched Module._extensions for .js and .json');
+      console.log('[WebContainer Patch] Successfully deep-patched Module._extensions using safe chunked reader.');
     }
   } catch (e) {
     console.error('[WebContainer Patch] Deep patch failed:', e);
   }
 } catch (e) {
-  console.error('[WebContainer Patch] Failed to intercept fs.readFileSync:', e);
+  console.error('[WebContainer Patch] Failed to intercept fs:', e);
 }
 
 
