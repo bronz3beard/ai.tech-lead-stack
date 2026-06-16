@@ -60,6 +60,26 @@ export default function SettingsPageClient({
           <ApiKeyCard provider="jules" label="Google Jules (Agentic)" />
           <ApiKeyCard provider="claude" label="Claude (Anthropic)" />
           <ApiKeyCard provider="openai" label="ChatGPT (OpenAI)" />
+
+          <hr className="border-zinc-800 my-8" />
+          
+          <div className="space-y-4 pt-2">
+            <div>
+              <h3 className="text-lg font-medium text-zinc-100">Infrastructure Keys</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Manage API keys for execution environments and sandboxes. These are strictly used for infrastructure and do not have a default model functionality.
+              </p>
+            </div>
+            
+            <ApiKeyCard 
+              provider="e2b" 
+              label="Sandbox Environment API key" 
+              canBeDefault={false} 
+            />
+            <p className="text-xs text-muted-foreground pl-1 mt-2">
+              Provides a secure cloud sandbox for the AI agents to execute code and terminal commands. Learn more at <a href="https://e2b.dev" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">e2b.dev</a>.
+            </p>
+          </div>
         </TabsContent>
 
         <TabsContent value="projects" className="mt-10">

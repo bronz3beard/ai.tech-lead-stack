@@ -45,6 +45,7 @@ model User {
   openaiApiKey    String?
   geminiApiKey    String?
   julesApiKey     String?
+  e2bApiKey       String?
   requirementsModel String?
   auditModel      String?
   createdAt       DateTime         @default(now())

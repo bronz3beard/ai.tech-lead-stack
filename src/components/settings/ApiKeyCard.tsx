@@ -15,15 +15,17 @@ import { Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 interface ApiKeyCardProps {
-  provider: 'gemini' | 'claude' | 'openai' | 'jules';
+  provider: 'gemini' | 'claude' | 'openai' | 'jules' | 'e2b';
   label: string;
   isSystemDefault?: boolean;
+  canBeDefault?: boolean;
 }
 
 export default function ApiKeyCard({
   provider,
   label,
   isSystemDefault,
+  canBeDefault = true,
 }: ApiKeyCardProps) {
   const [hasKey, setHasKey] = useState(false);
   const [isDefault, setIsDefault] = useState(false);
@@ -39,7 +41,9 @@ export default function ApiKeyCard({
         const data = await res.json();
         const providerKey = `has${provider.charAt(0).toUpperCase() + provider.slice(1)}Key`;
         setHasKey(data[providerKey]);
-        setIsDefault(data.preferredModel === provider);
+        if (canBeDefault) {
+          setIsDefault(data.preferredModel === provider);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -67,10 +71,12 @@ export default function ApiKeyCard({
       if (res.ok) {
         setHasKey(true);
         setKeyInput('');
-        // When saved, it automatically becomes default
-        setIsDefault(true);
-        // Dispatch custom event so other cards can update their default status
-        window.dispatchEvent(new Event('api-keys-updated'));
+        if (canBeDefault) {
+          // When saved, it automatically becomes default if applicable
+          setIsDefault(true);
+          // Dispatch custom event so other cards can update their default status
+          window.dispatchEvent(new Event('api-keys-updated'));
+        }
       }
     } catch (e) {
       console.error(e);
@@ -89,8 +95,10 @@ export default function ApiKeyCard({
       });
       if (res.ok) {
         setHasKey(false);
-        setIsDefault(false);
-        window.dispatchEvent(new Event('api-keys-updated'));
+        if (canBeDefault) {
+          setIsDefault(false);
+          window.dispatchEvent(new Event('api-keys-updated'));
+        }
       }
     } catch (e) {
       console.error(e);
@@ -138,7 +146,7 @@ export default function ApiKeyCard({
           <div>
             <CardTitle className="text-lg flex items-center gap-2">
               {label}
-              {isDefault && (
+              {canBeDefault && isDefault && (
                 <Badge
                   variant="secondary"
                   className="bg-blue-500/10 text-blue-500 border-blue-500/20"
@@ -166,7 +174,7 @@ export default function ApiKeyCard({
               •••••••••••••••• Saved
             </code>
             <div className="flex items-center gap-2">
-              {!isDefault && (
+              {canBeDefault && !isDefault && (
                 <Button
                   variant="outline"
                   size="sm"

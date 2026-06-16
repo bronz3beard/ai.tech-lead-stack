@@ -1,5 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Sandbox } from 'e2b';
+import {
+  writeSandboxFileAction,
+  readSandboxFileAction,
+  killSandboxAction,
+} from '../actions/e2b';
 import { ISandboxService } from '../types/sandbox';
 import { flattenTree } from '../utils/tree-helpers';
 
@@ -17,7 +21,7 @@ export function useE2BSandbox() {
   const [fileContent, setFileContent] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'preview' | 'code'>('preview');
 
-  const sandboxRef = useRef<Sandbox | null>(null);
+  const [sandboxId, setSandboxId] = useState<string | null>(null);
 
   const writeToTerminal = useCallback((data: string) => {
     setTerminalOutput(prev => [...prev, data]);
@@ -25,13 +29,16 @@ export function useE2BSandbox() {
 
   const isSandboxReady = status === 'running';
 
-  // Sync state for loading file content
   useEffect(() => {
     async function readFileContent() {
-      if (selectedFile && sandboxRef.current) {
+      if (selectedFile && sandboxId) {
         try {
-          const content = await sandboxRef.current.files.read(selectedFile);
-          setFileContent(content);
+          const res = await readSandboxFileAction(sandboxId, selectedFile);
+          if (res.success) {
+            setFileContent(res.content!);
+          } else {
+            throw new Error(res.error);
+          }
         } catch (err) {
           console.error('Failed to read file:', selectedFile, err);
           setFileContent('// Failed to load file content.');
@@ -39,100 +46,65 @@ export function useE2BSandbox() {
       }
     }
     readFileContent();
-  }, [selectedFile]);
+  }, [selectedFile, sandboxId]);
 
   const boot = async (files: Record<string, string>) => {
-    if (sandboxRef.current) return;
+    if (sandboxId) return;
     setStatus('booting');
     setIsHydrating(true);
     setSandboxError(null);
     setTerminalOutput([]);
 
     try {
-      setHydrationStatus('Provisioning E2B Sandbox...');
-      
-      const apiKey = process.env.NEXT_PUBLIC_E2B_API_KEY || process.env.E2B_API_KEY;
-      
-      const sandbox = await Sandbox.create('ubuntu', { apiKey });
-      sandboxRef.current = sandbox;
-      
-      setHydrationStatus('Writing project files...');
-      for (const [filePath, content] of Object.entries(files)) {
-         const dir = filePath.substring(0, filePath.lastIndexOf('/'));
-         if (dir) {
-           await sandbox.commands.run(`mkdir -p "${dir}"`);
-         }
-         await sandbox.files.write(filePath, content);
-      }
-
-      setHydrationStatus('Analyzing configuration...');
-      let isPnpm = false;
-      let hasDevScript = false;
-      let isVite = false;
-      
-      try {
-         const pkgStr = await sandbox.files.read('package.json');
-         const pkg = JSON.parse(pkgStr);
-         if (pkg.scripts?.dev) {
-           hasDevScript = true;
-         }
-         if (pkg.dependencies?.vite || pkg.devDependencies?.vite) {
-           isVite = true;
-         }
-      } catch (e) {
-         console.warn('Failed to parse package.json', e);
-      }
-      
-      try {
-        await sandbox.files.read('pnpm-lock.yaml');
-        isPnpm = true;
-      } catch {}
-
-      const pkgManager = isPnpm ? 'pnpm' : 'npm';
-      
-      if (isPnpm) {
-        setHydrationStatus('Installing pnpm...');
-        writeToTerminal('\n$ npm install -g pnpm');
-        await sandbox.commands.run('npm install -g pnpm', {
-          onStdout: writeToTerminal,
-          onStderr: writeToTerminal
-        });
-      }
-
-      setHydrationStatus(`Installing dependencies with ${pkgManager}...`);
-      writeToTerminal(`\n$ ${pkgManager} install`);
-      const installCmd = await sandbox.commands.run(`${pkgManager} install`, {
-        onStdout: writeToTerminal,
-        onStderr: writeToTerminal
+      const res = await fetch('/api/orchestrator/sandbox/boot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filesRecord: files }),
       });
 
-      if (installCmd.exitCode !== 0) {
-        throw new Error(`${pkgManager} install failed. Check terminal logs.`);
+      if (!res.ok) {
+        throw new Error('Failed to start boot stream');
       }
 
-      setHydrationStatus('Starting development server...');
-      
-      let startCmdStr = hasDevScript ? `${pkgManager} run dev` : 'npm start';
-      if (isVite && !startCmdStr.includes('--host')) {
-        startCmdStr += ' -- --host 0.0.0.0';
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error('No stream returned');
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          let event: { type: string; payload: unknown };
+          try {
+            event = JSON.parse(line);
+          } catch {
+            console.warn('Failed to parse stream line as JSON:', line);
+            continue;
+          }
+
+          if (event.type === 'status') {
+            setHydrationStatus(event.payload as string);
+          } else if (event.type === 'log') {
+            writeToTerminal(event.payload as string);
+          } else if (event.type === 'ready') {
+            const payload = event.payload as { sandboxId: string; url: string };
+            setSandboxId(payload.sandboxId);
+            setPreviewUrl(payload.url);
+            setStatus('running');
+            setHydrationStatus('Environment ready');
+          } else if (event.type === 'error') {
+            throw new Error(event.payload as string);
+          }
+        }
       }
-      
-      writeToTerminal(`\n$ ${startCmdStr}`);
-      
-      sandbox.commands.run(startCmdStr, {
-        background: true,
-        onStdout: writeToTerminal,
-        onStderr: writeToTerminal
-      });
-
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
-      const port = isVite ? 5173 : 3000;
-      const host = sandbox.getHost(port);
-      setPreviewUrl(`https://${host}`);
-      
-      setStatus('running');
-      setHydrationStatus('Environment ready');
     } catch (e: any) {
       console.error('[E2B Sandbox Error]', e);
       setSandboxError(e.message || 'Failed to boot E2B sandbox');
@@ -143,9 +115,9 @@ export function useE2BSandbox() {
   };
 
   const kill = async () => {
-    if (sandboxRef.current) {
-      await sandboxRef.current.kill();
-      sandboxRef.current = null;
+    if (sandboxId) {
+      await killSandboxAction(sandboxId);
+      setSandboxId(null);
       setStatus('idle');
       setPreviewUrl(null);
       setTerminalOutput([]);
@@ -153,7 +125,7 @@ export function useE2BSandbox() {
   };
 
   const handleWriteFile = async (path: string, content: string) => {
-    if (!sandboxRef.current) return;
+    if (!sandboxId) return;
 
     setWrittenFiles((prev) => {
       const exists = prev.find((f) => f.path === path);
@@ -162,13 +134,11 @@ export function useE2BSandbox() {
     });
 
     try {
-      const parts = path.split('/');
-      if (parts.length > 1) {
-        const dir = path.substring(0, path.lastIndexOf('/'));
-        await sandboxRef.current.commands.run(`mkdir -p "${dir}"`);
-      }
+      const res = await writeSandboxFileAction(sandboxId, path, content);
       
-      await sandboxRef.current.files.write(path, content);
+      if (!res.success) {
+        throw new Error(res.error);
+      }
 
       setWrittenFiles((prev) =>
         prev.map((f) => (f.path === path ? { ...f, status: 'done' } : f))
@@ -237,7 +207,7 @@ export function useE2BSandbox() {
 
   return {
     isSandboxReady,
-    sandboxRef,
+    sandboxId,
     writtenFiles,
     previewUrl,
     terminalOutput,

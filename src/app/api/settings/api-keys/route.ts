@@ -6,12 +6,12 @@ import { z } from 'zod';
 import { encrypt } from '@/lib/crypto';
 
 const SaveApiKeySchema = z.object({
-  provider: z.enum(['claude', 'openai', 'gemini', 'jules']),
+  provider: z.enum(['claude', 'openai', 'gemini', 'jules', 'e2b']),
   key: z.string().min(1),
 });
 
 const DeleteApiKeySchema = z.object({
-  provider: z.enum(['claude', 'openai', 'gemini', 'jules']),
+  provider: z.enum(['claude', 'openai', 'gemini', 'jules', 'e2b']),
 });
 
 export async function GET() {
@@ -28,6 +28,7 @@ export async function GET() {
       openaiApiKey: true,
       geminiApiKey: true,
       julesApiKey: true,
+      e2bApiKey: true,
       preferredModel: true,
     },
   });
@@ -41,6 +42,7 @@ export async function GET() {
     hasOpenaiKey: !!user.openaiApiKey,
     hasGeminiKey: !!user.geminiApiKey,
     hasJulesKey: !!user.julesApiKey,
+    hasE2bKey: !!user.e2bApiKey,
     preferredModel: user.preferredModel ?? 'gemini',
   });
 }
@@ -66,9 +68,10 @@ export async function POST(req: Request) {
     const { provider, key } = parsed.data;
     const encryptedKey = encrypt(key.trim());
 
-    const updateData: Record<string, string> = {
-      preferredModel: provider, // Automatically set as preferred when added
-    };
+    const updateData: Record<string, string> = {};
+    if (provider !== 'e2b') {
+      updateData.preferredModel = provider; // Automatically set as preferred when added, except for e2b
+    }
 
     if (provider === 'claude') {
       updateData.claudeApiKey = encryptedKey;
@@ -78,6 +81,8 @@ export async function POST(req: Request) {
       updateData.geminiApiKey = encryptedKey;
     } else if (provider === 'jules') {
       updateData.julesApiKey = encryptedKey;
+    } else if (provider === 'e2b') {
+      updateData.e2bApiKey = encryptedKey;
     }
 
     await prisma.user.update({
@@ -129,6 +134,8 @@ export async function DELETE(req: Request) {
       updateData.geminiApiKey = null;
     } else if (provider === 'jules') {
       updateData.julesApiKey = null;
+    } else if (provider === 'e2b') {
+      updateData.e2bApiKey = null;
     }
 
     // Reset preferredModel to default if the deleted key was the preferred one
