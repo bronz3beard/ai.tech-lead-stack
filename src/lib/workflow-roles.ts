@@ -12,6 +12,7 @@ export const WORKFLOW_ROLES: Record<string, string[]> = {
   "standup-daily-summary": ["DEVELOPER", "PM", "QA"],
   "strategy-target-evaluation": ["DEVELOPER", "PM"],
   "style-logic-exporter": ["DEVELOPER", "DESIGNER"],
+  "vertical-slice": ["PM", "DEVELOPER"],
 
   // Developer Only
   "clean-code-audit": ["DEVELOPER"],
@@ -42,6 +43,7 @@ export const WORKFLOW_DESCRIPTIONS: Record<string, string> = {
   "standup-daily-summary": "Analyze git activity for daily reports",
   "strategy-target-evaluation": "High-density product strategy and roadmap audit",
   "style-logic-exporter": "Extract design tokens and styles for Figma/Code alignment",
+  "vertical-slice": "Decompose user stories into thin, independently deployable vertical slices",
   "pm-story-augmenter": "Enhance user stories with technical depth and edge-case detection",
   "pm-effort-estimator": "Estimate development effort based on codebase history and complexity",
   "pm-context-summarizer": "Summarize recent technical progress and blockers for non-technical briefings",

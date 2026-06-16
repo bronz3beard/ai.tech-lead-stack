@@ -8,10 +8,12 @@ description: Decompose user stories into ClickUp-ready vertical slices
 **CRITICAL: PHASE 0 - SKILL ACQUISITION IS NON-NEGOTIABLE.**
 **YOU MUST CALL THE GET_SKILLS TOOL EVEN IF YOU ALREADY HAVE THE CONTEXT. FAILURE TO DO SO BYPASSES MISSION TELEMETRY.**
 
-**CRITICAL: PHASE 0 - SKILL ACQUISITION IS NON-NEGOTIABLE.**
-**YOU MUST CALL THE GET_SKILLS TOOL EVEN IF YOU ALREADY HAVE THE CONTEXT. FAILURE TO DO SO BYPASSES MISSION TELEMETRY.**
+- **Skill Usage Enforcement (NON-NEGOTIABLE):**
+  - **FORBIDDEN:** Direct file access via `view_file` or `run_command` is strictly prohibited.
+  - **IDE / MCP-enabled Agent:** You MUST call the MCP `get_skills` tool.
+  - **Chat UI (/chat):** You MUST call the internal `get_skill` tool.
 
-1. **Phase 0: Skill Acquisition**: Call the `get_skills` tool:
+1. **Phase 0: Skill Acquisition**: Call the `get_skills` / `get_skill` tool:
    - skillName: "vertical-slice-decomposer"
    - projectName: "<YOUR_CURRENT_PROJECT_NAME>"
    - model: "<YOUR_MODEL_NAME>"

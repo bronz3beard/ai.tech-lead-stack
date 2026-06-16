@@ -213,6 +213,18 @@ const sharedSkills: Skill[] = [
     realWorldExample:
       'Automatically generating a "What I did yesterday" report that links directly to the specific PRs and commits made.',
   },
+  {
+    id: 'vertical-slice',
+    name: 'Vertical Slice Decomposer',
+    description: 'Decomposes user stories into thin, independently deployable vertical slices.',
+    useCases: [
+      'Decomposing a large feature into 1-2 day deployable slices.',
+      'Extracting technical details and design references for each slice.',
+      'Deciding on beta-flags and mock vs real implementations.',
+    ],
+    realWorldExample:
+      'Breaking down a complex "User Dashboard" epic into 4 thin vertical slices, starting with a hardcoded static layout, then progressively adding dynamic data and interactions.',
+  },
 ];
 
 const designerSkills: Skill[] = [

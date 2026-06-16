@@ -19,6 +19,7 @@ security-audit|.ai/skills/security-audit.md
 style-logic-exporter|.ai/skills/style-logic-exporter.md
 technical-debt-auditor|.ai/skills/technical-debt-auditor.md
 visual-verifier|.ai/skills/visual-verifier.md
+vertical-slice-decomposer|.ai/skills/vertical-slice-decomposer.md
 
 # Antigravity-style workflows (.agents/workflows) — distinct names to avoid clashing with skills
 workflow-accessibility-audit|.agents/workflows/accessibility-audit.md
@@ -39,3 +40,4 @@ workflow-standup-daily-summary|.agents/workflows/standup-daily-summary.md
 workflow-strategy-target-evaluation|.agents/workflows/strategy-target-evaluation.md
 workflow-style-logic-exporter|.agents/workflows/style-logic-exporter.md
 workflow-verify-changes|.agents/workflows/verify-changes.md
+workflow-vertical-slice|.agents/workflows/vertical-slice.md
