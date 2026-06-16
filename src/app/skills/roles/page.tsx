@@ -20,6 +20,8 @@ interface Skill {
   description: string;
   useCases: string[];
   realWorldExample?: string;
+  addedAt: string;
+  roles: ('PM' | 'DESIGNER' | 'QA' | 'DEVELOPER' | 'UNIVERSAL')[];
 }
 
 interface RoleSection {
@@ -29,7 +31,81 @@ interface RoleSection {
   description?: string;
 }
 
-const pmSkills: Skill[] = [
+const ALL_SKILLS: Skill[] = [
+  {
+    id: 'vertical-slice',
+    name: 'Vertical Slice Decomposer',
+    description: 'Decomposes user stories into thin, independently deployable vertical slices.',
+    useCases: [
+      'Decomposing a large feature into 1-2 day deployable slices.',
+      'Extracting technical details and design references for each slice.',
+      'Deciding on beta-flags and mock vs real implementations.',
+    ],
+    realWorldExample:
+      'Breaking down a complex "User Dashboard" epic into 4 thin vertical slices, starting with a hardcoded static layout, then progressively adding dynamic data and interactions.',
+    addedAt: '2026-06-16',
+    roles: ['PM', 'DEVELOPER'],
+  },
+  {
+    id: 'feature-orchestrator',
+    name: 'Feature Orchestrator',
+    description:
+      'Three-Phase Feature Engine that orchestrates research, planning, and implementation steps dynamically.',
+    useCases: [
+      'Conducting dynamic codebase research before generating plans.',
+      'Drafting detailed implementation plans with rollback strategies.',
+      'Executing plans step-by-step with automated verification.',
+    ],
+    realWorldExample:
+      'Orchestrating the rollout of a new payment provider, starting with searching for existing integrations, drafting the changes, and applying them securely.',
+    addedAt: '2026-06-16',
+    roles: ['PM', 'DEVELOPER'],
+  },
+  {
+    id: 'ui-spec-generator',
+    name: 'UI Spec Generator',
+    description:
+      'AI-Powered UI Spec Generator that creates structural Radix/Shadcn components based on requirements.',
+    useCases: [
+      'Generating functional UI skeletons in a target design system folder.',
+      'Mapping Figma styles to Tailwind classes automatically.',
+      'Creating mock layouts for rapid stakeholder feedback.',
+    ],
+    realWorldExample:
+      'Creating a skeleton of a user settings panel using Shadcn primitives to unblock developer data-wiring.',
+    addedAt: '2026-05-14',
+    roles: ['PM', 'DESIGNER', 'DEVELOPER'],
+  },
+  {
+    id: 'design-system-review',
+    name: 'Design System Review',
+    description:
+      'AI-augmented design system auditor that conducts multi-iteration visual reviews.',
+    useCases: [
+      'Auditing UI layouts against design system specifications.',
+      'Iterating on CSS/Tailwind tweaks with designer-in-the-loop validation.',
+      'Enforcing token and component reuse across frontend pages.',
+    ],
+    realWorldExample:
+      'Running a design system check on a newly built checkout component to ensure button styles and spacing meet system parameters.',
+    addedAt: '2026-05-08',
+    roles: ['DESIGNER', 'QA', 'DEVELOPER'],
+  },
+  {
+    id: 'weekly-leadership-report',
+    name: 'Weekly Leadership Report',
+    description:
+      'Synthesizes cross-role team progress from Git history and ClickUp sprints into structured weekly reports.',
+    useCases: [
+      'Analyzing weekly Git merges and tags to track team velocity.',
+      'Summarizing development, QA, and design tasks into client-ready briefs.',
+      'Identifying sprint blockers and accomplishments for management.',
+    ],
+    realWorldExample:
+      'Generating a polished executive status report summarizing a week of frontend improvements, QA test cases, and design reviews.',
+    addedAt: '2026-04-17',
+    roles: ['PM', 'DEVELOPER'],
+  },
   {
     id: 'pm-backlog-auditor',
     name: 'PM Backlog Auditor',
@@ -42,6 +118,8 @@ const pmSkills: Skill[] = [
     ],
     realWorldExample:
       'A PM uses the auditor to find that a "Checkout UI" task is scheduled two weeks before the "Payment API" it depends on is even started.',
+    addedAt: '2026-04-15',
+    roles: ['PM'],
   },
   {
     id: 'pm-story-augmenter',
@@ -55,6 +133,8 @@ const pmSkills: Skill[] = [
     ],
     realWorldExample:
       'Transforming "As a user I want to reset my password" into a detailed spec covering token expiration, rate limiting, and email template requirements.',
+    addedAt: '2026-04-15',
+    roles: ['PM'],
   },
   {
     id: 'pm-release-note-drafter',
@@ -68,19 +148,8 @@ const pmSkills: Skill[] = [
     ],
     realWorldExample:
       'A PM generates a professional release note that describes a "database indexing optimization" as "improved search performance for faster results."',
-  },
-  {
-    id: 'product-strategist',
-    name: 'Product Strategist',
-    description:
-      'High-density product strategy and roadmap auditor. Validates market positioning, feature prioritization, and GTM strategy against business objectives.',
-    useCases: [
-      'Validating if a proposed feature aligns with the quarterly OKRs.',
-      'Analyzing competitor features to prioritize the next roadmap item.',
-      'Assessing the technical ecosystem cost before committing to a new integration.',
-    ],
-    realWorldExample:
-      'Analyzing whether adding a new AI feature is more valuable for current user retention compared to fixing long-standing UI bugs.',
+    addedAt: '2026-04-15',
+    roles: ['PM'],
   },
   {
     id: 'pm-risk-detector',
@@ -94,6 +163,8 @@ const pmSkills: Skill[] = [
     ],
     realWorldExample:
       'Detecting that a critical path task is assigned to the only developer who is also on vacation during the launch week.',
+    addedAt: '2026-04-15',
+    roles: ['PM'],
   },
   {
     id: 'pm-effort-estimator',
@@ -107,6 +178,8 @@ const pmSkills: Skill[] = [
     ],
     realWorldExample:
       'Using historical commit data to estimate that a new API integration will likely take 3-4 days based on previous similar integrations.',
+    addedAt: '2026-04-15',
+    roles: ['PM'],
   },
   {
     id: 'pm-context-summarizer',
@@ -120,6 +193,8 @@ const pmSkills: Skill[] = [
     ],
     realWorldExample:
       'Summarizing a week of complex refactoring into a clear update for stakeholders: "Simplified the checkout logic to enable 20% faster feature development."',
+    addedAt: '2026-04-15',
+    roles: ['PM'],
   },
   {
     id: 'pm-action-item-mapper',
@@ -133,6 +208,8 @@ const pmSkills: Skill[] = [
     ],
     realWorldExample:
       'Turning a messy 30-minute meeting transcript into five distinct, actionable tickets with clear ownership and descriptions.',
+    addedAt: '2026-04-15',
+    roles: ['PM'],
   },
   {
     id: 'pm-task-specifier',
@@ -146,6 +223,8 @@ const pmSkills: Skill[] = [
     ],
     realWorldExample:
       'Drafting a technical spec for a "User Export" feature, specifying JSON format, file size limits, and security token requirements.',
+    addedAt: '2026-04-15',
+    roles: ['PM'],
   },
   {
     id: 'pm-progress-translator',
@@ -159,6 +238,8 @@ const pmSkills: Skill[] = [
     ],
     realWorldExample:
       'Updating clients about a "Dockerization" effort as "Infrastructure upgrades to ensure 99.99% service availability during peak traffic."',
+    addedAt: '2026-04-15',
+    roles: ['PM'],
   },
   {
     id: 'pm-newsletter-generator',
@@ -172,6 +253,8 @@ const pmSkills: Skill[] = [
     ],
     realWorldExample:
       'Compiling the "Engineering Monthly" update that highlights the three most impactful features shipped this month.',
+    addedAt: '2026-04-15',
+    roles: ['PM'],
   },
   {
     id: 'pm-design-system-auditor',
@@ -185,61 +268,23 @@ const pmSkills: Skill[] = [
     ],
     realWorldExample:
       'Scanning a new dashboard and finding three custom buttons that should have been using the standard "PrimaryButton" component.',
-  },
-];
-
-const sharedSkills: Skill[] = [
-  {
-    id: 'audit-tech-debt',
-    name: 'Audit Tech Debt',
-    description: 'Quantify and track structural and technical debt.',
-    useCases: [
-      'Identifying outdated dependencies that pose security risks.',
-      'Analyzing code complexity to plan refactoring sprints.',
-      'Measuring the impact of technical debt on team velocity.',
-    ],
-    realWorldExample:
-      'Discovering a deeply nested module with a cyclomatic complexity of 45 that has been the source of 80% of recent regression bugs.',
+    addedAt: '2026-04-15',
+    roles: ['PM'],
   },
   {
-    id: 'standup-daily-summary',
-    name: 'Standup Daily Summary',
-    description: 'Analyze git activity for daily reports.',
-    useCases: [
-      'Generating an automated digest of team commits for morning standup.',
-      'Highlighting unmerged pull requests that are blocking progress.',
-      'Summarizing completed tasks to keep stakeholders informed.',
-    ],
-    realWorldExample:
-      'Automatically generating a "What I did yesterday" report that links directly to the specific PRs and commits made.',
-  },
-  {
-    id: 'vertical-slice',
-    name: 'Vertical Slice Decomposer',
-    description: 'Decomposes user stories into thin, independently deployable vertical slices.',
-    useCases: [
-      'Decomposing a large feature into 1-2 day deployable slices.',
-      'Extracting technical details and design references for each slice.',
-      'Deciding on beta-flags and mock vs real implementations.',
-    ],
-    realWorldExample:
-      'Breaking down a complex "User Dashboard" epic into 4 thin vertical slices, starting with a hardcoded static layout, then progressively adding dynamic data and interactions.',
-  },
-];
-
-const designerSkills: Skill[] = [
-  {
-    id: 'style-logic-exporter',
-    name: 'Style Logic Exporter',
+    id: 'ask',
+    name: 'Ask (The Codebase Oracle)',
     description:
-      'Extracts design tokens and style logic from code for design-to-code alignment, bridging the gap between raw code and Figma.',
+      'Universal codebase consultation and architectural advisor. Available to everyone for deep technical insights.',
     useCases: [
-      'Extracting all Tailwind color variables to sync with a Figma library.',
-      'Mapping coded spacing scales to update outdated design system documentation.',
-      'Identifying inconsistent inline styles to unify component designs.',
+      'Querying the codebase for specific implementation details during a feasibility study.',
+      'Asking for an explanation of complex legacy code before proposing changes.',
+      'Getting architectural recommendations when planning a new feature.',
     ],
     realWorldExample:
-      'Exporting the actual spacing variables used in the CSS to update the outdated "Guidelines" page in Figma, ensuring 1:1 parity.',
+      'A developer joins a legacy project and uses Ask to understand the complex authentication flow across five different microservices without having to read every line of code.',
+    addedAt: '2026-04-08',
+    roles: ['UNIVERSAL'],
   },
   {
     id: 'accessibility-auditor',
@@ -253,48 +298,23 @@ const designerSkills: Skill[] = [
     ],
     realWorldExample:
       'Finding that a custom modal component was missing the `aria-modal="true"` attribute, making it invisible to screen readers.',
+    addedAt: '2026-04-07',
+    roles: ['DESIGNER', 'QA', 'DEVELOPER'],
   },
   {
-    id: 'feature-design-assistant',
-    name: 'Feature Design Assistant',
+    id: 'style-logic-exporter',
+    name: 'Style Logic Exporter',
     description:
-      'High-density discovery and architectural design engine. Translates vague ideas into methodology-compliant technical specifications.',
+      'Extracts design tokens and style logic from code for design-to-code alignment, bridging the gap between raw code and Figma.',
     useCases: [
-      'Converting a brief idea for a dashboard into a structured UI/UX plan.',
-      'Ensuring new feature designs adhere to the existing component library constraints.',
-      'Drafting interaction specifications for a complex drag-and-drop interface.',
+      'Extracting all Tailwind color variables to sync with a Figma library.',
+      'Mapping coded spacing scales to update outdated design system documentation.',
+      'Identifying inconsistent inline styles to unify component designs.',
     ],
     realWorldExample:
-      'Converting a loose sketch of a "User Profile" page into a structured component hierarchy with defined data requirements for each section.',
-  },
-];
-
-const qaSkills: Skill[] = [
-  {
-    id: 'visual-verifier',
-    name: 'Visual Verifier',
-    description:
-      'Performs smoke testing and captures media evidence for any web environment to verify UI changes.',
-    useCases: [
-      'Capturing before-and-after screenshots to verify a bug fix across viewports.',
-      'Running a quick visual smoke test on staging before a production deployment.',
-      'Documenting layout shifts that occur dynamically on user interaction.',
-    ],
-    realWorldExample:
-      'Automatically recording a video of the login flow on mobile and desktop to prove a CSS fix works across all responsive breakpoints.',
-  },
-  {
-    id: 'verification-auditor',
-    name: 'Verification Auditor',
-    description:
-      'Internal support logic for verifying local environments and evidence capture. Audits Security, Performance, and Accessibility.',
-    useCases: [
-      'Verifying that local testing environments are correctly configured before tests run.',
-      'Auditing a new page for extreme performance regressions before sign-off.',
-      'Ensuring all captured test evidence meets the required standards for compliance.',
-    ],
-    realWorldExample:
-      'Identifying that a new third-party script added to the header increased the "Time to Interactive" by 1.5 seconds.',
+      'Exporting the actual spacing variables used in the CSS to update the outdated "Guidelines" page in Figma, ensuring 1:1 parity.',
+    addedAt: '2026-03-30',
+    roles: ['DESIGNER', 'DEVELOPER'],
   },
   {
     id: 'regression-bug-fix',
@@ -308,69 +328,68 @@ const qaSkills: Skill[] = [
     ],
     realWorldExample:
       'Reading a QA bug report about a misaligned footer and automatically generating the exact CSS fix to center it across all pages.',
+    addedAt: '2026-03-25',
+    roles: ['QA', 'DEVELOPER'],
   },
-];
-
-const universalSkills: Skill[] = [
   {
-    id: 'ask',
-    name: 'Ask (The Codebase Oracle)',
+    id: 'verification-auditor',
+    name: 'Verification Auditor',
     description:
-      'Universal codebase consultation and architectural advisor. Available to everyone for deep technical insights.',
+      'Internal support logic for verifying local environments and evidence capture. Audits Security, Performance, and Accessibility.',
     useCases: [
-      'Querying the codebase for specific implementation details during a feasibility study.',
-      'Asking for an explanation of complex legacy code before proposing changes.',
-      'Getting architectural recommendations when planning a new feature.',
+      'Verifying that local testing environments are correctly configured before tests run.',
+      'Auditing a new page for extreme performance regressions before sign-off.',
+      'Ensuring all captured test evidence meets the required standards for compliance.',
     ],
     realWorldExample:
-      'A developer joins a legacy project and uses Ask to understand the complex authentication flow across five different microservices without having to read every line of code.',
-  },
-];
-
-const sharedRolesData: RoleSection[] = [
-  {
-    role: 'Product Manager',
-    icon: Briefcase,
-    skills: [...pmSkills, ...sharedSkills],
+      'Identifying that a new third-party script added to the header increased the "Time to Interactive" by 1.5 seconds.',
+    addedAt: '2026-03-25',
+    roles: ['QA', 'DEVELOPER'],
   },
   {
-    role: 'Designer',
-    icon: Palette,
-    skills: designerSkills,
-  },
-  {
-    role: 'Quality Assurance',
-    icon: ShieldCheck,
-    skills: qaSkills,
-  },
-];
-
-const devSpecificSkills: Skill[] = [
-  {
-    id: 'agent-chat',
-    name: 'Agent Chat',
+    id: 'changelog',
+    name: 'Changelog Generator',
     description:
-      'Direct command center for interacting with agents equipped with full codebase access and specialized tools.',
+      'Transforms raw Git commit logs and pull request history into semantic, user-centric release notes.',
     useCases: [
-      'Pair programming on complex logic implementations.',
-      'Asking for architectural reviews of new feature proposals.',
-      'Brainstorming refactoring strategies for legacy modules.',
+      'Creating public release notes for a major version release.',
+      'Categorizing commits into features, fixes, and performance boosts.',
+      'Automating sprint-end changelog updates for client communication.',
     ],
     realWorldExample:
-      'A developer uses Agent Chat to plan out a new microservice, getting a step-by-step implementation guide that respects the existing project patterns.',
+      'Compiling a structured CHANGELOG.md entry from 50 developer commits, highlighting key features and deprecations.',
+    addedAt: '2026-03-15',
+    roles: ['PM', 'DEVELOPER'],
   },
   {
-    id: 'ide-skills',
-    name: 'IDE Skills',
+    id: 'feature-design-assistant',
+    name: 'Feature Design Assistant',
     description:
-      'Seamlessly integrated workflows within Antigravity and Cursor for real-time code assistance and automation.',
+      'High-density discovery and architectural design engine. Translates vague ideas into methodology-compliant technical specifications.',
     useCases: [
-      'Invoking "Fix this bug" directly from the editor.',
-      'Generating unit tests for the current file with one command.',
-      'Refactoring multi-file components without leaving the IDE.',
+      'Converting a brief idea for a dashboard into a structured UI/UX plan.',
+      'Ensuring new feature designs adhere to the existing component library constraints.',
+      'Drafting interaction specifications for a complex drag-and-drop interface.',
     ],
     realWorldExample:
-      'Highlighting a complex function in Cursor and using an IDE skill to instantly refactor it for better readability while maintaining all tests.',
+      'Converting a loose sketch of a "User Profile" page into a structured component hierarchy with defined data requirements for each section.',
+    addedAt: '2026-03-15',
+    roles: ['DESIGNER', 'DEVELOPER'],
+  },
+  {
+    id: 'product-strategist',
+    name: 'Product Strategist',
+    description:
+      'High-density product strategy and roadmap auditor. Validates market positioning, feature prioritization, and GTM strategy against business objectives.',
+    useCases: [
+      'Validating if a proposed feature aligns with the quarterly OKRs.',
+      'Analyzing competitor features to prioritize the next roadmap item.',
+      'Assessing the technical ecosystem cost before committing to a new integration.',
+    ],
+    realWorldExample:
+      'Analyzing whether adding a new AI feature is more valuable for current user retention compared to fixing long-standing UI bugs.',
+    addedAt: '2026-03-15',
+    roles: ['PM'],
   },
   {
     id: 'clean-code-audit',
@@ -384,6 +403,8 @@ const devSpecificSkills: Skill[] = [
     ],
     realWorldExample:
       'Scanning a new PR and getting a report that a service class is doing too much and should be split into three smaller, focused services.',
+    addedAt: '2026-03-15',
+    roles: ['DEVELOPER'],
   },
   {
     id: 'code-review',
@@ -397,6 +418,8 @@ const devSpecificSkills: Skill[] = [
     ],
     realWorldExample:
       'Running a code review on a branch and catching a potential SQL injection vulnerability before it ever reaches a human reviewer.',
+    addedAt: '2026-03-15',
+    roles: ['DEVELOPER', 'QA'],
   },
   {
     id: 'onboard-dev',
@@ -410,6 +433,8 @@ const devSpecificSkills: Skill[] = [
     ],
     realWorldExample:
       'A new hire uses Onboard Dev to understand the data flow between the frontend and the three different backend services in under 30 minutes.',
+    addedAt: '2026-03-15',
+    roles: ['DEVELOPER'],
   },
   {
     id: 'security-audit',
@@ -423,6 +448,8 @@ const devSpecificSkills: Skill[] = [
     ],
     realWorldExample:
       'Running a security audit that identifies a hardcoded development API key in a configuration file that was accidentally committed.',
+    addedAt: '2026-03-15',
+    roles: ['DEVELOPER'],
   },
   {
     id: 'strategy-target-evaluation',
@@ -436,15 +463,200 @@ const devSpecificSkills: Skill[] = [
     ],
     realWorldExample:
       'A developer uses this to evaluate whether the proposed "Real-time Collaboration" feature is feasible with the current WebSocket implementation.',
+    addedAt: '2026-03-15',
+    roles: ['DEVELOPER'],
   },
+  {
+    id: 'audit-tech-debt',
+    name: 'Audit Tech Debt',
+    description: 'Quantify and track structural and technical debt.',
+    useCases: [
+      'Identifying outdated dependencies that pose security risks.',
+      'Analyzing code complexity to plan refactoring sprints.',
+      'Measuring the impact of technical debt on team velocity.',
+    ],
+    realWorldExample:
+      'Discovering a deeply nested module with a cyclomatic complexity of 45 that has been the source of 80% of recent regression bugs.',
+    addedAt: '2026-03-15',
+    roles: ['PM', 'DEVELOPER'],
+  },
+  {
+    id: 'visual-verifier',
+    name: 'Visual Verifier',
+    description:
+      'Performs smoke testing and captures media evidence for any web environment to verify UI changes.',
+    useCases: [
+      'Capturing before-and-after screenshots to verify a bug fix across viewports.',
+      'Running a quick visual smoke test on staging before a production deployment.',
+      'Documenting layout shifts that occur dynamically on user interaction.',
+    ],
+    realWorldExample:
+      'Automatically recording a video of the login flow on mobile and desktop to prove a CSS fix works across all responsive breakpoints.',
+    addedAt: '2026-03-14',
+    roles: ['QA', 'DEVELOPER'],
+  },
+  {
+    id: 'standup-daily-summary',
+    name: 'Standup Daily Summary',
+    description: 'Analyze git activity for daily reports.',
+    useCases: [
+      'Generating an automated digest of team commits for morning standup.',
+      'Highlighting unmerged pull requests that are blocking progress.',
+      'Summarizing completed tasks to keep stakeholders informed.',
+    ],
+    realWorldExample:
+      'Automatically generating a "What I did yesterday" report that links directly to the specific PRs and commits made.',
+    addedAt: '2026-03-14',
+    roles: ['PM', 'QA', 'DEVELOPER'],
+  },
+  {
+    id: 'pr-automator',
+    name: 'PR Automator',
+    description:
+      'Automates the draft pull request creation process with multi-viewport verification evidence and pre-commit code review checks.',
+    useCases: [
+      'Generating draft PRs with screenshots from mobile, tablet, and desktop.',
+      'Running pre-PR code review checklists to catch errors.',
+      'Linking PRs to issues and tracking development tasks.',
+    ],
+    realWorldExample:
+      'Creating a draft PR for a new layout change, including captured screenshots from 3 viewports and injecting code review diagnostics directly into the description.',
+    addedAt: '2026-03-14',
+    roles: ['DEVELOPER'],
+  },
+  {
+    id: 'agent-chat',
+    name: 'Agent Chat',
+    description:
+      'Direct command center for interacting with agents equipped with full codebase access and specialized tools.',
+    useCases: [
+      'Pair programming on complex logic implementations.',
+      'Asking for architectural reviews of new feature proposals.',
+      'Brainstorming refactoring strategies for legacy modules.',
+    ],
+    realWorldExample:
+      'A developer uses Agent Chat to plan out a new microservice, getting a step-by-step implementation guide that respects the existing project patterns.',
+    addedAt: '2026-03-14',
+    roles: ['DEVELOPER'],
+  },
+  {
+    id: 'ide-skills',
+    name: 'IDE Skills',
+    description:
+      'Seamlessly integrated workflows within Antigravity and Cursor for real-time code assistance and automation.',
+    useCases: [
+      'Invoking "Fix this bug" directly from the editor.',
+      'Generating unit tests for the current file with one command.',
+      'Refactoring multi-file components without leaving the IDE.',
+    ],
+    realWorldExample:
+      'Highlighting a complex function in Cursor and using an IDE skill to instantly refactor it for better readability while maintaining all tests.',
+    addedAt: '2026-03-14',
+    roles: ['DEVELOPER'],
+  },
+  {
+    id: 'mission-architect',
+    name: 'Mission Architect',
+    description:
+      'Master Blueprint Engine that orchestrates Strategy -> Research -> Plan -> Deliver for complex, multi-component features.',
+    useCases: [
+      'Decomposing vague feature roadmaps into high-fidelity blueprints.',
+      'Analyzing cross-component dependencies and structural constraints.',
+      'Enforcing strict verification gates and evidence capture at milestones.',
+    ],
+    realWorldExample:
+      'Translating a loose epic for subscription billing integration into a structured 4-phase technical blueprint covering database schemas and UI layouts.',
+    addedAt: '2026-03-25',
+    roles: ['PM', 'DEVELOPER'],
+  },
+  {
+    id: 'pr-design-review-init',
+    name: 'PR Design Review Initiation',
+    description:
+      'Initiate automated design review session directly from an existing GitHub Pull Request URL.',
+    useCases: [
+      'Bypassing code generation to run audits on existing branches.',
+      'Extracting component names and repository metadata from pull request diffs.',
+      'Triggering multi-iteration visual checks on active work.',
+    ],
+    realWorldExample:
+      'Pasting a pull request URL to automatically launch a design system compliance audit on a modified navbar component.',
+    addedAt: '2026-05-14',
+    roles: ['DESIGNER', 'QA', 'DEVELOPER'],
+  },
+  {
+    id: 'plan',
+    name: 'Planning Expert',
+    description:
+      'Complete planning engine that orchestrates deep pattern discovery, vertical slicing, and safe incremental delivery checklists.',
+    useCases: [
+      'Performing forensic discovery of codebase patterns and constraints.',
+      'Drafting detailed implementation plans with robust rollback strategies.',
+      'Breaking down complex tasks into XS/S size step-by-step instructions.',
+    ],
+    realWorldExample:
+      'Creating a step-by-step implementation plan for a new data migration, ensuring zero downtime and a clean rollback script.',
+    addedAt: '2026-03-14',
+    roles: ['PM', 'DEVELOPER'],
+  },
+  {
+    id: 'plan-quick',
+    name: 'Quick Planning Expert',
+    description:
+      'Ultra-lean strategic planning engine optimized for speed, token efficiency, and rapid MVC delivery.',
+    useCases: [
+      'Rapidly scoping minor feature additions or styling adjustments.',
+      'Drafting minimal change checklists without heavy forensic analysis.',
+      'Ensuring baseline compliance with the repository architecture in fast cycles.',
+    ],
+    realWorldExample:
+      'Quickly drafting a plan to add a single boolean toggle to a settings page and verifying it with a simple unit test.',
+    addedAt: '2026-03-14',
+    roles: ['PM', 'DEVELOPER'],
+  }
 ];
 
-// Developer section: Everything except PM skills and "Ask"
-const developerSkills: Skill[] = [
-  ...devSpecificSkills,
-  ...designerSkills,
-  ...qaSkills,
-  ...sharedSkills,
+const sortSkillsByDate = (skills: Skill[]) => {
+  return [...skills].sort((a, b) => {
+    const dateCompare = b.addedAt.localeCompare(a.addedAt);
+    if (dateCompare !== 0) return dateCompare;
+    return a.name.localeCompare(b.name);
+  });
+};
+
+const universalSkills = sortSkillsByDate(
+  ALL_SKILLS.filter((s) => s.roles.includes('UNIVERSAL'))
+);
+
+const pmSkills = sortSkillsByDate(
+  ALL_SKILLS.filter((s) => s.roles.includes('PM'))
+);
+const designerSkills = sortSkillsByDate(
+  ALL_SKILLS.filter((s) => s.roles.includes('DESIGNER'))
+);
+const qaSkills = sortSkillsByDate(
+  ALL_SKILLS.filter((s) => s.roles.includes('QA'))
+);
+const developerSkills = sortSkillsByDate(
+  ALL_SKILLS.filter((s) => s.roles.includes('DEVELOPER'))
+);
+
+const sharedRolesData: RoleSection[] = [
+  {
+    role: 'Product Manager',
+    icon: Briefcase,
+    skills: pmSkills,
+  },
+  {
+    role: 'Designer',
+    icon: Palette,
+    skills: designerSkills,
+  },
+  {
+    role: 'Quality Assurance',
+    icon: ShieldCheck,
+    skills: qaSkills,
+  },
 ];
 
 export default function RolesPage() {

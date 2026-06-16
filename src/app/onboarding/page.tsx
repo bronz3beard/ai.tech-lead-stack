@@ -17,7 +17,7 @@ export default function OnboardingPage() {
     <div className="min-h-screen bg-[#0f172a] text-slate-200 selection:bg-blue-500/30">
       {/* Hero Section */}
       <section className="relative overflow-hidden py-20 px-6 border-b border-slate-800/50">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-from)_0%,_transparent_65%)] from-blue-500/10 to-transparent pointer-events-none" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(circle_at_center,var(--tw-gradient-from)_0%,transparent_65%)] from-blue-500/10 to-transparent pointer-events-none" />
         <div className="max-w-4xl mx-auto text-center relative z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-medium mb-6">
             <Sparkles className="w-4 h-4" />
@@ -153,17 +153,91 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            {/* Modern Web Guidance */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                  <Target className="w-6 h-6 text-amber-400" />
+            {/* Feature Discovery */}
+            <div className="group bg-slate-900/50 border border-slate-800 rounded-2xl p-8 hover:border-emerald-500/50 transition-all duration-300">
+              <div className="flex flex-col md:flex-row gap-8">
+                <div className="shrink-0">
+                  <div className="w-14 h-14 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                    <Search className="w-8 h-8 text-emerald-400" />
+                  </div>
                 </div>
-                <h3 className="text-2xl font-bold text-white">Modern Web Guidance <span className="text-slate-500 font-normal text-lg">(High-Performance & Modern APIs)</span></h3>
+                <div className="space-y-4">
+                  <h3 className="text-2xl font-bold text-white">
+                    3. Feature Discovery
+                  </h3>
+                  <p className="text-slate-300 text-lg leading-relaxed">
+                    Interactive requirements discovery and rapid prototyping in a sandboxed Node.js environment. Speak to the Discovery Agent to build mock layouts, write files, inspect logs in real time, and verify look and feel using an integrated live preview before promoting it to development, which automatically creates a PR code review for developers to audit and approve before integration.
+                  </p>
+                  <ul className="space-y-2">
+                    {[
+                      'Isolate testing in high-performance Node.js/E2B sandboxes',
+                      'Generate mock layouts and components with direct preview support',
+                      'Promote finalized specs automatically to new Git branches',
+                      'Automatically create a PR code review for developers to audit and approve before integration',
+                    ].map((item, i) => (
+                      <li
+                        key={i}
+                        className="flex items-center gap-3 text-slate-400"
+                      >
+                        <CheckCircle2 className="w-5 h-5 text-emerald-500/60" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="pt-2">
+                    <Link
+                      href="/feature-development/discovery"
+                      className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
+                    >
+                      Start a Discovery Session
+                      <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                    </Link>
+                  </div>
+                </div>
               </div>
-              <p className="text-lg text-slate-300 leading-relaxed">
-                Based on <a href="https://github.com/GoogleChrome/modern-web-guidance-src" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:underline">GoogleChrome/modern-web-guidance-src</a>, this pillar helps coding agents build better web applications using modern, high-performance, accessible, and secure APIs instead of legacy workarounds.
-              </p>
+            </div>
+
+            {/* In-Progress Features */}
+            <div className="group bg-slate-900/50 border border-slate-800 rounded-2xl p-8 hover:border-amber-500/50 transition-all duration-300">
+              <div className="flex flex-col md:flex-row gap-8">
+                <div className="shrink-0">
+                  <div className="w-14 h-14 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                    <Zap className="w-8 h-8 text-amber-400" />
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <h3 className="text-2xl font-bold text-white">
+                    4. In-Progress Features
+                  </h3>
+                  <p className="text-slate-300 text-lg leading-relaxed">
+                    Track features currently in Discovery, Development, or In Review status. Review live preview deployments, send real-time feedback to the agent to iterate on the branch, and manage integration gates and build telemetry from a unified dashboard.
+                  </p>
+                  <ul className="space-y-2">
+                    {[
+                      'Access deployed preview URLs instantly for visual checks',
+                      'Leave actionable comments and request modifications on active branches',
+                      'Monitor automated audit reports and build validation statuses',
+                    ].map((item, i) => (
+                      <li
+                        key={i}
+                        className="flex items-center gap-3 text-slate-400"
+                      >
+                        <CheckCircle2 className="w-5 h-5 text-amber-500/60" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="pt-2">
+                    <Link
+                      href="/feature-development/in-progress"
+                      className="inline-flex items-center gap-2 text-sm font-semibold text-amber-400 hover:text-amber-300 transition-colors"
+                    >
+                      View Active Features
+                      <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -176,7 +250,8 @@ export default function OnboardingPage() {
               The Four Pillars of Excellence
             </h2>
             <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-              Our agents are built on a foundation of elite engineering methodologies that ensure high-integrity collaboration.
+              Our agents are built on a foundation of elite engineering
+              methodologies that ensure high-integrity collaboration.
             </p>
           </div>
 
@@ -187,10 +262,28 @@ export default function OnboardingPage() {
                 <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
                   <Search className="w-6 h-6 text-blue-400" />
                 </div>
-                <h3 className="text-2xl font-bold text-white">G-Stack <span className="text-slate-500 font-normal text-lg">(Modularity & Diagnosis-First)</span></h3>
+                <h3 className="text-2xl font-bold text-white">
+                  G-Stack{' '}
+                  <span className="text-slate-500 font-normal text-lg">
+                    (Modularity & Diagnosis-First)
+                  </span>
+                </h3>
               </div>
               <p className="text-lg text-slate-300 leading-relaxed">
-                Inspired by the <a href="https://github.com/garrytan/gstack" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">garrytan/gstack</a> philosophy, this pillar mandates <strong>Diagnosis before Advice</strong>. Every skill begins with <em>Phase 0: Tech-Stack Discovery</em>. Agents must understand the project&apos;s language, framework, and constraints before proposing a single line of code.
+                Inspired by the{' '}
+                <a
+                  href="https://github.com/garrytan/gstack"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:underline"
+                >
+                  garrytan/gstack
+                </a>{' '}
+                philosophy, this pillar mandates{' '}
+                <strong>Diagnosis before Advice</strong>. Every skill begins
+                with <em>Phase 0: Tech-Stack Discovery</em>. Agents must
+                understand the project&apos;s language, framework, and
+                constraints before proposing a single line of code.
               </p>
             </div>
 
@@ -200,10 +293,27 @@ export default function OnboardingPage() {
                 <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
                   <ShieldCheck className="w-6 h-6 text-emerald-400" />
                 </div>
-                <h3 className="text-2xl font-bold text-white">MinimumCD <span className="text-slate-500 font-normal text-lg">(Atomic Batches & Continuous Verification)</span></h3>
+                <h3 className="text-2xl font-bold text-white">
+                  MinimumCD{' '}
+                  <span className="text-slate-500 font-normal text-lg">
+                    (Atomic Batches & Continuous Verification)
+                  </span>
+                </h3>
               </div>
               <p className="text-lg text-slate-300 leading-relaxed">
-                This pillar prioritizes <strong>small, atomic batches of work</strong> (&lt;100 lines per task) and continuous automated verification. It is designed to prevent &quot;Big Bang&quot; integrations by enforcing <a href="https://beyond.minimumcd.org/docs/" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline">vertical slicing</a> and early detection of regression risks.
+                This pillar prioritizes{' '}
+                <strong>small, atomic batches of work</strong> (&lt;100 lines
+                per task) and continuous automated verification. It is designed
+                to prevent &quot;Big Bang&quot; integrations by enforcing{' '}
+                <a
+                  href="https://beyond.minimumcd.org/docs/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-emerald-400 hover:underline"
+                >
+                  vertical slicing
+                </a>{' '}
+                and early detection of regression risks.
               </p>
             </div>
 
@@ -213,25 +323,81 @@ export default function OnboardingPage() {
                 <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
                   <Sparkles className="w-6 h-6 text-purple-400" />
                 </div>
-                <h3 className="text-2xl font-bold text-white">Agent Skills <span className="text-slate-500 font-normal text-lg">(Production-Grade Ethos)</span></h3>
+                <h3 className="text-2xl font-bold text-white">
+                  Agent Skills{' '}
+                  <span className="text-slate-500 font-normal text-lg">
+                    (Production-Grade Ethos)
+                  </span>
+                </h3>
               </div>
               <p className="text-lg text-slate-300 leading-relaxed">
-                Based on Addy Osmani&apos;s <a href="https://github.com/addyosmani/agent-skills" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline">agent-skills</a>, this pillar treats AI agents as disciplined senior engineers rather than shortcut-taking assistants.
+                Based on Addy Osmani&apos;s{' '}
+                <a
+                  href="https://github.com/addyosmani/agent-skills"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-purple-400 hover:underline"
+                >
+                  agent-skills
+                </a>
+                , this pillar treats AI agents as disciplined senior engineers
+                rather than shortcut-taking assistants.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
                 <div className="p-4 rounded-xl bg-slate-950/50 border border-slate-800">
-                  <div className="font-bold text-white mb-1">Process over Prose</div>
-                  <div className="text-sm text-slate-400">Structured workflows with specific verification gates.</div>
+                  <div className="font-bold text-white mb-1">
+                    Process over Prose
+                  </div>
+                  <div className="text-sm text-slate-400">
+                    Structured workflows with specific verification gates.
+                  </div>
                 </div>
                 <div className="p-4 rounded-xl bg-slate-950/50 border border-slate-800">
-                  <div className="font-bold text-white mb-1">Anti-Rationalization</div>
-                  <div className="text-sm text-slate-400">Documented rebuttals to combat AI &quot;shortcuts&quot;.</div>
+                  <div className="font-bold text-white mb-1">
+                    Anti-Rationalization
+                  </div>
+                  <div className="text-sm text-slate-400">
+                    Documented rebuttals to combat AI &quot;shortcuts&quot;.
+                  </div>
                 </div>
                 <div className="p-4 rounded-xl bg-slate-950/50 border border-slate-800">
-                  <div className="font-bold text-white mb-1">Verification is Non-Negotiable</div>
-                  <div className="text-sm text-slate-400">Every task ends with hard evidence. No guessing.</div>
+                  <div className="font-bold text-white mb-1">
+                    Verification is Non-Negotiable
+                  </div>
+                  <div className="text-sm text-slate-400">
+                    Every task ends with hard evidence. No guessing.
+                  </div>
                 </div>
               </div>
+            </div>
+
+            {/* Modern Web Guidance */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                  <Target className="w-6 h-6 text-amber-400" />
+                </div>
+                <h3 className="text-2xl font-bold text-white">
+                  Modern Web Guidance{' '}
+                  <span className="text-slate-500 font-normal text-lg">
+                    (High-Performance & Modern APIs)
+                  </span>
+                </h3>
+              </div>
+              <p className="text-lg text-slate-300 leading-relaxed">
+                Based on{' '}
+                <a
+                  href="https://github.com/GoogleChrome/modern-web-guidance-src"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-amber-400 hover:underline"
+                >
+                  GoogleChrome/modern-web-guidance-src
+                </a>
+                , this pillar helps coding agents build better web applications
+                using modern, high-performance, accessible, and secure APIs
+                instead of legacy workarounds.
+              </p>
             </div>
           </div>
         </section>
@@ -248,10 +414,18 @@ export default function OnboardingPage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="/skills/roles"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg transition-all group"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-lg transition-all group"
             >
               <BookOpen className="w-5 h-5" />
               Explore Skills by Role
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <Link
+              href="/feature-development/discovery"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg transition-all group"
+            >
+              <Search className="w-5 h-5" />
+              Start Feature Discovery
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
