@@ -16,7 +16,11 @@ cost: ~750 tokens
 > **Diagnosis before Advice**: Every generation begins with **Tech-Stack
 > Discovery**. Identify the project's versioning file (`package.json`,
 > `VERSION`, etc.) and semantic prefix culture before processing. Follow
-> **G-Stack Ethos**.
+> **G-Stack Ethos** and **Modern Web Guidance**.
+>
+> **Methodology Alignment**: This skill strictly adheres to the four core
+> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
+> Guidance**.
 
 ## 🎯 Verification Gates
 

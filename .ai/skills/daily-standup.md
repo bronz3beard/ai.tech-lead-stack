@@ -16,7 +16,11 @@ cost: ~550 tokens
 > feedback loop of success than just completing a request. [!IMPORTANT]
 > **Diagnosis before Advice**: Every report begins with **Tech-Stack
 > Discovery**. The reporter must identify the project's primary branches and
-> task tracking patterns. Follow **G-Stack Ethos**.
+> task tracking patterns.
+>
+> **Methodology Alignment**: This skill strictly adheres to the four core
+> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
+> Guidance**.
 
 ## 🎯 Verification Gates
 

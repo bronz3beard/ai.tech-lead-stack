@@ -33,7 +33,11 @@
       "validate-scripts": "bash scripts/validate-scripts.sh",
       "validate-skills": "bash scripts/validate-skills.sh",
       "visual-verifier": "node scripts/visual-verifier.mjs",
-      "weekly-leadership-report": "cat .ai/skills/weekly-leadership-report.md"
+      "weekly-leadership-report": "cat .ai/skills/weekly-leadership-report.md",
+      "vertical-slice": {
+        "skill": "vertical-slice-decomposer",
+        "description": "Decompose stories into vertical slices"
+      }
     }
   },
   "scripts": {

@@ -12,6 +12,10 @@ cost: ~550 tokens
 > [!IMPORTANT] **RTK GOLDEN RULE**: Always prefix commands with `rtk run`. This
 > is the primary method for maintaining context health. Follow **G-Stack
 > Methodology**: Diagnosis before advice.
+>
+> **Methodology Alignment**: This skill strictly adheres to the four core
+> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
+> Guidance**.
 
 ## 🎯 Efficiency Gates
 

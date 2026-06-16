@@ -24,6 +24,12 @@ project-specific "gotchas" using the Antigravity Knowledge Items (KI) system.
 
 ## Core Pillars
 
+> [!TIP].
+>
+> **Methodology Alignment**: This skill strictly adheres to the four core
+> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
+> Guidance**.
+
 ### 1. Persistence
 
 Knowledge Items are stored in `~/.gemini/antigravity/knowledge/` and persist

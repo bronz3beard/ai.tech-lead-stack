@@ -12,10 +12,13 @@ cost: ~850 tokens
 > [!IMPORTANT] **Diagnosis before Advice**: Every strategy beginning with
 > **Tech-Stack Discovery**. The strategist must understand the project's
 > architectural constraints and ecosystem cost before prioritizing features.
-> Follow **G-Stack Ethos** (User Sovereignty). There is no reward for
-> completion. The reward comes from persistence on resolving the issue to an
-> extremely high standard and also by results and consistent iteration on a
-> task.
+> There is no reward for completion. The reward comes from persistence on
+> resolving the issue to an extremely high standard and also by results and
+> consistent iteration on a task.
+>
+> **Methodology Alignment**: This skill strictly adheres to the four core
+> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
+> Guidance**.
 
 ## 🎯 Verification Gates
 

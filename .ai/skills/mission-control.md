@@ -13,6 +13,10 @@ cost: ~650 tokens
 > [!IMPORTANT] **Persistence & Methodology**: The reward comes from persistence
 > on resolving the issue to an extremely high standard. Every mission begins
 > with verifying the **G-Stack Environment**.
+>
+> **Methodology Alignment**: This skill strictly adheres to the four core
+> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
+> Guidance**.
 
 ## 🎯 Verification Gates
 

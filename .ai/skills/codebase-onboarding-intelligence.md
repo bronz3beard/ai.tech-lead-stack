@@ -10,8 +10,11 @@ cost: ~1100 tokens
 
 > [!IMPORTANT] **Diagnosis before Advice**: Every onboarding begins with **Phase
 > 0: Tech-Stack Discovery**. The auditor must identify the primary engine and
-> configuration patterns before deep-diving into vitals. Follow **G-Stack
-> Ethos**.
+> configuration patterns before deep-diving into vitals.
+>
+> **Methodology Alignment**: This skill strictly adheres to the four core
+> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
+> Guidance**.
 
 ## 🎯 Verification Gates
 

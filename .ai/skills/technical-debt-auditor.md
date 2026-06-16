@@ -10,7 +10,11 @@ cost: ~850 tokens
 
 > [!IMPORTANT] **Diagnosis before Advice**: Every audit begins with **Tech-Stack
 > Discovery**. The auditor must understand the project's native maintenance
-> standards before identifying debt. Follow **G-Stack Ethos** and **MinimumCD**.
+> standards before identifying debt.
+>
+> **Methodology Alignment**: This skill strictly adheres to the four core
+> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
+> Guidance**.
 
 ## 🎯 Verification Gates
 

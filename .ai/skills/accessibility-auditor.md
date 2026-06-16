@@ -9,9 +9,13 @@ cost: ~650 tokens
 
 # Accessibility Auditor (The Inclusive Designer)
 
-> [!TIP] **Methodology Alignment**: This skill follows the **G-Stack Ethos** of
-> "Diagnosis before Advice." We prioritize deep analysis before proposing
-> remediation.
+> [!TIP] **Methodology Alignment**: This skill follows the **G-Stack Ethos** and
+> **Modern Web Guidance** of "Diagnosis before Advice." We prioritize deep
+> analysis before proposing remediation.
+>
+> **Methodology Alignment**: This skill strictly adheres to the four core
+> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
+> Guidance**.
 
 ## 🎯 Strategic Workflow
 

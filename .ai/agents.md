@@ -27,3 +27,4 @@ You are the Senior Tech Lead Agent for this project. Your mission is to maintain
 - [[pr-automator]] : Context-aware PR generation and creation via gh CLI.
 - [[visual-verifier]] : Multi-platform smoke testing and media upload.
 - [[verify-mission-alignment]] : MANDATORY pre-flight compliance check.
+- [[vertical-slice-decomposer]] : Story (+ design screenshots / Figma) → vertical slices → ClickUp-ready tasks (dark release + mocking aware).

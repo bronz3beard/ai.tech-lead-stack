@@ -10,6 +10,10 @@ cost: ~600 tokens
 
 > [!TIP] **Ethos**: "No commentary. Just the output." Focus on the **Minimal
 > Viable Change** (MVC) to keep velocity high.
+>
+> **Methodology Alignment**: This skill strictly adheres to the four core
+> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
+> Guidance**.
 
 ## 🎯 Strategic Workflow
 

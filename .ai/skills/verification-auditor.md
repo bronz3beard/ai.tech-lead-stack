@@ -13,7 +13,11 @@ cost: ~1500 tokens
 > Discovery**. The auditor must understand the project's native ecosystem before
 > reviewing with "Extreme Prejudice." There is no reward for completion. The
 > reward comes from persistence on resolving the issue to an extremely high
-> standard. Follow **G-Stack Ethos** and **MinimumCD**.
+> standard.
+>
+> **Methodology Alignment**: This skill strictly adheres to the four core
+> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
+> Guidance**.
 
 ## 🎯 Four-Stage Verification Pipeline
 

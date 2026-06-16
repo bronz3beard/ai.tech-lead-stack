@@ -5,9 +5,9 @@ and use the custom agent skills we've developed.
 
 The "Lead Stack" is a set of modular **agent skills** designed to enhance your day-to-day processes, automate repetitive tasks, and uplevel overall engineering quality. These skills are built to be **Tech-Stack Agnostic** and **Agent-Ambiguous**, meaning they adapt to your project's specific language (C#, Python, JS, etc.) and work with various large language model agents.
 
-## 🧠 The Methodology: Three Pillars
+## 🧠 The Methodology: Four Pillars
 
-The "Lead Stack" is built upon three foundational pillars of modern engineering excellence:
+The "Lead Stack" is built upon four foundational pillars of modern engineering excellence:
 
 1.  **G-Stack (Modularity & Diagnosis-First)**: Inspired by the [garrytan/gstack](https://github.com/garrytan/gstack) philosophy, this pillar mandates **Diagnosis before Advice**. Every skill begins with **Phase 0: Tech-Stack Discovery**. Agents must understand the project's language, framework, and constraints before proposing a single line of code.
 2.  **MinimumCD (Atomic Batches & Continuous Verification)**: This pillar prioritizes **small, atomic batches of work** (<100 lines per task) and continuous automated verification. It is designed to prevent "Big Bang" integrations by enforcing [vertical slicing](https://beyond.minimumcd.org/docs/) and early detection of regression risks.
@@ -15,6 +15,7 @@ The "Lead Stack" is built upon three foundational pillars of modern engineering 
     - **Process over Prose**: Skills are structured workflows (not vague advice) with specific verification gates.
     - **Anti-Rationalization**: It uses documented rebuttals to combat common AI excuses (e.g., "I'll add tests later" or "The fix seems right").
     - **Verification is Non-Negotiable**: Every task must end with hard evidence (tests, logs, or screenshots). "Seems right" is never an acceptable exit criterion.
+4.  **Modern Web Guidance**: Based on [GoogleChrome/modern-web-guidance-src](https://github.com/GoogleChrome/modern-web-guidance-src), this pillar helps coding agents build better web applications using modern, high-performance, accessible, and secure APIs instead of legacy workarounds.
 
 ---
 
