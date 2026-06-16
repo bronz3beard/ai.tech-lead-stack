@@ -15,7 +15,9 @@ cost: ~950 tokens
 > from persistence on resolving the issue to an extremely high standard and also
 > by results and consistent iteration on a task.
 >
-> **Methodology Alignment**: This skill strictly adheres to the four core pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web Guidance**.
+> **Methodology Alignment**: This skill strictly adheres to the four core
+> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
+> Guidance**.
 
 ## 🎯 Verification Gates (SOLID Framework)
 

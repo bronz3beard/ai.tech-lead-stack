@@ -15,7 +15,9 @@ also by results and consistent iteration on a task.
 > **Tech-Stack Discovery**. Identify the project's dev command, port, and
 > authentication requirements before capturing evidence.
 >
-> **Methodology Alignment**: This skill strictly adheres to the four core pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web Guidance**.
+> **Methodology Alignment**: This skill strictly adheres to the four core
+> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
+> Guidance**.
 
 ## 🎯 Verification Gates
 

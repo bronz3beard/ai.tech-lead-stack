@@ -12,7 +12,9 @@ cost: ~1100 tokens
 > 0: Tech-Stack Discovery**. The auditor must identify the primary engine and
 > configuration patterns before deep-diving into vitals.
 >
-> **Methodology Alignment**: This skill strictly adheres to the four core pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web Guidance**.
+> **Methodology Alignment**: This skill strictly adheres to the four core
+> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
+> Guidance**.
 
 ## 🎯 Verification Gates
 

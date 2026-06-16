@@ -13,7 +13,9 @@ cost: 1
 > (unrelated files/images) causes an agent to deviate from its technical
 > mission.
 >
-> **Methodology Alignment**: This skill strictly adheres to the four core pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web Guidance**.
+> **Methodology Alignment**: This skill strictly adheres to the four core
+> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
+> Guidance**.
 
 ## 🚫 Out of Bounds (DO NOT PERFORM)
 

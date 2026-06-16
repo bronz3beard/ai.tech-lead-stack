@@ -11,10 +11,11 @@ cost: ~550 tokens
 > CSS/Tailwind and Figma Make prompts. Focus on extracting re-usable tokens over
 > one-off styles. [!IMPORTANT] **Diagnosis before Advice**: Every extraction
 > begins with **Tech-Stack Discovery**. Identify the project's styling engine
-> (Tailwind, CSS Modules, Styled Components, etc.) before analyzing patterns.
->.
+> (Tailwind, CSS Modules, Styled Components, etc.) before analyzing patterns. .
 >
-> **Methodology Alignment**: This skill strictly adheres to the four core pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web Guidance**.
+> **Methodology Alignment**: This skill strictly adheres to the four core
+> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
+> Guidance**.
 
 ## 🎯 Logic Extraction Workflow
 

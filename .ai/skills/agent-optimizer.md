@@ -13,7 +13,9 @@ cost: ~550 tokens
 > is the primary method for maintaining context health. Follow **G-Stack
 > Methodology**: Diagnosis before advice.
 >
-> **Methodology Alignment**: This skill strictly adheres to the four core pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web Guidance**.
+> **Methodology Alignment**: This skill strictly adheres to the four core
+> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
+> Guidance**.
 
 ## 🎯 Efficiency Gates
 

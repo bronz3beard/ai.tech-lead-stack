@@ -18,7 +18,9 @@ cost: ~750 tokens
 > `VERSION`, etc.) and semantic prefix culture before processing. Follow
 > **G-Stack Ethos** and **Modern Web Guidance**.
 >
-> **Methodology Alignment**: This skill strictly adheres to the four core pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web Guidance**.
+> **Methodology Alignment**: This skill strictly adheres to the four core
+> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
+> Guidance**.
 
 ## 🎯 Verification Gates
 

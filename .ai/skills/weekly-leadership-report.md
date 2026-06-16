@@ -13,7 +13,9 @@ cost: ~1200 tokens
 > output intermediate plans, thoughts, or tool-call reasoning. Perform all
 > gathering silently and ONLY output the final markdown code block.
 >
-> **Methodology Alignment**: This skill strictly adheres to the four core pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web Guidance**.
+> **Methodology Alignment**: This skill strictly adheres to the four core
+> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
+> Guidance**.
 
 ## Phase 0: Discovery & Diagnosis (Silent)
 

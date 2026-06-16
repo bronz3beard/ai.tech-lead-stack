@@ -12,7 +12,9 @@ cost: ~1300 tokens
 > persistence on resolving the issue to an extremely high standard. We advise;
 > the User Tech-Lead decides.
 >
-> **Methodology Alignment**: This skill strictly adheres to the four core pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web Guidance**.
+> **Methodology Alignment**: This skill strictly adheres to the four core
+> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
+> Guidance**.
 
 ## 🎯 Master Orchestration Pipeline
 

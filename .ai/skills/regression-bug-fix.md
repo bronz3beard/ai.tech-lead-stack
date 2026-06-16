@@ -12,7 +12,9 @@ cost: ~1350 tokens
 > Discovery**. Deep research into the original requirement is the ONLY way to
 > prevent regression of the fix.
 >
-> **Methodology Alignment**: This skill strictly adheres to the four core pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web Guidance**.
+> **Methodology Alignment**: This skill strictly adheres to the four core
+> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
+> Guidance**.
 
 ## 🎯 Unified Remediation Loop
 
