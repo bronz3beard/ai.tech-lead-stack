@@ -44,13 +44,16 @@ async function pollForPort(sandbox: Sandbox, port: number, sendLog: (msg: string
   for (let i = 0; i < PORT_POLL_MAX_ATTEMPTS; i++) {
     try {
       const check = await sandbox.commands.run(
-        `curl -s -o /dev/null -w "%{http_code}" http://localhost:${port} 2>/dev/null || echo "000"`,
+        `curl -s -o /dev/null -w "%{http_code}" http://localhost:${port} 2>/dev/null`,
         { timeoutMs: 5000 }
       );
-      const code = check.stdout.trim();
-      sendLog(`  [port-check] attempt ${i + 1}/${PORT_POLL_MAX_ATTEMPTS} → HTTP ${code}`);
+      const raw = check.stdout.trim();
+      // Extract only the first valid 3-digit HTTP status code (1xx-5xx)
+      const match = raw.match(/([1-5]\d{2})/);
+      const httpCode = match ? match[1] : '000';
+      sendLog(`  [port-check] attempt ${i + 1}/${PORT_POLL_MAX_ATTEMPTS} → HTTP ${httpCode}`);
 
-      if (code !== '000' && code !== '') {
+      if (match) {
         return true;
       }
     } catch {
@@ -125,15 +128,46 @@ export async function POST(req: NextRequest) {
           let hasDevScript = false;
           let isVite = false;
           let isNext = false;
+          let isNx = false;
+          let isTurbo = false;
+          let nxDefaultProject = '';
 
           try {
             const pkgStr = await sandbox.files.read('package.json');
-            const pkg = JSON.parse(pkgStr);
-            hasDevScript = Boolean(pkg.scripts?.dev);
-            isVite = Boolean(pkg.dependencies?.vite || pkg.devDependencies?.vite);
-            isNext = Boolean(pkg.dependencies?.next || pkg.devDependencies?.next);
+            try {
+              const pkg = JSON.parse(pkgStr);
+              hasDevScript = Boolean(pkg.scripts?.dev);
+              isVite = Boolean(pkg.dependencies?.vite || pkg.devDependencies?.vite);
+              isNext = Boolean(pkg.dependencies?.next || pkg.devDependencies?.next);
+            } catch (parseError) {
+              console.warn('[E2B Boot] package.json failed to parse as strict JSON:', parseError);
+              // Fallback to string matching if JSON.parse fails (e.g. trailing commas, comments)
+              if (pkgStr.includes('"dev":') || pkgStr.includes("'dev':")) hasDevScript = true;
+              if (pkgStr.includes('"vite"')) isVite = true;
+              if (pkgStr.includes('"next"')) isNext = true;
+            }
           } catch (e) {
-            console.warn('[E2B Boot] Failed to parse package.json', e);
+            console.warn('[E2B Boot] Failed to read package.json', e);
+          }
+
+          try {
+            const nxStr = await sandbox.files.read('nx.json');
+            isNx = true;
+            try {
+              const nxJson = JSON.parse(nxStr);
+              nxDefaultProject = nxJson.defaultProject || '';
+            } catch {
+              // Ignore strict JSON parse errors for nx.json
+            }
+          } catch {
+            // Not an NX project
+          }
+
+          try {
+            await sandbox.files.read('turbo.json');
+            isTurbo = true;
+          } catch {
+            // Not a Turbo project
           }
 
           try {
@@ -205,9 +239,34 @@ export async function POST(req: NextRequest) {
           // ── 6. Start Dev Server ───────────────────────────────────────
           sendEvent('status', 'Starting development server...');
 
-          const startCmdStr = hasDevScript ? `${pkgManager} run dev` : 'npm start';
+          // Build the hostname binding flag for the detected framework
+          const hostnameFlag = isNext ? '--hostname 0.0.0.0' : isVite ? '--host 0.0.0.0' : '';
 
-          writeToTerminal(`\n$ HOST=0.0.0.0 HOSTNAME=0.0.0.0 ${startCmdStr}`);
+          let startCmdStr: string;
+          if (hasDevScript) {
+            // Root package.json has a dev script — use it with passthrough flags
+            startCmdStr = hostnameFlag
+              ? `${pkgManager} run dev -- ${hostnameFlag}`
+              : `${pkgManager} run dev`;
+          } else if (isNx) {
+            if (nxDefaultProject) {
+              startCmdStr = hostnameFlag
+                ? `npx nx serve ${nxDefaultProject} -- ${hostnameFlag}`
+                : `npx nx serve ${nxDefaultProject}`;
+            } else {
+              startCmdStr = 'npx nx run-many -t serve';
+            }
+          } else if (isTurbo) {
+            startCmdStr = 'npx turbo run dev';
+          } else {
+            startCmdStr = isNext
+              ? 'npx next dev --hostname 0.0.0.0'
+              : isVite
+                ? 'npx vite dev --host 0.0.0.0'
+                : `${pkgManager} run dev`;
+          }
+
+          writeToTerminal(`\n$ ${startCmdStr}`);
 
           // Run dev server in the background — fire and forget
           sandbox.commands.run(startCmdStr, {

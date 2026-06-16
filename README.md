@@ -144,6 +144,21 @@ agents default to high-discipline engineering rather than the shortest path:
 > robust verification. It is designed to work seamlessly with C#, Python,
 > JavaScript, Java, Go, and any other ecosystem.
 
+> [!NOTE] **🧭 The Three-Phase Engine** The **Feature Orchestrator** governs a
+> single feature's lifecycle through a disciplined three-phase loop:
+>
+> 1. **Research (Research Phase)**: Prototypes domain models, data structures,
+>    and contract boundaries using `feature-design-assistant` (optionally
+>    chaining `ui-spec-generator` and `design-system-review` when design inputs
+>    are available).
+> 2. **Plan (Planning Phase)**: Decomposes the requirements into thin,
+>    independently deployable vertical slices using `vertical-slice-decomposer`
+>    (or `planning-expert` for backend/architectural tasks).
+> 3. **Implement (Implementation Phase)**: Sandbox execution and continuous
+>    verification using `verification-auditor` and `regression-bug-fix` to
+>    ensure that every slice satisfies all compilation, type-safety, and visual
+>    design requirements.
+
 ---
 
 ## 🛠 Technical Architecture: RTK & MCP Synergy
@@ -533,6 +548,7 @@ async readSkill(safeSkillName: string) {
 | **`ask`**                       | Expert technical advisor providing architectural insights and precise code snippets for manual implementation.                                                                                                                                                                    | Diagnostic research via Phase 0 discovery, followed by high-density technical advice and snippets.                                                                                                                  | Q&A about the codebase or "How would I change this?" queries.                                                       | ~450 tokens            |
 | **`product-strategist`**        | Strategic roadmap auditor validating market positioning and Impact vs. Effort.                                                                                                                                                                                                    | Scans metrics and positioning to ensure current implementation work maps to high-ROI customer goals.                                                                                                                | Auditing a proposed feature list against the core product vision.                                                   | ~850 tokens            |
 | **`feature-design-assistant`**  | Architectural discovery engine for pre-implementation prototyping.                                                                                                                                                                                                                | Discovers existing patterns and generates technical specs before the first line of code is written.                                                                                                                 | High-level ideation for a new service or module.                                                                    | ~800 tokens            |
+| **`feature-orchestrator`**      | Three-Phase Engine — Research -> Plan -> Implement for a single feature (chat-safe, IDE-executing).                                                                                                                                                                               | Chains specialist skills (design assistant, planning expert/decomposer, verification auditor) into a governed, runtime-aware loop.                                                                                  | Use from the feature-discovery chat to drive a single-feature change end-to-end in the sandbox app.                 | ~1400 tokens           |
 | **`style-logic-exporter`**      | Extraction engine for transforming CSS/Tailwind logic into portable design tokens for Figma.                                                                                                                                                                                      | Scans style sheets and theme configurations to extract variables, colors, and typography metrics.                                                                                                                   | Syncing code-based styling with design systems or external documentation.                                           | ~650 tokens            |
 | **`technical-debt-auditor`**    | Scans codebase for anti-patterns, complexity hotspots, and architectural drift.                                                                                                                                                                                                   | Metrics-driven analysis combined with G-Stack methodology to prioritize refactoring tasks.                                                                                                                          | Routine codebase maintenance and pre-refactoring audits.                                                            | ~950 tokens            |
 | **`vertical-slice-decomposer`** | Decomposes user stories (optionally with design screenshots / Figma URLs) into thin, independently deployable vertical slices (<=2d) and emits ClickUp-ready tasks (title, technical details, dev technical prompt, design reference, beta-flag decision, mock-vs-real decision). | Phase 0 stack + domain-boundary + design-input discovery, then a deployability-test + BDD + design-state slicing engine, a persistent Slice Ledger for multi-turn anti-drift, and a fixed Output Contract per task. | Turning brownfield/greenfield stories and designs into 2-day, dark-releasable slices under Trunk-Based Development. | ~2000 tokens           |

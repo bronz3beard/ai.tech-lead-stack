@@ -9,19 +9,25 @@ export function WorkflowPhaseTracker({ traces }: { traces: TraceData[] }) {
     const hasResearch = traces.some(
       (t) =>
         t.name.includes('mission-architect') ||
-        t.metadata?.skillName === 'mission-architect'
+        t.name.includes('feature-orchestrator') ||
+        t.metadata?.skillName === 'mission-architect' ||
+        t.metadata?.skillName === 'feature-orchestrator'
     );
     const hasPlan = traces.some(
       (t) =>
         t.name.includes('mission-architect') ||
-        t.metadata?.skillName === 'mission-architect'
+        t.name.includes('feature-orchestrator') ||
+        t.metadata?.skillName === 'mission-architect' ||
+        t.metadata?.skillName === 'feature-orchestrator'
     ); // In a real app, we'd check metadata for "Phase"
     const hasImplement = traces.some(
       (t) =>
         t.name.includes('verification-auditor') ||
         t.name.includes('regression-bug-fix') || // Updated from remediation-orchestrator
+        t.name.includes('feature-orchestrator') ||
         t.metadata?.skillName === 'verification-auditor' ||
-        t.metadata?.skillName === 'regression-bug-fix' // Updated from remediation-orchestrator
+        t.metadata?.skillName === 'regression-bug-fix' || // Updated from remediation-orchestrator
+        t.metadata?.skillName === 'feature-orchestrator'
     );
 
     return [
