@@ -1,5 +1,9 @@
 import { NextRequest } from 'next/server';
 import { Sandbox } from 'e2b';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { decrypt } from '@/lib/crypto';
 
 export const maxDuration = 300; // Allow long-running setups
 export const dynamic = 'force-dynamic';
@@ -14,12 +18,22 @@ const INSTALL_TIMEOUT_MS = 10 * 60 * 1000;
 const PORT_POLL_MAX_ATTEMPTS = 15;
 const PORT_POLL_INTERVAL_MS = 2000;
 
-function getApiKey(): string {
-  const apiKey = process.env.E2B_API_KEY;
-  if (!apiKey) {
-    throw new Error('E2B_API_KEY is not defined in the environment.');
+async function getApiKey(): Promise<string> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    throw new Error('Unauthorized: Could not fetch user session.');
   }
-  return apiKey;
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { e2bApiKey: true },
+  });
+
+  if (!user?.e2bApiKey) {
+    throw new Error('Sandbox Environment API Key is not configured. Please add it in Settings > API Keys.');
+  }
+
+  return decrypt(user.e2bApiKey);
 }
 
 /**
@@ -74,8 +88,9 @@ export async function POST(req: NextRequest) {
           sendEvent('status', 'Provisioning E2B Sandbox...');
           console.log('[E2B Boot] Creating sandbox with timeoutMs:', SANDBOX_TIMEOUT_MS);
 
+          const apiKey = await getApiKey();
           const sandbox = await Sandbox.create({
-            apiKey: getApiKey(),
+            apiKey,
             timeoutMs: SANDBOX_TIMEOUT_MS,
           });
 

@@ -8,17 +8,33 @@ import { Sandbox } from 'e2b';
  * (like `node:fs`) which cannot be bundled in Client Components.
  */
 
-function getApiKey(): string {
-  const apiKey = process.env.E2B_API_KEY;
-  if (!apiKey) {
-    throw new Error('E2B_API_KEY is not defined in the environment.');
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { decrypt } from '@/lib/crypto';
+
+async function getApiKey(): Promise<string> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    throw new Error('Unauthorized: Could not fetch user session.');
   }
-  return apiKey;
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { e2bApiKey: true },
+  });
+
+  if (!user?.e2bApiKey) {
+    throw new Error('Sandbox Environment API Key is not configured. Please add it in Settings > API Keys.');
+  }
+
+  return decrypt(user.e2bApiKey);
 }
 
 export async function writeSandboxFileAction(sandboxId: string, path: string, content: string) {
   try {
-    const sandbox = await Sandbox.connect(sandboxId, { apiKey: getApiKey() });
+    const apiKey = await getApiKey();
+    const sandbox = await Sandbox.connect(sandboxId, { apiKey });
     
     // Ensure parent directory exists
     const parts = path.split('/');
@@ -37,7 +53,8 @@ export async function writeSandboxFileAction(sandboxId: string, path: string, co
 
 export async function readSandboxFileAction(sandboxId: string, path: string) {
   try {
-    const sandbox = await Sandbox.connect(sandboxId, { apiKey: getApiKey() });
+    const apiKey = await getApiKey();
+    const sandbox = await Sandbox.connect(sandboxId, { apiKey });
     const content = await sandbox.files.read(path);
     return { success: true, content };
   } catch (error: any) {
@@ -48,7 +65,8 @@ export async function readSandboxFileAction(sandboxId: string, path: string) {
 
 export async function killSandboxAction(sandboxId: string) {
   try {
-    const sandbox = await Sandbox.connect(sandboxId, { apiKey: getApiKey() });
+    const apiKey = await getApiKey();
+    const sandbox = await Sandbox.connect(sandboxId, { apiKey });
     await sandbox.kill();
     return { success: true };
   } catch (error: any) {
