@@ -39,30 +39,10 @@ export async function GET(req: Request) {
         name: true,
         image: true,
       },
-      limit: 10,
-    } as any); // cast to any because prisma findMany might not have 'limit' if it's named 'take'
-
-    // Fix for Prisma 'take' vs 'limit'
-    const usersFixed = await prisma.user.findMany({
-      where: {
-        email: {
-          contains: query,
-          mode: 'insensitive',
-        },
-        NOT: {
-          id: session.user.id,
-        },
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        image: true,
-      },
       take: 10,
     });
 
-    return NextResponse.json({ users: usersFixed });
+    return NextResponse.json({ users });
   } catch (error) {
     console.error('User search error:', error);
     return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
