@@ -48,7 +48,7 @@ export function useE2BSandbox() {
     readFileContent();
   }, [selectedFile, sandboxId]);
 
-  const boot = async (files: Record<string, string>) => {
+  const boot = useCallback(async (files: Record<string, string>) => {
     if (sandboxId) return;
     setStatus('booting');
     setIsHydrating(true);
@@ -112,9 +112,9 @@ export function useE2BSandbox() {
     } finally {
       setIsHydrating(false);
     }
-  };
+  }, [sandboxId, writeToTerminal]);
 
-  const kill = async () => {
+  const kill = useCallback(async () => {
     if (sandboxId) {
       await killSandboxAction(sandboxId);
       setSandboxId(null);
@@ -122,9 +122,9 @@ export function useE2BSandbox() {
       setPreviewUrl(null);
       setTerminalOutput([]);
     }
-  };
+  }, [sandboxId]);
 
-  const handleWriteFile = async (path: string, content: string) => {
+  const handleWriteFile = useCallback(async (path: string, content: string) => {
     if (!sandboxId) return;
 
     setWrittenFiles((prev) => {
@@ -150,9 +150,9 @@ export function useE2BSandbox() {
       );
       setSandboxError(`Failed to write file: ${path}`);
     }
-  };
+  }, [sandboxId]);
 
-  const hydrateProject = async (projectId: string) => {
+  const hydrateProject = useCallback(async (projectId: string) => {
     if (!projectId) return;
 
     setIsHydrating(true);
@@ -197,7 +197,7 @@ export function useE2BSandbox() {
       setIsHydrating(false);
       setHydrationStatus('');
     }
-  };
+  }, [boot]);
 
   const syncFilesystem = async () => {
     // E2B sandbox doesn't need to sync the entire filesystem because the files

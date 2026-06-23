@@ -23,7 +23,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -108,11 +108,16 @@ export default function DiscoveryClient({
   const hasStarted = messages.length > 0;
 
   // Sandbox Lifecycle & Teardown
+  const killRef = useRef(kill);
+  useEffect(() => {
+    killRef.current = kill;
+  }, [kill]);
+
   useEffect(() => {
     return () => {
-      kill(); // Ensures sandbox is destroyed on unmount to prevent runaway costs
+      killRef.current(); // Ensures sandbox is destroyed on unmount to prevent runaway costs
     };
-  }, [kill]);
+  }, []);
 
   // Sync hydration when a project is selected
   const handleProjectSelect = async (projectId: string) => {

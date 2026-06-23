@@ -20,7 +20,7 @@ cost: ~650 tokens
 
 - **Skill Usage Enforcement (NON-NEGOTIABLE):**
   - **FORBIDDEN:** Direct analysis without architectural context is prohibited.
-  - **IDE / MCP-enabled Agent:** You MUST call the MCP `get_skills` tool.
+  - **IDE / MCP-enabled Agent:** You MUST call the MCP `get_skills` tool (which may be prefixed as `mcp_tech-lead-stack_get_skills` or `tech-lead-stack_get_skills` depending on client prefixing).
   - **Chat UI (/chat):** You MUST call the internal `get_skill` tool.
 
 - **Action:** Identify existing modules that overlap with the story scope.

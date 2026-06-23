@@ -42,7 +42,9 @@ cost: 1
    `view_file`, `run_command` (cat/ls/etc), or `grep_search` to read content
    inside `.ai/skills/` or `.agents/workflows/`. This is a security boundary
    violation.
-   - **IDE / MCP-enabled Agent**: You MUST use the MCP `get_skills` tool.
+   - **IDE / MCP-enabled Agent**: You MUST use the MCP `get_skills` tool (which
+     may be prefixed as `mcp_tech-lead-stack_get_skills` or
+     `tech-lead-stack_get_skills` depending on client prefixing).
    - **Chat UI (/chat)**: You MUST use the internal `get_skill` tool.
    - **The IsSkillFile Fallacy**: Using the `IsSkillFile: true` parameter in
      `view_file` is strictly FORBIDDEN for reading `.ai/skills/`. This parameter

@@ -18,7 +18,7 @@ cost: ~650 tokens
 ### Phase 0: Tech-Stack Discovery (MANDATORY)
 
 - **Skill Usage Enforcement (NON-NEGOTIABLE):**
-  - **IDE / MCP-enabled Agent:** You MUST call the MCP `get_skills` tool.
+  - **IDE / MCP-enabled Agent:** You MUST call the MCP `get_skills` tool (which may be prefixed as `mcp_tech-lead-stack_get_skills` or `tech-lead-stack_get_skills` depending on client prefixing).
   - **Chat UI (/chat):** You MUST call the internal `get_skill` tool.
 
 - **Action:** Identify the target module's complexity (Total Lines, Churn

@@ -149,3 +149,13 @@ all differ from your training data. Read the relevant guide in
 notices.
 
 <!-- END:nextjs-agent-rules -->
+
+# MCP Tools Naming & Discovery
+When calling MCP tools from the `tech-lead-stack` server (e.g. `get_skills`, `get_skill`, `verify_mission_alignment`, `list_skills`), some client applications (like Cursor, Claude Code, or web chat UIs) prefix the tool names.
+If a tool execution fails because the tool is not found, check the available tools list to identify if they are prefixed.
+Common prefixes include:
+- `mcp_tech-lead-stack_<tool_name>` (e.g., `mcp_tech-lead-stack_get_skills`)
+- `tech-lead-stack_<tool_name>` (e.g., `tech-lead-stack_get_skills`)
+
+Ensure you search the tool definitions and call the tool using its correctly resolved name.
+

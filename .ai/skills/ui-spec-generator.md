@@ -22,7 +22,9 @@ cost: ~850 tokens
 ### Phase 0: Tech-Stack Discovery (MANDATORY)
 
 - **Skill Usage Enforcement (NON-NEGOTIABLE):**
-  - **IDE / MCP-enabled Agent:** You MUST call the MCP `get_skills` tool.
+  - **IDE / MCP-enabled Agent:** You MUST call the MCP `get_skills` tool (which
+    may be prefixed as `mcp_tech-lead-stack_get_skills` or
+    `tech-lead-stack_get_skills` depending on client prefixing).
 - **Action:** Identify root configuration files (`package.json`,
   `components.json`, `tailwind.config.ts`).
 - **Design System Discovery (3-Tier Protocol):**
