@@ -1,10 +1,10 @@
-import { NextRequest } from 'next/server';
+import { authOptions } from '@/lib/auth';
+import { decrypt } from '@/lib/crypto';
+import { prisma } from '@/lib/prisma';
+import AdmZip from 'adm-zip';
 import { Sandbox } from 'e2b';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-import { decrypt } from '@/lib/crypto';
-import AdmZip from 'adm-zip';
+import { NextRequest } from 'next/server';
 
 export const maxDuration = 300; // Allow long-running setups
 export const dynamic = 'force-dynamic';
@@ -154,7 +154,9 @@ async function getApiKey(): Promise<string> {
   });
 
   if (!user?.e2bApiKey) {
-    throw new Error('Sandbox Environment API Key is not configured. Please add it in Settings > API Keys.');
+    throw new Error(
+      'Sandbox Environment API Key is not configured. Please add it in Settings > API Keys.'
+    );
   }
 
   return decrypt(user.e2bApiKey);
@@ -164,13 +166,18 @@ async function getApiKey(): Promise<string> {
  * @desc Polls the sandbox until the given port is accepting connections.
  * Falls back gracefully after max attempts so the UI still gets the URL.
  */
-async function printDiagnostics(sandbox: Sandbox, sendLog: (msg: string) => void) {
+async function printDiagnostics(
+  sandbox: Sandbox,
+  sendLog: (msg: string) => void
+) {
   try {
     sendLog('\n  [diagnostics] --- Sandbox System Diagnostics ---');
-    
+
     // Check memory status
     try {
-      const freeMem = await sandbox.commands.run('free -h', { timeoutMs: 5000 });
+      const freeMem = await sandbox.commands.run('free -h', {
+        timeoutMs: 5000,
+      });
       sendLog(`  [diagnostics] Memory Status:\n${freeMem.stdout.trim()}`);
     } catch (e) {
       sendLog(`  [diagnostics] Failed to run free -h: ${e}`);
@@ -178,17 +185,26 @@ async function printDiagnostics(sandbox: Sandbox, sendLog: (msg: string) => void
 
     // Check dmesg for OOM killer or other errors
     try {
-      const oomLog = await sandbox.commands.run('dmesg | grep -i -E "oom|kill" | tail -20', { timeoutMs: 5000 });
+      const oomLog = await sandbox.commands.run(
+        'dmesg | grep -i -E "oom|kill" | tail -20',
+        { timeoutMs: 5000 }
+      );
       if (oomLog.stdout.trim()) {
-        sendLog(`  [diagnostics] Kernel OOM/Kill Events:\n${oomLog.stdout.trim()}`);
+        sendLog(
+          `  [diagnostics] Kernel OOM/Kill Events:\n${oomLog.stdout.trim()}`
+        );
       } else {
-        const dmesgLog = await sandbox.commands.run('dmesg | tail -20', { timeoutMs: 5000 });
-        sendLog(`  [diagnostics] Recent Kernel Logs:\n${dmesgLog.stdout.trim()}`);
+        const dmesgLog = await sandbox.commands.run('dmesg | tail -20', {
+          timeoutMs: 5000,
+        });
+        sendLog(
+          `  [diagnostics] Recent Kernel Logs:\n${dmesgLog.stdout.trim()}`
+        );
       }
     } catch (e) {
       sendLog(`  [diagnostics] Failed to run dmesg: ${e}`);
     }
-    
+
     sendLog('  [diagnostics] -----------------------------------\n');
   } catch (err) {
     sendLog(`  [diagnostics] Diagnostics execution failed: ${err}`);
@@ -215,17 +231,24 @@ async function pollForPort(
   // Optional warm-up: give heavy tooling (NX project graph, Turbo pipelines)
   // time to initialise before we start curling
   if (warmupMs && warmupMs > 0) {
-    sendLog(`  [port-check] waiting ${warmupMs / 1000}s for tooling warm-up...`);
-    
+    sendLog(
+      `  [port-check] waiting ${warmupMs / 1000}s for tooling warm-up...`
+    );
+
     // Check if the process died during the warm-up period
     const checkInterval = 3000;
     const checks = Math.ceil(warmupMs / checkInterval);
     for (let c = 0; c < checks; c++) {
       if (serveCmd && typeof serveCmd.pid === 'number') {
         try {
-          const checkProc = await sandbox.commands.run(`test -d /proc/${serveCmd.pid}`, { timeoutMs: 2000 });
+          const checkProc = await sandbox.commands.run(
+            `test -d /proc/${serveCmd.pid}`,
+            { timeoutMs: 2000 }
+          );
           if (checkProc.exitCode !== 0) {
-            sendLog(`  [port-check] Dev server process (PID ${serveCmd.pid}) exited during warm-up!`);
+            sendLog(
+              `  [port-check] Dev server process (PID ${serveCmd.pid}) exited during warm-up!`
+            );
             await printDiagnostics(sandbox, sendLog);
             return false;
           }
@@ -233,7 +256,9 @@ async function pollForPort(
           // Ignore transient command errors
         }
       }
-      await new Promise((r) => setTimeout(r, Math.min(checkInterval, warmupMs - c * checkInterval)));
+      await new Promise((r) =>
+        setTimeout(r, Math.min(checkInterval, warmupMs - c * checkInterval))
+      );
     }
   }
 
@@ -241,9 +266,14 @@ async function pollForPort(
     // Check if the process died before attempting port connection
     if (serveCmd && typeof serveCmd.pid === 'number') {
       try {
-        const checkProc = await sandbox.commands.run(`test -d /proc/${serveCmd.pid}`, { timeoutMs: 2000 });
+        const checkProc = await sandbox.commands.run(
+          `test -d /proc/${serveCmd.pid}`,
+          { timeoutMs: 2000 }
+        );
         if (checkProc.exitCode !== 0) {
-          sendLog(`  [port-check] Dev server process (PID ${serveCmd.pid}) has exited!`);
+          sendLog(
+            `  [port-check] Dev server process (PID ${serveCmd.pid}) has exited!`
+          );
           await printDiagnostics(sandbox, sendLog);
           return false;
         }
@@ -260,13 +290,17 @@ async function pollForPort(
       );
 
       if (tcpCheck.exitCode === 0) {
-        sendLog(`  [port-check] attempt ${i + 1}/${maxAttempts} → TCP socket open!`);
+        sendLog(
+          `  [port-check] attempt ${i + 1}/${maxAttempts} → TCP socket open!`
+        );
         return true;
       } else {
         sendLog(`  [port-check] attempt ${i + 1}/${maxAttempts} → port closed`);
       }
     } catch (e) {
-      sendLog(`  [port-check] attempt ${i + 1}/${maxAttempts} → port closed: ${e}`);
+      sendLog(
+        `  [port-check] attempt ${i + 1}/${maxAttempts} → port closed: ${e}`
+      );
     }
     await new Promise((r) => setTimeout(r, intervalMs));
   }
@@ -298,8 +332,10 @@ async function resolveNxServeCommand(
   envs: Record<string, string>
 ): Promise<NxResolveResult> {
   const NX_CMD_OPTS = { timeoutMs: 30000, envs };
-  
-  sendLog('  [fs-scan] Bypassing NX CLI — scanning filesystem for framework apps...');
+
+  sendLog(
+    '  [fs-scan] Bypassing NX CLI — scanning filesystem for framework apps...'
+  );
 
   // Strategy 1a: Find Next.js config (highest priority — single result)
   try {
@@ -351,23 +387,30 @@ async function resolveNxServeCommand(
     const findCmd = `find . -type d -name "node_modules" -prune -o -name "project.json" -print | head -n 10`;
     const findResult = await sandbox.commands.run(findCmd, NX_CMD_OPTS);
     const files = findResult.stdout.trim().split('\n').filter(Boolean);
-    
+
     for (const file of files) {
       if (file.includes('e2e')) continue;
       try {
         const content = await sandbox.files.read(file);
         const appDir = file.substring(0, file.lastIndexOf('/'));
-        
+
         if (content.includes('@nx/next') || content.includes('@nrwl/next')) {
-          sendLog(`  [fs-scan] Discovered Next.js app via project.json at: ${appDir}`);
+          sendLog(
+            `  [fs-scan] Discovered Next.js app via project.json at: ${appDir}`
+          );
           return {
             command: `ROOT_DIR=$(pwd) && cd "${appDir}" && (cp "$ROOT_DIR/.env" . 2>/dev/null || true) && (cp "$ROOT_DIR/.env.local" . 2>/dev/null || true) && exec npx next dev --hostname 0.0.0.0 --port 3000`,
             isNext: true,
             isVite: false,
             port: 3000,
           };
-        } else if (content.includes('@nx/vite') || content.includes('@nrwl/vite')) {
-          sendLog(`  [fs-scan] Discovered Vite app via project.json at: ${appDir}`);
+        } else if (
+          content.includes('@nx/vite') ||
+          content.includes('@nrwl/vite')
+        ) {
+          sendLog(
+            `  [fs-scan] Discovered Vite app via project.json at: ${appDir}`
+          );
           return {
             command: `ROOT_DIR=$(pwd) && cd "${appDir}" && (cp "$ROOT_DIR/.env" . 2>/dev/null || true) && (cp "$ROOT_DIR/.env.local" . 2>/dev/null || true) && exec npx vite dev --host 0.0.0.0 --port 5173`,
             isNext: false,
@@ -384,9 +427,12 @@ async function resolveNxServeCommand(
   }
 
   // Strategy 3: Fallback to original NX behavior if FS scan finds nothing
-  sendLog('  [fs-scan] Direct introspection found nothing — falling back to run-many');
+  sendLog(
+    '  [fs-scan] Direct introspection found nothing — falling back to run-many'
+  );
   return {
-    command: 'npx nx run-many -t serve --parallel=1 || npx nx run-many -t dev --parallel=1',
+    command:
+      'npx nx run-many -t serve --parallel=1 || npx nx run-many -t dev --parallel=1',
     isNext: false,
     isVite: false,
     port: null,
@@ -402,7 +448,10 @@ function parseEnvContent(content: string): Record<string, string> {
     if (idx > 0) {
       const key = trimmed.substring(0, idx).trim();
       let val = trimmed.substring(idx + 1).trim();
-      if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      if (
+        (val.startsWith('"') && val.endsWith('"')) ||
+        (val.startsWith("'") && val.endsWith("'"))
+      ) {
         val = val.substring(1, val.length - 1);
       }
       envs[key] = val;
@@ -436,9 +485,14 @@ export async function POST(req: NextRequest) {
 
     const stream = new ReadableStream({
       async start(controller) {
-        const sendEvent = (type: 'status' | 'log' | 'ready' | 'error', payload: unknown) => {
+        const sendEvent = (
+          type: 'status' | 'log' | 'ready' | 'error',
+          payload: unknown
+        ) => {
           try {
-            controller.enqueue(encoder.encode(JSON.stringify({ type, payload }) + '\n'));
+            controller.enqueue(
+              encoder.encode(JSON.stringify({ type, payload }) + '\n')
+            );
           } catch {
             // Controller may already be closed if client disconnected
           }
@@ -449,7 +503,10 @@ export async function POST(req: NextRequest) {
         try {
           // ── 1. Provision Sandbox ──────────────────────────────────────
           sendEvent('status', 'Provisioning E2B Sandbox...');
-          console.log('[E2B Boot] Creating sandbox with timeoutMs:', SANDBOX_TIMEOUT_MS);
+          console.log(
+            '[E2B Boot] Creating sandbox with timeoutMs:',
+            SANDBOX_TIMEOUT_MS
+          );
 
           const apiKey = await getApiKey();
           const sandbox = await Sandbox.create({
@@ -483,51 +540,86 @@ export async function POST(req: NextRequest) {
           }
           const zipBuffer = zip.toBuffer();
 
-          sendEvent('log', `  [zip] Packaged ${entries.length} files into ZIP bundle`);
+          sendEvent(
+            'log',
+            `  [zip] Packaged ${entries.length} files into ZIP bundle`
+          );
 
           // Write the ZIP file to the sandbox
-          const arrayBuffer = zipBuffer.buffer.slice(zipBuffer.byteOffset, zipBuffer.byteOffset + zipBuffer.byteLength);
+          const arrayBuffer = zipBuffer.buffer.slice(
+            zipBuffer.byteOffset,
+            zipBuffer.byteOffset + zipBuffer.byteLength
+          );
           await sandbox.files.write('project.zip', arrayBuffer);
           sendEvent('log', '  [zip] ZIP bundle uploaded to sandbox');
 
           // Unzip the files
-          let unzipResult = await sandbox.commands.run('unzip -o project.zip && rm project.zip', {
-            timeoutMs: 30000,
-          });
+          let unzipResult = await sandbox.commands.run(
+            'unzip -o project.zip && rm project.zip',
+            {
+              timeoutMs: 30000,
+            }
+          );
 
           if (unzipResult.exitCode === 127) {
-            sendEvent('log', '  [unzip] unzip command not found in sandbox, installing...');
-            await sandbox.commands.run('sudo apt-get update && sudo apt-get install -y unzip', {
-              timeoutMs: 45000,
-            });
+            sendEvent(
+              'log',
+              '  [unzip] unzip command not found in sandbox, installing...'
+            );
+            await sandbox.commands.run(
+              'sudo apt-get update && sudo apt-get install -y unzip',
+              {
+                timeoutMs: 45000,
+              }
+            );
             sendEvent('log', '  [unzip] Retrying extraction...');
-            unzipResult = await sandbox.commands.run('unzip -o project.zip && rm project.zip', {
-              timeoutMs: 30000,
-            });
+            unzipResult = await sandbox.commands.run(
+              'unzip -o project.zip && rm project.zip',
+              {
+                timeoutMs: 30000,
+              }
+            );
           }
 
           if (unzipResult.exitCode !== 0) {
-            throw new Error(`Failed to extract project bundle: ${unzipResult.stderr}`);
+            throw new Error(
+              `Failed to extract project bundle: ${unzipResult.stderr}`
+            );
           }
 
-          sendEvent('log', `✓ ${entries.length} files written and extracted successfully`);
+          sendEvent(
+            'log',
+            `✓ ${entries.length} files written and extracted successfully`
+          );
 
           // Run config patching script to allow dev origins/hosts
           try {
             sendEvent('log', '  [patch] Writing config patching script...');
             await sandbox.files.write('patch-configs.js', PATCH_CONFIGS_SCRIPT);
             sendEvent('log', '  [patch] Executing config patching script...');
-            const patchResult = await sandbox.commands.run('node patch-configs.js && rm patch-configs.js', {
-              timeoutMs: 15000,
-            });
+            const patchResult = await sandbox.commands.run(
+              'node patch-configs.js && rm patch-configs.js',
+              {
+                timeoutMs: 15000,
+              }
+            );
             if (patchResult.stdout) {
-              sendEvent('log', patchResult.stdout.split('\n').map(line => `  [patch] ${line}`).join('\n'));
+              sendEvent(
+                'log',
+                patchResult.stdout
+                  .split('\n')
+                  .map((line) => `  [patch] ${line}`)
+                  .join('\n')
+              );
             }
             if (patchResult.stderr) {
               sendEvent('log', `  [patch] [ERROR] ${patchResult.stderr}`);
             }
           } catch (patchErr: any) {
-            sendEvent('log', `  [patch] Failed to run config patching script: ${patchErr.message || patchErr}`);
+            sendEvent(
+              'log',
+              `  [patch] Failed to run config patching script: ${patchErr.message || patchErr}`
+            );
           }
 
           // ── 3. Analyze Configuration ──────────────────────────────────
@@ -545,11 +637,19 @@ export async function POST(req: NextRequest) {
             try {
               const pkg = JSON.parse(pkgStr);
               hasDevScript = Boolean(pkg.scripts?.dev);
-              isVite = Boolean(pkg.dependencies?.vite || pkg.devDependencies?.vite);
-              isNext = Boolean(pkg.dependencies?.next || pkg.devDependencies?.next);
+              isVite = Boolean(
+                pkg.dependencies?.vite || pkg.devDependencies?.vite
+              );
+              isNext = Boolean(
+                pkg.dependencies?.next || pkg.devDependencies?.next
+              );
             } catch (parseError) {
-              console.warn('[E2B Boot] package.json failed to parse as strict JSON:', parseError);
-              if (pkgStr.includes('"dev":') || pkgStr.includes("'dev':")) hasDevScript = true;
+              console.warn(
+                '[E2B Boot] package.json failed to parse as strict JSON:',
+                parseError
+              );
+              if (pkgStr.includes('"dev":') || pkgStr.includes("'dev':"))
+                hasDevScript = true;
               if (pkgStr.includes('"vite"')) isVite = true;
               if (pkgStr.includes('"next"')) isNext = true;
             }
@@ -608,37 +708,48 @@ export async function POST(req: NextRequest) {
 
           // ── 4.5 Allocate Swap Memory ────────────────────────────────────
           sendEvent('status', 'Allocating virtual memory...');
-          writeToTerminal('\n$ sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile');
-          await sandbox.commands.run('sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile || echo "Swap setup failed or skipped"', {
-            onStdout: writeToTerminal,
-            onStderr: writeToTerminal,
-            timeoutMs: 30000,
-          });
+          writeToTerminal(
+            '\n$ sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile'
+          );
+          await sandbox.commands.run(
+            'sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile || echo "Swap setup failed or skipped"',
+            {
+              onStdout: writeToTerminal,
+              onStderr: writeToTerminal,
+              timeoutMs: 30000,
+            }
+          );
 
           // ── 5. Install Dependencies ───────────────────────────────────
           sendEvent('status', `Installing dependencies with ${pkgManager}...`);
-          
-          const installArgs = isPnpm 
-            ? 'install --reporter=append-only' 
+
+          const installArgs = isPnpm
+            ? 'install --reporter=append-only'
             : 'install';
-            
-          const envString = 'CI=true NX_DAEMON=false NX_CACHE_WORKERS=1 NODE_OPTIONS="--max-old-space-size=768"';
+
+          const envString =
+            'CI=true NX_DAEMON=false NX_CACHE_WORKERS=1 NODE_OPTIONS="--max-old-space-size=768"';
           writeToTerminal(`\n$ ${envString} ${pkgManager} ${installArgs}`);
 
-          const installCmd = await sandbox.commands.run(`${pkgManager} ${installArgs}`, {
-            onStdout: writeToTerminal,
-            onStderr: writeToTerminal,
-            timeoutMs: INSTALL_TIMEOUT_MS,
-            envs: {
-              CI: 'true',
-              NX_DAEMON: 'false',
-              NX_CACHE_WORKERS: '1',
-              NODE_OPTIONS: '--max-old-space-size=768'
+          const installCmd = await sandbox.commands.run(
+            `${pkgManager} ${installArgs}`,
+            {
+              onStdout: writeToTerminal,
+              onStderr: writeToTerminal,
+              timeoutMs: INSTALL_TIMEOUT_MS,
+              envs: {
+                CI: 'true',
+                NX_DAEMON: 'false',
+                NX_CACHE_WORKERS: '1',
+                NODE_OPTIONS: '--max-old-space-size=768',
+              },
             }
-          });
+          );
 
           if (installCmd.exitCode !== 0) {
-            throw new Error(`${pkgManager} install failed with exit code ${installCmd.exitCode}. Check terminal logs.`);
+            throw new Error(
+              `${pkgManager} install failed with exit code ${installCmd.exitCode}. Check terminal logs.`
+            );
           }
 
           writeToTerminal('\n✓ Dependencies installed successfully');
@@ -649,24 +760,33 @@ export async function POST(req: NextRequest) {
               `find . -type d -name "node_modules" -prune -o -name "schema.prisma" -print`,
               { timeoutMs: 15000 }
             );
-            const schemas = prismaFind.stdout.trim().split('\n').filter(Boolean);
+            const schemas = prismaFind.stdout
+              .trim()
+              .split('\n')
+              .filter(Boolean);
             if (schemas.length > 0) {
               sendEvent('status', 'Generating Prisma Client...');
               for (const schema of schemas) {
                 writeToTerminal(`\n$ npx prisma generate --schema="${schema}"`);
-                await sandbox.commands.run(`npx prisma generate --schema="${schema}"`, {
-                  onStdout: writeToTerminal,
-                  onStderr: writeToTerminal,
-                  timeoutMs: 60000,
-                  envs: {
-                    DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/postgres',
-                    ...projectEnvs,
-                  },
-                });
+                await sandbox.commands.run(
+                  `npx prisma generate --schema="${schema}"`,
+                  {
+                    onStdout: writeToTerminal,
+                    onStderr: writeToTerminal,
+                    timeoutMs: 60000,
+                    envs: {
+                      DATABASE_URL:
+                        'postgresql://postgres:postgres@localhost:5432/postgres',
+                      ...projectEnvs,
+                    },
+                  }
+                );
               }
             }
           } catch (e) {
-            writeToTerminal(`\n  [prisma] Prisma client generation skipped/failed: ${e}`);
+            writeToTerminal(
+              `\n  [prisma] Prisma client generation skipped/failed: ${e}`
+            );
           }
 
           // ── 6. Start Dev Server ───────────────────────────────────────
@@ -684,7 +804,11 @@ export async function POST(req: NextRequest) {
           };
 
           // Build the hostname binding flag for the detected framework
-          const hostnameFlag = isNext ? '--hostname 0.0.0.0' : isVite ? '--host 0.0.0.0' : '';
+          const hostnameFlag = isNext
+            ? '--hostname 0.0.0.0'
+            : isVite
+              ? '--host 0.0.0.0'
+              : '';
 
           let startCmdStr: string;
           let detectedPort = isNext ? 3000 : isVite ? 5173 : 3000;
@@ -738,25 +862,52 @@ export async function POST(req: NextRequest) {
           // ── 7. Wait for Port ──────────────────────────────────────────
           const port = detectedPort;
           const isMonorepo = isNx || isTurbo;
-          sendEvent('status', `Waiting for dev server on port ${port}${isMonorepo ? ' (extended timeout for monorepo)' : ''}...`);
+          sendEvent(
+            'status',
+            `Waiting for dev server on port ${port}${isMonorepo ? ' (extended timeout for monorepo)' : ''}...`
+          );
 
           const pollOpts = isMonorepo
-            ? { maxAttempts: PORT_POLL_MAX_ATTEMPTS_MONOREPO, intervalMs: PORT_POLL_INTERVAL_MS_MONOREPO, warmupMs: MONOREPO_WARMUP_MS }
-            : { maxAttempts: PORT_POLL_MAX_ATTEMPTS_DEFAULT, intervalMs: PORT_POLL_INTERVAL_MS_DEFAULT };
+            ? {
+                maxAttempts: PORT_POLL_MAX_ATTEMPTS_MONOREPO,
+                intervalMs: PORT_POLL_INTERVAL_MS_MONOREPO,
+                warmupMs: MONOREPO_WARMUP_MS,
+              }
+            : {
+                maxAttempts: PORT_POLL_MAX_ATTEMPTS_DEFAULT,
+                intervalMs: PORT_POLL_INTERVAL_MS_DEFAULT,
+              };
 
-          const portReady = await pollForPort(sandbox, port, writeToTerminal, pollOpts, serveCmd);
+          const portReady = await pollForPort(
+            sandbox,
+            port,
+            writeToTerminal,
+            pollOpts,
+            serveCmd
+          );
 
           if (portReady) {
             writeToTerminal(`\n✓ Dev server detected on port ${port}`);
             try {
-              writeToTerminal(`\n[diagnostics] Querying localhost:${port} via curl (following redirects)...`);
-              const testCurl = await sandbox.commands.run(`curl -i -L -s http://localhost:${port} || curl -i -L -s http://127.0.0.1:${port}`, { timeoutMs: 30000 });
-              writeToTerminal(`\n[diagnostics] Response Headers/Content:\n${testCurl.stdout.trim() || testCurl.stderr.trim()}`);
+              writeToTerminal(
+                `\n[diagnostics] Querying localhost:${port} via curl (following redirects)...`
+              );
+              const testCurl = await sandbox.commands.run(
+                `curl -i -L -s http://localhost:${port} || curl -i -L -s http://127.0.0.1:${port}`,
+                { timeoutMs: 30000 }
+              );
+              writeToTerminal(
+                `\n[diagnostics] Response Headers/Content:\n${testCurl.stdout.trim() || testCurl.stderr.trim()}`
+              );
             } catch (curlErr: any) {
-              writeToTerminal(`\n[diagnostics] Curl query failed: ${curlErr.message || curlErr}`);
+              writeToTerminal(
+                `\n[diagnostics] Curl query failed: ${curlErr.message || curlErr}`
+              );
             }
           } else {
-            writeToTerminal(`\n⚠ Dev server not detected after polling — returning URL anyway`);
+            writeToTerminal(
+              `\n⚠ Dev server not detected after polling — returning URL anyway`
+            );
           }
 
           // ── 8. Return Ready ───────────────────────────────────────────
@@ -778,7 +929,8 @@ export async function POST(req: NextRequest) {
 
           controller.close();
         } catch (err: unknown) {
-          const message = err instanceof Error ? err.message : 'Failed to boot sandbox';
+          const message =
+            err instanceof Error ? err.message : 'Failed to boot sandbox';
           console.error('[E2B Boot Error]', err);
           sendEvent('error', message);
           controller.close();
