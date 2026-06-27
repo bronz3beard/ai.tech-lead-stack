@@ -48,7 +48,7 @@ export function useE2BSandbox() {
     readFileContent();
   }, [selectedFile, sandboxId]);
 
-  const boot = useCallback(async (files: Record<string, string>) => {
+  const boot = useCallback(async (files: Record<string, any>) => {
     if (sandboxId) return;
     setStatus('booting');
     setIsHydrating(true);
@@ -165,8 +165,8 @@ export function useE2BSandbox() {
       const flatFiles = flattenTree(bundle);
       setWrittenFiles(flatFiles);
 
-      // Convert project bundle format to flat Record<string, string>
-      const filesRecord: Record<string, string> = {};
+      // Convert project bundle format to flat Record<string, any>
+      const filesRecord: Record<string, any> = {};
       
       // Helper to recursively parse the bundle
       const parseBundle = (node: any, currentPath: string = '') => {
@@ -180,7 +180,10 @@ export function useE2BSandbox() {
                // naive string conversion for code files
                contents = new TextDecoder().decode(contents);
             }
-            filesRecord[itemPath] = contents;
+            filesRecord[itemPath] = {
+              contents,
+              encoding: anyEntry.file.encoding || 'utf8'
+            };
           } else if (anyEntry.directory) {
             parseBundle(anyEntry.directory, itemPath);
           }

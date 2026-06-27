@@ -16,11 +16,9 @@ const SANDBOX_TIMEOUT_MS = 15 * 60 * 1000;
 const INSTALL_TIMEOUT_MS = 10 * 60 * 1000;
 
 /** @desc Default polling config for the dev server port */
-const PORT_POLL_MAX_ATTEMPTS_DEFAULT = 20;
+const PORT_POLL_MAX_ATTEMPTS_DEFAULT = 30;
 const PORT_POLL_INTERVAL_MS_DEFAULT = 2000;
-
-/** @desc Extended polling for monorepo tooling (NX/Turbo) — 150s total */
-const PORT_POLL_MAX_ATTEMPTS_MONOREPO = 40;
+const PORT_POLL_MAX_ATTEMPTS_MONOREPO = 60;
 const PORT_POLL_INTERVAL_MS_MONOREPO = 3000;
 
 /** @desc Warm-up delay before polling to let heavy tooling (NX graph) initialize */
@@ -51,7 +49,7 @@ function walk(dir) {
 try {
   const files = walk('.');
   console.log('[patch-configs] Scanning ' + files.length + ' files...');
-  
+
   files.forEach(file => {
     const name = path.basename(file);
     if (name.startsWith('next.config.')) {
@@ -61,41 +59,40 @@ try {
         console.log('[patch-configs]   allowedDevOrigins already present, skipping.');
         return;
       }
-      
-      let patched = false;
-      if (/experimental\\s*:\\s*\\{/.test(content)) {
-        content = content.replace(/(experimental\\s*:\\s*\\{)/, "$1\\n    allowedDevOrigins: ['.e2b.dev', '.e2b.co', 'localhost', '127.0.0.1'],");
-        patched = true;
-      } else {
-        const nextPatterns = [
-          {
-            regex: /((const|let|var)\\s+nextConfig\\s*(?::\\s*\\w+)?\\s*=\\s*\\{)/,
-            replace: "$1\\n  experimental: { allowedDevOrigins: ['.e2b.dev', '.e2b.co', 'localhost', '127.0.0.1'] },"
-          },
-          {
-            regex: /(module\\.exports\\s*=\\s*\\{)/,
-            replace: "$1\\n  experimental: { allowedDevOrigins: ['.e2b.dev', '.e2b.co', 'localhost', '127.0.0.1'] },"
-          },
-          {
-            regex: /(export\\s+default\\s*\\{)/,
-            replace: "$1\\n  experimental: { allowedDevOrigins: ['.e2b.dev', '.e2b.co', 'localhost', '127.0.0.1'] },"
-          }
-        ];
+      try {
+        const ext = path.extname(file);
+        const originalFile = file.replace(ext, \`.original\${ext}\`);
+        fs.renameSync(file, originalFile);
 
-        for (const pattern of nextPatterns) {
-          if (pattern.regex.test(content)) {
-            content = content.replace(pattern.regex, pattern.replace);
-            patched = true;
-            break;
-          }
+        let wrapperContent = '';
+        if (ext === '.mjs') {
+           wrapperContent = \`import config from './\${path.basename(originalFile)}';
+export default async function (phase, args) {
+  let result = typeof config === 'function' ? await config(phase, args) : config;
+  result = await Promise.resolve(result);
+  result.allowedDevOrigins = [...(result.allowedDevOrigins || []), '.e2b.dev', '.e2b.co', 'localhost', '127.0.0.1'];
+  result.experimental = result.experimental || {};
+  result.experimental.serverActions = result.experimental.serverActions || {};
+  result.experimental.serverActions.allowedOrigins = [...(result.experimental.serverActions.allowedOrigins || []), '.e2b.dev', '.e2b.co', 'localhost', '127.0.0.1'];
+  return result;
+}\`;
+        } else {
+           wrapperContent = \`const config = require('./\${path.basename(originalFile)}');
+module.exports = async function (phase, args) {
+  let result = typeof config === 'function' ? await config(phase, args) : config;
+  result = await Promise.resolve(result);
+  result.allowedDevOrigins = [...(result.allowedDevOrigins || []), '.e2b.dev', '.e2b.co', 'localhost', '127.0.0.1'];
+  result.experimental = result.experimental || {};
+  result.experimental.serverActions = result.experimental.serverActions || {};
+  result.experimental.serverActions.allowedOrigins = [...(result.experimental.serverActions.allowedOrigins || []), '.e2b.dev', '.e2b.co', 'localhost', '127.0.0.1'];
+  return result;
+};\`;
         }
-      }
 
-      if (patched) {
-        fs.writeFileSync(file, content, 'utf8');
-        console.log('[patch-configs]   Successfully patched Next.js config.');
-      } else {
-        console.log('[patch-configs]   Could not find standard config object to patch.');
+        fs.writeFileSync(file, wrapperContent, 'utf8');
+        console.log('[patch-configs]   Successfully wrapped Next.js config.');
+      } catch(e) {
+        console.error('[patch-configs]   Failed to wrap Next.js config:', e);
       }
     } else if (name.startsWith('vite.config.')) {
       console.log('[patch-configs] Found Vite config:', file);
@@ -163,8 +160,7 @@ async function getApiKey(): Promise<string> {
 }
 
 /**
- * @desc Polls the sandbox until the given port is accepting connections.
- * Falls back gracefully after max attempts so the UI still gets the URL.
+ * @desc Prints sandbox diagnostics on boot failure.
  */
 async function printDiagnostics(
   sandbox: Sandbox,
@@ -212,8 +208,8 @@ async function printDiagnostics(
 }
 
 /**
- * @desc Polls the sandbox until the given port is accepting connections.
- * Falls back gracefully after max attempts so the UI still gets the URL.
+ * @desc Polls the sandbox until the given port is accepting connections AND the
+ * dev server returns a real HTTP response (200/404/308 = compiled & routing).
  * Also monitors the serve process and terminates early if it exits/crashes.
  */
 async function pollForPort(
@@ -224,7 +220,7 @@ async function pollForPort(
     maxAttempts: PORT_POLL_MAX_ATTEMPTS_DEFAULT,
     intervalMs: PORT_POLL_INTERVAL_MS_DEFAULT,
   },
-  serveCmd?: any
+  serveCmd?: { pid?: number }
 ): Promise<boolean> {
   const { maxAttempts, intervalMs, warmupMs } = opts;
 
@@ -291,9 +287,36 @@ async function pollForPort(
 
       if (tcpCheck.exitCode === 0) {
         sendLog(
-          `  [port-check] attempt ${i + 1}/${maxAttempts} → TCP socket open!`
+          `  [port-check] attempt ${i + 1}/${maxAttempts} → TCP socket open! Waiting for HTTP 200...`
         );
-        return true;
+
+        // Step 2: Wait for a real HTTP response (compile can be very slow on a
+        // heavy first request). 60 attempts × 6s ≈ 6 minutes.
+        for (let j = 0; j < 60; j++) {
+          const httpCheck = await sandbox.commands.run(
+            `curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:${port}/`,
+            { timeoutMs: 10000 }
+          );
+          const statusCode = httpCheck.stdout.trim();
+          // Accept 200/404/308: the server compiled and is routing.
+          if (
+            statusCode === '200' ||
+            statusCode === '404' ||
+            statusCode === '308'
+          ) {
+            sendLog(
+              `  [port-check] HTTP ${statusCode} received! Server is ready.`
+            );
+            return true;
+          } else {
+            sendLog(
+              `  [port-check] HTTP status ${statusCode || 'timeout/error'}, waiting for compile...`
+            );
+          }
+          await new Promise((r) => setTimeout(r, 6000));
+        }
+        sendLog(`  [port-check] Gave up waiting for an HTTP response.`);
+        return false;
       } else {
         sendLog(`  [port-check] attempt ${i + 1}/${maxAttempts} → port closed`);
       }
@@ -315,127 +338,81 @@ interface NxResolveResult {
 }
 
 /**
- * @desc Introspects the workspace directly via filesystem to find actual serveable projects.
- *       Bypasses NX CLI entirely to avoid massive graph calculation overhead in the sandbox.
- *       Finds framework config files (Next.js, Vite) and returns a direct execution command.
+ * @desc Determines the native NX serve command by introspecting NX projects
+ *       (instead of flattening the app and bypassing NX). Serving via the
+ *       app's own dev|serve target lets withNx + tsconfig paths resolve the
+ *       workspace libraries correctly (e.g. @gilly-ui -> dist/libs/gilly-ui).
  * @param sandbox - E2B Sandbox instance
  * @param nxDefaultProject - Value from nx.json defaultProject (may be empty)
- * @param hostnameFlag - Hostname binding flag for the detected framework
  * @param sendLog - Terminal log callback
  * @param envs - Environment variables to pass to introspection commands
  */
 async function resolveNxServeCommand(
   sandbox: Sandbox,
   nxDefaultProject: string,
-  hostnameFlag: string,
   sendLog: (msg: string) => void,
   envs: Record<string, string>
 ): Promise<NxResolveResult> {
-  const NX_CMD_OPTS = { timeoutMs: 30000, envs };
+  const NX_CMD_OPTS = { timeoutMs: 120000, envs };
 
-  sendLog(
-    '  [fs-scan] Bypassing NX CLI — scanning filesystem for framework apps...'
-  );
+  sendLog('  [nx-native] Determining NX dev command...');
 
-  // Strategy 1a: Find Next.js config (highest priority — single result)
-  try {
-    const nextFind = await sandbox.commands.run(
-      `find . -type d -name "node_modules" -prune -o -type d -name ".next" -prune -o -name "next.config.*" -print -quit`,
-      NX_CMD_OPTS
-    );
-    const nextFile = nextFind.stdout.trim();
-
-    if (nextFile && nextFile.includes('next.config')) {
-      const appDir = nextFile.substring(0, nextFile.lastIndexOf('/')) || '.';
-      sendLog(`  [fs-scan] Discovered Next.js app at: ${appDir}`);
-      return {
-        command: `ROOT_DIR=$(pwd) && cd "${appDir}" && (cp "$ROOT_DIR/.env" . 2>/dev/null || true) && (cp "$ROOT_DIR/.env.local" . 2>/dev/null || true) && exec npx next dev --hostname 0.0.0.0 --port 3000`,
-        isNext: true,
-        isVite: false,
-        port: 3000,
-      };
-    }
-  } catch (err) {
-    sendLog(`  [fs-scan] Next.js config scan failed: ${err}`);
-  }
-
-  // Strategy 1b: Find Vite config (fallback — single result)
-  try {
-    const viteFind = await sandbox.commands.run(
-      `find . -type d -name "node_modules" -prune -o -name "vite.config.*" ! -path "*/storybook/*" ! -path "*-lib/*" -print -quit`,
-      NX_CMD_OPTS
-    );
-    const viteFile = viteFind.stdout.trim();
-
-    if (viteFile && viteFile.includes('vite.config')) {
-      const appDir = viteFile.substring(0, viteFile.lastIndexOf('/')) || '.';
-      sendLog(`  [fs-scan] Discovered Vite app at: ${appDir}`);
-      return {
-        command: `ROOT_DIR=$(pwd) && cd "${appDir}" && (cp "$ROOT_DIR/.env" . 2>/dev/null || true) && (cp "$ROOT_DIR/.env.local" . 2>/dev/null || true) && exec npx vite dev --host 0.0.0.0 --port 5173`,
-        isNext: false,
-        isVite: true,
-        port: 5173,
-      };
-    }
-  } catch (err) {
-    sendLog(`  [fs-scan] Vite config scan failed: ${err}`);
-  }
-
-  // Strategy 2: Find project.json files and parse them for framework executors
-  try {
-    sendLog('  [fs-scan] Falling back to project.json scanning...');
-    const findCmd = `find . -type d -name "node_modules" -prune -o -name "project.json" -print | head -n 10`;
-    const findResult = await sandbox.commands.run(findCmd, NX_CMD_OPTS);
-    const files = findResult.stdout.trim().split('\n').filter(Boolean);
-
-    for (const file of files) {
-      if (file.includes('e2e')) continue;
-      try {
-        const content = await sandbox.files.read(file);
-        const appDir = file.substring(0, file.lastIndexOf('/'));
-
-        if (content.includes('@nx/next') || content.includes('@nrwl/next')) {
-          sendLog(
-            `  [fs-scan] Discovered Next.js app via project.json at: ${appDir}`
-          );
-          return {
-            command: `ROOT_DIR=$(pwd) && cd "${appDir}" && (cp "$ROOT_DIR/.env" . 2>/dev/null || true) && (cp "$ROOT_DIR/.env.local" . 2>/dev/null || true) && exec npx next dev --hostname 0.0.0.0 --port 3000`,
-            isNext: true,
-            isVite: false,
-            port: 3000,
-          };
-        } else if (
-          content.includes('@nx/vite') ||
-          content.includes('@nrwl/vite')
-        ) {
-          sendLog(
-            `  [fs-scan] Discovered Vite app via project.json at: ${appDir}`
-          );
-          return {
-            command: `ROOT_DIR=$(pwd) && cd "${appDir}" && (cp "$ROOT_DIR/.env" . 2>/dev/null || true) && (cp "$ROOT_DIR/.env.local" . 2>/dev/null || true) && exec npx vite dev --host 0.0.0.0 --port 5173`,
-            isNext: false,
-            isVite: true,
-            port: 5173,
-          };
-        }
-      } catch {
-        // Ignore read/parse errors for individual files
+  // Query app projects that expose a given target (filtering out e2e apps).
+  const queryApps = async (withTarget?: string): Promise<string[]> => {
+    const cmd = withTarget
+      ? `npx nx show projects --type app --with-target ${withTarget}`
+      : `npx nx show projects --type app`;
+    try {
+      const res = await sandbox.commands.run(cmd, NX_CMD_OPTS);
+      if (res.exitCode === 0) {
+        return res.stdout
+          .trim()
+          .split('\n')
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .filter((a) => !a.includes('e2e'));
       }
+    } catch (e) {
+      sendLog(
+        `  [nx-native] Failed to query nx projects (${withTarget ?? 'app'}): ${e}`
+      );
     }
-  } catch (err) {
-    sendLog(`  [fs-scan] project.json scan failed: ${err}`);
+    return [];
+  };
+
+  let targetApp = nxDefaultProject;
+
+  if (targetApp) {
+    sendLog(`  [nx-native] Using nx.json defaultProject: ${targetApp}`);
+  } else {
+    // Prefer an app that actually has a dev target, then serve, then any app.
+    const devApps = await queryApps('dev');
+    const serveApps = devApps.length ? [] : await queryApps('serve');
+    const anyApps = devApps.length || serveApps.length ? [] : await queryApps();
+    targetApp = devApps[0] || serveApps[0] || anyApps[0] || '';
+    if (targetApp) {
+      sendLog(`  [nx-native] Discovered app target: ${targetApp}`);
+    }
   }
 
-  // Strategy 3: Fallback to original NX behavior if FS scan finds nothing
+  if (targetApp) {
+    return {
+      command: `PORT=3000 HOST=0.0.0.0 npx nx run ${targetApp}:dev --hostname=0.0.0.0 --port=3000 || PORT=3000 HOST=0.0.0.0 npx nx run ${targetApp}:serve --hostname=0.0.0.0 --port=3000`,
+      isNext: true,
+      isVite: false,
+      port: 3000,
+    };
+  }
+
   sendLog(
-    '  [fs-scan] Direct introspection found nothing — falling back to run-many'
+    '  [nx-native] Could not identify a specific app; falling back to run-many.'
   );
   return {
     command:
-      'npx nx run-many -t serve --parallel=1 || npx nx run-many -t dev --parallel=1',
-    isNext: false,
+      'PORT=3000 HOST=0.0.0.0 npx nx run-many -t dev --parallel=1 || PORT=3000 HOST=0.0.0.0 npx nx run-many -t serve --parallel=1',
+    isNext: true,
     isVite: false,
-    port: null,
+    port: 3000,
   };
 }
 
@@ -469,7 +446,9 @@ export async function POST(req: NextRequest) {
     }
 
     const projectEnvs: Record<string, string> = {};
-    for (const [filePath, content] of Object.entries(filesRecord)) {
+    for (const [filePath, entry] of Object.entries(filesRecord)) {
+      const content =
+        typeof entry === 'string' ? entry : (entry as any)?.contents;
       if (
         typeof content === 'string' &&
         (filePath === '.env' ||
@@ -513,7 +492,9 @@ export async function POST(req: NextRequest) {
             apiKey,
             timeoutMs: SANDBOX_TIMEOUT_MS,
             network: {
-              maskRequestHost: 'localhost:${PORT}',
+              // Mask the proxied e2b host so the dev server sees a localhost
+              // request (avoids Next.js dev cross-origin / server-action blocks).
+              maskRequestHost: 'localhost:3000',
             },
           });
 
@@ -535,8 +516,21 @@ export async function POST(req: NextRequest) {
           sendEvent('log', `\nWriting ${entries.length} files to sandbox...`);
 
           const zip = new AdmZip();
-          for (const [filePath, content] of entries) {
-            zip.addFile(filePath, Buffer.from(content as string, 'utf-8'));
+          for (const [filePath, entry] of entries) {
+            if (typeof entry === 'string') {
+              zip.addFile(filePath, Buffer.from(entry, 'utf-8'));
+            } else {
+              const { contents, encoding } = entry as {
+                contents: string;
+                encoding?: 'utf8' | 'base64';
+              };
+              zip.addFile(
+                filePath,
+                encoding === 'base64'
+                  ? Buffer.from(contents, 'base64')
+                  : Buffer.from(contents, 'utf-8')
+              );
+            }
           }
           const zipBuffer = zip.toBuffer();
 
@@ -796,10 +790,11 @@ export async function POST(req: NextRequest) {
           const serveEnvs: Record<string, string> = {
             HOST: '0.0.0.0',
             HOSTNAME: '0.0.0.0',
+            PORT: '3000',
             NEXT_TELEMETRY_DISABLED: '1',
             DISABLE_ESLINT_PLUGIN: 'true',
             TS_NODE_TRANSPILE_ONLY: 'true',
-            NODE_OPTIONS: '--max-old-space-size=2048 --no-warnings',
+            NODE_OPTIONS: '--max-old-space-size=4096 --no-warnings',
             ...projectEnvs,
           };
 
@@ -823,15 +818,101 @@ export async function POST(req: NextRequest) {
             serveEnvs.NX_DAEMON = 'false';
             serveEnvs.NX_CACHE_WORKERS = '1';
 
-            /**
-             * @desc NX target introspection — discover actual serveable projects
-             *       instead of blindly running run-many which can match zero targets.
-             *       Tries target names in priority order: serve → dev → start
-             */
+            writeToTerminal(
+              '\n  [nx-native] Running synchronous codegen/build phase...'
+            );
+
+            // Run codegen targets first (e.g. GraphQL types), if any exist.
+            try {
+              const codegenCheck = await sandbox.commands.run(
+                `npx nx show projects --with-target codegen`,
+                { envs: serveEnvs, timeoutMs: 120000 }
+              );
+              if (codegenCheck.exitCode === 0 && codegenCheck.stdout.trim()) {
+                writeToTerminal(
+                  '  [nx-native] Codegen targets found. Executing...'
+                );
+                const codegenRes = await sandbox.commands.run(
+                  `npx nx run-many -t codegen --all`,
+                  {
+                    envs: serveEnvs,
+                    onStdout: writeToTerminal,
+                    onStderr: writeToTerminal,
+                    timeoutMs: 180000,
+                  }
+                );
+                if (codegenRes.exitCode !== 0) {
+                  writeToTerminal(
+                    '  [nx-native] ⚠ Codegen returned a non-zero exit code (continuing — generated types may be committed).'
+                  );
+                }
+              } else {
+                writeToTerminal(
+                  '  [nx-native] No codegen targets found, skipping.'
+                );
+              }
+            } catch (e) {
+              writeToTerminal(`  [nx-native] ⚠ Codegen phase skipped: ${e}`);
+            }
+
+            // Build buildable LIBRARIES only (not the app, storybook, or e2e),
+            // so workspace libs (e.g. @gilly-ui -> dist/libs/gilly-ui) resolve.
+            try {
+              const buildLibsCheck = await sandbox.commands.run(
+                `npx nx show projects --type lib --with-target build`,
+                { envs: serveEnvs, timeoutMs: 120000 }
+              );
+              if (
+                buildLibsCheck.exitCode === 0 &&
+                buildLibsCheck.stdout.trim()
+              ) {
+                const libs = buildLibsCheck.stdout
+                  .trim()
+                  .split('\n')
+                  .map((s) => s.trim())
+                  .filter(Boolean)
+                  .join(',');
+                writeToTerminal(
+                  `  [nx-native] Buildable libraries found: ${libs}. Compiling...`
+                );
+                const buildRes = await sandbox.commands.run(
+                  `npx nx run-many -t build --projects=${libs} --parallel=2`,
+                  {
+                    envs: serveEnvs,
+                    onStdout: writeToTerminal,
+                    onStderr: writeToTerminal,
+                    timeoutMs: 600000,
+                  }
+                );
+                if (buildRes.exitCode !== 0) {
+                  // Fail loud: if libraries don't build, the app cannot resolve
+                  // them and would render a white screen anyway.
+                  throw new Error(
+                    'NX library build failed — workspace libraries will not resolve. See the build output above.'
+                  );
+                }
+              } else {
+                writeToTerminal(
+                  '  [nx-native] No buildable libraries found, skipping.'
+                );
+              }
+            } catch (e) {
+              // Re-throw build failures (fail loud); only swallow introspection errors.
+              if (
+                e instanceof Error &&
+                e.message.startsWith('NX library build failed')
+              ) {
+                throw e;
+              }
+              writeToTerminal(
+                `  [nx-native] ⚠ Library build phase skipped: ${e}`
+              );
+            }
+
+            // Resolve the native NX serve command (app dev|serve target).
             const resolvedNx = await resolveNxServeCommand(
               sandbox,
               nxDefaultProject,
-              hostnameFlag,
               writeToTerminal,
               serveEnvs
             );
@@ -906,7 +987,26 @@ export async function POST(req: NextRequest) {
             }
           } else {
             writeToTerminal(
-              `\n⚠ Dev server not detected after polling — returning URL anyway`
+              `\n⚠ Dev server not detected after polling. Failing loud.`
+            );
+            if (serveCmd) {
+              writeToTerminal(
+                `\n[diagnostics] Fetching tail of Dev Server Logs...\n`
+              );
+              writeToTerminal(
+                serveCmd.stdout.substring(
+                  Math.max(0, serveCmd.stdout.length - 2000)
+                )
+              );
+              writeToTerminal(
+                serveCmd.stderr.substring(
+                  Math.max(0, serveCmd.stderr.length - 2000)
+                )
+              );
+            }
+            await printDiagnostics(sandbox, writeToTerminal);
+            throw new Error(
+              'Sandbox dev server failed to become ready within the timeout budget.'
             );
           }
 
