@@ -9,8 +9,8 @@ import { NextRequest } from 'next/server';
 export const maxDuration = 300; // Allow long-running setups
 export const dynamic = 'force-dynamic';
 
-/** @desc 15 minutes — gives npm install plenty of time on a cold sandbox */
-const SANDBOX_TIMEOUT_MS = 15 * 60 * 1000;
+/** @desc 25 minutes — cold install (~4m) + codegen + lib build + a heavy first Next compile */
+const SANDBOX_TIMEOUT_MS = 25 * 60 * 1000;
 
 /** @desc 10 minutes — upper bound for dependency installation */
 const INSTALL_TIMEOUT_MS = 10 * 60 * 1000;
@@ -291,8 +291,8 @@ async function pollForPort(
         );
 
         // Step 2: Wait for a real HTTP response (compile can be very slow on a
-        // heavy first request). 60 attempts × 6s ≈ 6 minutes.
-        for (let j = 0; j < 60; j++) {
+        // heavy first request). 80 attempts × 6s ≈ 8 minutes.
+        for (let j = 0; j < 80; j++) {
           const httpCheck = await sandbox.commands.run(
             `curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:${port}/`,
             { timeoutMs: 10000 }
@@ -338,10 +338,11 @@ interface NxResolveResult {
 }
 
 /**
- * @desc Determines the native NX serve command by introspecting NX projects
- *       (instead of flattening the app and bypassing NX). Serving via the
- *       app's own dev|serve target lets withNx + tsconfig paths resolve the
- *       workspace libraries correctly (e.g. @gilly-ui -> dist/libs/gilly-ui).
+ * @desc Resolves the dev-server command. For a Next.js app it runs `next dev`
+ *       directly from the app directory (withNx still applies via next.config),
+ *       which avoids NX continuous-task hangs under NX_DAEMON=false and yields
+ *       clean streamed logs. Falls back to `nx run <app>:dev|serve` for
+ *       non-Next NX apps. Storybook/e2e projects are never selected.
  * @param sandbox - E2B Sandbox instance
  * @param nxDefaultProject - Value from nx.json defaultProject (may be empty)
  * @param sendLog - Terminal log callback
@@ -355,13 +356,14 @@ async function resolveNxServeCommand(
 ): Promise<NxResolveResult> {
   const NX_CMD_OPTS = { timeoutMs: 120000, envs };
 
-  sendLog('  [nx-native] Determining NX dev command...');
+  sendLog('  [serve] Determining dev command...');
 
-  // Query app projects that expose a given target (filtering out e2e apps).
-  const queryApps = async (withTarget?: string): Promise<string[]> => {
-    const cmd = withTarget
-      ? `npx nx show projects --type app --with-target ${withTarget}`
-      : `npx nx show projects --type app`;
+  // Storybook and e2e projects are never the app we want to preview.
+  const isExcluded = (a: string) =>
+    a.includes('e2e') || a.toLowerCase().includes('storybook');
+
+  const listProjects = async (args: string): Promise<string[]> => {
+    const cmd = `npx nx show projects ${args}`.trim();
     try {
       const res = await sandbox.commands.run(cmd, NX_CMD_OPTS);
       if (res.exitCode === 0) {
@@ -369,48 +371,89 @@ async function resolveNxServeCommand(
           .trim()
           .split('\n')
           .map((s) => s.trim())
-          .filter(Boolean)
-          .filter((a) => !a.includes('e2e'));
+          .filter(Boolean);
       }
     } catch (e) {
-      sendLog(
-        `  [nx-native] Failed to query nx projects (${withTarget ?? 'app'}): ${e}`
-      );
+      sendLog(`  [serve] '${cmd}' failed: ${e}`);
     }
     return [];
   };
 
-  let targetApp = nxDefaultProject;
+  // Strategy A (primary): if there's a Next.js app, serve it DIRECTLY with
+  // `next dev` from its own directory. `nx run <app>:dev` is an NX *continuous*
+  // task that hangs and swallows output when the daemon is disabled; `next dev`
+  // still applies withNx (it's composed inside next.config) and the workspace
+  // libraries already resolve because gilly-ui is built and codegen has run.
+  // Running it directly gives us clean, streamed Next.js logs.
+  try {
+    const find = await sandbox.commands.run(
+      `find . -type d -name "node_modules" -prune -o -name "next.config.*" -print`,
+      { timeoutMs: 30000, envs }
+    );
+    const cfg = find.stdout
+      .trim()
+      .split('\n')
+      .map((s) => s.trim())
+      .filter(Boolean)[0];
+    if (cfg) {
+      const rel = cfg.replace(/^\.\//, '');
+      const dir = rel.split('/').slice(0, -1).join('/');
+      const appDir = dir || '.';
+      sendLog(
+        `  [serve] Next.js config detected at ${rel} → serving with 'next dev' in '${appDir}'`
+      );
+      return {
+        command: `cd ${appDir} && exec npx next dev --hostname 0.0.0.0 --port 3000`,
+        isNext: true,
+        isVite: false,
+        port: 3000,
+      };
+    }
+  } catch (e) {
+    sendLog(`  [serve] next.config lookup failed: ${e}`);
+  }
 
+  // Strategy B: no Next.js app — resolve a non-Next NX app's dev|serve target.
+  sendLog('  [serve] No Next.js app found; resolving an NX app target...');
+  let targetApp =
+    nxDefaultProject && !isExcluded(nxDefaultProject) ? nxDefaultProject : '';
   if (targetApp) {
-    sendLog(`  [nx-native] Using nx.json defaultProject: ${targetApp}`);
+    sendLog(`  [serve] Using nx.json defaultProject: ${targetApp}`);
   } else {
-    // Prefer an app that actually has a dev target, then serve, then any app.
-    const devApps = await queryApps('dev');
-    const serveApps = devApps.length ? [] : await queryApps('serve');
-    const anyApps = devApps.length || serveApps.length ? [] : await queryApps();
+    const devApps = (await listProjects('--type app --with-target dev')).filter(
+      (a) => !isExcluded(a)
+    );
+    const serveApps = devApps.length
+      ? []
+      : (await listProjects('--type app --with-target serve')).filter(
+          (a) => !isExcluded(a)
+        );
+    const anyApps =
+      devApps.length || serveApps.length
+        ? []
+        : (await listProjects('--type app')).filter((a) => !isExcluded(a));
     targetApp = devApps[0] || serveApps[0] || anyApps[0] || '';
     if (targetApp) {
-      sendLog(`  [nx-native] Discovered app target: ${targetApp}`);
+      sendLog(`  [serve] Selected app: ${targetApp}`);
     }
   }
 
   if (targetApp) {
     return {
-      command: `PORT=3000 HOST=0.0.0.0 npx nx run ${targetApp}:dev --hostname=0.0.0.0 --port=3000 || PORT=3000 HOST=0.0.0.0 npx nx run ${targetApp}:serve --hostname=0.0.0.0 --port=3000`,
-      isNext: true,
-      isVite: false,
+      command: `npx nx run ${targetApp}:dev --hostname=0.0.0.0 --port=3000 || npx nx run ${targetApp}:serve --hostname=0.0.0.0 --port=3000`,
+      isNext: false,
+      isVite: true,
       port: 3000,
     };
   }
 
   sendLog(
-    '  [nx-native] Could not identify a specific app; falling back to run-many.'
+    '  [serve] Could not identify a specific app; falling back to run-many.'
   );
   return {
     command:
-      'PORT=3000 HOST=0.0.0.0 npx nx run-many -t dev --parallel=1 || PORT=3000 HOST=0.0.0.0 npx nx run-many -t serve --parallel=1',
-    isNext: true,
+      'npx nx run-many -t dev --parallel=1 || npx nx run-many -t serve --parallel=1',
+    isNext: false,
     isVite: false,
     port: 3000,
   };
@@ -995,12 +1038,12 @@ export async function POST(req: NextRequest) {
               );
               writeToTerminal(
                 serveCmd.stdout.substring(
-                  Math.max(0, serveCmd.stdout.length - 2000)
+                  Math.max(0, serveCmd.stdout.length - 8000)
                 )
               );
               writeToTerminal(
                 serveCmd.stderr.substring(
-                  Math.max(0, serveCmd.stderr.length - 2000)
+                  Math.max(0, serveCmd.stderr.length - 8000)
                 )
               );
             }
