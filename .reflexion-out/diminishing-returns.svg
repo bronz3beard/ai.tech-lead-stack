@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 300" font-family="sans-serif" font-size="12">
+  <rect width="480" height="300" fill="white"/>
+  <line x1="40" y1="260" x2="440" y2="260" stroke="#9ca3af"/>
+  <line x1="40" y1="40" x2="40" y2="260" stroke="#9ca3af"/>
+  <line x1="40" y1="84" x2="440" y2="84" stroke="#ef4444" stroke-dasharray="4"/>
+  <text x="440" y="80" text-anchor="end" fill="#ef4444">pass 8</text>
+  <polyline points="40,128 440,84" fill="none" stroke="#6366f1" stroke-width="2"/>
+  <circle cx="40" cy="128" r="4" fill="#6366f1"/><circle cx="440" cy="84" r="4" fill="#6366f1"/>
+  <text x="240" y="292" text-anchor="middle" fill="#374151">Revision</text>
+  <text x="14" y="150" text-anchor="middle" fill="#374151" transform="rotate(-90 14 150)">Score /10</text>
+</svg>

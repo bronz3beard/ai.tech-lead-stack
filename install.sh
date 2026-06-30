@@ -228,6 +228,21 @@ echo "📚 Bootstrapping Antigravity Knowledge Items directory..."
 mkdir -p "$HOME/.gemini/antigravity/knowledge"
 echo "   ✅ Knowledge Items directory initialized: $HOME/.gemini/antigravity/knowledge"
 
+# 4c. Reflexion Loop (✨ Special Feature) — key check
+# The Reflexion Loop is the one non-agent-agnostic skill: it calls Gemini AND
+# Claude directly. No new deps to install (it reuses @ai-sdk/* already in
+# package.json and is exposed automatically via the MCP server). We only verify
+# the keys so the feature is ready to use, and never block install if absent.
+echo "✨ Checking Reflexion Loop (special feature) prerequisites..."
+# Load the stack's .env if present so we can read keys.
+[ -f "$SOURCE_DIR/.env" ] && set -a && . "$SOURCE_DIR/.env" && set +a
+if [[ -n "${GEMINI_API_KEY:-}" && -n "${ANTHROPIC_API_KEY:-}" ]]; then
+    echo "   ✅ GEMINI_API_KEY + ANTHROPIC_API_KEY found — '/reflexion-loop' is ready."
+else
+    echo "   ℹ️  Reflexion Loop needs GEMINI_API_KEY and ANTHROPIC_API_KEY in your .env."
+    echo "      Add them (see .env.example) to enable 'rtk run reflexion-loop' and the website page."
+fi
+
 # 5. Generic MCP Configuration (Claude Desktop, etc.)
 setup_mcp_environment() {
     # Check common configuration paths for various agents/IDEs

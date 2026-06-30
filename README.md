@@ -159,6 +159,21 @@ agents default to high-discipline engineering rather than the shortest path:
 >    ensure that every slice satisfies all compilation, type-safety, and visual
 >    design requirements.
 
+### ✨ Special Feature: The Reflexion Loop
+
+The Reflexion Loop is a self-correcting plan loop that leverages Gemini as the
+creator to draft an implementation plan, and Claude as the critic to grade it
+against the Four Pillars and provide fixes.
+
+This feature is exposed via two distinct surfaces:
+
+- **Web & Chat (Read-Only Path)**: Accessible via `/reflexion`. It operates in
+  an advisory role, generating a plan and an IDE prompt but never modifying the
+  codebase directly.
+- **MCP Tool & `/reflexion-loop` Workflow (Developer Path)**: Executed in the
+  IDE using `rtk run reflexion-loop` or the MCP server tool `reflexion_loop`. It
+  allows the calling agent to change code and logs usage telemetry to Prisma.
+
 ---
 
 ## 🛠 Technical Architecture: RTK & MCP Synergy

@@ -230,6 +230,40 @@ const CREATE_KI_TOOL: Tool = {
   },
 };
 
+const REFLEXION_LOOP_TOOL: Tool = {
+  name: 'reflexion_loop',
+  description:
+    '✨ SPECIAL FEATURE: Self-correcting plan loop. Gemini drafts an implementation plan, Claude grades it 0-10 against the Four Pillars and returns one fix, repeat until it passes or caps. Requires GEMINI_API_KEY + ANTHROPIC_API_KEY.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      brief: {
+        type: 'string',
+        description: 'The feature brief / ticket to turn into a plan.',
+      },
+      stack: {
+        type: 'string',
+        description:
+          'Optional Phase-0 stack context (e.g. package.json contents) for diagnosis-first planning.',
+      },
+      maxRevisions: { type: 'number', description: 'Hard cap on rewrites (default 3).' },
+      passThreshold: {
+        type: 'number',
+        description: 'Critic score 0-10 needed to pass early (default 8).',
+      },
+      projectName: {
+        type: 'string',
+        description: 'Optional project name, for usage analytics.',
+      },
+      agent: {
+        type: 'string',
+        description: 'Optional calling agent name, for usage analytics.',
+      },
+    },
+    required: ['brief'],
+  },
+};
+
 /**
  * Handlers: Tool Listing
  */
@@ -254,6 +288,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       LIST_KI_TOOL,
       READ_KI_TOOL,
       CREATE_KI_TOOL,
+      REFLEXION_LOOP_TOOL,
     ],
   };
 });
@@ -290,6 +325,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   if (name === 'create_knowledge_item') {
     return await handlers.handleCreateKnowledgeItem(args || {});
+  }
+
+  if (name === 'reflexion_loop') {
+    return await handlers.handleReflexionLoop(args || {});
   }
 
   throw new Error(`Unknown tool: ${name}`);

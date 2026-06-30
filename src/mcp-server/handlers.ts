@@ -287,4 +287,71 @@ export class Handlers {
       isError: false,
     };
   }
+
+  /**
+   * Logic for the 'reflexion_loop' tool (✨ special feature).
+   *
+   * DEVELOPER PATH. Unlike the read-only web/chat surface, this runs inside an
+   * IDE agent that CAN change code: the agent takes the returned plan/prompt and
+   * implements it. Usage is logged to Prisma via telemetry, like every other
+   * skill, so it shows up in the dashboard.
+   */
+  async handleReflexionLoop(args: Record<string, unknown>) {
+    const brief = (args.brief as string | undefined)?.trim();
+    if (!brief) {
+      return {
+        content: [{ type: 'text', text: 'Error: "brief" is required.' }],
+        isError: true,
+      };
+    }
+    const maxRevisions = (args.maxRevisions as number | undefined) ?? 3;
+    const passThreshold = (args.passThreshold as number | undefined) ?? 8;
+    const stack = (args.stack as string | undefined) ?? '';
+    const projectName = args.projectName as string | undefined;
+    const agent = args.agent as string | undefined;
+
+    try {
+      const { runReflexion } = await import('../lib/ai/reflexion/engine.js');
+      const { runnerFromEnv } = await import(
+        '../lib/ai/reflexion/providers-env.js'
+      );
+      const runner = runnerFromEnv();
+      const modelLabel = `${runner.models.creator}->${runner.models.critic}`;
+
+      // Record usage to Prisma exactly like skill reads (source: 'mcp').
+      const text = await this.telemetry.withAnalytics(
+        'reflexion-loop',
+        projectName,
+        modelLabel,
+        agent,
+        '~900 tokens',
+        async () => {
+          const result = await runReflexion(runner, {
+            brief,
+            stack,
+            maxRevisions,
+            passThreshold,
+          });
+
+          return (
+            `# Reflexion result\n\n` +
+            `- Scores per revision: ${JSON.stringify(result.scores)}\n` +
+            `- Final score: ${result.finalScore}/10 (passed=${result.finalPassed})\n` +
+            `- Revisions used: ${result.revisionsUsed}/${maxRevisions}\n` +
+            `- Models: ${result.models.creator} → ${result.models.critic}\n\n` +
+            `## Adjudicator verdict\n${result.verdict}\n\n` +
+            `## Implement this (IDE prompt)\n${result.idePrompt}`
+          );
+        }
+      );
+
+      return { content: [{ type: 'text', text }], isError: false };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        content: [{ type: 'text', text: `Reflexion error: ${message}` }],
+        isError: true,
+      };
+    }
+  }
 }

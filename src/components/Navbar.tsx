@@ -10,7 +10,7 @@ import {
   LogOut,
   Menu,
   MessageSquare,
-  Palette,
+  RefreshCw,
   Settings,
   Sparkles,
   X,
@@ -53,6 +53,12 @@ const navigation = [
     name: 'Forge Skill',
     href: '/skills/new',
     icon: Hammer,
+    protected: true,
+  },
+  {
+    name: 'Reflexion Loop ✨',
+    href: '/reflexion',
+    icon: RefreshCw,
     protected: true,
   },
 ];

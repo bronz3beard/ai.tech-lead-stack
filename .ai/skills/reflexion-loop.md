@@ -1,0 +1,57 @@
+---
+name: reflexion-loop
+description:
+  ✨ SPECIAL FEATURE (not agent-agnostic — requires API keys). A self-correcting
+  generator–critic–adjudicator loop that turns a brief into a
+  Four-Pillars-graded implementation plan. Gemini drafts the plan, Claude grades
+  it 0–10 on each pillar and returns ONE actionable fix, the router rewrites or
+  stops, and Claude writes the final verdict. Runs the real two-model loop via
+  `rtk run reflexion-loop` or the `reflexion_loop` MCP tool. Use when you want a
+  plan hardened by an independent critic before committing engineering time.
+cost: ~900 tokens
+---
+
+# Reflexion Loop (Special Feature)
+
+> [!IMPORTANT] **This is the one non-agent-agnostic skill in the stack.** Every
+> other skill works with any LLM driving your IDE. This one calls **two** models
+> directly (Gemini as the writer, Claude as the grader) so the writer never
+> grades its own work — the same rule the codebase enforces in
+> `validateDistinctModels`. It needs `GEMINI_API_KEY` and `ANTHROPIC_API_KEY`.
+
+## Two surfaces, two behaviours (read this)
+
+| Surface                                           | Behaviour                                                                                                   | Code changes?                                      | Telemetry                           |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ----------------------------------- |
+| **Website page + chat**                           | **Read-only / advisory.** Runs the full loop, then returns a reviewed plan **and a copy-paste IDE prompt**. | **Never.** Output is a prompt you carry to an IDE. | n/a                                 |
+| **MCP tool + Antigravity workflow** (in your IDE) | **Developer path.** Same loop; the IDE agent then **implements** the reviewed plan.                         | **Yes** — the agent edits code from the plan.      | Logged to Prisma (`source: 'mcp'`). |
+
+Same engine, same loop. The only difference is what happens _after_ the loop:
+the web/chat surface hands you a prompt; the IDE surface proceeds to build.
+
+## Invoke
+
+- **Terminal / any repo:** `rtk run reflexion-loop -- "<your brief>"`
+- **MCP (Antigravity / Cursor / Claude Desktop):** call the `reflexion_loop`
+  tool (exposed by `npm run mcp:start`, already wired by `lead-init`).
+- **Website:** the **Reflexion Loop** page (uses your saved keys from Settings).
+
+## What it does
+
+1. **Phase 0 — Diagnosis (Pillar 1).** Reads the target repo's `package.json` /
+   `tsconfig.json` / etc. and feeds that to the generator.
+2. **Generate (Gemini).** Produces an implementation plan with atomic (<100 LOC)
+   tasks and verification gates.
+3. **Critique (Claude).** Scores G-Stack, Atomic Batches, Production Ethos, and
+   Modern Web 0–10, plus an overall score and ONE fix.
+4. **Route.** Pass (score ≥ threshold) or revision cap → stop; else rewrite
+   carrying only that one fix. This is the diminishing-returns stop.
+5. **Adjudicate (Claude).** A plain-English go/no-go for the Tech Lead.
+
+Artifacts: `.reflexion-out/plan.md`, `ide-prompt.md`, `critique.json`,
+`diminishing-returns.svg`.
+
+## Hand-off
+
+On approval, pass `.reflexion-out/plan.md` to `planning-expert` (or
+`vertical-slice-decomposer`) to execute the atomic task list.
