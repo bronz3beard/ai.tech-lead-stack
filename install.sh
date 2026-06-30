@@ -4,7 +4,7 @@
 SOURCE_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 if [[ "${1:-}" != "--link" ]]; then
-    echo "Usage: ./install.sh --link [--ide auto|cursor|none] [target_path]"
+    echo "Usage: ./install.sh --link [--ide auto|cursor|continue|none] [target_path]"
     exit 1
 fi
 shift
@@ -16,7 +16,7 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --ide)
             if [[ -z "${2:-}" ]]; then
-                echo "Error: --ide requires a value (auto, cursor, or none)."
+                echo "Error: --ide requires a value (auto, cursor, continue, or none)."
                 exit 1
             fi
             IDE_MODE="$2"
@@ -32,9 +32,9 @@ done
 [[ -z "$TARGET_DIR" ]] && TARGET_DIR=$(realpath ".")
 
 case "$IDE_MODE" in
-    auto|cursor|none) ;;
+    auto|cursor|continue|none) ;;
     *)
-        echo "Error: --ide must be auto, cursor, or none (got: $IDE_MODE)"
+        echo "Error: --ide must be auto, cursor, continue, or none (got: $IDE_MODE)"
         exit 1
         ;;
 esac
@@ -45,6 +45,19 @@ should_install_cursor_skills() {
         none) return 1 ;;
         auto)
             if [[ -n "${CURSOR_TRACE_ID:-}" ]] || [[ -n "${CURSOR_AGENT:-}" ]]; then
+                return 0
+            fi
+            return 1
+            ;;
+    esac
+}
+
+should_install_continue() {
+    case "$IDE_MODE" in
+        continue) return 0 ;;
+        none) return 1 ;;
+        auto)
+            if [[ -d "$HOME/.continue" ]] || [[ -d "$TARGET_DIR/.continue" ]] || [[ -n "${VSCODE_IPC_HOOK_CLI:-}" ]]; then
                 return 0
             fi
             return 1
@@ -115,6 +128,68 @@ setup_cursor_mcp_environment() {
            > "$mcp_file"
     fi
     echo "   ✅ Added tech-lead-stack MCP server for Cursor: $mcp_file"
+}
+
+setup_continue() {
+    local config_file="$HOME/.continue/config.yaml"
+
+    mkdir -p "$(dirname "$config_file")"
+    if [[ ! -f "$config_file" ]]; then
+        echo "models: []" > "$config_file"
+    fi
+
+    echo "   - Merging tech-lead-stack into Continue config via managed block..."
+
+    # Generate the replacement block text
+    local block_content
+    block_content=$(cat <<EOF
+# >>> tech-lead-stack (managed) >>>
+# This section is automatically managed by the Tech-Lead Stack installer.
+mcpServers:
+  tech-lead-stack:
+    command: npm
+    args:
+      - --prefix
+      - "$SOURCE_DIR"
+      - --silent
+      - run
+      - mcp:start
+
+prompts:
+EOF
+)
+
+    for wf in "$SOURCE_DIR/.agents/workflows/"*.md; do
+        if [[ -f "$wf" ]]; then
+            local wf_name
+            wf_name=$(basename "$wf" .md)
+            block_content+=$'\n'"  - name: $wf_name"
+            block_content+=$'\n'"    description: Tech-lead stack workflow: $wf_name"
+            block_content+=$'\n'"    prompt: |"
+            # Indent the content
+            local indented_content
+            indented_content=$(sed 's/^/      /' "$wf")
+            block_content+=$'\n'"$indented_content"
+        fi
+    done
+
+    block_content+=$'\n'"# <<< tech-lead-stack (managed) <<<"
+
+    if grep -q "# >>> tech-lead-stack (managed) >>>" "$config_file" 2>/dev/null; then
+        # Replace existing block
+        # Use awk to replace the block
+        BLOCK="$block_content" awk '
+            /# >>> tech-lead-stack \(managed\) >>>/ { in_block=1; print ENVIRON["BLOCK"]; next }
+            /# <<< tech-lead-stack \(managed\) <<</ { in_block=0; next }
+            !in_block { print }
+        ' "$config_file" > /tmp/continue_config.yaml && mv /tmp/continue_config.yaml "$config_file"
+    else
+        # Append new block
+        echo "" >> "$config_file"
+        echo "$block_content" >> "$config_file"
+    fi
+
+    echo "   ✅ Configured Continue globally at: $config_file"
 }
 
 echo "🚀 Initializing Tech-Lead Stack..."
@@ -288,6 +363,16 @@ if should_install_cursor_skills; then
 elif [[ "$IDE_MODE" == "auto" ]]; then
     echo ""
     echo "💡 Skipping global Cursor skills (IDE mode auto; not in Cursor terminal). Use --ide cursor to install ~/.cursor/skills links."
+fi
+
+# 5c. Continue: global config (+ MCP and Prompts)
+if should_install_continue; then
+    echo ""
+    echo "🔄 Continue detected or --ide continue: configuring global Continue config..."
+    setup_continue
+elif [[ "$IDE_MODE" == "auto" ]]; then
+    echo ""
+    echo "💡 Skipping global Continue config (IDE mode auto; not in VS Code/Continue). Use --ide continue to install to ~/.continue/config.yaml."
 fi
 
 echo "✨ Initialization complete."
