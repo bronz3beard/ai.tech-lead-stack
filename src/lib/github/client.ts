@@ -186,6 +186,21 @@ export class GitHubClient {
 
     return newCommit;
   }
+
+  /**
+   * Reads raw file content from the repository.
+   */
+  async getFileContent(path: string): Promise<string | null> {
+    try {
+      const res = await this.request(`/contents/${path}`);
+      if (res && typeof res.content === 'string') {
+        return Buffer.from(res.content, 'base64').toString('utf-8');
+      }
+      return null;
+    } catch {
+      return null; // missing file / no access -> skip silently
+    }
+  }
 }
 
 /**

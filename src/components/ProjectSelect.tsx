@@ -22,6 +22,7 @@ export type Project = {
 interface ProjectSelectProps {
   projects: Project[];
   selectedProjectId: string;
+  placeholder?: string;
 }
 
 /**
@@ -32,6 +33,7 @@ interface ProjectSelectProps {
 export function ProjectSelect({
   projects,
   selectedProjectId,
+  placeholder = 'All Projects',
 }: ProjectSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,7 +43,7 @@ export function ProjectSelect({
   const [isPending, startTransition] = useTransition();
 
   const selectedProject =
-    projects.find((p) => p.id === selectedProjectId) || projects[0];
+    projects.find((p) => p.id === selectedProjectId);
 
   const sortedAndFilteredProjects = useMemo(() => {
     // 1. Filter
@@ -104,7 +106,7 @@ export function ProjectSelect({
             {isPending ? (
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
             ) : null}
-            {selectedProject?.name || 'All Projects'}
+            {selectedProject?.name || placeholder}
           </span>
           <ChevronDown
             className={cn(
