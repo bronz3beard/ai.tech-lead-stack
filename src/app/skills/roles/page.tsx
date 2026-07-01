@@ -543,14 +543,14 @@ const ALL_SKILLS: Skill[] = [
     id: 'ide-skills',
     name: 'IDE Skills',
     description:
-      'Seamlessly integrated workflows within Antigravity and Cursor for real-time code assistance and automation.',
+      'Seamlessly integrated workflows within Antigravity, Cursor, and Continue for real-time code assistance and automation.',
     useCases: [
       'Invoking "Fix this bug" directly from the editor.',
       'Generating unit tests for the current file with one command.',
       'Refactoring multi-file components without leaving the IDE.',
     ],
     realWorldExample:
-      'Highlighting a complex function in Cursor and using an IDE skill to instantly refactor it for better readability while maintaining all tests.',
+      'Highlighting a complex function in your IDE and using an IDE skill to instantly refactor it for better readability while maintaining all tests.',
     addedAt: '2026-03-14',
     roles: ['DEVELOPER'],
   },
@@ -683,7 +683,7 @@ export default function RolesPage() {
               Omnipresent Access
             </h3>
             <p className="text-slate-300">
-              All skills are available in the **Antigravity** or **Cursor** IDEs
+              All skills are available in the **Antigravity**, **Cursor**, or **Continue** IDEs
               via workflows, as well as in our **Agent Chat** interface.
             </p>
           </div>
@@ -764,7 +764,7 @@ export default function RolesPage() {
                 <Sparkles className="w-4 h-4 text-emerald-500/40" />
                 <em>
                   Note: PM-specific skills are also fully available to
-                  Developers via the Antigravity/Cursor IDEs and our Agent Chat
+                  Developers via the Antigravity/Cursor/Continue IDEs and our Agent Chat
                   interface.
                 </em>
               </p>

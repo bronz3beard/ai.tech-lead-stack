@@ -99,7 +99,7 @@ worked. Return ONLY the revised plan.`;
 /**
  * The advisory hand-off. The web + chat surfaces are READ-ONLY: they never
  * touch code. Their deliverable is this — a portable, copy-paste prompt the
- * developer carries into an IDE agent (Cursor / Antigravity / Claude Code) to
+ * developer carries into an IDE agent (Cursor / Continue / Antigravity / Claude Code) to
  * actually implement the reviewed plan. The looping is finished by the time
  * this exists, so the IDE agent receives a hardened plan, not a first draft.
  */

@@ -12,6 +12,7 @@ automated testing.
 - [Branching Strategy](#branching-strategy)
 - [Antigravity Setup](#antigravity-setup)
 - [Cursor Setup](#cursor-setup)
+- [Continue Setup](#continue-setup)
 - [🧹 Resetting a Project](#-resetting-a-project)
 - [🧪 CI/CD](#-cicd)
 - [Resources 📚](#resources-)
@@ -77,6 +78,9 @@ alias lead-init='bash /path/to/tech-lead-stack/install.sh --link .'
 
 # Cursor: register skills globally (~/.cursor/skills/) without touching your app repo
 alias lead-init-cursor='bash /path/to/tech-lead-stack/install.sh --link . --ide cursor'
+
+# Continue: register skills and MCP globally (~/.continue/config.yaml) without touching your app repo
+alias lead-init-continue='bash /path/to/tech-lead-stack/install.sh --link . --ide continue'
 
 ```
 
@@ -227,7 +231,7 @@ without workspace access:
 > Lead Agent equipped with these workflows. Use `rtk run <tool>` for all tool
 > executions."
 
-#### Option B: The Symlink (Best for Antigravity/Cursor/Claude Code)
+#### Option B: The Symlink (Best for Antigravity/Cursor/Continue/Claude Code)
 
 Since lead-init has already linked the instructions to your project, simply
 prompt the agent in your workspace:
@@ -240,6 +244,12 @@ so the same skills appear under your user **`~/.cursor/skills/`** as symlinks
 into this repo. Your app repository does not get a `.cursor/` folder from this
 step. Invoke skills from Cursor’s skills UI (or the slash menu) like Antigravity
 workflows.
+
+**Continue:** use `install.sh --link . --ide continue` (or `lead-init-continue`
+above). This globally configures `~/.continue/config.yaml` to include the
+`tech-lead-stack` MCP server and exposes the stack's workflows as Continue slash
+commands. Note: OSS Continue is frozen at v2.0.0 (Cursor acquisition). For a
+maintained local-first alternative, consider Cline.
 
 ---
 
@@ -407,6 +417,55 @@ Cursor requires the MCP server to execute tools (like `rtk`).
 You can now invoke these skills in the Cursor chat by typing `@` followed by the
 skill name (e.g., `@planning-expert`). Cursor will suggest the skill from the
 list of available global skills.
+
+---
+
+## Continue Setup
+
+Continue support requires your Continue extension to have the MCP server
+installed and the commands bound.
+
+> [!NOTE] Continue's OSS release is frozen at v2.0.0 (following the Cursor
+> acquisition). The installer targets this frozen schema. For a maintained,
+> local-first alternative, we recommend using Cline.
+
+### Step 1: Clone the Repository
+
+Clone the `tech-lead-stack` repository to a permanent location on your machine.
+
+```bash
+git clone https://github.com/your-username/tech-lead-stack.git ~/tech-lead-stack
+cd ~/tech-lead-stack
+```
+
+### Step 2: Run the Installer with Continue Flag
+
+Run the installer with the `--ide continue` flag. The installer merges the setup
+globally into `~/.continue/config.yaml` to make MCP and slash commands available
+across all projects.
+
+```bash
+./install.sh --link . --ide continue
+```
+
+### Step 3: Verify the Global Config
+
+The installer safely merges `tech-lead-stack` into the `mcpServers` list in your
+global `~/.continue/config.yaml` and embeds all `.agents/workflows` as `prompts`
+entries.
+
+You can verify this by checking your config:
+
+```bash
+cat ~/.continue/config.yaml
+```
+
+### Step 4: Invoke Workflows
+
+Open Continue in VS Code. You can now use the `/` command prefix in the chat to
+see the newly imported workflows (e.g. `/plan-quick`). By putting the IDE agent
+in "Agent" mode, it will have access to the Stack's MCP tools to execute
+commands like `get_skills` natively!
 
 ---
 

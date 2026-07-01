@@ -128,7 +128,7 @@ export default function ReflexionClient({ projects }: ReflexionClientProps) {
       <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/40 dark:text-amber-200">
         <strong>Read-only.</strong> This page never modifies code. It produces a
         reviewed plan and a copy-paste <em>IDE prompt</em> you take to Cursor /
-        Antigravity / Claude Code to implement. To run code-changing workflows,
+        Continue / Antigravity / Claude Code to implement. To run code-changing workflows,
         use the MCP <code>reflexion_loop</code> tool from your IDE.
       </div>
 
