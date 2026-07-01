@@ -138,58 +138,93 @@ setup_continue() {
         echo "models: []" > "$config_file"
     fi
 
-    echo "   - Merging tech-lead-stack into Continue config via managed block..."
+    echo "   - Merging tech-lead-stack into Continue config..."
 
-    # Generate the replacement block text
-    local block_content
-    block_content=$(cat <<EOF
-# >>> tech-lead-stack (managed) >>>
-# This section is automatically managed by the Tech-Lead Stack installer.
-mcpServers:
-  tech-lead-stack:
-    command: npm
-    args:
-      - --prefix
-      - "$SOURCE_DIR"
-      - --silent
-      - run
-      - mcp:start
+    # 1. Safely merge mcpServers to avoid duplicate root keys
+    if grep -q "tech-lead-stack:" "$config_file" 2>/dev/null; then
+        echo "   - tech-lead-stack MCP server already present in Continue config."
+    else
+        # Use awk to inject into existing mcpServers key, or append if missing
+        SOURCE_DIR="$SOURCE_DIR" awk '
+        BEGIN { mcp_done=0; }
+        /^mcpServers:/ {
+            print $0
+            print "  tech-lead-stack:"
+            print "    command: npm"
+            print "    args:"
+            print "      - --prefix"
+            print "      - \"" ENVIRON["SOURCE_DIR"] "\""
+            print "      - --silent"
+            print "      - run"
+            print "      - mcp:start"
+            mcp_done=1
+            next
+        }
+        { print }
+        END {
+            if (mcp_done == 0) {
+                print "mcpServers:"
+                print "  tech-lead-stack:"
+                print "    command: npm"
+                print "    args:"
+                print "      - --prefix"
+                print "      - \"" ENVIRON["SOURCE_DIR"] "\""
+                print "      - --silent"
+                print "      - run"
+                print "      - mcp:start"
+            }
+        }
+        ' "$config_file" > /tmp/continue_config.yaml && mv /tmp/continue_config.yaml "$config_file"
+        echo "   ✅ Added tech-lead-stack MCP server to Continue config."
+    fi
 
-prompts:
+    # 2. Add a curated set of prompts inline, since .continue/prompts directory symlinks
+    #    are not reliably surfaced in v2.0.0. Inlining all 28 creates massive drift.
+    local curated_workflows=("plan-quick" "ask" "feature-orchestrator" "code-review")
+
+    # Check if prompts key exists; if not, add it
+    if ! grep -q "^prompts:" "$config_file" 2>/dev/null; then
+        echo "prompts:" >> "$config_file"
+    fi
+
+    for wf_name in "${curated_workflows[@]}"; do
+        local wf="$SOURCE_DIR/.agents/workflows/$wf_name.md"
+        if [[ -f "$wf" ]]; then
+            # Generate the prompt block for this workflow
+            local prompt_block
+            prompt_block=$(cat <<EOF
+  - name: $wf_name
+    description: "Tech-lead stack workflow: $wf_name"
+    prompt: |
 EOF
 )
-
-    for wf in "$SOURCE_DIR/.agents/workflows/"*.md; do
-        if [[ -f "$wf" ]]; then
-            local wf_name
-            wf_name=$(basename "$wf" .md)
-            block_content+=$'\n'"  - name: $wf_name"
-            block_content+=$'\n'"    description: Tech-lead stack workflow: $wf_name"
-            block_content+=$'\n'"    prompt: |"
-            # Indent the content
             local indented_content
             indented_content=$(sed 's/^/      /' "$wf")
-            block_content+=$'\n'"$indented_content"
+            prompt_block+=$'\n'"$indented_content"
+
+            # Check if this specific prompt is already in the file (using a simple grep check)
+            if ! grep -q "- name: $wf_name" "$config_file" 2>/dev/null; then
+                # Append to the prompts array. This assumes the file ends under the prompts array or is safe to append.
+                # To be robust and ensure we inject under ^prompts:, we use awk again.
+                BLOCK="$prompt_block" awk '
+                BEGIN { prompt_done=0; injected=0; }
+                /^prompts:/ {
+                    print $0
+                    print ENVIRON["BLOCK"]
+                    injected=1
+                    next
+                }
+                { print }
+                ' "$config_file" > /tmp/continue_config_prompts.yaml && mv /tmp/continue_config_prompts.yaml "$config_file"
+                echo "   ✅ Added curated Continue prompt for workflow: $wf_name"
+            else
+                echo "   - Continue prompt $wf_name already exists."
+            fi
         fi
     done
 
-    block_content+=$'\n'"# <<< tech-lead-stack (managed) <<<"
-
-    if grep -q "# >>> tech-lead-stack (managed) >>>" "$config_file" 2>/dev/null; then
-        # Replace existing block
-        # Use awk to replace the block
-        BLOCK="$block_content" awk '
-            /# >>> tech-lead-stack \(managed\) >>>/ { in_block=1; print ENVIRON["BLOCK"]; next }
-            /# <<< tech-lead-stack \(managed\) <<</ { in_block=0; next }
-            !in_block { print }
-        ' "$config_file" > /tmp/continue_config.yaml && mv /tmp/continue_config.yaml "$config_file"
-    else
-        # Append new block
-        echo "" >> "$config_file"
-        echo "$block_content" >> "$config_file"
-    fi
-
     echo "   ✅ Configured Continue globally at: $config_file"
+    echo "   📌 Note: Only a curated subset of workflows were inlined to minimize config drift."
 }
 
 echo "🚀 Initializing Tech-Lead Stack..."
