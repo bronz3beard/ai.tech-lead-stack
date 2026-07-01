@@ -178,53 +178,25 @@ setup_continue() {
         echo "   ✅ Added tech-lead-stack MCP server to Continue config."
     fi
 
-    # 2. Add a curated set of prompts inline, since .continue/prompts directory symlinks
-    #    are not reliably surfaced in v2.0.0. Inlining all 28 creates massive drift.
-    local curated_workflows=("plan-quick" "ask" "feature-orchestrator" "code-review")
+    # 2. Symlink workflows into ~/.continue/prompts/
+    #    Continue v2.0.0 reliably reads .prompt files here, allowing single-source execution.
+    local prompts_dir="$HOME/.continue/prompts"
+    mkdir -p "$prompts_dir"
 
-    # Check if prompts key exists; if not, add it
-    if ! grep -q "^prompts:" "$config_file" 2>/dev/null; then
-        echo "prompts:" >> "$config_file"
-    fi
-
-    for wf_name in "${curated_workflows[@]}"; do
-        local wf="$SOURCE_DIR/.agents/workflows/$wf_name.md"
+    echo "   - Symlinking workflows to $prompts_dir..."
+    local count=0
+    for wf in "$SOURCE_DIR/.agents/workflows/"*.md; do
         if [[ -f "$wf" ]]; then
-            # Generate the prompt block for this workflow
-            local prompt_block
-            prompt_block=$(cat <<EOF
-  - name: $wf_name
-    description: "Tech-lead stack workflow: $wf_name"
-    prompt: |
-EOF
-)
-            local indented_content
-            indented_content=$(sed 's/^/      /' "$wf")
-            prompt_block+=$'\n'"$indented_content"
-
-            # Check if this specific prompt is already in the file (using a simple grep check)
-            if ! grep -q "- name: $wf_name" "$config_file" 2>/dev/null; then
-                # Append to the prompts array. This assumes the file ends under the prompts array or is safe to append.
-                # To be robust and ensure we inject under ^prompts:, we use awk again.
-                BLOCK="$prompt_block" awk '
-                BEGIN { prompt_done=0; injected=0; }
-                /^prompts:/ {
-                    print $0
-                    print ENVIRON["BLOCK"]
-                    injected=1
-                    next
-                }
-                { print }
-                ' "$config_file" > /tmp/continue_config_prompts.yaml && mv /tmp/continue_config_prompts.yaml "$config_file"
-                echo "   ✅ Added curated Continue prompt for workflow: $wf_name"
-            else
-                echo "   - Continue prompt $wf_name already exists."
-            fi
+            local wf_name
+            wf_name=$(basename "$wf" .md)
+            local dest_file="$prompts_dir/$wf_name.prompt"
+            ln -sfn "$wf" "$dest_file"
+            count=$((count + 1))
         fi
     done
+    echo "   ✅ Linked $count Continue prompts. Re-run install if you move the tech-lead-stack repo."
 
-    echo "   ✅ Configured Continue globally at: $config_file"
-    echo "   📌 Note: Only a curated subset of workflows were inlined to minimize config drift."
+    echo "   ✅ Configured Continue globally."
 }
 
 echo "🚀 Initializing Tech-Lead Stack..."
