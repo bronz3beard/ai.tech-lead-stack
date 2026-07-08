@@ -21,45 +21,57 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
-const navigation = [
-  { name: 'Global Dashboard', href: '/', icon: Globe },
-  { name: 'Interlink Skills', href: '/skills/roles', icon: BookOpen },
-  { name: 'How it Works', href: '/onboarding', icon: Sparkles },
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from '@/components/ui/navigation-menu';
+
+export type NavItem = {
+  name: string;
+  href: string;
+  icon?: React.ElementType;
+  description?: string;
+  protected?: boolean;
+};
+
+export type NavGroup = {
+  title: string;
+  items: NavItem[];
+};
+
+const navigationGroups: NavGroup[] = [
   {
-    name: 'User Dashboard',
-    href: '/dashboard',
-    icon: LayoutDashboard,
-    protected: true,
+    title: 'Platform',
+    items: [
+      { name: 'Global Dashboard', href: '/', icon: Globe, description: 'View the global system overview.' },
+      { name: 'How it Works', href: '/onboarding', icon: Sparkles, description: 'Learn about the platform features.' },
+    ],
   },
   {
-    name: 'Agent Chat',
-    href: '/chat',
-    icon: MessageSquare,
-    protected: true,
+    title: 'Workspace',
+    items: [
+      { name: 'User Dashboard', href: '/dashboard', icon: LayoutDashboard, protected: true, description: 'Your personal workspace and metrics.' },
+      { name: 'Agent Chat', href: '/chat', icon: MessageSquare, protected: true, description: 'Interact with AI agents directly.' },
+    ],
   },
   {
-    name: 'Feature Discovery',
-    href: '/feature-development/discovery',
-    icon: Sparkles,
-    protected: true,
+    title: 'Development',
+    items: [
+      { name: 'Feature Discovery', href: '/feature-development/discovery', icon: Sparkles, protected: true, description: 'Discover new features.' },
+      { name: 'In-Progress Features', href: '/feature-development/in-progress', icon: LayoutDashboard, protected: true, description: 'Track ongoing development.' },
+      { name: 'Reflexion Loop ✨', href: '/reflexion', icon: RefreshCw, protected: true, description: 'Review and improve processes.' },
+    ],
   },
   {
-    name: 'In-Progress Features',
-    href: '/feature-development/in-progress',
-    icon: LayoutDashboard,
-    protected: true,
-  },
-  {
-    name: 'Forge Skill',
-    href: '/skills/new',
-    icon: Hammer,
-    protected: true,
-  },
-  {
-    name: 'Reflexion Loop ✨',
-    href: '/reflexion',
-    icon: RefreshCw,
-    protected: true,
+    title: 'Skills',
+    items: [
+      { name: 'Interlink Skills', href: '/skills/roles', icon: BookOpen, description: 'Explore available interlink skills.' },
+      { name: 'Forge Skill', href: '/skills/new', icon: Hammer, protected: true, description: 'Create and forge new skills.' },
+    ],
   },
 ];
 
@@ -217,9 +229,12 @@ export function Navbar() {
     return null;
   }
 
-  const filteredNavigation = navigation.filter(
-    (item) => !item.protected || isAuthenticated
-  );
+  const filteredGroups = navigationGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => !item.protected || isAuthenticated),
+    }))
+    .filter((group) => group.items.length > 0);
 
   return (
     <nav className="bg-card border-b border-border">
@@ -227,26 +242,51 @@ export function Navbar() {
         <div className="flex justify-between h-16">
           <div className="flex">
             <div className="shrink-0 flex items-center">
-              <Link href="/" className="text-xl font-bold text-foreground">
+              <Link href="/" className="text-xl font-bold text-foreground pr-4">
                 <span className="text-blue-500">Inter</span>link
               </Link>
             </div>
-            <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              {filteredNavigation.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    'inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium',
-                    activeLink(item.href)
-                      ? 'border-blue-500 text-foreground'
-                      : 'border-transparent text-muted-foreground hover:border-muted hover:text-foreground'
-                  )}
-                >
-                  <item.icon className="w-4 h-4 mr-2" />
-                  {item.name}
-                </Link>
-              ))}
+            <div className="hidden sm:ml-6 sm:flex sm:items-center">
+              <NavigationMenu>
+                <NavigationMenuList>
+                  {filteredGroups.map((group) => (
+                    <NavigationMenuItem key={group.title}>
+                      <NavigationMenuTrigger className="bg-transparent hover:bg-muted/50 data-[state=open]:bg-muted/50">
+                        {group.title}
+                      </NavigationMenuTrigger>
+                      <NavigationMenuContent>
+                        <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+                          {group.items.map((item) => (
+                            <li key={item.name}>
+                              <NavigationMenuLink
+                                render={
+                                  <Link
+                                    href={item.href}
+                                    className={cn(
+                                      'block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-muted focus:bg-muted',
+                                      activeLink(item.href) && 'bg-muted'
+                                    )}
+                                  />
+                                }
+                              >
+                                <div className="flex items-center text-sm font-medium leading-none">
+                                  {item.icon && <item.icon className="mr-2 h-4 w-4" />}
+                                  {item.name}
+                                </div>
+                                {item.description && (
+                                  <p className="line-clamp-2 text-sm leading-snug text-muted-foreground mt-2">
+                                    {item.description}
+                                  </p>
+                                )}
+                              </NavigationMenuLink>
+                            </li>
+                          ))}
+                        </ul>
+                      </NavigationMenuContent>
+                    </NavigationMenuItem>
+                  ))}
+                </NavigationMenuList>
+              </NavigationMenu>
             </div>
           </div>
           <div className="hidden sm:ml-6 sm:flex sm:items-center space-x-4">
@@ -275,23 +315,30 @@ export function Navbar() {
       {mobileMenuOpen && (
         <div className="sm:hidden bg-card border-b border-border animate-in slide-in-from-top duration-200">
           <div className="pt-2 pb-3 space-y-1">
-            {filteredNavigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className={cn(
-                  'block pl-3 pr-4 py-2 border-l-4 text-base font-medium',
-                  activeLink(item.href)
-                    ? 'bg-blue-500/10 border-blue-500 text-foreground'
-                    : 'border-transparent text-muted-foreground hover:bg-muted/10 hover:border-muted hover:text-foreground'
-                )}
-              >
-                <div className="flex items-center">
-                  <item.icon className="w-5 h-5 mr-3" />
-                  {item.name}
+            {filteredGroups.map((group) => (
+              <div key={group.title} className="mb-4 last:mb-0">
+                <div className="px-4 py-2 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                  {group.title}
                 </div>
-              </Link>
+                {group.items.map((item) => (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      'block pl-3 pr-4 py-2 border-l-4 text-base font-medium',
+                      activeLink(item.href)
+                        ? 'bg-blue-500/10 border-blue-500 text-foreground'
+                        : 'border-transparent text-muted-foreground hover:bg-muted/10 hover:border-muted hover:text-foreground'
+                    )}
+                  >
+                    <div className="flex items-center">
+                      {item.icon && <item.icon className="w-5 h-5 mr-3" />}
+                      {item.name}
+                    </div>
+                  </Link>
+                ))}
+              </div>
             ))}
           </div>
           <div className="pt-4 pb-3 border-t border-border">
