@@ -8,11 +8,20 @@
 
 ## How to use
 
-1. One prompt = one Jules session = one feature branch = one PR. **You** review and merge.
-2. Run in order 1 → 2 → (3 ∥ 8) → 4 → 5 → 6 → 7 (dependencies: 2 needs 1; 4 needs 1+2+**8**; 5 needs 4; 6 needs 1+2; 7 needs 2). Prompts 3 and 8 are parallel-safe with everything before 4; **8 must merge before 4** — the dev-team orchestrator selects skills by the `modes`/`surface` frontmatter that 8 introduces.
-3. Paste the **Standing Rules** block at the top of every prompt, then the prompt itself.
-4. If Jules asks a clarifying question the design doc already answers, reply with the doc section reference rather than new prose — keeps the doc the single source of truth.
-5. The step-by-step rollout (what you run, verify, and gate between merges) is `2026-07-08-rollout-runbook.md`.
+**For the order to run these in, and the full step-by-step, follow
+`2026-07-10-setup-walkthrough.md` — not this section.** Quick reference only:
+each prompt below is one Jules session → one feature branch → one PR that you
+review and merge.
+
+If you've added `AGENTS.md` at your repo root (the walkthrough's Step 11a —
+recommended, takes 5 minutes), Jules reads the Standing Rules automatically and
+you just paste the prompt itself. Otherwise, paste the **Standing Rules** block
+first, then the prompt, every time.
+
+Run order, plain and simple: **1, 2, 3, 8, 4, 5, 6, 7** — one at a time, wait
+for each to merge before starting the next. (Prompt 8's text lives at the bottom
+of `2026-07-08-skills-readiness-audit.md`, not in this file — the walkthrough
+tells you exactly when to go get it.)
 
 ---
 
@@ -134,7 +143,7 @@ Dashboard UI (Prompt 6), reflexion phase events (Prompt 2), any GitHub API work.
 
 ## PROMPT 2 — WS-2: Reflexion Loop v2 — Interview Gate, state/resume, budget caps
 
-```
+````
 Branch: feature/ws2-reflexion-interview-gate
 
 CONTEXT
@@ -203,8 +212,9 @@ E. CLI scripts/reflexion-loop.ts —
    - flags: --auto, --resume <state.json>, --answers <file|-> (parses the yaml
      block from interview.md or a plain yaml file), --interactive (readline
      Q&A), --max-cost-usd <n>, --max-tokens <n>, --focus <pillar[,pillar]>;
-   - exit codes: 0 passed/approved, 2 revision-cap, 3 budget-cap,
-     4 awaiting-interview (state written).
+   - exit codes (spec §Interface is authoritative): 0 passed/approved,
+     2 parked awaiting interview answers (state + interview.md written),
+     3 budget/user stop, 4 contract violation or unrecoverable error.
 F. Website —
    - Prisma model ReflexionRun { id cuid, userId, projectId?, brief, status
      ('RUNNING'|'AWAITING_INTERVIEW'|'PASSED'|'REVISION_CAP'|'BUDGET_CAP'|
@@ -271,7 +281,7 @@ ACCEPTANCE CRITERIA
 OUT OF SCOPE
 Dashboard rendering of these events (Prompt 6); GitHub Action runner (Prompt 7);
 any change to what the generator/critic models are.
-```
+````
 
 ---
 
@@ -373,7 +383,7 @@ the report); generator-side evals; dashboard integration.
 
 ## PROMPT 4 — WS-4: `dev-team-orchestrator` skill (Crew Sizing + Lane Ledger + Friction Protocol)
 
-```
+````
 Branch: feature/ws4-dev-team-orchestrator
 
 CONTEXT
@@ -495,7 +505,7 @@ ACCEPTANCE CRITERIA
 
 OUT OF SCOPE
 Any change to the chained skills themselves; dashboard; reflexion internals.
-```
+````
 
 ---
 
@@ -654,7 +664,7 @@ metrics; reflexion engine changes.
 
 ## PROMPT 7 — WS-7: Issue-driven cloud loop runner (hands-off mode)
 
-```
+````
 Branch: feature/ws7-reflexion-issue-runner
 
 CONTEXT
@@ -734,7 +744,7 @@ OUT OF SCOPE
 Cron scheduling (add later by uncommenting a schedule trigger — include it
 commented with a warning about caps first, per the design doc); multi-repo
 operation; dev-team lane execution in CI.
-```
+````
 
 ---
 
@@ -745,13 +755,13 @@ operation; dev-team lane execution in CI.
 the findings (F1–F5) it fixes, so audit + prompt travel as one file. Summary:
 add `modes:`/`surface:` frontmatter + a `## Runtime modes` line to all 29
 skills, generate the Cursor manifest and README table from frontmatter
-(`scripts/generate-skill-registry.ts`), and make `validate-skills.sh` fail CI
-on any drift.
+(`scripts/generate-skill-registry.ts`), and make `validate-skills.sh` fail CI on
+any drift.
 
 - Branch: `feat/skills-readiness-pass`
 - Prepend the same PROMPT 0 Standing Rules.
-- Parallel-safe with Prompts 1–3. **Must merge before Prompt 4** — the
-  dev-team orchestrator sizes crews and routes lanes using these fields.
+- Parallel-safe with Prompts 1–3. **Must merge before Prompt 4** — the dev-team
+  orchestrator sizes crews and routes lanes using these fields.
 
 ---
 
@@ -766,8 +776,8 @@ For every PR these prompts produce, before merging ask:
    worked around something, that's a friction defect to file — practice the
    protocol on the PRs themselves.
 5. After merging Prompt 3: run `rtk run reflexion-eval` once yourself and keep
-   the report — that's your baseline ERR calibration before the dashboard
-   starts charting it.
+   the report — that's your baseline ERR calibration before the dashboard starts
+   charting it.
 6. After merging Prompt 8: run `pnpm validate:skills` and
-   `pnpm generate:registry` once on main — from then on, registry drift is a
-   CI failure, not a discovery you make in Cursor.
+   `pnpm generate:registry` once on main — from then on, registry drift is a CI
+   failure, not a discovery you make in Cursor.

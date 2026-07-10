@@ -1,11 +1,16 @@
+@AGENTS.md
+
 <!-- rtk-instructions v2 -->
+
 # RTK (Rust Token Killer) - Token-Optimized Commands
 
 ## Golden Rule
 
-**Always prefix commands with `rtk`**. If RTK has a dedicated filter, it uses it. If not, it passes through unchanged. This means RTK is always safe to use.
+**Always prefix commands with `rtk`**. If RTK has a dedicated filter, it uses
+it. If not, it passes through unchanged. This means RTK is always safe to use.
 
 **Important**: Even in command chains with `&&`, use `rtk`:
+
 ```bash
 # ❌ Wrong
 git add . && git commit -m "msg" && git push
@@ -17,6 +22,7 @@ rtk git add . && rtk git commit -m "msg" && rtk git push
 ## RTK Commands by Workflow
 
 ### Build & Compile (80-90% savings)
+
 ```bash
 rtk cargo build         # Cargo build output
 rtk cargo check         # Cargo check output
@@ -28,6 +34,7 @@ rtk next build          # Next.js build with route metrics (87%)
 ```
 
 ### Test (90-99% savings)
+
 ```bash
 rtk cargo test          # Cargo test failures only (90%)
 rtk vitest run          # Vitest failures only (99.5%)
@@ -36,6 +43,7 @@ rtk test <cmd>          # Generic test wrapper - failures only
 ```
 
 ### Git (59-80% savings)
+
 ```bash
 rtk git status          # Compact status
 rtk git log             # Compact log (works with all git flags)
@@ -51,9 +59,11 @@ rtk git stash           # Compact stash
 rtk git worktree        # Compact worktree
 ```
 
-Note: Git passthrough works for ALL subcommands, even those not explicitly listed.
+Note: Git passthrough works for ALL subcommands, even those not explicitly
+listed.
 
 ### GitHub (26-87% savings)
+
 ```bash
 rtk gh pr view <num>    # Compact PR view (87%)
 rtk gh pr checks        # Compact PR checks (79%)
@@ -63,6 +73,7 @@ rtk gh api              # Compact API responses (26%)
 ```
 
 ### JavaScript/TypeScript Tooling (70-90% savings)
+
 ```bash
 rtk pnpm list           # Compact dependency tree (70%)
 rtk pnpm outdated       # Compact outdated packages (80%)
@@ -73,6 +84,7 @@ rtk prisma              # Prisma without ASCII art (88%)
 ```
 
 ### Files & Search (60-75% savings)
+
 ```bash
 rtk ls <path>           # Tree format, compact (65%)
 rtk read <file>         # Code reading with filtering (60%)
@@ -81,6 +93,7 @@ rtk find <pattern>      # Find grouped by directory (70%)
 ```
 
 ### Analysis & Debug (70-90% savings)
+
 ```bash
 rtk err <cmd>           # Filter errors only from any command
 rtk log <file>          # Deduplicated logs with counts
@@ -92,6 +105,7 @@ rtk diff                # Ultra-compact diffs
 ```
 
 ### Infrastructure (85% savings)
+
 ```bash
 rtk docker ps           # Compact container list
 rtk docker images       # Compact image list
@@ -101,12 +115,14 @@ rtk kubectl logs        # Deduplicated pod logs
 ```
 
 ### Network (65-70% savings)
+
 ```bash
 rtk curl <url>          # Compact HTTP responses (70%)
 rtk wget <url>          # Compact download output (65%)
 ```
 
 ### Meta Commands
+
 ```bash
 rtk gain                # View token savings statistics
 rtk gain --history      # View command history with savings
@@ -117,7 +133,9 @@ rtk init --global       # Add RTK to ~/.claude/CLAUDE.md
 ```
 
 ### Tech-Lead Stack Tools
+
 For any linked project, use the localized runner for stack-specific skills:
+
 ```bash
 ./.ai/rtk-run list          # List all available stack tools
 ./.ai/rtk-run run <tool>    # Execute a stack tool (e.g., visual-verifier)
@@ -125,37 +143,17 @@ For any linked project, use the localized runner for stack-specific skills:
 
 ## Token Savings Overview
 
-| Category | Commands | Typical Savings |
-|----------|----------|-----------------|
-| Tests | vitest, playwright, cargo test | 90-99% |
-| Build | next, tsc, lint, prettier | 70-87% |
-| Git | status, log, diff, add, commit | 59-80% |
-| GitHub | gh pr, gh run, gh issue | 26-87% |
-| Package Managers | pnpm, npm, npx | 70-90% |
-| Files | ls, read, grep, find | 60-75% |
-| Infrastructure | docker, kubectl | 85% |
-| Network | curl, wget | 65-70% |
+| Category         | Commands                       | Typical Savings |
+| ---------------- | ------------------------------ | --------------- |
+| Tests            | vitest, playwright, cargo test | 90-99%          |
+| Build            | next, tsc, lint, prettier      | 70-87%          |
+| Git              | status, log, diff, add, commit | 59-80%          |
+| GitHub           | gh pr, gh run, gh issue        | 26-87%          |
+| Package Managers | pnpm, npm, npx                 | 70-90%          |
+| Files            | ls, read, grep, find           | 60-75%          |
+| Infrastructure   | docker, kubectl                | 85%             |
+| Network          | curl, wget                     | 65-70%          |
 
 Overall average: **60-90% token reduction** on common development operations.
+
 <!-- /rtk-instructions -->
-
-<!-- BEGIN:nextjs-agent-rules -->
-
-# This is NOT the Next.js you know
-
-This version has breaking changes — APIs, conventions, and file structure may
-all differ from your training data. Read the relevant guide in
-`node_modules/next/dist/docs/` before writing any code. Heed deprecation
-notices.
-
-<!-- END:nextjs-agent-rules -->
-
-# MCP Tools Naming & Discovery
-When calling MCP tools from the `tech-lead-stack` server (e.g. `get_skills`, `get_skill`, `verify_mission_alignment`, `list_skills`), some client applications (like Cursor, Claude Code, or web chat UIs) prefix the tool names.
-If a tool execution fails because the tool is not found, check the available tools list to identify if they are prefixed.
-Common prefixes include:
-- `mcp_tech-lead-stack_<tool_name>` (e.g., `mcp_tech-lead-stack_get_skills`)
-- `tech-lead-stack_<tool_name>` (e.g., `tech-lead-stack_get_skills`)
-
-Ensure you search the tool definitions and call the tool using its correctly resolved name.
-
