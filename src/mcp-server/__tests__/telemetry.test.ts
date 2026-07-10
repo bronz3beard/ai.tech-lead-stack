@@ -63,6 +63,39 @@ describe('Telemetry', () => {
             skillCost: 'high',
             source: 'mcp',
           }),
+          actorType: 'AGENT',
+          autonomy: 'DIRECTED',
+        })
+      );
+    });
+
+    it('should propagate agentic telemetry overrides', async () => {
+      const telemetry = new Telemetry();
+      const mockCallback = jest.fn().mockResolvedValue('SuccessResult');
+
+      await telemetry.withAnalytics(
+        'test-skill',
+        'test-project',
+        'test-model',
+        'test-agent',
+        'high',
+        mockCallback,
+        {
+          actorType: 'HUMAN',
+          autonomy: 'AUTONOMOUS',
+          loopRunId: 'test-run-123',
+          loopPhase: 'critique',
+          teamRole: 'developer',
+        }
+      );
+
+      expect(telemetryService.recordEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          actorType: 'HUMAN',
+          autonomy: 'AUTONOMOUS',
+          loopRunId: 'test-run-123',
+          loopPhase: 'critique',
+          teamRole: 'developer',
         })
       );
     });

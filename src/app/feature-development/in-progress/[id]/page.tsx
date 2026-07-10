@@ -238,6 +238,7 @@ export default function FeedbackPage() {
                 </div>
               ) : (
                 <div className="relative group rounded-xl overflow-hidden border border-slate-800 shadow-lg">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={snapshot}
                     alt="Snapshot"

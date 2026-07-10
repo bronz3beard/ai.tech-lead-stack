@@ -16,7 +16,7 @@ jest.mock('../telemetry', () => ({
           _agent: string,
           _cost: string | undefined,
           callback: () => Promise<any>,
-          _overrides?: { userEmail?: string; userRole?: string }
+            _overridesArg?: { userEmail?: string; userRole?: string }
         ) => callback()
       ),
   })),
@@ -65,7 +65,7 @@ describe('MCP Server', () => {
     });
 
     mockTelemetry.withAnalytics.mockImplementation(
-      async (name, project, model, agent, cost, callback, overrides) => {
+      async (name, project, model, agent, cost, callback, _overrides) => {
         return await callback();
       }
     );

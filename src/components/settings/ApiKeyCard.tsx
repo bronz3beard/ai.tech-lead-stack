@@ -50,7 +50,7 @@ export default function ApiKeyCard({
     } finally {
       setIsLoading(false);
     }
-  }, [provider]);
+  }, [provider, canBeDefault]);
 
   useEffect(() => {
     const init = async () => {

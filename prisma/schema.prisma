@@ -78,11 +78,20 @@ model AnalyticsEvent {
   createdAt        DateTime @default(now())
   projectId        String?
   projectName      String?
+
+  actorType        String?
+  autonomy         String?
+  loopRunId        String?
+  loopPhase        String?
+  teamRole         String?
   user             User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
   @@index([skillName, createdAt])
   @@index([projectName, createdAt])
+
+  @@index([actorType, createdAt])
+  @@index([loopRunId])
 }
 
 model VerificationToken {
