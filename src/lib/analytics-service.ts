@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { normalizeActorTelemetry } from './actor-telemetry';
 import { fetchAllPages } from './langfuse-api';
 import { normalizeProjectName, normalizeSkillName } from './trace-utils';
 
@@ -126,6 +127,8 @@ export async function syncTracesFromLangfuse(limit?: number, force = false) {
 
       const existingId = trace.id ? existingEventsLookup.get(trace.id) : undefined;
 
+      const actorTelemetry = normalizeActorTelemetry(trace.metadata);
+
       const eventData = {
         skillName: normalizedSkill,
         projectName: normalizedProject,
@@ -143,6 +146,11 @@ export async function syncTracesFromLangfuse(limit?: number, force = false) {
           syncedAt: new Date().toISOString(),
           isSynced: true,
         },
+        actorType: actorTelemetry.actorType ?? null,
+        autonomy: actorTelemetry.autonomy ?? null,
+        loopRunId: actorTelemetry.loopRunId ?? null,
+        loopPhase: actorTelemetry.loopPhase ?? null,
+        teamRole: actorTelemetry.teamRole ?? null,
       };
 
       if (existingId) {

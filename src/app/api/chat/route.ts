@@ -419,7 +419,12 @@ export async function POST(req: Request) {
                  const content = await readWorkflow(workflowName);
                  return content;
               },
-              { userEmail: user.email ?? undefined, userRole: user.role }
+              {
+                userEmail: user.email ?? undefined,
+                userRole: user.role,
+                actorType: 'HUMAN',
+                autonomy: 'DIRECTED'
+              }
             );
 
             if (workflowContent) {
@@ -529,7 +534,9 @@ export async function POST(req: Request) {
                               toolCallId: call.toolCallId,
                               stepNumber: stepCount,
                               source: 'chat-v2-execution',
-                            }
+                            },
+                            actorType: 'HUMAN',
+                            autonomy: 'DIRECTED',
                           }).catch(err => console.error('[Telemetry] Execution log failed:', err));
                         }
 

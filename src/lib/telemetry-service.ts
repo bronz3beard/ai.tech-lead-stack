@@ -102,6 +102,11 @@ export class TelemetryService {
     completionTokens?: number;
     userEmail?: string;
     metadata?: Record<string, any>;
+    actorType?: string | null;
+    autonomy?: string | null;
+    loopRunId?: string | null;
+    loopPhase?: string | null;
+    teamRole?: string | null;
   }) {
     this.ensureConfigured();
 
@@ -212,6 +217,11 @@ export class TelemetryService {
           projectName: normalizedProject,
           estimatedCost: totalCost,
         },
+        actorType: params.actorType,
+        autonomy: params.autonomy,
+        loopRunId: params.loopRunId,
+        loopPhase: params.loopPhase,
+        teamRole: params.teamRole,
       };
 
       console.error(

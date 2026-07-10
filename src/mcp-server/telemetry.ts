@@ -14,7 +14,15 @@ export interface ITelemetry {
     agent: string | undefined,
     skillCost: string | undefined,
     executeCallback: () => Promise<T>,
-    overrides?: { userEmail?: string; userRole?: string }
+    overrides?: {
+      userEmail?: string;
+      userRole?: string;
+      actorType?: string | null;
+      autonomy?: string | null;
+      loopRunId?: string | null;
+      loopPhase?: string | null;
+      teamRole?: string | null;
+    }
   ): Promise<T>;
 }
 
@@ -36,7 +44,15 @@ export class Telemetry implements ITelemetry {
     agent: string | undefined,
     skillCost: string | undefined,
     executeCallback: () => Promise<T>,
-    overrides?: { userEmail?: string; userRole?: string }
+    overrides?: {
+      userEmail?: string;
+      userRole?: string;
+      actorType?: string | null;
+      autonomy?: string | null;
+      loopRunId?: string | null;
+      loopPhase?: string | null;
+      teamRole?: string | null;
+    }
   ): Promise<T> {
     const normalizedSkill = normalizeSkillName(skillName);
     const startTime = Date.now();
@@ -86,6 +102,11 @@ export class Telemetry implements ITelemetry {
               skillCost: skillCost || 'unknown',
               source: 'mcp',
             },
+            actorType: overrides?.actorType !== undefined ? overrides.actorType : 'AGENT',
+            autonomy: overrides?.autonomy !== undefined ? overrides.autonomy : 'DIRECTED',
+            loopRunId: overrides?.loopRunId,
+            loopPhase: overrides?.loopPhase,
+            teamRole: overrides?.teamRole,
           });
         } else {
           console.error(
