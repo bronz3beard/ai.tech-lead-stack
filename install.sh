@@ -244,6 +244,16 @@ safe_ln() {
 echo "🔗 Linking components..."
 safe_ln "$SOURCE_DIR/.ai" "$TARGET_DIR/.ai"
 safe_ln "$SOURCE_DIR/.agents" "$TARGET_DIR/.agents"
+
+# Root-level AGENTS.md so Jules, Cursor, Copilot etc. read it automatically.
+# Guard: never overwrite a real file — only create/refresh our own symlink.
+if [[ -e "$TARGET_DIR/AGENTS.md" && ! -L "$TARGET_DIR/AGENTS.md" ]]; then
+    echo "   - AGENTS.md already exists as a real file — leaving it alone."
+else
+    safe_ln "$SOURCE_DIR/.ai/agents.md" "$TARGET_DIR/AGENTS.md"
+    echo "   ✅ Linked root AGENTS.md"
+fi
+
 cp "$SOURCE_DIR/templates/PULL_REQUEST_TEMPLATE.md" "$TARGET_DIR/.github/PULL_REQUEST_TEMPLATE.md"
 
 if [[ ! -d "$TARGET_DIR/.github/workflows" ]]; then
