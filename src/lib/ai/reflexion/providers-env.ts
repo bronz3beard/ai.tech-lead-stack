@@ -1,13 +1,13 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { generateText, generateObject, type LanguageModel } from 'ai';
+import { generateText, generateObject, type LanguageModel, type LanguageModelUsage } from 'ai';
 
 // Relative import (NOT the '@/' alias): this module is run under `tsx` by the
 // CLI and the MCP server, where the '@/' path alias does not resolve. constants
 // is a pure no-import file, so this stays tsx-safe. Do NOT import
 // '@/lib/ai/orchestrator' here — it pulls in '@/' and would break tsx.
 import { MODELS } from '../../../app/api/chat/constants';
-import { CritiqueSchema } from './schema';
+import { CritiqueSchema, InterviewSchema } from './schema';
 import type { ReflexionRunner } from './engine';
 
 /** Local copy of the distinctness guard so this file imports nothing via '@/'. */
@@ -25,25 +25,60 @@ export function buildRunner(
   adjudicator: LanguageModel,
   models: ReflexionRunner['models']
 ): ReflexionRunner {
+  let accumulatedTokens = 0;
+
+  function addUsage(usage?: LanguageModelUsage) {
+    if (usage) {
+      accumulatedTokens += usage.totalTokens || 0;
+    }
+  }
+
+  // Cost tracking is not readily available via standard AI SDK metadata out-of-the-box
+  // for all providers here without mapping model IDs to pricing tables.
+  let warnedAboutCost = false;
+
   return {
     models,
     async generate(prompt, system) {
-      const { text } = await generateText({ model: creator, system, prompt });
+      const { text, usage } = await generateText({ model: creator, system, prompt });
+      addUsage(usage);
       return text.trim();
     },
     async critique(prompt, system) {
-      const { object } = await generateObject({
+      const { object, usage } = await generateObject({
         model: critic,
         schema: CritiqueSchema,
         system,
         prompt,
       });
+      addUsage(usage);
       return object;
     },
     async adjudicate(prompt, system) {
-      const { text } = await generateText({ model: adjudicator, system, prompt });
+      const { text, usage } = await generateText({ model: adjudicator, system, prompt });
+      addUsage(usage);
       return text.trim();
     },
+    async interview(prompt, system) {
+      const { object, usage } = await generateObject({
+        model: critic,
+        schema: InterviewSchema,
+        system,
+        prompt,
+      });
+      addUsage(usage);
+      return object;
+    },
+    getUsage() {
+      if (!warnedAboutCost) {
+        console.warn('reflexion: cost tracking not available for this provider; maxCostUsd cap will not fire.');
+        warnedAboutCost = true;
+      }
+      return {
+        tokens: accumulatedTokens,
+        costUsd: 0, // Fallback as per requirements
+      };
+    }
   };
 }
 

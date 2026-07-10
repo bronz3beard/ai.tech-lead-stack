@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`prompts.ts additions sectionRefinePrompt includes necessary constraints 1`] = `
+"You are refining ONE specific section of a plan.
+RUBRIC_TEXT
+
+Refine the following section: ## Phase 0
+Directive from human: Fix it
+
+Return the complete plan. Do not alter any section except ## Phase 0."
+`;

@@ -1,0 +1,30 @@
+import { buildRunner } from '../providers-env';
+import * as aiModule from 'ai';
+
+jest.mock('ai', () => ({
+  generateText: jest.fn(),
+  generateObject: jest.fn()
+}));
+
+describe('providers v2', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('buildRunner accumulates usage and provides interview()', async () => {
+    (aiModule.generateText as jest.Mock).mockResolvedValueOnce({ text: 'text', usage: { totalTokens: 10 } });
+    (aiModule.generateObject as jest.Mock).mockResolvedValueOnce({ object: { runId: '1' }, usage: { totalTokens: 20 } });
+
+    const mockModel: any = {};
+    const runner = buildRunner(mockModel, mockModel, mockModel, { creator: 'a', critic: 'b', adjudicator: 'c' });
+
+    expect(runner.getUsage().tokens).toBe(0);
+
+    await runner.generate('prompt', 'system');
+    expect(runner.getUsage().tokens).toBe(10);
+
+    const interviewRes = await runner.interview('prompt', 'system');
+    expect(interviewRes.runId).toBe('1');
+    expect(runner.getUsage().tokens).toBe(30);
+  });
+});
