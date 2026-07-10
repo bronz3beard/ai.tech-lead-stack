@@ -20,7 +20,7 @@ export function getErrorMessage(error: unknown): string {
   if (typeof anyErr === 'object' && anyErr !== null) {
     try {
       fallback = JSON.stringify(anyErr);
-    } catch (e) {
+    } catch (_e) {
       fallback = String(anyErr);
     }
   } else {
@@ -89,7 +89,7 @@ export function isQuotaError(err: any): boolean {
       typeof err === 'object'
         ? JSON.stringify(err).toLowerCase()
         : String(err).toLowerCase();
-  } catch (e) {
+  } catch (_e) {
     // If stringification fails (e.g., circular structure), fall back to String()
     raw = String(err).toLowerCase();
   }

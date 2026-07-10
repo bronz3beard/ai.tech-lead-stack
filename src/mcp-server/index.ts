@@ -282,6 +282,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
       LIST_SKILLS_TOOL,
+      ...dynamicTools,
       GET_SKILLS_TOOL,
       GET_SKILL_TOOL,
       VERIFY_MISSION_ALIGNMENT_TOOL,

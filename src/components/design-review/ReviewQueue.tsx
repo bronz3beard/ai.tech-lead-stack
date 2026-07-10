@@ -366,7 +366,6 @@ export function ReviewQueue({
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showDeleted, setShowDeleted] = useState(false);
-  const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
   const handleSessionCreated = (sessionId: string) => {
     setIsModalOpen(false);

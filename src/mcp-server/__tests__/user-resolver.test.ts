@@ -69,7 +69,7 @@ describe('UserResolver', () => {
     });
 
     it('should fallback to environment variable if both GitHub CLI and git config fail', () => {
-      (child_process.execSync as jest.Mock).mockImplementation((command: string) => {
+      (child_process.execSync as jest.Mock).mockImplementation((_command: string) => {
         throw new Error('Command failed');
       });
       process.env.USER_EMAIL = 'envuser@example.com';
@@ -82,7 +82,7 @@ describe('UserResolver', () => {
     });
 
     it('should return "unknown" if all methods fail', () => {
-      (child_process.execSync as jest.Mock).mockImplementation((command: string) => {
+      (child_process.execSync as jest.Mock).mockImplementation((_command: string) => {
         throw new Error('Command failed');
       });
       delete process.env.USER_EMAIL;
@@ -109,7 +109,7 @@ describe('UserResolver', () => {
     });
 
     it('should return "unknown" if git config throws an error', () => {
-      (child_process.execSync as jest.Mock).mockImplementation((command: string) => {
+      (child_process.execSync as jest.Mock).mockImplementation((_command: string) => {
         throw new Error('Command failed');
       });
 
