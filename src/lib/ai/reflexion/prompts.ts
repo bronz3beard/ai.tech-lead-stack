@@ -72,6 +72,40 @@ crisp go/no-go in 3-5 plain-English sentences:
     gap is and whether it is worth another loop or a manual override.
 No JSON, no headers - just the verdict.`;
 
+export const INTERVIEWER_SYSTEM = `\
+You are a senior technical interviewer reviewing a drafted implementation plan.
+You will receive the original brief, the latest plan, the latest critique, and the LoopParams.
+Your task is to produce exactly max 5 questions to ask the human to clarify the plan or loop parameters.
+
+${RUBRIC}
+
+RULES:
+- Every question must be answerable in one line.
+- Each question maps to exactly one target. For 'plan', ref = ## section slug. For 'loop', ref = param name.
+- The first question MUST address the lowest pillar sub-score from the critique.
+- If ALL four pillar sub-scores in the Critique are >= 9, you MUST return recommendation: 'approve' and questions: [].
+- Output must be in InterviewSchema JSON format.`;
+
+export function sectionRefinePrompt(
+  section: string,
+  directive: string,
+  rubric: string
+): string {
+  return `\
+You are refining ONE specific section of a plan.
+${rubric}
+
+Refine the following section: ${section}
+Directive from human: ${directive}
+
+Return the complete plan. Do not alter any section except ${section}.`;
+}
+
+export function focusPillarsBlock(focus: string[]): string {
+  if (!focus || focus.length === 0) return '';
+  return `\n\nFOCUS ON PILLARS: ${focus.join(', ')}\nEnsure these pillars are weighted heavily.`;
+}
+
 export function stackContextBlock(stack: string): string {
   if (!stack.trim()) {
     return 'PROJECT STACK CONTEXT: (none provided - state this as a Pillar 1 risk)\n';
