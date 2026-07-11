@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { LoopParamsPatchSchema, InterviewSchema, CritiqueSchema } from '../schema';
+import { InterviewSchema, LoopParamsPatchSchema } from '../schema';
 
 describe('schema.ts additions', () => {
   it('LoopParamsPatch rejects unknown keys', () => {

@@ -1,14 +1,19 @@
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { generateText, generateObject, type LanguageModel, type LanguageModelUsage } from 'ai';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import {
+  generateText,
+  Output,
+  type LanguageModel,
+  type LanguageModelUsage,
+} from 'ai';
 
 // Relative import (NOT the '@/' alias): this module is run under `tsx` by the
 // CLI and the MCP server, where the '@/' path alias does not resolve. constants
 // is a pure no-import file, so this stays tsx-safe. Do NOT import
 // '@/lib/ai/orchestrator' here — it pulls in '@/' and would break tsx.
 import { MODELS } from '../../../app/api/chat/constants';
-import { CritiqueSchema, InterviewSchema } from './schema';
 import type { ReflexionRunner } from './engine';
+import { CritiqueSchema, InterviewSchema } from './schema';
 
 /** Local copy of the distinctness guard so this file imports nothing via '@/'. */
 function assertDistinct(creator: string, critic: string): void {
@@ -40,45 +45,55 @@ export function buildRunner(
   return {
     models,
     async generate(prompt, system) {
-      const { text, usage } = await generateText({ model: creator, system, prompt });
+      const { text, usage } = await generateText({
+        model: creator,
+        system,
+        prompt,
+      });
       addUsage(usage);
       return text.trim();
     },
     async critique(prompt, system) {
-      const { object, usage } = await generateObject({
+      const { output, usage } = await generateText({
         model: critic,
-        schema: CritiqueSchema,
+        output: Output.object({ schema: CritiqueSchema }),
         system,
         prompt,
       });
       addUsage(usage);
-      return object;
+      return output;
     },
     async adjudicate(prompt, system) {
-      const { text, usage } = await generateText({ model: adjudicator, system, prompt });
+      const { text, usage } = await generateText({
+        model: adjudicator,
+        system,
+        prompt,
+      });
       addUsage(usage);
       return text.trim();
     },
     async interview(prompt, system) {
-      const { object, usage } = await generateObject({
+      const { output, usage } = await generateText({
         model: critic,
-        schema: InterviewSchema,
+        output: Output.object({ schema: InterviewSchema }),
         system,
         prompt,
       });
       addUsage(usage);
-      return object;
+      return output;
     },
     getUsage() {
       if (!warnedAboutCost) {
-        console.warn('reflexion: cost tracking not available for this provider; maxCostUsd cap will not fire.');
+        console.warn(
+          'reflexion: cost tracking not available for this provider; maxCostUsd cap will not fire.'
+        );
         warnedAboutCost = true;
       }
       return {
         tokens: accumulatedTokens,
         costUsd: 0, // Fallback as per requirements
       };
-    }
+    },
   };
 }
 
@@ -105,7 +120,8 @@ export function runnerFromEnv(): ReflexionRunner {
 
   const creatorId = process.env.REFLEXION_CREATOR_MODEL || MODELS.GEMINI;
   const criticId = process.env.REFLEXION_CRITIC_MODEL || MODELS.CLAUDE;
-  const adjudicatorId = process.env.REFLEXION_ADJUDICATOR_MODEL || MODELS.CLAUDE;
+  const adjudicatorId =
+    process.env.REFLEXION_ADJUDICATOR_MODEL || MODELS.CLAUDE;
 
   assertDistinct(creatorId, criticId);
 

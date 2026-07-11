@@ -3,7 +3,9 @@ import * as aiModule from 'ai';
 
 jest.mock('ai', () => ({
   generateText: jest.fn(),
-  generateObject: jest.fn()
+  Output: {
+    object: jest.fn()
+  }
 }));
 
 describe('providers v2', () => {
@@ -12,8 +14,9 @@ describe('providers v2', () => {
   });
 
   it('buildRunner accumulates usage and provides interview()', async () => {
-    (aiModule.generateText as jest.Mock).mockResolvedValueOnce({ text: 'text', usage: { totalTokens: 10 } });
-    (aiModule.generateObject as jest.Mock).mockResolvedValueOnce({ object: { runId: '1' }, usage: { totalTokens: 20 } });
+    (aiModule.generateText as jest.Mock)
+      .mockResolvedValueOnce({ text: 'text', usage: { totalTokens: 10 } })
+      .mockResolvedValueOnce({ output: { runId: '1' }, usage: { totalTokens: 20 } });
 
     const mockModel: any = {};
     const runner = buildRunner(mockModel, mockModel, mockModel, { creator: 'a', critic: 'b', adjudicator: 'c' });
