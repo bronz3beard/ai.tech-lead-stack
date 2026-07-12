@@ -18,6 +18,8 @@ describe('providers v2', () => {
       .mockResolvedValueOnce({ text: 'text', usage: { totalTokens: 10 } })
       .mockResolvedValueOnce({ output: { runId: '1' }, usage: { totalTokens: 20 } });
 
+    const spy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     const mockModel: any = {};
     const runner = buildRunner(mockModel, mockModel, mockModel, { creator: 'a', critic: 'b', adjudicator: 'c' });
 
@@ -29,5 +31,7 @@ describe('providers v2', () => {
     const interviewRes = await runner.interview('prompt', 'system');
     expect(interviewRes.runId).toBe('1');
     expect(runner.getUsage().tokens).toBe(30);
+
+    spy.mockRestore();
   });
 });

@@ -52,8 +52,15 @@ describe('crypto', () => {
   });
 
   describe('decrypt error handling', () => {
+    let consoleSpy: jest.SpyInstance;
+
     beforeEach(() => {
       process.env.ENCRYPTION_KEY = validKey;
+      consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      consoleSpy.mockRestore();
     });
 
     it('should throw an error if ciphertext format is invalid', () => {

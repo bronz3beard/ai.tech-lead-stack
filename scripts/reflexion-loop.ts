@@ -16,8 +16,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { runReflexion, type ReflexionResult } from '../src/lib/ai/reflexion/engine';
+import { runReflexion, resumeReflexion, type ReflexionResult } from '../src/lib/ai/reflexion/engine';
 import { runnerFromEnv } from '../src/lib/ai/reflexion/providers-env';
+import { FileStateStore } from '../src/lib/ai/reflexion/state-store';
+import { Answers, ReflexionStateV2 } from '../src/lib/ai/reflexion/schema';
+import { parseYamlAnswers, formatInterviewMd } from './reflexion-loop-utils';
 
 const STACK_FILES = [
   'package.json',
@@ -33,6 +36,10 @@ const STACK_FILES = [
 function arg(flag: string): string | undefined {
   const i = process.argv.indexOf(flag);
   return i >= 0 ? process.argv[i + 1] : undefined;
+}
+
+function hasFlag(flag: string): boolean {
+  return process.argv.includes(flag);
 }
 
 function readStack(repo: string, maxCharsPerFile = 1800): string {
@@ -71,43 +78,186 @@ function svgChart(scores: number[], threshold: number): string {
 </svg>`;
 }
 
-async function main(): Promise<number> {
-  const briefFile = arg('--brief-file');
-  const positional = process.argv.slice(2).find((a) => !a.startsWith('--'));
-  const brief = briefFile ? fs.readFileSync(briefFile, 'utf-8').trim() : positional?.trim();
-  if (!brief) {
-    console.error('Usage: reflexion-loop "<brief>" [--repo .] [--max 3] [--threshold 8] [--out .reflexion-out]');
-    return 1;
+async function handleInteractive(state: ReflexionStateV2): Promise<Answers> {
+  const readline = require('readline').createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  const question = (query: string): Promise<string> =>
+    new Promise((resolve) => readline.question(query, resolve));
+
+  console.log('\n--- INTERACTIVE MODE ---');
+  const questions = state.interview?.questions || [];
+  const answers: Answers = { runId: state.runId, decisions: [] };
+
+  for (const q of questions) {
+    console.log(`\nQuestion: ${q.question}`);
+    console.log(`Target: ${q.target} '${q.ref}'`);
+    console.log(`Why: ${q.why}`);
+    const ans = await question('> ');
+    if (ans.trim() === '/approve') {
+      answers.directive = 'approve';
+      readline.close();
+      return answers;
+    }
+    if (ans.trim() === '/stop') {
+      answers.directive = 'stop';
+      readline.close();
+      return answers;
+    }
+    answers.decisions.push({ id: q.id, answer: ans.trim() });
   }
+
+  readline.close();
+  return answers;
+}
+
+async function main(): Promise<number> {
+  const resumeArg = arg('--resume');
+  const answersArg = arg('--answers');
+  const isInteractive = hasFlag('--interactive');
+  const autoMode = hasFlag('--auto');
 
   const repo = arg('--repo') || '.';
   const maxRevisions = Number(arg('--max') || 3);
   const passThreshold = Number(arg('--threshold') || 8);
-  const out = arg('--out') || '.reflexion-out';
+  const maxCostUsd = arg('--max-cost-usd') ? Number(arg('--max-cost-usd')) : undefined;
+  const maxTokens = arg('--max-tokens') ? Number(arg('--max-tokens')) : undefined;
+  const focus = arg('--focus') ? arg('--focus')!.split(',') : undefined;
 
+  // Let --out default to .reflexion-out unless resuming from a specific dir
+  let outDir = arg('--out') || '.reflexion-out';
+  let runIdToResume: string | undefined;
+
+  if (resumeArg) {
+    if (fs.existsSync(resumeArg) && fs.statSync(resumeArg).isDirectory()) {
+      outDir = resumeArg;
+    } else {
+      runIdToResume = resumeArg;
+      // Assume the default outDir if they just passed a runId
+    }
+  }
+
+  const stateStore = new FileStateStore(outDir);
   const runner = runnerFromEnv();
   console.error(`[reflexion] creator=${runner.models.creator} critic=${runner.models.critic}`);
 
-  const result: ReflexionResult = await runReflexion(
-    runner,
-    { brief, stack: readStack(repo), maxRevisions, passThreshold },
-    (e) => {
-      if (e.phase === 'scored') {
-        const c = e.critique;
-        console.error(
-          `[reflexion] rev ${e.revision}: ${c.score}/10 ` +
-            `[gstack ${c.gstackDiagnosis} | atomic ${c.atomicBatches} | ethos ${c.productionEthos} | web ${c.modernWeb}] passed=${c.passed}`
-        );
-      }
-    }
-  );
+  let result: ReflexionResult;
 
-  fs.mkdirSync(out, { recursive: true });
-  fs.writeFileSync(path.join(out, 'plan.md'), result.rounds.at(-1)?.draft ?? '');
-  fs.writeFileSync(path.join(out, 'ide-prompt.md'), result.idePrompt);
-  fs.writeFileSync(path.join(out, 'critique.json'), JSON.stringify(result, null, 2));
-  if (result.scores.length >= 2) {
-    fs.writeFileSync(path.join(out, 'diminishing-returns.svg'), svgChart(result.scores, passThreshold));
+  if (resumeArg) {
+    const state = await stateStore.load(runIdToResume || 'default');
+    if (!state) {
+      console.error(`[reflexion] No state found in ${outDir} to resume.`);
+      return 1;
+    }
+
+    let answers: Answers;
+
+    if (isInteractive) {
+      answers = await handleInteractive(state);
+    } else if (answersArg) {
+      const answersText = answersArg === '-' ? fs.readFileSync(0, 'utf-8') : fs.readFileSync(answersArg, 'utf-8');
+      answers = parseYamlAnswers(answersText);
+    } else {
+      console.error('[reflexion] --resume requires --answers <file|-> or --interactive.');
+      return 1;
+    }
+
+    result = await resumeReflexion(
+      runner,
+      state,
+      answers,
+      {
+        brief: state.brief,
+        stack: readStack(repo),
+        maxRevisions: state.params.maxRevisions,
+        passThreshold: state.params.passThreshold,
+        budget: { maxCostUsd, maxTotalTokens: maxTokens },
+        focusPillars: focus,
+        stateStore,
+      },
+      (e) => {
+        if (e.phase === 'scored' && e.critique) {
+          const c = e.critique;
+          console.error(
+            `[reflexion] rev ${e.revision}: ${c.score}/10 ` +
+              `[gstack ${c.gstackDiagnosis} | atomic ${c.atomicBatches} | ethos ${c.productionEthos} | web ${c.modernWeb}] passed=${c.passed}`
+          );
+        } else {
+           console.error(`[reflexion] phase: ${e.phase}`);
+        }
+      }
+    );
+
+  } else {
+    const briefFile = arg('--brief-file');
+    const positional = process.argv.slice(2).find((a) => !a.startsWith('--'));
+    const brief = briefFile ? fs.readFileSync(briefFile, 'utf-8').trim() : positional?.trim();
+    if (!brief) {
+      console.error('Usage: reflexion-loop "<brief>" [--repo .] [--max 3] [--threshold 8] [--out .reflexion-out]');
+      return 1;
+    }
+
+    result = await runReflexion(
+      runner,
+      {
+        brief,
+        stack: readStack(repo),
+        maxRevisions,
+        passThreshold,
+        mode: autoMode ? 'auto' : 'interview',
+        budget: { maxCostUsd, maxTotalTokens: maxTokens },
+        focusPillars: focus,
+        stateStore,
+      },
+      (e) => {
+        if (e.phase === 'scored' && e.critique) {
+          const c = e.critique;
+          console.error(
+            `[reflexion] rev ${e.revision}: ${c.score}/10 ` +
+              `[gstack ${c.gstackDiagnosis} | atomic ${c.atomicBatches} | ethos ${c.productionEthos} | web ${c.modernWeb}] passed=${c.passed}`
+          );
+        } else {
+           console.error(`[reflexion] phase: ${e.phase}`);
+        }
+      }
+    );
+  }
+
+  // Determine exit code BEFORE writing artifacts
+  let exitCode = 0;
+  if (result.stopReason === 'passed' || result.stopReason === 'user-approve') {
+    exitCode = 0;
+  } else if (!result.stopReason && result.interview && result.interview.questions.length > 0) {
+    exitCode = 2; // parked
+  } else if (result.stopReason === 'budget-exceeded' || result.stopReason === 'user-stop') {
+    exitCode = 3;
+  } else if (result.stopReason === 'refine-contract-violation' || result.verdict === 'unknown') {
+    exitCode = 4;
+  } else {
+    // If auto mode hits max-revisions, it doesn't pass. Could be considered exit 2 per v1, or 2 per v2 specs.
+    // The spec says "2 phase 'AWAITING_ANSWERS' (parked)".
+    // So max-revisions in auto mode should be 2 for failure to pass? Or 2 because it's not passed?
+    // Let's stick to v1: exit 2 if hit revision cap without passing.
+    exitCode = 2;
+  }
+
+  // Ensure output directory exists (state store saves it but just in case)
+  fs.mkdirSync(outDir, { recursive: true });
+
+  if (result.rounds.length > 0) {
+    fs.writeFileSync(path.join(outDir, 'plan.md'), result.rounds.at(-1)?.draft ?? '');
+    fs.writeFileSync(path.join(outDir, 'critique.json'), JSON.stringify(result, null, 2));
+    if (result.scores.length >= 2) {
+      fs.writeFileSync(path.join(outDir, 'diminishing-returns.svg'), svgChart(result.scores, passThreshold));
+    }
+  }
+
+  if (exitCode === 2 && result.interview && result.interview.questions.length > 0) {
+    fs.writeFileSync(path.join(outDir, 'interview.md'), formatInterviewMd(result.runId, result.interview.questions));
+  } else if (exitCode === 0) {
+    fs.writeFileSync(path.join(outDir, 'ide-prompt.md'), result.idePrompt);
   }
 
   console.log('\n' + '='.repeat(56));
@@ -117,16 +267,16 @@ async function main(): Promise<number> {
   console.log('-'.repeat(56));
   console.log('ADJUDICATOR VERDICT:\n' + result.verdict);
   console.log('-'.repeat(56));
-  console.log(`Artifacts written to: ${path.resolve(out)}`);
-  console.log(`  plan.md · ide-prompt.md · critique.json${result.scores.length >= 2 ? ' · diminishing-returns.svg' : ''}`);
+  console.log(`Artifacts written to: ${path.resolve(outDir)}`);
+  console.log(`  plan.md · critique.json${result.scores.length >= 2 ? ' · diminishing-returns.svg' : ''}${exitCode === 2 ? ' · interview.md' : ''}${exitCode === 0 ? ' · ide-prompt.md' : ''}`);
   console.log('='.repeat(56));
 
-  return result.finalPassed ? 0 : 2;
+  return exitCode;
 }
 
 main()
   .then((code) => process.exit(code))
   .catch((err) => {
     console.error('[reflexion] error:', err instanceof Error ? err.message : err);
-    process.exit(1);
+    process.exit(4);
   });

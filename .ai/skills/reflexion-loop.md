@@ -49,7 +49,28 @@ the web/chat surface hands you a prompt; the IDE surface proceeds to build.
 5. **Adjudicate (Claude).** A plain-English go/no-go for the Tech Lead.
 
 Artifacts: `.reflexion-out/plan.md`, `ide-prompt.md`, `critique.json`,
-`diminishing-returns.svg`.
+`interview.md`, `diminishing-returns.svg`.
+
+## Flags and CLI usage
+
+- `--auto`: Run to completion (either pass or fail), never park.
+- `--interactive`: Adjudicator questions are asked inline on TTY.
+- `--answers <file.yaml|->`: Resume with a yaml answers payload.
+- `--resume <runId|dir>`: Resume a parked run.
+- `--max-cost-usd <n>` / `--max-tokens <n>`: Set budget caps for the run.
+- `--focus <p,p>`: Comma-separated list of pillars to focus the critic on.
+
+## Run Lifecycle & Exit Codes (Deterministic)
+
+The CLI returns explicit exit codes indicating the state:
+
+- **0**: `passed` or `user-approve`. The plan is ready, `ide-prompt.md` written.
+- **2**: Parked (`AWAITING_ANSWERS`). The adjudicator has questions; edit
+  `interview.md` and resume.
+- **3**: `budget-exceeded` or `user-stop`. Budget cap tripped or manually
+  halted.
+- **4**: `refine-contract-violation` or internal error. Section rewrite failed
+  strict verification.
 
 ## Hand-off
 

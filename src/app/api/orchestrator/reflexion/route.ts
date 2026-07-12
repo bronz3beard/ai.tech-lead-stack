@@ -6,6 +6,7 @@ import { runReflexion } from '@/lib/ai/reflexion/engine';
 import { runnerFromUser } from '@/lib/ai/reflexion/providers-user';
 import { getProjectAccessFilter } from '@/lib/access';
 import { createGitHubClient } from '@/lib/github/client';
+import { DbStateStore } from '@/lib/ai/reflexion/db-state-store';
 
 export const maxDuration = 300; // reflexion can run several model round-trips
 
@@ -81,17 +82,79 @@ export async function POST(req: Request) {
     // Throws a clear, user-facing error if a key is missing.
     const runner = runnerFromUser(user);
 
+    // Create a ReflexionRun row before starting the engine
+    const initialRun = await prisma.reflexionRun.create({
+      data: {
+        userId: session.user.id,
+        brief: brief.trim(),
+        status: 'RUNNING',
+        stateJson: {},
+      }
+    });
+
+    const stateStore = new DbStateStore();
+
+
+
+    let revisionCounter = 0;
     const result = await runReflexion(runner, {
       brief: brief.trim(),
       stack,
       maxRevisions: Number.isInteger(maxRevisions) ? maxRevisions : 3,
       passThreshold: Number.isInteger(passThreshold) ? passThreshold : 8,
+      mode: 'interview',
+      stateStore,
+
+    }, (e) => {
+      let teamRole: string | undefined;
+      let phaseStr = e.phase;
+
+      if ('revision' in e) {
+        revisionCounter = e.revision;
+      }
+
+      if (e.phase === 'critique' || e.phase === 'scored') teamRole = 'critic';
+      if (e.phase === 'adjudicate') teamRole = 'adjudicator';
+      if (e.phase === 'interview') teamRole = 'interviewer';
+
+
+
+      import('@/lib/telemetry-service').then((m) => m.telemetryService.recordEvent({
+        skillName: 'reflexion-loop',
+        duration: 0,
+        status: 'SUCCESS',
+        actorType: 'AGENT',
+        autonomy: 'AUTONOMOUS',
+        loopRunId: initialRun.id,
+        loopPhase: phaseStr,
+        teamRole,
+        metadata: {
+           revision: revisionCounter,
+           score: ('critique' in e) ? e.critique.score : undefined,
+           passed: ('critique' in e) ? e.critique.passed : undefined
+        }
+      })).catch(() => {});
+
+
     });
 
-    // ADVISORY ONLY. The web/chat surface is read-only: we return a reviewed
-    // plan and an IDE hand-off prompt. We never apply changes here — code
-    // mutation only happens when a developer runs the plan via an IDE agent
-    // (the MCP/workflow path, which logs usage to Prisma).
+    if (result.interview && result.interview.questions.length > 0) {
+      // It parked awaiting answers. Update row status and return AWAITING_INTERVIEW payload.
+      await prisma.reflexionRun.update({
+        where: { id: initialRun.id },
+        data: { status: 'AWAITING_INTERVIEW' }
+      });
+      return NextResponse.json({
+        runId: initialRun.id,
+        status: 'AWAITING_INTERVIEW',
+        interview: result.interview,
+        scores: result.scores,
+        verdict: result.verdict
+      });
+    }
+
+    // On completion, DbStateStore.save() has already updated the row via engine.ts.
+    // Return standard payload.
     return NextResponse.json({ mode: 'advisory', ...result });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Reflexion run failed.';
