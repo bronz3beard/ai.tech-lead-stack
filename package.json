@@ -39,7 +39,8 @@
       "vertical-slice": {
         "skill": "vertical-slice-decomposer",
         "description": "Decompose stories into vertical slices"
-      }
+      },
+      "reflexion-eval": "npm run reflexion:eval"
     }
   },
   "scripts": {
@@ -59,7 +60,8 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint:next": "eslint src",
-    "check-types": "tsc --noEmit --pretty --skipLibCheck"
+    "check-types": "tsc --noEmit --pretty --skipLibCheck",
+    "reflexion:eval": "tsx scripts/reflexion-eval.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.68",
@@ -163,6 +165,10 @@
       "bash scripts/validate-scripts.sh"
     ],
     "scripts/*.{js,mjs}": [
+      "npx prettier --write"
+    ],
+    "defect-library/**/*.md": [
+      "npx markdownlint-cli --fix",
       "npx prettier --write"
     ]
   }
