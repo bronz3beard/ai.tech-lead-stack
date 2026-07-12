@@ -133,6 +133,8 @@ const GET_SKILLS_TOOL: Tool = {
     type: 'object',
     properties: {
       skillName: { type: 'string' },
+      mode: { type: 'string', description: "'auto' | 'interview' (default 'interview')" },
+      budget: { type: 'object', properties: { maxCostUsd: { type: 'number' }, maxTotalTokens: { type: 'number' } } },
       projectName: { type: 'string' },
       model: { type: 'string' },
       agent: { type: 'string' },
@@ -264,6 +266,21 @@ const REFLEXION_LOOP_TOOL: Tool = {
   },
 };
 
+
+const REFLEXION_RESUME_TOOL: Tool = {
+  name: 'reflexion_resume',
+  description: 'Resumes a parked Reflexion Loop.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      runId: { type: 'string' },
+      stateDir: { type: 'string' },
+      answers: { type: 'object' }
+    },
+    required: ['runId', 'answers']
+  }
+};
+
 /**
  * Handlers: Tool Listing
  */
@@ -290,6 +307,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       READ_KI_TOOL,
       CREATE_KI_TOOL,
       REFLEXION_LOOP_TOOL,
+      REFLEXION_RESUME_TOOL,
     ],
   };
 });
@@ -330,6 +348,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   if (name === 'reflexion_loop') {
     return await handlers.handleReflexionLoop(args || {});
+  }
+
+  if (name === 'reflexion_resume') {
+    return await handlers.handleReflexionResume(args || {});
   }
 
   throw new Error(`Unknown tool: ${name}`);

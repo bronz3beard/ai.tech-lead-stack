@@ -632,3 +632,25 @@ async readSkill(safeSkillName: string) {
 > Live execution costs may vary depending on the LLM model and project size, but
 > are tracked accurately via Langfuse telemetry to provide baseline reliability
 > across the entire developer workforce.
+
+### Reflexion Loop V2
+The Reflexion Loop is a generator-critic-adjudicator model that can be run on the CLI, Web, or IDE via MCP.
+
+#### 1. CLI Execution
+Start a new run:
+`rtk run reflexion-loop -- "Add rate limiting" --max-cost-usd 0.50`
+
+If the adjudicator has questions, it parks and exits with code `2`. Edit `.reflexion-out/interview.md` to provide answers.
+
+Resume a run:
+`rtk run reflexion-loop --resume .reflexion-out --answers .reflexion-out/interview.md`
+
+#### 2. Web UI Execution
+Navigate to the "Reflexion Loop" page in the dashboard. Select a project and enter the brief.
+The loop runs securely using your configured API keys, providing visual indicators of score progression per revision.
+If parked, it renders an interactive form for you to answer Adjudicator questions.
+
+#### 3. IDE / MCP Execution
+The MCP server exposes `reflexion_loop` and `reflexion_resume`.
+Use your agent to call `reflexion_loop` with parameters `brief`, `mode: 'interview'`.
+If parked, it returns the run ID and questions. Call `reflexion_resume` with the `runId` and your answers payload to continue.

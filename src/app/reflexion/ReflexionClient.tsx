@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ProjectSelect, type Project } from '@/components/ProjectSelect';
+import { Label } from '@/components/ui/label';
 
 // Mirrors ReflexionResult from '@/lib/ai/reflexion/engine'.
 interface Critique {
@@ -31,7 +32,26 @@ interface Critique {
   passed: boolean;
   actionableFix: string;
 }
+
+interface Question {
+  id: string;
+  target: 'plan' | 'loop';
+  ref: string;
+  question: string;
+  why: string;
+}
+
+interface Interview {
+  runId: string;
+  revision: number;
+  recommendation: 'approve' | 'refine-plan' | 'tune-loop' | 'stop';
+  questions: Question[];
+}
+
 interface ReflexionResult {
+  runId?: string;
+  status?: string;
+  interview?: Interview;
   rounds: { revision: number; draft: string; critique: Critique }[];
   scores: number[];
   finalScore: number;
@@ -58,6 +78,9 @@ export default function ReflexionClient({ projects }: ReflexionClientProps) {
   const [result, setResult] = useState<ReflexionResult | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // Interview state
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+
   async function copyPrompt() {
     if (!result) return;
     await navigator.clipboard.writeText(result.idePrompt);
@@ -69,6 +92,7 @@ export default function ReflexionClient({ projects }: ReflexionClientProps) {
     setLoading(true);
     setError(null);
     setResult(null);
+    setAnswers({});
     try {
       const res = await fetch('/api/orchestrator/reflexion', {
         method: 'POST',
@@ -89,9 +113,43 @@ export default function ReflexionClient({ projects }: ReflexionClientProps) {
     }
   }
 
-  const finalPlan = result?.rounds.at(-1)?.draft ?? '';
-  const finalCritique = result?.rounds.at(-1)?.critique;
-  const chartData = result?.scores.map((s, i) => ({ revision: i, score: s })) ?? [];
+  async function submitInterview(directive?: 'approve' | 'stop') {
+    if (!result?.interview?.runId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const decisions = Object.entries(answers).map(([id, answer]) => ({ id, answer }));
+      const payload = {
+        runId: result.interview.runId,
+        decisions,
+        directive
+      };
+
+      const res = await fetch('/api/orchestrator/reflexion/resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Resume failed');
+      setResult(data as ReflexionResult);
+      if (!data.interview) {
+        setAnswers({});
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Resume failed');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const handleAnswerChange = (id: string, value: string) => {
+    setAnswers(prev => ({ ...prev, [id]: value }));
+  };
+
+  const finalPlan = result?.rounds?.at(-1)?.draft ?? '';
+  const finalCritique = result?.rounds?.at(-1)?.critique;
+  const chartData = result?.scores?.map((s, i) => ({ revision: i, score: s })) ?? [];
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6">
@@ -170,7 +228,50 @@ export default function ReflexionClient({ projects }: ReflexionClientProps) {
         </Card>
       )}
 
-      {result && (
+      {result?.interview && result.interview.questions.length > 0 && (
+        <Card className="border-blue-500">
+          <CardHeader>
+            <CardTitle className="text-blue-600 dark:text-blue-400">Adjudicator Questions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              The Adjudicator requires your input to proceed. Please answer the questions below to guide the next revision, or choose to approve or stop the process.
+            </p>
+            {result.interview.questions.map((q) => (
+              <div key={q.id} className="space-y-2 mb-4">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor={`q-${q.id}`} className="font-semibold text-sm">
+                    {q.question}
+                  </Label>
+                  <Badge variant="outline">{q.target === 'plan' ? 'plan ' + q.ref : 'loop ' + q.ref}</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mb-2">{q.why}</p>
+                <Textarea
+                  id={`q-${q.id}`}
+                  value={answers[q.id] || ''}
+                  onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+                  placeholder="Your answer..."
+                  rows={2}
+                />
+              </div>
+            ))}
+
+            <div className="flex gap-2 pt-4 mt-4 border-t">
+              <Button onClick={() => submitInterview()} disabled={loading} className="flex-1">
+                Submit Answers
+              </Button>
+              <Button variant="outline" onClick={() => submitInterview('approve')} disabled={loading}>
+                Approve As-Is
+              </Button>
+              <Button variant="destructive" onClick={() => submitInterview('stop')} disabled={loading}>
+                Stop
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {result && result.status !== 'AWAITING_INTERVIEW' && result.verdict && (
         <>
           <Card>
             <CardHeader>
@@ -216,34 +317,38 @@ export default function ReflexionClient({ projects }: ReflexionClientProps) {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between gap-2">
-                <span>IDE prompt</span>
-                <Button variant="secondary" onClick={copyPrompt}>
-                  {copied ? 'Copied' : 'Copy for IDE'}
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-2 text-xs text-muted-foreground">
-                Paste this into your IDE agent to implement the reviewed plan.
-                The looping is already done — this is the hardened hand-off.
-              </p>
-              <pre className="max-h-72 overflow-auto rounded-md bg-muted p-3 text-xs whitespace-pre-wrap">
-                {result.idePrompt}
-              </pre>
-            </CardContent>
-          </Card>
+          {result.idePrompt && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between gap-2">
+                  <span>IDE prompt</span>
+                  <Button variant="secondary" onClick={copyPrompt}>
+                    {copied ? 'Copied' : 'Copy for IDE'}
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Paste this into your IDE agent to implement the reviewed plan.
+                  The looping is already done — this is the hardened hand-off.
+                </p>
+                <pre className="max-h-72 overflow-auto rounded-md bg-muted p-3 text-xs whitespace-pre-wrap">
+                  {result.idePrompt}
+                </pre>
+              </CardContent>
+            </Card>
+          )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Final plan</CardTitle>
-            </CardHeader>
-            <CardContent className="prose prose-sm max-w-none dark:prose-invert">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{finalPlan}</ReactMarkdown>
-            </CardContent>
-          </Card>
+          {finalPlan && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Final plan</CardTitle>
+              </CardHeader>
+              <CardContent className="prose prose-sm max-w-none dark:prose-invert">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{finalPlan}</ReactMarkdown>
+              </CardContent>
+            </Card>
+          )}
         </>
       )}
     </div>
