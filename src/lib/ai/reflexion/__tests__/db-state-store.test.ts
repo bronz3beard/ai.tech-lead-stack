@@ -65,8 +65,10 @@ describe('DbStateStore', () => {
       stateJson: { bad: 'data' }
     });
 
+    const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
     const loaded = await store.load('run-db-123');
     expect(loaded).toBeNull();
+    spy.mockRestore();
   });
 
   it('saves state mapping phase to status correctly', async () => {
