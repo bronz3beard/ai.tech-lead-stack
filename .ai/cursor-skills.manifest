@@ -8,6 +8,7 @@ changelog-generator|.ai/skills/changelog-generator.md
 clean-code|.ai/skills/clean-code.md
 code-review-checklist|.ai/skills/code-review-checklist.md
 codebase-onboarding-intelligence|.ai/skills/codebase-onboarding-intelligence.md
+competitive-analysis|.ai/skills/competitive-analysis.md
 daily-standup|.ai/skills/daily-standup.md
 design-system-review|.ai/skills/design-system-review.md
 dev-team-orchestrator|.ai/skills/dev-team-orchestrator.md
@@ -35,6 +36,7 @@ workflow-audit-tech-debt|.agents/workflows/audit-tech-debt.md
 workflow-changelog|.agents/workflows/changelog.md
 workflow-clean-code-audit|.agents/workflows/clean-code-audit.md
 workflow-code-review|.agents/workflows/code-review.md
+workflow-competitive-analysis|.agents/workflows/competitive-analysis.md
 workflow-design-requirements-to-architecture|.agents/workflows/design-requirements-to-architecture.md
 workflow-design-system-review|.agents/workflows/design-system-review.md
 workflow-dev-team|.agents/workflows/dev-team.md
