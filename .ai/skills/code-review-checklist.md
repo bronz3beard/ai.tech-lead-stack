@@ -1,12 +1,19 @@
 ---
 name: code-review-checklist
-description:
+description: >
   Lightweight Pre-Commit Review Checklist. Focuses on Spec Compliance and Rapid
   Verification before GitHub submission.
 cost: ~650 tokens
+modes: [read-only, write, mcp]
+surface: public
 ---
 
 # Pre-Commit QA Checklist (The Fast Review)
+
+## Runtime modes
+
+Produces a verifiable review blueprint in read-only chat, and executes +
+verifies the audit phase in an IDE/MCP agent.
 
 > [!TIP] **Methodology Alignment**: Use this checklist to catch 80% of issues
 > before they reach the official PR stage. Always follow **MinimumCD** (small

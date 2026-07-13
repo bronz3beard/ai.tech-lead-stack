@@ -1,6 +1,6 @@
 ---
 name: planning-expert-quick
-description:
+description: >
   Ultra-lean strategic planning. Optimized for speed, token efficiency, and
   rapid MVC delivery. Now PR-batch aware — it ingests vertical slices handed off
   from `vertical-slice-decomposer` as well as freeform slices a developer writes
@@ -9,9 +9,16 @@ description:
   `planning-expert`. Use for common, lightweight tasks (1-2 files) where
   velocity is the priority.
 cost: ~750 tokens
+modes: [read-only, write, mcp]
+surface: public
 ---
 
 # Planning Expert (The G-Stack Runner)
+
+## Runtime modes
+
+Produces a verifiable quick plan blueprint in read-only chat, and executes +
+verifies the planning phase in an IDE/MCP agent.
 
 > [!NOTE] **Invoke** with `@planning-expert-quick` / `/planning-expert-quick` /
 > context-injection, then paste the work. Input is loose — a

@@ -1,11 +1,18 @@
 ---
 name: visual-verifier
-description:
+description: >
   Performs smoke testing and captures media evidence for any web environment.
 cost: ~450 tokens
+modes: [read-only, write, mcp]
+surface: public
 ---
 
 # Visual Verifier
+
+## Runtime modes
+
+Produces a verifiable visual blueprint in read-only chat, and executes +
+verifies the verification phase in an IDE/MCP agent.
 
 **Persistence & Quality Mindset**: There is no reward for completion. The reward
 comes from persistence on resolving the issue to an extremely high standard and

@@ -1,12 +1,19 @@
 ---
 name: codebase-onboarding-intelligence
-description:
+description: >
   Exhaustive discovery auditor for developer onboarding. Extracts tech stack,
   environment setup, and implementation patterns.
 cost: ~1100 tokens
+modes: [read-only, write, mcp]
+surface: public
 ---
 
 # Codebase Onboarding Intelligence (The Master Discovery)
+
+## Runtime modes
+
+Produces a verifiable onboarding blueprint in read-only chat, and executes +
+verifies the implement phase in an IDE/MCP agent.
 
 > [!IMPORTANT] **Diagnosis before Advice**: Every onboarding begins with **Phase
 > 0: Tech-Stack Discovery**. The auditor must identify the primary engine and

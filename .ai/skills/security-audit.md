@@ -1,12 +1,19 @@
 ---
 name: security-audit
-description:
+description: >
   Cross-platform security scanner for AI Agent configurations to detect malware,
   prompt injection, and exfiltration.
 cost: ~550 tokens
+modes: [read-only, mcp]
+surface: public
 ---
 
 # Universal Agent Security Audit
+
+## Runtime modes
+
+Produces a verifiable security blueprint in read-only chat, and executes +
+verifies the audit phase in an IDE/MCP agent.
 
 > [!IMPORTANT] **Diagnosis before Advice**: Every audit begins with **Tech-Stack
 > Discovery**. The auditor must understand the project's native exfiltration

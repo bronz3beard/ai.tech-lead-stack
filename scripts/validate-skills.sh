@@ -3,7 +3,7 @@
 # Script: validate-skills.sh
 # Description: Validates that AI Skill files (.md) adhere to the required 
 #              structure, specifically checking for YAML frontmatter and 
-#              mandatory metadata fields (e.g., 'name').
+#              mandatory metadata fields (e.g., 'name', 'modes', 'surface').
 # 
 # Usage: 
 #   ./scripts/validate-skills.sh [file1.md file2.md ...]
@@ -66,8 +66,60 @@ for file in "${files[@]}"; do
      echo "::error file=$file::Missing 'cost' field (token estimate) in frontmatter"
      echo "Error: Missing 'cost' in $file"
      EXIT_CODE=1
+  else
+    cost_val=$(grep "^cost:" "$file" | sed 's/^cost:[[:space:]]*//' | tr -d '\r')
+    if [[ ! "$cost_val" =~ ^~[0-9]+[[:space:]]+tokens$ ]]; then
+      echo "::error file=$file::Invalid 'cost' format. Expected '~N tokens' but got '$cost_val'"
+      echo "Error: Invalid 'cost' format in $file"
+      EXIT_CODE=1
+    fi
   fi
+
+  # Check for 'modes' field in frontmatter
+  if ! grep -q "^modes:" "$file"; then
+     echo "::error file=$file::Missing 'modes' field in frontmatter"
+     echo "Error: Missing 'modes' in $file"
+     EXIT_CODE=1
+  else
+    modes_val=$(grep "^modes:" "$file" | sed 's/^modes:[[:space:]]*\[\(.*\)\]/\1/')
+    modes_val=$(echo "$modes_val" | sed 's/[[:space:]]//g' | tr -d '\r')
+    IFS=',' read -ra modes_arr <<< "$modes_val"
+    for mode in "${modes_arr[@]}"; do
+      if [[ "$mode" != "read-only" && "$mode" != "write" && "$mode" != "mcp" ]]; then
+        echo "::error file=$file::Invalid mode '$mode' in 'modes' field. Must be 'read-only', 'write', or 'mcp'"
+        echo "Error: Invalid 'modes' in $file"
+        EXIT_CODE=1
+      fi
+    done
+    if [[ ! ",${modes_val}," =~ ",read-only," ]]; then
+      echo "::error file=$file::'modes' field must include 'read-only'"
+      echo "Error: 'modes' missing 'read-only' in $file"
+      EXIT_CODE=1
+    fi
+  fi
+
+  # Check for 'surface' field in frontmatter
+  if ! grep -q "^surface:" "$file"; then
+     echo "::error file=$file::Missing 'surface' field in frontmatter"
+     echo "Error: Missing 'surface' in $file"
+     EXIT_CODE=1
+  else
+    surface_val=$(grep "^surface:" "$file" | sed 's/^surface:[[:space:]]*//' | tr -d '\r')
+    if [[ "$surface_val" != "public" && "$surface_val" != "internal" ]]; then
+      echo "::error file=$file::Invalid 'surface' value '$surface_val'. Must be 'public' or 'internal'"
+      echo "Error: Invalid 'surface' in $file"
+      EXIT_CODE=1
+    fi
+  fi
+
 done
+
+echo "🔍 Checking registry drift..."
+if ! npx tsx scripts/generate-skill-registry.ts --check; then
+  echo "::error::Skill registry (manifest or README) is out of sync. Please run 'npm run generate:registry'"
+  echo "Error: Skill registry drift detected."
+  EXIT_CODE=1
+fi
 
 # Final exit based on validation results
 if [ $EXIT_CODE -ne 0 ]; then

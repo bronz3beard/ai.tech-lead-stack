@@ -1,12 +1,19 @@
 ---
 name: feature-design-assistant
-description:
+description: >
   High-density discovery and architectural design engine. Use to translate vague
   ideas into methodology-compliant technical specifications.
 cost: ~800 tokens
+modes: [read-only, write, mcp]
+surface: public
 ---
 
 # Feature Design Assistant (The Discovery Engine)
+
+## Runtime modes
+
+Produces a verifiable design blueprint in read-only chat, and executes +
+verifies the ideation phase in an IDE/MCP agent.
 
 > [!IMPORTANT] **Persistence & Quality Mindset**: There is no reward for
 > completion. The reward comes from persistence on resolving the issue to an

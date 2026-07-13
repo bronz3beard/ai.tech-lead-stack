@@ -1,12 +1,19 @@
 ---
 name: changelog-generator
-description:
+description: >
   High-density semantic changelog processor. Transforms Git history into
   user-facing release notes.
 cost: ~750 tokens
+modes: [read-only, write, mcp]
+surface: public
 ---
 
 # Changelog Generator (Semantic Processor)
+
+## Runtime modes
+
+Produces a verifiable changelog blueprint in read-only chat, and executes +
+verifies the generation phase in an IDE/MCP agent.
 
 > [!IMPORTANT] **Persistence & Quality Mindset**: There is no reward for
 > completion. The reward comes from persistence on resolving the issue to an

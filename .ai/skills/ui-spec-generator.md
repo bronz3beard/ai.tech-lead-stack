@@ -1,12 +1,19 @@
 ---
 name: ui-spec-generator
-description:
+description: >
   Architectural discovery engine for generating base skeleton UI components
   aligned with G-Stack modularity.
 cost: ~850 tokens
+modes: [read-only, mcp]
+surface: public
 ---
 
 # UI Spec Generator (The Skeleton Engine)
+
+## Runtime modes
+
+Produces a verifiable UI spec blueprint in read-only chat, and executes +
+verifies the generation phase in an IDE/MCP agent.
 
 > [!IMPORTANT] **Diagnosis before Advice**: This skill follows the **G-Stack
 > Ethos**. You must resolve the project structure and design system path

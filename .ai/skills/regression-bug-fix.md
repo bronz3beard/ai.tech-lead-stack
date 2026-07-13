@@ -1,12 +1,19 @@
 ---
 name: regression-bug-fix
-description:
+description: >
   Unified Remediation Engine for resolving Design Review (DR), QA, and
   Regression feedback.
 cost: ~1350 tokens
+modes: [read-only, mcp]
+surface: public
 ---
 
 # Regression & Feedback Fix (The Remedy Engine)
+
+## Runtime modes
+
+Produces a verifiable regression blueprint in read-only chat, and executes +
+verifies the fix phase in an IDE/MCP agent.
 
 > [!IMPORTANT] **Diagnosis before Advice**: Every fix begins with **Tech-Stack
 > Discovery**. Deep research into the original requirement is the ONLY way to

@@ -1,6 +1,6 @@
 ---
 name: planning-expert
-description:
+description: >
   The complete Planning Expert Zenith. Orchestrates deep pattern discovery,
   vertical slicing, and safe incremental delivery. Now PR-batch aware — it
   ingests vertical slices handed off from `vertical-slice-decomposer` (the
@@ -11,9 +11,17 @@ description:
   multi-file features, or whenever a plan will touch more than ~15 files and
   must be split into stacked PRs under Trunk-Based Development.
 cost: ~1200 tokens
+modes: [read-only, write, mcp]
+surface: public
 ---
 
 # Planning Expert (The Sovereign Zenith)
+
+## Runtime modes
+
+Produces a verifiable full plan blueprint in read-only chat, and executes +
+verifies the planning phase in an IDE/MCP agent. Tested in Antigravity, Cursor,
+Continue
 
 > [!NOTE] **Invoke** with `@planning-expert` (Cursor) / `/planning-expert`
 > (Antigravity) / context-injection (web chat), then paste the work. Input is

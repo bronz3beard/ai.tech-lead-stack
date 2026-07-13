@@ -1,12 +1,19 @@
 ---
 name: technical-debt-auditor
-description:
+description: >
   High-density structural and technical debt scanner. Produces quantified,
   prioritized remediation plans based on G-Stack and MinimumCD standards.
 cost: ~850 tokens
+modes: [read-only, write, mcp]
+surface: public
 ---
 
 # Technical Debt Auditor (Health Scanner)
+
+## Runtime modes
+
+Produces a verifiable technical debt blueprint in read-only chat, and executes +
+verifies the audit phase in an IDE/MCP agent.
 
 > [!IMPORTANT] **Diagnosis before Advice**: Every audit begins with **Tech-Stack
 > Discovery**. The auditor must understand the project's native maintenance

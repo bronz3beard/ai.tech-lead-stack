@@ -1,13 +1,20 @@
 ---
 name: agent-optimizer
 internal: true
-description:
+description: >
   Precision tool for Token-Efficiency, Context Density Management, and Noise
   Reduction. Enforces the RTK (Rust Token Killer) methodology.
 cost: ~550 tokens
+modes: [read-only, write, mcp]
+surface: internal
 ---
 
 # Agent Optimizer (The Noise Filter)
+
+## Runtime modes
+
+Produces a verifiable optimization blueprint in read-only chat, and executes +
+verifies the implement phase in an IDE/MCP agent.
 
 > [!IMPORTANT] **RTK GOLDEN RULE**: Always prefix commands with `rtk run`. This
 > is the primary method for maintaining context health. Follow **G-Stack

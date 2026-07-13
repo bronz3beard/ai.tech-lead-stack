@@ -1,11 +1,18 @@
 ---
 name: style-logic-exporter
-description:
+description: >
   Extracts design tokens and style logic from code for design-to-code alignment.
 cost: ~550 tokens
+modes: [read-only, mcp]
+surface: public
 ---
 
 # Style Logic Exporter (The Design Bridge)
+
+## Runtime modes
+
+Produces a verifiable style blueprint in read-only chat, and executes + verifies
+the extraction phase in an IDE/MCP agent.
 
 > [!TIP] **Figma-First Logic**: This skill bridges the gap between raw
 > CSS/Tailwind and Figma Make prompts. Focus on extracting re-usable tokens over
@@ -83,3 +90,8 @@ Output a "System Specification Block":
   Config File) over ad-hoc component styles.
 - **Normalization:** Convert units (px, rem, hsl) to the project's preferred
   format.
+
+## Verification Gate (Hard Evidence)
+
+- **MANDATORY**: Paste the exported design tokens or a CLI verification output
+  proving the logic was successfully extracted.

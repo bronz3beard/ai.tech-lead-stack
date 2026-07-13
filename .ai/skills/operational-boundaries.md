@@ -1,12 +1,19 @@
 ---
 name: operational-boundaries
-description:
+description: >
   Global behavioral guardrails to prevent agent deviation and context hijacking.
 internal: true
-cost: 1
+cost: ~400 tokens
+modes: [read-only, mcp]
+surface: internal
 ---
 
 # Operational Boundaries: Focus & Integrity Guardrails
+
+## Runtime modes
+
+Provides operational boundary definitions in read-only chat, and enforces them
+in an IDE/MCP agent.
 
 > [!IMPORTANT] These boundaries are MANDATORY for all Tech-Lead Stack agents.
 > They exist to prevent "Hallucination Hijacking" where workspace noise

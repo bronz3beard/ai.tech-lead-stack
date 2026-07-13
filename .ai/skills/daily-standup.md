@@ -1,13 +1,20 @@
 ---
 name: daily-standup
-description:
+description: >
   Analyzes local git activity and task progress to generate a comprehensive
   2-day rolling standup report following a strict template.
 capabilities: [filesystem_access, shell_access]
 cost: ~550 tokens
+modes: [read-only, mcp]
+surface: public
 ---
 
 # Daily Standup Report
+
+## Runtime modes
+
+Produces a verifiable standup blueprint in read-only chat, and executes +
+verifies the generation phase in an IDE/MCP agent.
 
 > [!IMPORTANT] **Persistence & Quality Mindset**: There is no reward for
 > completion. The reward comes from persistence on resolving the issue to an

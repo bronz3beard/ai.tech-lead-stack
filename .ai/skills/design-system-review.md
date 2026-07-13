@@ -1,13 +1,20 @@
 ---
 name: design-system-review
-description:
+description: >
   AI-augmented design review with a strict 2-iteration guard, sequential memory
   persistence, and KI creation. Enforces Shadcn/Radix token alignment and
   coordinates designer quality gates.
 cost: ~1100 tokens
+modes: [read-only, write, mcp]
+surface: public
 ---
 
 # Design System Review (Iteration Guard)
+
+## Runtime modes
+
+Produces a verifiable design blueprint in read-only chat, and executes +
+verifies the audit phase in an IDE/MCP agent.
 
 > [!IMPORTANT] **Iteration Discipline**: This skill enforces a hard
 > **2-iteration limit**. Iteration 1 produces feedback. Iteration 2 verifies

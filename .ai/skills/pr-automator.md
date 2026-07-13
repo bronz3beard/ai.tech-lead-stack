@@ -11,9 +11,16 @@ parameters:
       push command. `agent` = the agent may push, but ONLY to the dedicated
       `pr/evidence-*` branch, never the code branch. Defaults to `user`.
 cost: ~1500 tokens
+modes: [read-only, write, mcp]
+surface: public
 ---
 
 # PR Automator
+
+## Runtime modes
+
+Produces a verifiable PR blueprint in read-only chat, and executes + verifies
+the PR creation phase in an IDE/MCP agent.
 
 > [!IMPORTANT] **Diagnosis before Advice**: Every PR begins with **Tech-Stack
 > Discovery**. Identify the project's base branch, PR template location, and
