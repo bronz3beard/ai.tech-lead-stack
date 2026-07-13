@@ -1,10 +1,15 @@
 ---
 name: new-skill
 description: Describe the skill here.
-cost: ~tokens
+cost: ~10 tokens
+modes: [read-only, write, mcp]
+surface: public
 ---
 
 # New Skill
+
+## Runtime modes
+Produces a verifiable implementation blueprint in read-only chat, and executes + verifies the implement phase in an IDE/MCP agent.
 
 > [!IMPORTANT]
 > All skills must follow the **G-Stack Methodology**: Diagnosis before Advice, and adhere to **MinimumCD** principles.

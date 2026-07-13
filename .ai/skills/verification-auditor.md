@@ -1,13 +1,20 @@
 ---
 name: verification-auditor
 internal: true
-description:
+description: >
   Internal support logic for verifying local environments and evidence capture.
   Security, Performance, and Accessibility with "Extreme Prejudice."
 cost: ~1500 tokens
+modes: [read-only, mcp]
+surface: internal
 ---
 
 # Verification Auditor (The Master Auditor)
+
+## Runtime modes
+
+Produces a verifiable environment blueprint in read-only chat, and executes +
+verifies the audit phase in an IDE/MCP agent.
 
 > [!IMPORTANT] **Diagnosis before Advice**: Every audit begins with **Tech-Stack
 > Discovery**. The auditor must understand the project's native ecosystem before

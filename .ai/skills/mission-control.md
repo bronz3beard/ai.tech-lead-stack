@@ -1,14 +1,21 @@
 ---
 name: mission-control
 internal: true
-description:
+description: >
   High-integrity pre-flight diagnostic to verify environment, tools, and skill
   dependencies.
 capabilities: [filesystem_access, rtk_execution, shell_access]
 cost: ~650 tokens
+modes: [read-only, write, mcp]
+surface: internal
 ---
 
 # Mission Control (Pre-Flight Check)
+
+## Runtime modes
+
+Produces a verifiable control blueprint in read-only chat, and executes +
+verifies the governance phase in an IDE/MCP agent.
 
 > [!IMPORTANT] **Persistence & Methodology**: The reward comes from persistence
 > on resolving the issue to an extremely high standard. Every mission begins

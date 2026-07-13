@@ -1,13 +1,20 @@
 ---
 name: knowledge-manager
-description:
+description: >
   Manage project-specific knowledge items to maintain persistent context and
   architectural memory.
 cost: ~450 tokens
+modes: [read-only, write, mcp]
+surface: internal
 internal: true
 ---
 
 # Knowledge Manager
+
+## Runtime modes
+
+Produces a verifiable knowledge blueprint in read-only chat, and executes +
+verifies the capture phase in an IDE/MCP agent.
 
 You are an expert at capturing and retrieving architectural context and
 project-specific "gotchas" using the Antigravity Knowledge Items (KI) system.
@@ -32,9 +39,11 @@ project-specific "gotchas" using the Antigravity Knowledge Items (KI) system.
 
 ### 1. Persistence
 
-Knowledge Items are stored in `~/.gemini/antigravity/knowledge/` and persist
-across conversations. Use them to bridge the gap between ephemeral chat history
-and the long-term repository evolution.
+Knowledge Items are accessed via the MCP tools (`list_knowledge_items`,
+`read_knowledge_item`, `create_knowledge_item`) and persist across
+conversations. The default backend note storage is
+`~/.gemini/antigravity/knowledge/`. Use them to bridge the gap between ephemeral
+chat history and the long-term repository evolution.
 
 ### 2. Scoping
 
@@ -77,3 +86,8 @@ Captures new knowledge.
 3. **Application**: Apply the strategy to the current task.
 4. **Retention**:
    `create_knowledge_item({ slug: "ki-system-integration-lessons", summary: "Lessons learned during KI system implementation", ... })`
+
+## Verification Gate (Hard Evidence)
+
+- **MANDATORY**: Paste the created KI's `read_knowledge_item` output as
+  verification.

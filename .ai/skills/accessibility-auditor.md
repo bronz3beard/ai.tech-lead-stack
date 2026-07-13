@@ -1,13 +1,20 @@
 ---
 name: accessibility-auditor
-description:
+description: >
   Specialized audit for Web Accessibility (A11y). Scans for contrast issues,
   missing semantics, ARIA debt, and keyboard navigation barriers. Uses static
   analysis (grep/read) and read-only runtime inspection — no script injection.
 cost: ~650 tokens
+modes: [read-only, write, mcp]
+surface: public
 ---
 
 # Accessibility Auditor (The Inclusive Designer)
+
+## Runtime modes
+
+Produces a verifiable accessibility blueprint in read-only chat, and executes +
+verifies the audit phase in an IDE/MCP agent.
 
 > [!TIP] **Methodology Alignment**: This skill follows the **G-Stack Ethos** and
 > **Modern Web Guidance** of "Diagnosis before Advice." We prioritize deep

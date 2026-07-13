@@ -1,6 +1,6 @@
 ---
 name: vertical-slice-decomposer
-description:
+description: >
   Decomposes one or more user stories — optionally with design screenshots or
   Figma URLs — into thin, independently deployable vertical slices (<=2 days)
   and emits ClickUp-ready tasks. Each task carries a technical-details section,
@@ -8,9 +8,16 @@ description:
   mock-vs-real-backend decision. Built for greenfield and (primarily) brownfield
   features under Trunk-Based Development.
 cost: ~2000 tokens
+modes: [read-only, write, mcp]
+surface: public
 ---
 
 # Vertical Slice Decomposer (The Corridor Cutter)
+
+## Runtime modes
+
+Produces a verifiable decomposition blueprint in read-only chat, and executes +
+verifies the decomposition phase in an IDE/MCP agent.
 
 > [!IMPORTANT] **Four-pillar alignment**: G-Stack (Diagnosis before Advice),
 > MinimumCD (atomic batches, vertical slicing, continuous verification), Agent

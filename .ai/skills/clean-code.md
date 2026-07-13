@@ -1,12 +1,19 @@
 ---
 name: clean-code
-description:
+description: >
   High-density architectural auditor. Enforces SOLID as the primary structural
   framework and pragmatic standards (KISS, DRY, YAGNI) for implementation.
 cost: ~950 tokens
+modes: [read-only, write, mcp]
+surface: public
 ---
 
 # Clean Code & SOLID Auditor
+
+## Runtime modes
+
+Produces a verifiable refactoring blueprint in read-only chat, and executes +
+verifies the implement phase in an IDE/MCP agent.
 
 > [!IMPORTANT] **G-Stack Methodology**: Every audit begins with **Tech-Stack
 > Discovery**. The auditor must understand the project's native constraints

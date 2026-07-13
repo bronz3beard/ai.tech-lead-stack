@@ -1,12 +1,19 @@
 ---
 name: mission-architect
-description:
+description: >
   Master Blueprint Engine. Orchestrates Strategy -> Research -> Plan -> Deliver
   for complex, multi-component features.
 cost: ~1300 tokens
+modes: [read-only, mcp]
+surface: public
 ---
 
 # Mission Architect (The Master Engine)
+
+## Runtime modes
+
+Produces a verifiable mission blueprint in read-only chat, and executes +
+verifies the strategic phase in an IDE/MCP agent.
 
 > [!IMPORTANT] **User Sovereignty & Persistence**: The reward comes from
 > persistence on resolving the issue to an extremely high standard. We advise;

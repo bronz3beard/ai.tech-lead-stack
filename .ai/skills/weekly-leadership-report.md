@@ -1,12 +1,19 @@
 ---
 name: weekly-leadership-report
-description:
+description: >
   Extracts technical progress from Git history and ClickUp sprints using browser
   automation to synthesize high-fidelity leadership reports.
 cost: ~1200 tokens
+modes: [read-only, write]
+surface: public
 ---
 
 # Weekly Leadership Report
+
+## Runtime modes
+
+Produces a verifiable report blueprint in read-only chat, and executes +
+verifies the generation phase in an IDE/MCP agent.
 
 > [!IMPORTANT] **G-Stack Ethos**: Diagnosis before Advice. Perform a silent
 > environmental audit before data extraction. **Silent Execution Rule**: Do NOT

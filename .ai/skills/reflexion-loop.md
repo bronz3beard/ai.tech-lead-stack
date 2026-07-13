@@ -1,6 +1,6 @@
 ---
 name: reflexion-loop
-description:
+description: >
   ✨ SPECIAL FEATURE (not agent-agnostic — requires API keys). A self-correcting
   generator–critic–adjudicator loop that turns a brief into a
   Four-Pillars-graded implementation plan. Gemini drafts the plan, Claude grades
@@ -9,9 +9,16 @@ description:
   `rtk run reflexion-loop` or the `reflexion_loop` MCP tool. Use when you want a
   plan hardened by an independent critic before committing engineering time.
 cost: ~900 tokens
+modes: [read-only, write]
+surface: public
 ---
 
 # Reflexion Loop (Special Feature)
+
+## Runtime modes
+
+Produces a verifiable loop blueprint in read-only chat, and executes + verifies
+the loop phase in an IDE/MCP agent.
 
 > [!IMPORTANT] **This is the one non-agent-agnostic skill in the stack.** Every
 > other skill works with any LLM driving your IDE. This one calls **two** models

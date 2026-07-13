@@ -1,6 +1,6 @@
 ---
 name: feature-orchestrator
-description:
+description: >
   The Three-Phase Engine. Orchestrates the full Research -> Plan -> Implement
   sequence for a single feature by chaining the specialist skills
   (feature-design-assistant, planning-expert / vertical-slice-decomposer,
@@ -9,9 +9,16 @@ description:
   the implement phase in an IDE/MCP agent. Use from the feature-discovery chat
   to drive a change end-to-end in the sandbox app.
 cost: ~1400 tokens
+modes: [read-only, write, mcp]
+surface: public
 ---
 
 # Feature Orchestrator (The Three-Phase Engine)
+
+## Runtime modes
+
+Produces a verifiable implementation blueprint in read-only chat, and executes +
+verifies the implement phase in an IDE/MCP agent.
 
 > [!IMPORTANT] **User Sovereignty & Persistence**: We advise; the User Tech-Lead
 > decides. The reward is resolving the feature to an extremely high standard,
