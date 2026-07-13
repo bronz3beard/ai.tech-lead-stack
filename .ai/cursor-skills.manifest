@@ -10,6 +10,7 @@ code-review-checklist|.ai/skills/code-review-checklist.md
 codebase-onboarding-intelligence|.ai/skills/codebase-onboarding-intelligence.md
 daily-standup|.ai/skills/daily-standup.md
 feature-design-assistant|.ai/skills/feature-design-assistant.md
+dev-team-orchestrator|.ai/skills/dev-team-orchestrator.md
 mission-architect|.ai/skills/mission-architect.md
 planning-expert|.ai/skills/planning-expert.md
 pr-automator|.ai/skills/pr-automator.md
@@ -29,6 +30,7 @@ workflow-changelog|.agents/workflows/changelog.md
 workflow-clean-code-audit|.agents/workflows/clean-code-audit.md
 workflow-code-review|.agents/workflows/code-review.md
 workflow-design-requirements-to-architecture|.agents/workflows/design-requirements-to-architecture.md
+workflow-dev-team|.agents/workflows/dev-team.md
 workflow-init|.agents/workflows/init.md
 workflow-mission-architect|.agents/workflows/mission-architect.md
 workflow-onboard-dev|.agents/workflows/onboard-dev.md

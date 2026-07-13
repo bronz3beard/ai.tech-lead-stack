@@ -49,6 +49,7 @@ The installer also merges the **tech-lead-stack** MCP server into
 
 The current skills available in the toolbox are:
 
+- **`dev-team-orchestrator`**
 - **`planning-expert`**
 - **`code-review-checklist`**
 - **`pr-automator`**
