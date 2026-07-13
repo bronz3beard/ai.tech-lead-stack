@@ -13,6 +13,8 @@ import { SlidersHorizontal, User, Globe } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AgenticHealthSummary } from '@/app/dashboard/agentic-health-loader';
+import { AgenticHealthSection } from './AgenticHealthSection';
 
 export type TraceData = {
   id: string;
@@ -35,10 +37,12 @@ export function DashboardContent({
   traces,
   projects,
   titlePrefix,
+  agenticHealth,
 }: {
   traces: TraceData[];
   projects: { id: string; name: string; ownerId: string | null }[];
   titlePrefix: string;
+  agenticHealth?: AgenticHealthSummary;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -371,6 +375,8 @@ export function DashboardContent({
             </CardContent>
           </Card>
         </div>
+
+        {agenticHealth && <AgenticHealthSection summary={agenticHealth} />}
 
         <DashboardDisclaimer />
       </div>

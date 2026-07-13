@@ -252,7 +252,7 @@ jest.mock('@/lib/skills', () => ({
 }));
 
 describe('getChatTools — inputSchema regression (Zod v4 + AI SDK v6)', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
+
   const { getChatTools } = require('../utils') as typeof import('../utils');
 
   function getJsonSchema(t: Record<string, unknown>): Record<string, unknown> {

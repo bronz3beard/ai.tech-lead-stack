@@ -9,9 +9,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tooltip } from '@/components/ui/tooltip';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { TraceData } from './DashboardContent';
 import { isSkillTrace, normalizeSkillName } from '@/lib/trace-utils';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const FALLBACK_TOKEN_COST: Record<string, number> = {
   'agent-optimizer': 500,
@@ -35,7 +36,18 @@ const FALLBACK_TOKEN_COST: Record<string, number> = {
 };
 
 export function InsightsTable({ traces }: { traces: TraceData[] }) {
+  const [actorFilter, setActorFilter] = useState<'ALL' | 'HUMAN' | 'AGENT'>('ALL');
+
   const tableData = useMemo(() => {
+    const filteredTraces = traces.filter((t) => {
+      if (actorFilter === 'ALL') return true;
+      const tActorType = (t as any).actorType || t.metadata?.actorType;
+      if (actorFilter === 'HUMAN') {
+        return tActorType === 'HUMAN' || !tActorType; // fallback unknown to human in some views, but strict match here is better. Let's strict match. Actually wait, fallback is HUMAN/DIRECTED. Let's just match.
+      }
+      return tActorType === 'AGENT';
+    });
+
     const skillStats: Record<
       string,
       {
@@ -51,7 +63,17 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
       }
     > = {};
 
-    for (const trace of traces) {
+    for (const trace of filteredTraces) {
+      // Re-apply the same filter logic for consistency but on `filteredTraces`.
+      let tActorType = (trace as any).actorType || trace.metadata?.actorType;
+      // Default to human if missing per backfill logic
+      if (!tActorType && trace.metadata?.source === 'mcp') tActorType = 'AGENT';
+      if (!tActorType && trace.name === 'reflexion-loop') tActorType = 'AGENT';
+      if (!tActorType) tActorType = 'HUMAN';
+
+      if (actorFilter !== 'ALL' && tActorType !== actorFilter) {
+         continue; // Safe double-check
+      }
       let rawSkillName = 'unknown';
       if (trace.name && trace.name.startsWith('skill:')) {
         rawSkillName = trace.name.replace('skill:', '');
@@ -189,19 +211,31 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
         };
       })
       .sort((a, b) => b.executions - a.executions); // sort by executions descending
-  }, [traces]);
-
-  if (tableData.length === 0) {
-    return (
-      <div className="text-muted-foreground p-4">
-        No data available to display.
-      </div>
-    );
-  }
+  }, [traces, actorFilter]);
 
   return (
-    <Table>
-      <TableHeader>
+    <div>
+      <div className="flex justify-end p-4 border-b">
+        <Tabs
+          value={actorFilter}
+          onValueChange={(v) => setActorFilter(v as 'ALL' | 'HUMAN' | 'AGENT')}
+          className="w-[240px]"
+        >
+          <TabsList className="grid w-full grid-cols-3 bg-card/40 border border-border/60">
+            <TabsTrigger value="ALL">All</TabsTrigger>
+            <TabsTrigger value="HUMAN">Human</TabsTrigger>
+            <TabsTrigger value="AGENT">Agent</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      {tableData.length === 0 ? (
+        <div className="text-muted-foreground p-4 text-center">
+          No data available to display.
+        </div>
+      ) : (
+        <Table>
+          <TableHeader>
         <TableRow>
           <TableHead className="w-[180px]">Skill Name</TableHead>
           <TableHead className="min-w-[200px]">Model</TableHead>
@@ -260,5 +294,7 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
         ))}
       </TableBody>
     </Table>
+      )}
+    </div>
   );
 }
