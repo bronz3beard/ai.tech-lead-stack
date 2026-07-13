@@ -55,6 +55,7 @@ The current skills available in the toolbox are:
 - **`visual-verifier`**
 - **`mission-architect`**
 - **`clean-code`**
+- **`dev-team-orchestrator`**
 - **`security-audit`**
 
 ### 3. Setup External Integrations
