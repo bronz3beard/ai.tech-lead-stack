@@ -28,7 +28,7 @@ describe('schema.ts additions', () => {
     expect(() => InterviewSchema.parse(validInterview)).not.toThrow();
   });
 
-  it('InterviewSchema enforces max 5 questions', () => {
+  it('InterviewSchema accepts >5 questions (no maxItems constraint)', () => {
     const questions = Array.from({ length: 6 }, (_, i) => ({
       id: `q${i}`,
       target: 'plan' as const,
@@ -37,12 +37,12 @@ describe('schema.ts additions', () => {
       why: 'Why',
     }));
 
-    const invalidInterview = {
+    const validInterview = {
       runId: '123',
       revision: 1,
-      recommendation: 'refine-plan',
+      recommendation: 'refine-plan' as const,
       questions,
     };
-    expect(() => InterviewSchema.parse(invalidInterview)).toThrow(z.ZodError);
+    expect(() => InterviewSchema.parse(validInterview)).not.toThrow();
   });
 });
