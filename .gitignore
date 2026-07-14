@@ -50,3 +50,4 @@ tmp/*
 # AI Agent session state and telemetry
 .ai/.mission-alignment.json
 .ai/rtk-run
+dev_server.log

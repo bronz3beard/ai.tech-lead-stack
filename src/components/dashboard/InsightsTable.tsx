@@ -43,7 +43,8 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
       if (actorFilter === 'ALL') return true;
       const tActorType = (t as any).actorType || t.metadata?.actorType;
       if (actorFilter === 'HUMAN') {
-        return tActorType === 'HUMAN' || !tActorType; // fallback unknown to human in some views, but strict match here is better. Let's strict match. Actually wait, fallback is HUMAN/DIRECTED. Let's just match.
+        // Fallback missing actorTypes to HUMAN per historic defaults
+        return tActorType === 'HUMAN' || !tActorType;
       }
       return tActorType === 'AGENT';
     });
