@@ -1,5 +1,8 @@
 'use client';
 
+import { useState } from 'react';
+import { Copy, Check } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -10,6 +13,36 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { ReflexionRun } from '@prisma/client';
+
+function CopyRunIdButton({ runId }: { runId: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(runId);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon-xs"
+      onClick={handleCopy}
+      title="Copy Run ID"
+      className="text-muted-foreground hover:text-foreground h-5 w-5 p-0"
+    >
+      {copied ? (
+        <Check className="size-3 text-emerald-500" />
+      ) : (
+        <Copy className="size-3" />
+      )}
+    </Button>
+  );
+}
 
 interface ReflexionRunsTableProps {
   runs: ReflexionRun[];
@@ -57,7 +90,10 @@ export function ReflexionRunsTable({ runs }: ReflexionRunsTableProps) {
             return (
               <TableRow key={run.id}>
                 <TableCell className="font-mono text-xs text-muted-foreground">
-                  {shortId}
+                  <div className="flex items-center gap-1.5">
+                    <span>{shortId}</span>
+                    <CopyRunIdButton runId={run.id} />
+                  </div>
                 </TableCell>
                 <TableCell className="font-medium" title={run.brief}>
                   {truncatedBrief}
