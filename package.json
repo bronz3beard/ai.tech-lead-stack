@@ -90,6 +90,7 @@
     "easymde": "^2.20.0",
     "gray-matter": "^4.0.3",
     "html2canvas": "^1.4.1",
+    "js-yaml": "^5.2.1",
     "langfuse-core": "^3.38.20",
     "langfuse-node": "^3.38.20",
     "lucide-react": "^0.477.0",
