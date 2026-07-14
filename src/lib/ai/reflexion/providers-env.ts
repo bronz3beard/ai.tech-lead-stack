@@ -6,14 +6,39 @@ import {
   type LanguageModel,
   type LanguageModelUsage,
 } from 'ai';
-
-// Relative import (NOT the '@/' alias): this module is run under `tsx` by the
-// CLI and the MCP server, where the '@/' path alias does not resolve. constants
-// is a pure no-import file, so this stays tsx-safe. Do NOT import
-// '@/lib/ai/orchestrator' here — it pulls in '@/' and would break tsx.
 import { MODELS } from '../../../app/api/chat/constants';
 import type { ReflexionRunner } from './engine';
 import { CritiqueSchema, InterviewSchema } from './schema';
+
+/**
+ * Inspects the error status or message to identify hard connection/auth/rate limit failures.
+ */
+export function isHardApiFailure(error: any): boolean {
+  if (!error) return false;
+  // Check HTTP status code
+  const status = error.status ?? error.statusCode;
+  if (typeof status === 'number') {
+    if (
+      status === 401 ||
+      status === 403 ||
+      status === 429 ||
+      (status >= 500 && status < 600)
+    ) {
+      return true;
+    }
+  }
+  // Check message content
+  const message = String(error.message ?? error).toLowerCase();
+  const keywords = [
+    'quota',
+    'credit',
+    'exhausted',
+    'rate limit',
+    'insufficient',
+    'unauthorized',
+  ];
+  return keywords.some((keyword) => message.includes(keyword));
+}
 
 /** Local copy of the distinctness guard so this file imports nothing via '@/'. */
 function assertDistinct(creator: string, critic: string): void {
