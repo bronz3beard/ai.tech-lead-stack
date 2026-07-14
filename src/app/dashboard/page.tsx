@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
 import { getProjectAccessFilter } from '@/lib/access';
+import { loadAgenticHealth } from './agentic-health-loader';
 
 export interface DashboardSearchParams {
   limit?: string;
@@ -68,10 +69,20 @@ export default async function DashboardPage({
     ownerId: p.ownerId,
   }));
 
+  const agenticHealth = await loadAgenticHealth(
+    { projectId: project },
+    {
+      id: resolvedUserId,
+      role: user?.role || 'DEVELOPER',
+      email: user?.email,
+    }
+  );
+
   return (
     <DashboardContent
       traces={traces}
       projects={projects}
+      agenticHealth={agenticHealth}
       titlePrefix={filterByUser ? 'My Authenticated' : 'Global Telemetry'}
     />
   );

@@ -145,7 +145,7 @@ describe('extractTextFromParts', () => {
 // ---------------------------------------------------------------------------
 describe('write_to_sandbox tool schema (jsonSchema fix — Zod v4 + AI SDK v6)', () => {
   it('produces a valid JSON Schema with type: object in inputSchema.jsonSchema', () => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+
     const { tool, jsonSchema } = require('ai') as typeof import('ai');
 
     const schema = jsonSchema<{ path: string; content: string }>({
@@ -175,7 +175,7 @@ describe('write_to_sandbox tool schema (jsonSchema fix — Zod v4 + AI SDK v6)',
   });
 
   it('does NOT produce the broken Zod v4 raw internal shape (no "def" key)', () => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+
     const { tool, jsonSchema } = require('ai') as typeof import('ai');
 
     const writeTool = tool({
