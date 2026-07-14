@@ -196,6 +196,36 @@ async function downloadArtifact(runId, artifactName, token) {
   console.log(`Artifact extracted to ${OUT_DIR}`);
 }
 
+async function verifyArtifactExists(runId, artifactName, token) {
+  try {
+    const repo = process.env.GITHUB_REPOSITORY;
+    const listUrl = `https://api.github.com/repos/${repo}/actions/runs/${runId}/artifacts`;
+
+    const res = await fetch(listUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github.v3+json',
+      },
+    });
+
+    if (!res.ok) {
+      console.error(
+        `Failed to list artifacts for run ${runId}: ${res.statusText}`
+      );
+      return false;
+    }
+
+    const data = await res.json();
+    if (!data.artifacts) return false;
+
+    const artifact = data.artifacts.find((a) => a.name === artifactName);
+    return !!artifact;
+  } catch (err) {
+    console.error(`Error verifying artifact for run ${runId}:`, err);
+    return false;
+  }
+}
+
 async function handleResumePath(payload) {
   const comment = payload.comment;
   const issue = payload.issue;
@@ -249,44 +279,118 @@ async function handleResumePath(payload) {
     throw new Error('Hard stop: Maximum of 10 loop turns per issue reached.');
   }
 
-  const yamlBlock = extractYamlBlock(comment.body);
-  if (!yamlBlock) {
-    throw new Error('No YAML block found in the comment.');
-  }
-
-  let parsedYaml;
-  try {
-    parsedYaml = yaml.load(yamlBlock);
-  } catch (e) {
-    throw new Error('Failed to parse YAML block: ' + e.message);
-  }
-
-  const validation = validateAnswers(parsedYaml);
-  if (!validation.success) {
-    throw new Error(
-      'YAML block schema validation failed:\n' + validation.error.message
-    );
-  }
-
   let prevRunId = null;
+  const artifactName = `reflexion-state-${issue.number}`;
+
   for (let i = comments.length - 1; i >= 0; i--) {
     const c = comments[i];
     if (c.user.login === 'github-actions[bot]') {
       const runId = extractRunIdMarker(c.body);
       if (runId) {
-        prevRunId = runId;
-        break;
+        console.log(
+          `Checking if artifact exists for candidate runId: ${runId}`
+        );
+        const exists = await verifyArtifactExists(runId, artifactName, TOKEN);
+        if (exists) {
+          prevRunId = runId;
+          break;
+        } else {
+          console.log(
+            `Artifact not found or expired for runId: ${runId}. Skipping.`
+          );
+        }
       }
     }
   }
 
   if (!prevRunId) {
-    throw new Error(
-      'Could not find a previous run ID marker from a bot comment to resume from.'
-    );
+    const msg = `### 🚨 Prior State Not Found\n\nThe prior reflexion state could not be found. The artifact may have expired after the 7-day retention period, or the previous runs failed to produce a valid state.\n\nPlease start a fresh run by closing/reopening the issue, or triggering a new run manually.`;
+    await createIssueComment(issue.number, msg);
+    process.exit(1);
   }
 
-  await downloadArtifact(prevRunId, `reflexion-state-${issue.number}`, TOKEN);
+  // Download the artifact first, because we want to extract the state/questions
+  // and we also need it for resume if the comment is valid.
+  try {
+    await downloadArtifact(prevRunId, artifactName, TOKEN);
+  } catch (err) {
+    const msg = `### 🚨 Failed to Download Prior State\n\nFailed to download prior state artifact for run ID \`${prevRunId}\`: ${err.message}\n\nPlease try starting a fresh run by closing and reopening this issue.`;
+    await createIssueComment(issue.number, msg);
+    process.exit(1);
+  }
+
+  // Parse and validate the comment body
+  let yamlBlock = null;
+  let parsedYaml = null;
+  let parseErrorMsg = null;
+
+  try {
+    yamlBlock = extractYamlBlock(comment.body);
+    if (!yamlBlock) {
+      throw new Error(
+        'No YAML block found in your comment. Please ensure your response contains a code block with answers starting with \`\`\`yaml answers:\`\`.'
+      );
+    }
+
+    try {
+      parsedYaml = yaml.load(yamlBlock);
+    } catch (e) {
+      throw new Error(
+        `Failed to parse the YAML block. Please ensure it has valid YAML syntax. Details: ${e.message}`
+      );
+    }
+
+    const validation = validateAnswers(parsedYaml);
+    if (!validation.success) {
+      const errors = validation.error.errors
+        .map((err) => `- \`${err.path.join('.')}\`: ${err.message}`)
+        .join('\n');
+      throw new Error(`YAML block schema validation failed:\n${errors}`);
+    }
+  } catch (err) {
+    parseErrorMsg = err.message;
+  }
+
+  if (parseErrorMsg) {
+    // We had an answer-parsing/validation failure!
+    // Post a helpful comment with a copy-paste-ready answers template.
+    let answersTemplate = null;
+    try {
+      const stateFiles = fs
+        .readdirSync(OUT_DIR)
+        .filter(
+          (f) =>
+            f.endsWith('.json') &&
+            !f.endsWith('-answers.json') &&
+            !f.endsWith('-critique.json') &&
+            f !== 'eval.json'
+        );
+      if (stateFiles.length > 0) {
+        const statePath = path.join(OUT_DIR, stateFiles[0]);
+        const state = JSON.parse(fs.readFileSync(statePath, 'utf-8'));
+        if (state.interview && state.interview.questions) {
+          answersTemplate = `\`\`\`yaml answers:\nrunId: "${prevRunId}"\n# directive: "approve"\ndecisions:\n`;
+          state.interview.questions.forEach((q) => {
+            answersTemplate += `  - id: "${q.id}"\n    answer: ""\n`;
+          });
+          answersTemplate += '```';
+        }
+      }
+    } catch (e) {
+      console.warn(
+        'Failed to read state file for error template generation:',
+        e
+      );
+    }
+
+    if (!answersTemplate) {
+      answersTemplate = `\`\`\`yaml answers:\nrunId: "${prevRunId}"\n# directive: "approve"\ndecisions:\n  - id: "question_id_here"\n    answer: ""\n\`\`\``;
+    }
+
+    const msg = `### 🚨 Malformed answers submission\n\nThere was an issue processing your response:\n\n${parseErrorMsg}\n\n#### Please reply again using this copy-paste-ready template:\n\n${answersTemplate}`;
+    await createIssueComment(issue.number, msg);
+    process.exit(1);
+  }
 
   const answersFile = path.join(WORKSPACE, 'reflexion-answers.yaml');
   fs.writeFileSync(

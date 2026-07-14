@@ -85,12 +85,37 @@ function formatRunnerComment(opts) {
 
 function extractYamlBlock(text) {
   if (!text) return null;
-  const match = text.match(/```yaml(?: answers:)?\s*([\s\S]*?)```/);
-  if (match) return match[1];
+  const regex = /```([^\n]*)\n([\s\S]*?)```/gi;
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    const infoString = match[1];
+    const content = match[2];
+    const cleanInfo = infoString.trim().toLowerCase().replace(/\s+/g, ' ');
 
-  const match2 = text.match(/```answers:\s*([\s\S]*?)```/);
-  if (match2) return match2[1];
+    if (
+      cleanInfo === 'yaml' ||
+      cleanInfo === 'yml' ||
+      cleanInfo === 'yaml answers:' ||
+      cleanInfo === 'yml answers:' ||
+      cleanInfo === 'answers:'
+    ) {
+      return content;
+    }
 
+    if (cleanInfo === '') {
+      const lines = content.split('\n');
+      const firstNonEmptyLine = lines
+        .map((l) => l.trim())
+        .find((l) => l.length > 0);
+      if (
+        firstNonEmptyLine &&
+        (firstNonEmptyLine.startsWith('runId:') ||
+          firstNonEmptyLine.startsWith('answers:'))
+      ) {
+        return content;
+      }
+    }
+  }
   return null;
 }
 
