@@ -80,7 +80,7 @@ export function buildRunner(
         prompt,
       });
       addUsage(usage);
-      return output;
+      return { ...output, questions: output.questions.slice(0, 5) };
     },
     getUsage() {
       if (!warnedAboutCost) {

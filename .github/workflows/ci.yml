@@ -68,7 +68,7 @@ jobs:
   evaluator-calibration:
     name: Evaluator Calibration
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || secrets.ANTHROPIC_API_KEY != ''
+    if: github.event_name == 'workflow_dispatch' || github.repository == 'bronz3beard/ai.tech-lead-stack'
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
     steps:

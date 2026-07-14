@@ -41,7 +41,7 @@ export const InterviewSchema = z.object({
   runId: z.string(),
   revision: z.number(),
   recommendation: z.enum(['approve', 'refine-plan', 'tune-loop', 'stop']),
-  questions: z.array(QuestionSchema).max(5),
+  questions: z.array(QuestionSchema), // limit enforced in INTERVIEWER_SYSTEM prompt + sliced in code
 });
 export type Interview = z.infer<typeof InterviewSchema>;
 
@@ -60,7 +60,6 @@ export const UsageSnapshotSchema = z.object({
   ),
 });
 export type UsageSnapshot = z.infer<typeof UsageSnapshotSchema>;
-
 
 export const CritiqueSchema = z.object({
   gstackDiagnosis: z
