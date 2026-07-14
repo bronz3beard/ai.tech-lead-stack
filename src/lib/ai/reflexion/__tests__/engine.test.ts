@@ -1,11 +1,29 @@
-import { runReflexion, resumeReflexion, ReflexionRunner, ReflexionConfig } from '../engine';
-import { ReflexionStateV2, Answers } from '../schema';
+import {
+  ReflexionConfig,
+  ReflexionRunner,
+  resumeReflexion,
+  runReflexion,
+} from '../engine';
+import { Answers, ReflexionStateV2 } from '../schema';
 
 function createMockRunner(
   generateResponse = 'plan',
-  critiqueResponse = { passed: true, score: 9, actionableFix: '', gstackDiagnosis: 9, atomicBatches: 9, productionEthos: 9, modernWeb: 9 },
+  critiqueResponse = {
+    passed: true,
+    score: 9,
+    actionableFix: '',
+    gstackDiagnosis: 9,
+    atomicBatches: 9,
+    productionEthos: 9,
+    modernWeb: 9,
+  },
   adjudicateResponse = 'verdict',
-  interviewResponse: any = { runId: '123', revision: 0, recommendation: 'approve', questions: [] },
+  interviewResponse: any = {
+    runId: '123',
+    revision: 0,
+    recommendation: 'approve',
+    questions: [],
+  },
   usageResponse = { tokens: 10, costUsd: 0.1 }
 ): ReflexionRunner {
   return {
@@ -14,6 +32,7 @@ function createMockRunner(
     adjudicate: jest.fn().mockResolvedValue(adjudicateResponse),
     interview: jest.fn().mockResolvedValue(interviewResponse),
     getUsage: jest.fn().mockReturnValue(usageResponse),
+    wasDegraded: jest.fn(() => false),
     models: { creator: 'gemini', critic: 'claude', adjudicator: 'claude' },
   };
 }
@@ -36,16 +55,47 @@ describe('engine v2', () => {
   });
 
   it('budget gate trips', async () => {
-    const runner = createMockRunner('plan', undefined, undefined, undefined, { tokens: 1000, costUsd: 10 });
-    const cfg: ReflexionConfig = { brief: 'test', mode: 'auto', budget: { maxCostUsd: 1 } };
+    const runner = createMockRunner('plan', undefined, undefined, undefined, {
+      tokens: 1000,
+      costUsd: 10,
+    });
+    const cfg: ReflexionConfig = {
+      brief: 'test',
+      mode: 'auto',
+      budget: { maxCostUsd: 1 },
+    };
     const res = await runReflexion(runner, cfg);
     expect(res.stopReason).toBe('budget-exceeded');
     expect(runner.generate).not.toHaveBeenCalled();
   });
 
   it('zero-question auto-approve', async () => {
-    const runner = createMockRunner('plan', { passed: false, score: 8, actionableFix: 'fix', gstackDiagnosis: 9, atomicBatches: 9, productionEthos: 9, modernWeb: 9 }, 'verdict', { runId: '1', revision: 0, recommendation: 'refine-plan', questions: [{ id: '1', target: 'plan', ref: '## P0', question: 'q', why: 'w' }] });
-    const cfg: ReflexionConfig = { brief: 'test', mode: 'interview', passThreshold: 8 };
+    const runner = createMockRunner(
+      'plan',
+      {
+        passed: false,
+        score: 8,
+        actionableFix: 'fix',
+        gstackDiagnosis: 9,
+        atomicBatches: 9,
+        productionEthos: 9,
+        modernWeb: 9,
+      },
+      'verdict',
+      {
+        runId: '1',
+        revision: 0,
+        recommendation: 'refine-plan',
+        questions: [
+          { id: '1', target: 'plan', ref: '## P0', question: 'q', why: 'w' },
+        ],
+      }
+    );
+    const cfg: ReflexionConfig = {
+      brief: 'test',
+      mode: 'interview',
+      passThreshold: 8,
+    };
     const res = await runReflexion(runner, cfg);
     expect(res.interview?.recommendation).toBe('approve');
     expect(res.interview?.questions).toHaveLength(0);
@@ -53,24 +103,60 @@ describe('engine v2', () => {
   });
 
   it('resume refine-plan updates params', async () => {
-    const runner = createMockRunner('plan', { passed: true, score: 9, actionableFix: '', gstackDiagnosis: 9, atomicBatches: 9, productionEthos: 9, modernWeb: 9 }, 'verdict', { runId: '123', revision: 1, recommendation: 'approve', questions: [] });
+    const runner = createMockRunner(
+      'plan',
+      {
+        passed: true,
+        score: 9,
+        actionableFix: '',
+        gstackDiagnosis: 9,
+        atomicBatches: 9,
+        productionEthos: 9,
+        modernWeb: 9,
+      },
+      'verdict',
+      { runId: '123', revision: 1, recommendation: 'approve', questions: [] }
+    );
     const state: ReflexionStateV2 = {
       version: 2,
       runId: '123',
       brief: 'b',
       phase: 'AWAITING_ANSWERS',
       plan: 'old plan',
-      critiques: [{ passed: true, score: 9, actionableFix: '', gstackDiagnosis: 9, atomicBatches: 9, productionEthos: 9, modernWeb: 9 }],
+      critiques: [
+        {
+          passed: true,
+          score: 9,
+          actionableFix: '',
+          gstackDiagnosis: 9,
+          atomicBatches: 9,
+          productionEthos: 9,
+          modernWeb: 9,
+        },
+      ],
       revision: 1,
       params: { passThreshold: 8, maxRevisions: 3 },
       usage: { totalTokens: 0, costUsd: 0, perPhase: [] },
       createdAt: 'd',
       updatedAt: 'd',
-      interview: { runId: '123', revision: 0, recommendation: 'tune-loop', questions: [{ id: 'q1', target: 'loop', ref: 'passThreshold', question: '?', why: '!' }] }
+      interview: {
+        runId: '123',
+        revision: 0,
+        recommendation: 'tune-loop',
+        questions: [
+          {
+            id: 'q1',
+            target: 'loop',
+            ref: 'passThreshold',
+            question: '?',
+            why: '!',
+          },
+        ],
+      },
     };
     const answers: Answers = {
       runId: '123',
-      decisions: [{ id: 'q1', answer: '9' }]
+      decisions: [{ id: 'q1', answer: '9' }],
     };
     const cfg: ReflexionConfig = { brief: 'b', mode: 'auto' };
     const res = await resumeReflexion(runner, state, answers, cfg);
@@ -92,11 +178,18 @@ describe('engine v2', () => {
       usage: { totalTokens: 0, costUsd: 0, perPhase: [] },
       createdAt: 'd',
       updatedAt: 'd',
-      interview: { runId: '123', revision: 0, recommendation: 'refine-plan', questions: [{ id: 'q1', target: 'plan', ref: '## P0', question: '?', why: '!' }] }
+      interview: {
+        runId: '123',
+        revision: 0,
+        recommendation: 'refine-plan',
+        questions: [
+          { id: 'q1', target: 'plan', ref: '## P0', question: '?', why: '!' },
+        ],
+      },
     };
     const answers: Answers = {
       runId: '123',
-      decisions: [{ id: 'q1', answer: 'change this' }]
+      decisions: [{ id: 'q1', answer: 'change this' }],
     };
     const cfg: ReflexionConfig = { brief: 'b' };
     const res = await resumeReflexion(runner, state, answers, cfg);
@@ -109,7 +202,11 @@ describe('engine v2', () => {
       load: jest.fn(),
       save: jest.fn().mockResolvedValue(undefined),
     };
-    const cfg: ReflexionConfig = { brief: 'test', mode: 'auto', stateStore: mockStore };
+    const cfg: ReflexionConfig = {
+      brief: 'test',
+      mode: 'auto',
+      stateStore: mockStore,
+    };
     await runReflexion(runner, cfg);
     expect(mockStore.save).toHaveBeenCalled();
   });

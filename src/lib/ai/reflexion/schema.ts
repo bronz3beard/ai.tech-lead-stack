@@ -113,7 +113,7 @@ export const ReflexionStateV2Schema = z.object({
   stopReason: StopReasonSchema.optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
-  criticDegraded: z.boolean().default(false),
+  criticDegraded: z.boolean().default(false).optional(),
 });
 export type ReflexionStateV2 = z.infer<typeof ReflexionStateV2Schema>;
 
