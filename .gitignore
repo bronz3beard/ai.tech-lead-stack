@@ -51,3 +51,4 @@ tmp/*
 .ai/.mission-alignment.json
 .ai/rtk-run
 dev_server.log
+.dev-team/
