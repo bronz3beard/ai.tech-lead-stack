@@ -53,9 +53,11 @@ export function buildRunner(
   creator: LanguageModel,
   critic: LanguageModel,
   adjudicator: LanguageModel,
-  models: ReflexionRunner['models']
+  models: ReflexionRunner['models'],
+  fallbackCritic?: LanguageModel
 ): ReflexionRunner {
   let accumulatedTokens = 0;
+  let degraded = false;
 
   function addUsage(usage?: LanguageModelUsage) {
     if (usage) {
@@ -69,6 +71,9 @@ export function buildRunner(
 
   return {
     models,
+    wasDegraded() {
+      return degraded;
+    },
     async generate(prompt, system) {
       const { text, usage } = await generateText({
         model: creator,
@@ -79,33 +84,77 @@ export function buildRunner(
       return text.trim();
     },
     async critique(prompt, system) {
-      const { output, usage } = await generateText({
-        model: critic,
-        output: Output.object({ schema: CritiqueSchema }),
-        system,
-        prompt,
-      });
-      addUsage(usage);
-      return output;
+      try {
+        const { output, usage } = await generateText({
+          model: critic,
+          output: Output.object({ schema: CritiqueSchema }),
+          system,
+          prompt,
+        });
+        addUsage(usage);
+        return output;
+      } catch (error) {
+        if (isHardApiFailure(error) && fallbackCritic) {
+          degraded = true;
+          const { output, usage } = await generateText({
+            model: fallbackCritic,
+            output: Output.object({ schema: CritiqueSchema }),
+            system,
+            prompt,
+          });
+          addUsage(usage);
+          return output;
+        }
+        throw error;
+      }
     },
     async adjudicate(prompt, system) {
-      const { text, usage } = await generateText({
-        model: adjudicator,
-        system,
-        prompt,
-      });
-      addUsage(usage);
-      return text.trim();
+      try {
+        const { text, usage } = await generateText({
+          model: adjudicator,
+          system,
+          prompt,
+        });
+        addUsage(usage);
+        return text.trim();
+      } catch (error) {
+        if (isHardApiFailure(error) && fallbackCritic) {
+          degraded = true;
+          const { text, usage } = await generateText({
+            model: fallbackCritic,
+            system,
+            prompt,
+          });
+          addUsage(usage);
+          return text.trim();
+        }
+        throw error;
+      }
     },
     async interview(prompt, system) {
-      const { output, usage } = await generateText({
-        model: critic,
-        output: Output.object({ schema: InterviewSchema }),
-        system,
-        prompt,
-      });
-      addUsage(usage);
-      return { ...output, questions: output.questions.slice(0, 5) };
+      try {
+        const { output, usage } = await generateText({
+          model: critic,
+          output: Output.object({ schema: InterviewSchema }),
+          system,
+          prompt,
+        });
+        addUsage(usage);
+        return { ...output, questions: output.questions.slice(0, 5) };
+      } catch (error) {
+        if (isHardApiFailure(error) && fallbackCritic) {
+          degraded = true;
+          const { output, usage } = await generateText({
+            model: fallbackCritic,
+            output: Output.object({ schema: InterviewSchema }),
+            system,
+            prompt,
+          });
+          addUsage(usage);
+          return { ...output, questions: output.questions.slice(0, 5) };
+        }
+        throw error;
+      }
     },
     getUsage() {
       if (!warnedAboutCost) {
@@ -154,6 +203,7 @@ export function runnerFromEnv(): ReflexionRunner {
     google(creatorId),
     anthropic(criticId),
     anthropic(adjudicatorId),
-    { creator: creatorId, critic: criticId, adjudicator: adjudicatorId }
+    { creator: creatorId, critic: criticId, adjudicator: adjudicatorId },
+    google(MODELS.GEMINI_FALLBACK_CRITIC)
   );
 }
