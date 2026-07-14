@@ -56,8 +56,9 @@ export const MAX_ANALYTICAL_STEPS = 12;
  * Model identifiers.
  */
 export const MODELS = {
-  GEMINI: 'gemini-3-flash-preview',
+  GEMINI: 'gemini-3.5-flash',
   FALLBACK_GEMINI: 'gemini-2.5-flash',
+  GEMINI_FALLBACK_CRITIC: 'gemini-3.1-pro-preview',
   CLAUDE: 'claude-sonnet-4-6',
   OPENAI: 'gpt-5.4',
   JULES: 'gemini-3.1-pro',

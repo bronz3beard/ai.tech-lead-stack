@@ -16,11 +16,15 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { runReflexion, resumeReflexion, type ReflexionResult } from '../src/lib/ai/reflexion/engine';
+import {
+  resumeReflexion,
+  runReflexion,
+  type ReflexionResult,
+} from '../src/lib/ai/reflexion/engine';
 import { runnerFromEnv } from '../src/lib/ai/reflexion/providers-env';
-import { FileStateStore } from '../src/lib/ai/reflexion/state-store';
 import { Answers, ReflexionStateV2 } from '../src/lib/ai/reflexion/schema';
-import { parseYamlAnswers, formatInterviewMd } from './reflexion-loop-utils';
+import { FileStateStore } from '../src/lib/ai/reflexion/state-store';
+import { formatInterviewMd, parseYamlAnswers } from './reflexion-loop-utils';
 
 const STACK_FILES = [
   'package.json',
@@ -56,7 +60,9 @@ function readStack(repo: string, maxCharsPerFile = 1800): string {
 
 /** Hand-rolled SVG line chart — zero dependencies, renders anywhere. */
 function svgChart(scores: number[], threshold: number): string {
-  const W = 480, H = 300, pad = 40;
+  const W = 480,
+    H = 300,
+    pad = 40;
   const n = Math.max(scores.length - 1, 1);
   const x = (i: number) => pad + (i / n) * (W - 2 * pad);
   const y = (s: number) => H - pad - (s / 10) * (H - 2 * pad);
@@ -122,8 +128,12 @@ async function main(): Promise<number> {
   const repo = arg('--repo') || '.';
   const maxRevisions = Number(arg('--max') || 3);
   const passThreshold = Number(arg('--threshold') || 8);
-  const maxCostUsd = arg('--max-cost-usd') ? Number(arg('--max-cost-usd')) : undefined;
-  const maxTokens = arg('--max-tokens') ? Number(arg('--max-tokens')) : undefined;
+  const maxCostUsd = arg('--max-cost-usd')
+    ? Number(arg('--max-cost-usd'))
+    : undefined;
+  const maxTokens = arg('--max-tokens')
+    ? Number(arg('--max-tokens'))
+    : undefined;
   const focus = arg('--focus') ? arg('--focus')!.split(',') : undefined;
 
   // Let --out default to .reflexion-out unless resuming from a specific dir
@@ -141,7 +151,9 @@ async function main(): Promise<number> {
 
   const stateStore = new FileStateStore(outDir);
   const runner = runnerFromEnv();
-  console.error(`[reflexion] creator=${runner.models.creator} critic=${runner.models.critic}`);
+  console.error(
+    `[reflexion] creator=${runner.models.creator} critic=${runner.models.critic}`
+  );
 
   let result: ReflexionResult;
 
@@ -157,10 +169,15 @@ async function main(): Promise<number> {
     if (isInteractive) {
       answers = await handleInteractive(state);
     } else if (answersArg) {
-      const answersText = answersArg === '-' ? fs.readFileSync(0, 'utf-8') : fs.readFileSync(answersArg, 'utf-8');
+      const answersText =
+        answersArg === '-'
+          ? fs.readFileSync(0, 'utf-8')
+          : fs.readFileSync(answersArg, 'utf-8');
       answers = parseYamlAnswers(answersText);
     } else {
-      console.error('[reflexion] --resume requires --answers <file|-> or --interactive.');
+      console.error(
+        '[reflexion] --resume requires --answers <file|-> or --interactive.'
+      );
       return 1;
     }
 
@@ -185,17 +202,20 @@ async function main(): Promise<number> {
               `[gstack ${c.gstackDiagnosis} | atomic ${c.atomicBatches} | ethos ${c.productionEthos} | web ${c.modernWeb}] passed=${c.passed}`
           );
         } else {
-           console.error(`[reflexion] phase: ${e.phase}`);
+          console.error(`[reflexion] phase: ${e.phase}`);
         }
       }
     );
-
   } else {
     const briefFile = arg('--brief-file');
     const positional = process.argv.slice(2).find((a) => !a.startsWith('--'));
-    const brief = briefFile ? fs.readFileSync(briefFile, 'utf-8').trim() : positional?.trim();
+    const brief = briefFile
+      ? fs.readFileSync(briefFile, 'utf-8').trim()
+      : positional?.trim();
     if (!brief) {
-      console.error('Usage: reflexion-loop "<brief>" [--repo .] [--max 3] [--threshold 8] [--out .reflexion-out]');
+      console.error(
+        'Usage: reflexion-loop "<brief>" [--repo .] [--max 3] [--threshold 8] [--out .reflexion-out]'
+      );
       return 1;
     }
 
@@ -219,7 +239,7 @@ async function main(): Promise<number> {
               `[gstack ${c.gstackDiagnosis} | atomic ${c.atomicBatches} | ethos ${c.productionEthos} | web ${c.modernWeb}] passed=${c.passed}`
           );
         } else {
-           console.error(`[reflexion] phase: ${e.phase}`);
+          console.error(`[reflexion] phase: ${e.phase}`);
         }
       }
     );
@@ -229,11 +249,21 @@ async function main(): Promise<number> {
   let exitCode = 0;
   if (result.stopReason === 'passed' || result.stopReason === 'user-approve') {
     exitCode = 0;
-  } else if (!result.stopReason && result.interview && result.interview.questions.length > 0) {
+  } else if (
+    !result.stopReason &&
+    result.interview &&
+    result.interview.questions.length > 0
+  ) {
     exitCode = 2; // parked
-  } else if (result.stopReason === 'budget-exceeded' || result.stopReason === 'user-stop') {
+  } else if (
+    result.stopReason === 'budget-exceeded' ||
+    result.stopReason === 'user-stop'
+  ) {
     exitCode = 3;
-  } else if (result.stopReason === 'refine-contract-violation' || result.verdict === 'unknown') {
+  } else if (
+    result.stopReason === 'refine-contract-violation' ||
+    result.verdict === 'unknown'
+  ) {
     exitCode = 4;
   } else {
     // If auto mode hits max-revisions, it doesn't pass. Could be considered exit 2 per v1, or 2 per v2 specs.
@@ -247,28 +277,54 @@ async function main(): Promise<number> {
   fs.mkdirSync(outDir, { recursive: true });
 
   if (result.rounds.length > 0) {
-    fs.writeFileSync(path.join(outDir, 'plan.md'), result.rounds.at(-1)?.draft ?? '');
-    fs.writeFileSync(path.join(outDir, 'critique.json'), JSON.stringify(result, null, 2));
+    fs.writeFileSync(
+      path.join(outDir, 'plan.md'),
+      result.rounds.at(-1)?.draft ?? ''
+    );
+    fs.writeFileSync(
+      path.join(outDir, 'critique.json'),
+      JSON.stringify(result, null, 2)
+    );
     if (result.scores.length >= 2) {
-      fs.writeFileSync(path.join(outDir, 'diminishing-returns.svg'), svgChart(result.scores, passThreshold));
+      fs.writeFileSync(
+        path.join(outDir, 'diminishing-returns.svg'),
+        svgChart(result.scores, passThreshold)
+      );
     }
   }
 
-  if (exitCode === 2 && result.interview && result.interview.questions.length > 0) {
-    fs.writeFileSync(path.join(outDir, 'interview.md'), formatInterviewMd(result.runId, result.interview.questions));
+  if (
+    exitCode === 2 &&
+    result.interview &&
+    result.interview.questions.length > 0
+  ) {
+    fs.writeFileSync(
+      path.join(outDir, 'interview.md'),
+      formatInterviewMd(result.runId, result.interview.questions)
+    );
   } else if (exitCode === 0) {
     fs.writeFileSync(path.join(outDir, 'ide-prompt.md'), result.idePrompt);
   }
 
   console.log('\n' + '='.repeat(56));
+  if (result.criticDegraded) {
+    console.log(
+      '⚠️  WARNING: Critique ran in fallback mode (Gemini 3.1 Pro) because the Claude API was unavailable — model separation was reduced; review this plan with extra scrutiny.'
+    );
+    console.log('-'.repeat(56));
+  }
   console.log(`Scores per revision : ${JSON.stringify(result.scores)}`);
-  console.log(`Final score         : ${result.finalScore}/10  passed=${result.finalPassed}`);
+  console.log(
+    `Final score         : ${result.finalScore}/10  passed=${result.finalPassed}`
+  );
   console.log(`Revisions used      : ${result.revisionsUsed}/${maxRevisions}`);
   console.log('-'.repeat(56));
   console.log('ADJUDICATOR VERDICT:\n' + result.verdict);
   console.log('-'.repeat(56));
   console.log(`Artifacts written to: ${path.resolve(outDir)}`);
-  console.log(`  plan.md · critique.json${result.scores.length >= 2 ? ' · diminishing-returns.svg' : ''}${exitCode === 2 ? ' · interview.md' : ''}${exitCode === 0 ? ' · ide-prompt.md' : ''}`);
+  console.log(
+    `  plan.md · critique.json${result.scores.length >= 2 ? ' · diminishing-returns.svg' : ''}${exitCode === 2 ? ' · interview.md' : ''}${exitCode === 0 ? ' · ide-prompt.md' : ''}`
+  );
   console.log('='.repeat(56));
 
   return exitCode;
@@ -277,6 +333,9 @@ async function main(): Promise<number> {
 main()
   .then((code) => process.exit(code))
   .catch((err) => {
-    console.error('[reflexion] error:', err instanceof Error ? err.message : err);
+    console.error(
+      '[reflexion] error:',
+      err instanceof Error ? err.message : err
+    );
     process.exit(4);
   });

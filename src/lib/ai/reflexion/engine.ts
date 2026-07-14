@@ -1,24 +1,24 @@
 import {
+  ADJUDICATOR_SYSTEM,
+  buildIdeHandoffPrompt,
+  CRITIC_SYSTEM,
+  focusPillarsBlock,
+  GENERATOR_SYSTEM,
+  generatorRevisionPrompt,
+  INTERVIEWER_SYSTEM,
+  RUBRIC,
+  sectionRefinePrompt,
+  stackContextBlock,
+} from './prompts';
+import {
+  Answers,
   Critique,
   Interview,
-  StopReason,
-  StateStore,
-  Answers,
-  ReflexionStateV2,
   LoopParamsPatchSchema,
+  ReflexionStateV2,
+  StateStore,
+  StopReason,
 } from './schema';
-import {
-  CRITIC_SYSTEM,
-  GENERATOR_SYSTEM,
-  ADJUDICATOR_SYSTEM,
-  INTERVIEWER_SYSTEM,
-  buildIdeHandoffPrompt,
-  generatorRevisionPrompt,
-  stackContextBlock,
-  sectionRefinePrompt,
-  focusPillarsBlock,
-  RUBRIC,
-} from './prompts';
 
 /**
  * The Reflexion loop itself — pure orchestration, no I/O and no SDK imports.
@@ -39,6 +39,7 @@ export interface ReflexionRunner {
   getUsage(): { tokens: number; costUsd: number };
   /** The resolved model ids, for display/telemetry. */
   models: { creator: string; critic: string; adjudicator: string };
+  wasDegraded(): boolean;
 }
 
 export interface ReflexionConfig {
@@ -77,6 +78,7 @@ export interface ReflexionResult {
   models: ReflexionRunner['models'];
   stopReason?: StopReason;
   interview?: Interview;
+  criticDegraded: boolean;
 }
 
 export type StepEvent =
@@ -90,8 +92,10 @@ export type StepEvent =
 function checkBudget(runner: ReflexionRunner, cfg: ReflexionConfig): boolean {
   if (!cfg.budget) return true;
   const usage = runner.getUsage();
-  if (cfg.budget.maxTotalTokens && usage.tokens > cfg.budget.maxTotalTokens) return false;
-  if (cfg.budget.maxCostUsd && usage.costUsd > cfg.budget.maxCostUsd) return false;
+  if (cfg.budget.maxTotalTokens && usage.tokens > cfg.budget.maxTotalTokens)
+    return false;
+  if (cfg.budget.maxCostUsd && usage.costUsd > cfg.budget.maxCostUsd)
+    return false;
   return true;
 }
 
@@ -101,21 +105,32 @@ export async function runReflexion(
   onStep?: (e: StepEvent) => void,
   existingState?: ReflexionStateV2
 ): Promise<ReflexionResult> {
-  const runId = existingState?.runId || `run-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  const runId =
+    existingState?.runId ||
+    `run-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   const mode = cfg.mode ?? 'interview';
   const maxRevisions = cfg.maxRevisions ?? 3;
   const passThreshold = cfg.passThreshold ?? 8;
   const stackBlock = stackContextBlock(cfg.stack ?? '');
   const focusBlock = focusPillarsBlock(cfg.focusPillars ?? []);
 
-  const rounds: ReflexionRound[] = existingState ?
-    existingState.critiques.map((c, i) => ({ revision: i, draft: existingState.plan, critique: c })) : [];
-  const scores: number[] = existingState?.critiques.map(c => c.score) || [];
+  const rounds: ReflexionRound[] = existingState
+    ? existingState.critiques.map((c, i) => ({
+        revision: i,
+        draft: existingState.plan,
+        critique: c,
+      }))
+    : [];
+  const scores: number[] = existingState?.critiques.map((c) => c.score) || [];
 
   let draft = existingState?.plan || '';
-  let fix = existingState?.critiques?.[existingState.critiques.length - 1]?.actionableFix || '';
-  let score = existingState?.critiques?.[existingState.critiques.length - 1]?.score || 0;
-  let last: Critique | null = existingState?.critiques?.[existingState.critiques.length - 1] || null;
+  let fix =
+    existingState?.critiques?.[existingState.critiques.length - 1]
+      ?.actionableFix || '';
+  let score =
+    existingState?.critiques?.[existingState.critiques.length - 1]?.score || 0;
+  let last: Critique | null =
+    existingState?.critiques?.[existingState.critiques.length - 1] || null;
   let stopReason: StopReason | undefined = existingState?.stopReason;
   let phase = existingState?.phase || 'INIT';
   let interviewResult: Interview | undefined = existingState?.interview;
@@ -130,21 +145,30 @@ export async function runReflexion(
         brief: cfg.brief,
         phase,
         plan: draft,
-        critiques: rounds.map(r => r.critique),
+        critiques: rounds.map((r) => r.critique),
         revision: rounds.length - 1,
         params: { passThreshold, maxRevisions, focus: cfg.focusPillars },
-        usage: { totalTokens: usage.tokens, costUsd: usage.costUsd, perPhase: [] },
+        usage: {
+          totalTokens: usage.tokens,
+          costUsd: usage.costUsd,
+          perPhase: [],
+        },
         interview: interviewResult,
         stopReason,
         createdAt: existingState?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        criticDegraded: runner.wasDegraded() || !!existingState?.criticDegraded,
       });
     }
   };
 
   const startRevision = existingState ? existingState.revision + 1 : 0;
 
-  if (phase === 'INIT' || phase.startsWith('GENERATING') || phase.startsWith('CRITIQUING')) {
+  if (
+    phase === 'INIT' ||
+    phase.startsWith('GENERATING') ||
+    phase.startsWith('CRITIQUING')
+  ) {
     for (let revision = startRevision; revision <= maxRevisions; revision++) {
       if (!checkBudget(runner, cfg)) {
         stopReason = 'budget-exceeded';
@@ -171,7 +195,10 @@ export async function runReflexion(
       const critiquePrompt =
         `${stackBlock}\nORIGINAL BRIEF:\n${cfg.brief}\n\n` +
         `PLAN TO GRADE:\n---\n${draft}\n---${focusBlock}`;
-      const crit = await runner.critique(critiquePrompt, CRITIC_SYSTEM + focusBlock);
+      const crit = await runner.critique(
+        critiquePrompt,
+        CRITIC_SYSTEM + focusBlock
+      );
 
       last = crit;
       score = crit.score;
@@ -200,7 +227,10 @@ export async function runReflexion(
         `PASS THRESHOLD: ${passThreshold}/10 | REVISIONS USED: ${rounds.length - 1}/${maxRevisions} | PASSED: ${last?.passed}\n\n` +
         `FINAL CRITIQUE: ${JSON.stringify(last)}\n\n` +
         `FINAL PLAN:\n---\n${draft}\n---`;
-      const verdict = await runner.adjudicate(adjudicatorPrompt, ADJUDICATOR_SYSTEM);
+      const verdict = await runner.adjudicate(
+        adjudicatorPrompt,
+        ADJUDICATOR_SYSTEM
+      );
 
       if (mode === 'interview') {
         await saveState('INTERVIEWING');
@@ -210,10 +240,19 @@ export async function runReflexion(
           `CRITIQUE:\n${JSON.stringify(last)}\n\n` +
           `LOOP PARAMS:\n${JSON.stringify({ passThreshold, maxRevisions })}`;
 
-        interviewResult = await runner.interview(interviewPrompt, INTERVIEWER_SYSTEM);
+        interviewResult = await runner.interview(
+          interviewPrompt,
+          INTERVIEWER_SYSTEM
+        );
 
         // Zero-question rule
-        if (last && last.gstackDiagnosis >= 9 && last.atomicBatches >= 9 && last.productionEthos >= 9 && last.modernWeb >= 9) {
+        if (
+          last &&
+          last.gstackDiagnosis >= 9 &&
+          last.atomicBatches >= 9 &&
+          last.productionEthos >= 9 &&
+          last.modernWeb >= 9
+        ) {
           interviewResult.recommendation = 'approve';
           interviewResult.questions = [];
         }
@@ -234,14 +273,19 @@ export async function runReflexion(
             idePrompt: '', // Empty while parked
             models: runner.models,
             interview: interviewResult,
+            criticDegraded:
+              runner.wasDegraded() || !!existingState?.criticDegraded,
           };
         } else {
           stopReason = 'passed';
           await saveState('APPROVED');
         }
       } else {
-        stopReason = last?.passed || score >= passThreshold ? 'passed' : 'max-revisions';
-        await saveState(stopReason === 'passed' ? 'APPROVED' : `STOPPED(${stopReason})`);
+        stopReason =
+          last?.passed || score >= passThreshold ? 'passed' : 'max-revisions';
+        await saveState(
+          stopReason === 'passed' ? 'APPROVED' : `STOPPED(${stopReason})`
+        );
       }
 
       return {
@@ -257,6 +301,7 @@ export async function runReflexion(
         models: runner.models,
         stopReason,
         interview: interviewResult,
+        criticDegraded: runner.wasDegraded() || !!existingState?.criticDegraded,
       };
     }
   }
@@ -270,9 +315,13 @@ export async function runReflexion(
     finalPassed: Boolean(last?.passed),
     revisionsUsed: Math.max(0, rounds.length - 1),
     verdict: stopReason || 'unknown',
-    idePrompt: stopReason === 'passed' || stopReason === 'user-approve' ? buildIdeHandoffPrompt(cfg.brief, draft, score) : '',
+    idePrompt:
+      stopReason === 'passed' || stopReason === 'user-approve'
+        ? buildIdeHandoffPrompt(cfg.brief, draft, score)
+        : '',
     models: runner.models,
     stopReason,
+    criticDegraded: runner.wasDegraded() || !!existingState?.criticDegraded,
   };
 }
 
@@ -294,15 +343,24 @@ export async function resumeReflexion(
     return {
       runId: state.runId,
       brief: state.brief,
-      rounds: state.critiques.map((c, i) => ({ revision: i, draft: state.plan, critique: c })),
-      scores: state.critiques.map(c => c.score),
+      rounds: state.critiques.map((c, i) => ({
+        revision: i,
+        draft: state.plan,
+        critique: c,
+      })),
+      scores: state.critiques.map((c) => c.score),
       finalScore: last?.score || 0,
       finalPassed: last?.passed || false,
       revisionsUsed: state.revision,
       verdict: 'Approved by user',
-      idePrompt: buildIdeHandoffPrompt(state.brief, state.plan, last?.score || 0),
+      idePrompt: buildIdeHandoffPrompt(
+        state.brief,
+        state.plan,
+        last?.score || 0
+      ),
       models: runner.models,
-      stopReason: 'user-approve'
+      stopReason: 'user-approve',
+      criticDegraded: runner.wasDegraded() || !!state.criticDegraded,
     };
   }
 
@@ -321,27 +379,29 @@ export async function resumeReflexion(
       verdict: 'Stopped by user',
       idePrompt: '',
       models: runner.models,
-      stopReason: 'user-stop'
+      stopReason: 'user-stop',
+      criticDegraded: runner.wasDegraded() || !!state.criticDegraded,
     };
   }
 
-  const loopAnswers = answers.decisions.filter(d => {
-    const q = state.interview?.questions.find(q => q.id === d.id);
+  const loopAnswers = answers.decisions.filter((d) => {
+    const q = state.interview?.questions.find((q) => q.id === d.id);
     return q?.target === 'loop';
   });
 
-  const planAnswers = answers.decisions.filter(d => {
-    const q = state.interview?.questions.find(q => q.id === d.id);
+  const planAnswers = answers.decisions.filter((d) => {
+    const q = state.interview?.questions.find((q) => q.id === d.id);
     return q?.target === 'plan';
   });
 
   if (loopAnswers.length > 0) {
     state.phase = 'TUNING_LOOP';
+    state.criticDegraded = runner.wasDegraded() || !!state.criticDegraded;
     if (cfg.stateStore) await cfg.stateStore.save(state);
 
     const patch: any = {};
     for (const ans of loopAnswers) {
-      const q = state.interview?.questions.find(q => q.id === ans.id);
+      const q = state.interview?.questions.find((q) => q.id === ans.id);
       if (q && q.ref) {
         try {
           patch[q.ref] = JSON.parse(ans.answer);
@@ -359,7 +419,7 @@ export async function resumeReflexion(
     if (validPatch.maxCostUsd || validPatch.maxTotalTokens) {
       cfg.budget = {
         maxCostUsd: validPatch.maxCostUsd ?? cfg.budget?.maxCostUsd,
-        maxTotalTokens: validPatch.maxTotalTokens ?? cfg.budget?.maxTotalTokens
+        maxTotalTokens: validPatch.maxTotalTokens ?? cfg.budget?.maxTotalTokens,
       };
     }
 
@@ -369,15 +429,17 @@ export async function resumeReflexion(
 
   if (planAnswers.length > 0) {
     state.phase = 'REFINING_PLAN';
+    state.criticDegraded = runner.wasDegraded() || !!state.criticDegraded;
     if (cfg.stateStore) await cfg.stateStore.save(state);
 
     let newPlan = state.plan;
     for (const ans of planAnswers) {
-      const q = state.interview?.questions.find(q => q.id === ans.id);
+      const q = state.interview?.questions.find((q) => q.id === ans.id);
       if (q && q.ref) {
         if (!checkBudget(runner, cfg)) {
           state.stopReason = 'budget-exceeded';
           state.phase = 'STOPPED(budget-exceeded)';
+          state.criticDegraded = runner.wasDegraded() || !!state.criticDegraded;
           if (cfg.stateStore) await cfg.stateStore.save(state);
           return {
             runId: state.runId,
@@ -390,7 +452,8 @@ export async function resumeReflexion(
             verdict: 'Budget exceeded during section refinement',
             idePrompt: '',
             models: runner.models,
-            stopReason: 'budget-exceeded'
+            stopReason: 'budget-exceeded',
+            criticDegraded: runner.wasDegraded() || !!state.criticDegraded,
           };
         }
 
@@ -403,9 +466,13 @@ export async function resumeReflexion(
         const priorUntouched = getUntouchedSections(state.plan, q.ref);
         const newUntouched = getUntouchedSections(rewrittenPlan, q.ref);
 
-        if (priorUntouched !== newUntouched || rewrittenPlan === 'DUMMY_VIOLATION') {
+        if (
+          priorUntouched !== newUntouched ||
+          rewrittenPlan === 'DUMMY_VIOLATION'
+        ) {
           state.stopReason = 'refine-contract-violation';
           state.phase = 'STOPPED(refine-contract-violation)';
+          state.criticDegraded = runner.wasDegraded() || !!state.criticDegraded;
           if (cfg.stateStore) await cfg.stateStore.save(state);
           return {
             runId: state.runId,
@@ -418,7 +485,8 @@ export async function resumeReflexion(
             verdict: 'Contract violation',
             idePrompt: '',
             models: runner.models,
-            stopReason: 'refine-contract-violation'
+            stopReason: 'refine-contract-violation',
+            criticDegraded: runner.wasDegraded() || !!state.criticDegraded,
           };
         }
 
@@ -430,6 +498,7 @@ export async function resumeReflexion(
     state.plan = newPlan;
     state.revision += 1;
     state.phase = 'CRITIQUING';
+    state.criticDegraded = runner.wasDegraded() || !!state.criticDegraded;
     if (cfg.stateStore) await cfg.stateStore.save(state);
 
     onStep?.({ phase: 'critique', revision: state.revision });
@@ -439,12 +508,16 @@ export async function resumeReflexion(
       `${stackBlock}\nORIGINAL BRIEF:\n${cfg.brief}\n\n` +
       `PLAN TO GRADE:\n---\n${state.plan}\n---${focusBlock}`;
 
-    const crit = await runner.critique(critiquePrompt, CRITIC_SYSTEM + focusBlock);
+    const crit = await runner.critique(
+      critiquePrompt,
+      CRITIC_SYSTEM + focusBlock
+    );
     state.critiques.push(crit);
     onStep?.({ phase: 'scored', revision: state.revision, critique: crit });
 
     // Drop directly back into the interview/adjudication phase, skipping generator
     state.phase = 'ADJUDICATING';
+    state.criticDegraded = runner.wasDegraded() || !!state.criticDegraded;
     if (cfg.stateStore) await cfg.stateStore.save(state);
   }
 
@@ -454,13 +527,17 @@ export async function resumeReflexion(
 
 /** Extracts the section chunk starting at \`slug\` up to the next \`##\` or EOF */
 function extractSection(plan: string, slug: string): string {
-  const match = new RegExp(`(^|\\n)(${slug}\\b[\\s\\S]*?)(?=\\n## |$)`).exec(plan);
+  const match = new RegExp(`(^|\\n)(${slug}\\b[\\s\\S]*?)(?=\\n## |$)`).exec(
+    plan
+  );
   return match ? match[2].trim() : `${slug}\nContent`;
 }
 
 /** Returns the plan with the target section excised, for byte-compare invariant checks */
 function getUntouchedSections(plan: string, slug: string): string {
-  const match = new RegExp(`(^|\\n)(${slug}\\b[\\s\\S]*?)(?=\\n## |$)`).exec(plan);
+  const match = new RegExp(`(^|\\n)(${slug}\\b[\\s\\S]*?)(?=\\n## |$)`).exec(
+    plan
+  );
   if (!match) return plan;
   return plan.replace(match[2], '').trim();
 }

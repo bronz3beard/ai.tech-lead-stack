@@ -3,7 +3,9 @@ const { z } = require('zod');
 // We use the AnswersSchema definition structure from src/lib/ai/reflexion/schema.ts
 const AnswersSchema = z.object({
   runId: z.string(),
-  decisions: z.array(z.object({ id: z.string(), answer: z.string() })).default([]),
+  decisions: z
+    .array(z.object({ id: z.string(), answer: z.string() }))
+    .default([]),
   directive: z.enum(['approve', 'stop']).optional(),
 });
 
@@ -71,7 +73,9 @@ function formatRunnerComment(opts) {
 
   if (opts.answersTemplate) {
     parts.push('#### Your Turn: Reply to this issue');
-    parts.push('Copy and edit the YAML block below, and reply with it starting your comment with `/reflexion answers`:');
+    parts.push(
+      'Copy and edit the YAML block below, and reply with it starting your comment with `/reflexion answers`:'
+    );
     parts.push('');
     parts.push(opts.answersTemplate);
   }
@@ -100,5 +104,5 @@ module.exports = {
   extractProcessedCommentIdMarker,
   formatRunnerComment,
   extractYamlBlock,
-  validateAnswers
+  validateAnswers,
 };

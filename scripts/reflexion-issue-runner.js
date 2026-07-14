@@ -14,7 +14,7 @@ const {
   extractProcessedCommentIdMarker,
   extractYamlBlock,
   formatRunnerComment,
-  validateAnswers
+  validateAnswers,
 } = require('./reflexion-issue-runner-utils.js');
 
 const RUN_ID = process.env.GITHUB_RUN_ID;
@@ -26,7 +26,7 @@ const OUT_DIR = path.join(WORKSPACE, '.reflexion-out');
 
 async function main() {
   if (!EVENT_PATH || !fs.existsSync(EVENT_PATH)) {
-    console.error("GITHUB_EVENT_PATH is not set or file does not exist.");
+    console.error('GITHUB_EVENT_PATH is not set or file does not exist.');
     process.exit(1);
   }
 
@@ -40,10 +40,10 @@ async function main() {
     } else if (process.env.GITHUB_EVENT_NAME === 'issues') {
       await handleStartPath(eventPayload);
     } else {
-      console.log("Unhandled event type:", process.env.GITHUB_EVENT_NAME);
+      console.log('Unhandled event type:', process.env.GITHUB_EVENT_NAME);
     }
   } catch (err) {
-    console.error("Runner error:", err);
+    console.error('Runner error:', err);
     await postDiagnosticComment(eventPayload, err.message);
     process.exit(1);
   }
@@ -52,7 +52,7 @@ async function main() {
 async function handleDispatchPath(payload) {
   const issueNumber = payload.inputs?.issue_number;
   if (!issueNumber) {
-    console.error("No issue number provided in dispatch inputs.");
+    console.error('No issue number provided in dispatch inputs.');
     process.exit(0);
   }
 
@@ -61,9 +61,9 @@ async function handleDispatchPath(payload) {
   const url = `https://api.github.com/repos/${repo}/issues/${issueNumber}`;
   const res = await fetch(url, {
     headers: {
-      'Authorization': `Bearer ${TOKEN}`,
-      'Accept': 'application/vnd.github.v3+json'
-    }
+      Authorization: `Bearer ${TOKEN}`,
+      Accept: 'application/vnd.github.v3+json',
+    },
   });
 
   if (!res.ok) {
@@ -77,7 +77,7 @@ async function handleDispatchPath(payload) {
 async function handleStartPath(payload) {
   const issue = payload.issue;
   if (!issue) {
-    console.error("No issue found in payload.");
+    console.error('No issue found in payload.');
     process.exit(0);
   }
 
@@ -88,7 +88,7 @@ async function handleStartPath(payload) {
 
   const turnCount = await countTurns(issue.number);
   if (turnCount >= 10) {
-    throw new Error("Hard stop: Maximum of 10 loop turns per issue reached.");
+    throw new Error('Hard stop: Maximum of 10 loop turns per issue reached.');
   }
 
   const brief = `${issue.title}\n\n${issue.body || ''}`;
@@ -96,7 +96,7 @@ async function handleStartPath(payload) {
   const briefFile = path.join(WORKSPACE, 'reflexion-brief.md');
   fs.writeFileSync(briefFile, brief, 'utf-8');
 
-  console.log("Invoking reflexion-loop.ts for start...");
+  console.log('Invoking reflexion-loop.ts for start...');
   const cmd = 'npx';
   const args = [
     'tsx',
@@ -108,10 +108,13 @@ async function handleStartPath(payload) {
     '--max',
     maxRevisions,
     '--out',
-    OUT_DIR
+    OUT_DIR,
   ];
 
-  const result = spawnSync(cmd, args, { stdio: 'inherit', env: { ...process.env, REFLEXION_MAX_COST_USD: maxCostUsd } });
+  const result = spawnSync(cmd, args, {
+    stdio: 'inherit',
+    env: { ...process.env, REFLEXION_MAX_COST_USD: maxCostUsd },
+  });
 
   if (result.status !== 0 && result.status !== 2) {
     throw new Error(`Reflexion script failed with status ${result.status}`);
@@ -126,16 +129,19 @@ async function countTurns(issueNumber) {
 
   const res = await fetch(listCommentsUrl, {
     headers: {
-      'Authorization': `Bearer ${TOKEN}`,
-      'Accept': 'application/vnd.github.v3+json'
-    }
+      Authorization: `Bearer ${TOKEN}`,
+      Accept: 'application/vnd.github.v3+json',
+    },
   });
   if (!res.ok) return 0;
 
   const comments = await res.json();
   let count = 0;
   for (const c of comments) {
-    if (c.user.login === 'github-actions[bot]' && c.body.includes('<!-- reflexion-run:')) {
+    if (
+      c.user.login === 'github-actions[bot]' &&
+      c.body.includes('<!-- reflexion-run:')
+    ) {
       count++;
     }
   }
@@ -150,9 +156,9 @@ async function downloadArtifact(runId, artifactName, token) {
 
   const res = await fetch(listUrl, {
     headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/vnd.github.v3+json'
-    }
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/vnd.github.v3+json',
+    },
   });
 
   if (!res.ok) {
@@ -160,7 +166,7 @@ async function downloadArtifact(runId, artifactName, token) {
   }
 
   const data = await res.json();
-  const artifact = data.artifacts.find(a => a.name === artifactName);
+  const artifact = data.artifacts.find((a) => a.name === artifactName);
 
   if (!artifact) {
     throw new Error(`Artifact ${artifactName} not found for run ${runId}`);
@@ -169,8 +175,8 @@ async function downloadArtifact(runId, artifactName, token) {
   const downloadUrl = artifact.archive_download_url;
   const downloadRes = await fetch(downloadUrl, {
     headers: {
-      'Authorization': `Bearer ${token}`
-    }
+      Authorization: `Bearer ${token}`,
+    },
   });
 
   if (!downloadRes.ok) {
@@ -197,12 +203,12 @@ async function handleResumePath(payload) {
   if (!comment || !issue) return;
 
   if (comment.user.login === 'github-actions[bot]') {
-    console.log("Ignoring comment from github-actions[bot]");
+    console.log('Ignoring comment from github-actions[bot]');
     return;
   }
 
   if (!comment.body.startsWith('/reflexion')) {
-    console.log("Not a reflexion command comment.");
+    console.log('Not a reflexion command comment.');
     return;
   }
 
@@ -213,9 +219,9 @@ async function handleResumePath(payload) {
 
   const res = await fetch(listCommentsUrl, {
     headers: {
-      'Authorization': `Bearer ${TOKEN}`,
-      'Accept': 'application/vnd.github.v3+json'
-    }
+      Authorization: `Bearer ${TOKEN}`,
+      Accept: 'application/vnd.github.v3+json',
+    },
   });
 
   if (!res.ok) {
@@ -230,7 +236,9 @@ async function handleResumePath(payload) {
     if (c.user.login === 'github-actions[bot]') {
       const processedId = extractProcessedCommentIdMarker(c.body);
       if (processedId === String(comment.id)) {
-        console.log(`Comment ID ${comment.id} has already been processed by the bot. Idempotency safeguard applied.`);
+        console.log(
+          `Comment ID ${comment.id} has already been processed by the bot. Idempotency safeguard applied.`
+        );
         process.exit(0);
       }
     }
@@ -238,24 +246,26 @@ async function handleResumePath(payload) {
 
   const turnCount = await countTurns(issue.number);
   if (turnCount >= 10) {
-    throw new Error("Hard stop: Maximum of 10 loop turns per issue reached.");
+    throw new Error('Hard stop: Maximum of 10 loop turns per issue reached.');
   }
 
   const yamlBlock = extractYamlBlock(comment.body);
   if (!yamlBlock) {
-    throw new Error("No YAML block found in the comment.");
+    throw new Error('No YAML block found in the comment.');
   }
 
   let parsedYaml;
   try {
     parsedYaml = yaml.load(yamlBlock);
-  } catch(e) {
-    throw new Error("Failed to parse YAML block: " + e.message);
+  } catch (e) {
+    throw new Error('Failed to parse YAML block: ' + e.message);
   }
 
   const validation = validateAnswers(parsedYaml);
   if (!validation.success) {
-    throw new Error("YAML block schema validation failed:\n" + validation.error.message);
+    throw new Error(
+      'YAML block schema validation failed:\n' + validation.error.message
+    );
   }
 
   let prevRunId = null;
@@ -271,15 +281,21 @@ async function handleResumePath(payload) {
   }
 
   if (!prevRunId) {
-    throw new Error("Could not find a previous run ID marker from a bot comment to resume from.");
+    throw new Error(
+      'Could not find a previous run ID marker from a bot comment to resume from.'
+    );
   }
 
   await downloadArtifact(prevRunId, `reflexion-state-${issue.number}`, TOKEN);
 
   const answersFile = path.join(WORKSPACE, 'reflexion-answers.yaml');
-  fs.writeFileSync(answersFile, `\`\`\`yaml answers:\n${yamlBlock}\n\`\`\``, 'utf-8');
+  fs.writeFileSync(
+    answersFile,
+    `\`\`\`yaml answers:\n${yamlBlock}\n\`\`\``,
+    'utf-8'
+  );
 
-  console.log("Invoking reflexion-loop.ts for resume...");
+  console.log('Invoking reflexion-loop.ts for resume...');
   const maxCostUsd = process.env.REFLEXION_MAX_COST_USD || '3';
   const cmd = 'npx';
   const args = [
@@ -288,10 +304,13 @@ async function handleResumePath(payload) {
     '--resume',
     OUT_DIR,
     '--answers',
-    answersFile
+    answersFile,
   ];
 
-  const result = spawnSync(cmd, args, { stdio: 'inherit', env: { ...process.env, REFLEXION_MAX_COST_USD: maxCostUsd } });
+  const result = spawnSync(cmd, args, {
+    stdio: 'inherit',
+    env: { ...process.env, REFLEXION_MAX_COST_USD: maxCostUsd },
+  });
 
   if (result.status !== 0 && result.status !== 2) {
     throw new Error(`Reflexion script failed with status ${result.status}`);
@@ -301,9 +320,17 @@ async function handleResumePath(payload) {
 }
 
 async function postResultComment(issueNumber, triggeringCommentId) {
-  const stateFiles = fs.readdirSync(OUT_DIR).filter(f => f.endsWith('.json') && !f.endsWith('-answers.json') && !f.endsWith('-critique.json') && f !== 'eval.json');
+  const stateFiles = fs
+    .readdirSync(OUT_DIR)
+    .filter(
+      (f) =>
+        f.endsWith('.json') &&
+        !f.endsWith('-answers.json') &&
+        !f.endsWith('-critique.json') &&
+        f !== 'eval.json'
+    );
   if (stateFiles.length === 0) {
-    throw new Error("No state file generated.");
+    throw new Error('No state file generated.');
   }
 
   const statePath = path.join(OUT_DIR, stateFiles[0]);
@@ -316,18 +343,24 @@ async function postResultComment(issueNumber, triggeringCommentId) {
     });
   }
 
-  let verdict = "stop";
+  let verdict = 'stop';
   if (state.stopReason === 'passed') verdict = 'approve';
-  else if (state.stopReason === 'max-revisions' || state.stopReason === 'budget-exceeded') verdict = state.stopReason;
+  else if (
+    state.stopReason === 'max-revisions' ||
+    state.stopReason === 'budget-exceeded'
+  )
+    verdict = state.stopReason;
   else if (state.interview) verdict = state.interview.recommendation;
 
   let interviewQuestions = null;
   let answersTemplate = null;
 
   if (state.interview && state.interview.questions) {
-    interviewQuestions = state.interview.questions.map(q => `**${q.id}**: ${q.question}\n*Why: ${q.why}*`).join('\n\n');
+    interviewQuestions = state.interview.questions
+      .map((q) => `**${q.id}**: ${q.question}\n*Why: ${q.why}*`)
+      .join('\n\n');
     answersTemplate = `\`\`\`yaml answers:\nrunId: "${RUN_ID}"\n# directive: "approve"\ndecisions:\n`;
-    state.interview.questions.forEach(q => {
+    state.interview.questions.forEach((q) => {
       answersTemplate += `  - id: "${q.id}"\n    answer: ""\n`;
     });
     answersTemplate += '```';
@@ -351,7 +384,7 @@ async function postResultComment(issueNumber, triggeringCommentId) {
     interviewQuestions,
     answersTemplate,
     usageCost,
-    idePrompt
+    idePrompt,
   });
 
   await createIssueComment(issueNumber, commentBody);
@@ -370,7 +403,7 @@ async function postDiagnosticComment(payload, errorMsg) {
   const commentBody = formatRunnerComment({
     runId: RUN_ID,
     triggeringCommentId,
-    diagnostic: errorMsg
+    diagnostic: errorMsg,
   });
 
   await createIssueComment(issueNumber, commentBody);
@@ -383,11 +416,11 @@ async function createIssueComment(issueNumber, body) {
   const res = await fetch(url, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${TOKEN}`,
-      'Accept': 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json'
+      Authorization: `Bearer ${TOKEN}`,
+      Accept: 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ body })
+    body: JSON.stringify({ body }),
   });
 
   if (!res.ok) {
@@ -402,11 +435,11 @@ async function applyApprovedLabel(issueNumber) {
   const res = await fetch(url, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${TOKEN}`,
-      'Accept': 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json'
+      Authorization: `Bearer ${TOKEN}`,
+      Accept: 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ labels: ['reflexion:approved'] })
+    body: JSON.stringify({ labels: ['reflexion:approved'] }),
   });
 
   if (!res.ok) {
@@ -414,7 +447,7 @@ async function applyApprovedLabel(issueNumber) {
   }
 }
 
-main().catch(err => {
-  console.error("Fatal error in runner:", err);
+main().catch((err) => {
+  console.error('Fatal error in runner:', err);
   process.exit(1);
 });
