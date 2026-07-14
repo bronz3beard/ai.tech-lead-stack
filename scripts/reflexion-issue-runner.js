@@ -376,7 +376,7 @@ async function postResultComment(issueNumber, triggeringCommentId) {
     }
   }
 
-  const commentBody = formatRunnerComment({
+  let commentBody = formatRunnerComment({
     runId: RUN_ID,
     triggeringCommentId: triggeringCommentId,
     scoreTable,
@@ -386,6 +386,12 @@ async function postResultComment(issueNumber, triggeringCommentId) {
     usageCost,
     idePrompt,
   });
+
+  if (state.criticDegraded) {
+    commentBody =
+      'WARNING: Critique ran in fallback mode (Gemini 3.1 Pro) because the Claude API was unavailable — model separation was reduced; review this plan with extra scrutiny.\n\n' +
+      commentBody;
+  }
 
   await createIssueComment(issueNumber, commentBody);
 
