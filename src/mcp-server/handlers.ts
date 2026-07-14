@@ -1,8 +1,8 @@
-import { FileStateStore } from '../lib/ai/reflexion/state-store.js';
-import { runReflexion, resumeReflexion } from '../lib/ai/reflexion/engine.js';
-import { runnerFromEnv } from '../lib/ai/reflexion/providers-env.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { resumeReflexion, runReflexion } from '../lib/ai/reflexion/engine.js';
+import { runnerFromEnv } from '../lib/ai/reflexion/providers-env.js';
+import { FileStateStore } from '../lib/ai/reflexion/state-store.js';
 import { KiService } from '../lib/ki/ki-service.js';
 import { AlignmentService } from '../lib/skills/alignment-service.js';
 import { FileSystemService } from '../lib/skills/fs-service.js';
@@ -42,7 +42,9 @@ export class Handlers {
     );
 
     const skillFiles = Array.from(allSkills)
-      .filter((skill) => !isSkillTrace(undefined, skill) && !skill.startsWith('pm-'))
+      .filter(
+        (skill) => !isSkillTrace(undefined, skill) && !skill.startsWith('pm-')
+      )
       .sort();
 
     return {
@@ -167,7 +169,10 @@ export class Handlers {
     }
 
     try {
-      const result = await this.alignmentService.recordAlignment(agent, projectName);
+      const result = await this.alignmentService.recordAlignment(
+        agent,
+        projectName
+      );
       return {
         content: [{ type: 'text', text: result }],
         isError: false,
@@ -318,9 +323,8 @@ export class Handlers {
         maxRevisions: state.params.maxRevisions,
         passThreshold: state.params.passThreshold,
         mode: 'interview' as const,
-        stateStore
+        stateStore,
       };
-
 
       let revisionCounter = state.revision;
       const result = await resumeReflexion(runner, state, answers, cfg, (e) => {
@@ -331,41 +335,55 @@ export class Handlers {
         if (e.phase === 'interview') teamRole = 'interviewer';
 
         // Call telemetryService directly because this.telemetry is ITelemetry (no recordEvent exposed)
-        import('../lib/telemetry-service.js').then((m) => m.telemetryService.recordEvent({
-          skillName: 'reflexion-loop',
-          projectName: undefined,
-          agent: undefined,
-          duration: 0,
-          status: 'SUCCESS',
-          actorType: 'AGENT',
-          autonomy: 'AUTONOMOUS',
-          loopRunId: runId,
-          loopPhase: e.phase,
-          teamRole,
-          metadata: { revision: revisionCounter, score: ('critique' in e) ? e.critique.score : undefined, passed: ('critique' in e) ? e.critique.passed : undefined }
-        })).catch(() => {});
+        import('../lib/telemetry-service.js')
+          .then((m) =>
+            m.telemetryService.recordEvent({
+              skillName: 'reflexion-loop',
+              projectName: undefined,
+              agent: undefined,
+              duration: 0,
+              status: 'SUCCESS',
+              actorType: 'AGENT',
+              autonomy: 'AUTONOMOUS',
+              loopRunId: runId,
+              loopPhase: e.phase,
+              teamRole,
+              metadata: {
+                revision: revisionCounter,
+                score: 'critique' in e ? e.critique.score : undefined,
+                passed: 'critique' in e ? e.critique.passed : undefined,
+                criticFallback: runner.wasDegraded() ? true : undefined,
+              },
+            })
+          )
+          .catch(() => {});
       });
 
-
-      const finalPass = result.stopReason === 'passed' || result.stopReason === 'user-approve';
+      const finalPass =
+        result.stopReason === 'passed' || result.stopReason === 'user-approve';
 
       return {
         content: [
           {
             type: 'text',
-            text: `Run ID: ${result.runId}\n` +
+            text:
+              `Run ID: ${result.runId}\n` +
               `Verdict: ${result.verdict}\n` +
-              (result.interview?.questions.length ? '\nQuestions waiting:\n' + JSON.stringify(result.interview.questions, null, 2) + '\n' : '') +
-              (finalPass ? '\nIDE Prompt:\n' + result.idePrompt : '')
-          }
-        ]
+              (result.interview?.questions.length
+                ? '\nQuestions waiting:\n' +
+                  JSON.stringify(result.interview.questions, null, 2) +
+                  '\n'
+                : '') +
+              (finalPass ? '\nIDE Prompt:\n' + result.idePrompt : ''),
+          },
+        ],
       };
     } catch (e: any) {
       return { isError: true, content: [{ type: 'text', text: e.message }] };
     }
   }
 
-    async handleReflexionLoop(args: Record<string, any>) {
+  async handleReflexionLoop(args: Record<string, any>) {
     const brief = args.brief?.trim();
     if (!brief) {
       return {
@@ -386,57 +404,76 @@ export class Handlers {
 
       const stateStore = new FileStateStore('.reflexion-out');
 
-
       let runId = 'unknown';
       let revisionCounter = 0;
-      const result = await runReflexion(runner, {
-        brief,
-        stack,
-        maxRevisions,
-        passThreshold,
-        mode,
-        budget,
-        stateStore
-      }, (e) => {
-        let teamRole: string | undefined;
-        if ('revision' in e) revisionCounter = e.revision;
-        if (e.phase === 'critique' || e.phase === 'scored') teamRole = 'critic';
-        if (e.phase === 'adjudicate') teamRole = 'adjudicator';
-        if (e.phase === 'interview') teamRole = 'interviewer';
+      const result = await runReflexion(
+        runner,
+        {
+          brief,
+          stack,
+          maxRevisions,
+          passThreshold,
+          mode,
+          budget,
+          stateStore,
+        },
+        (e) => {
+          let teamRole: string | undefined;
+          if ('revision' in e) revisionCounter = e.revision;
+          if (e.phase === 'critique' || e.phase === 'scored')
+            teamRole = 'critic';
+          if (e.phase === 'adjudicate') teamRole = 'adjudicator';
+          if (e.phase === 'interview') teamRole = 'interviewer';
 
-        // Call telemetryService directly because this.telemetry is ITelemetry (no recordEvent exposed)
-        import('../lib/telemetry-service.js').then((m) => m.telemetryService.recordEvent({
-          skillName: 'reflexion-loop',
-          projectName: undefined,
-          agent: undefined,
-          duration: 0,
-          status: 'SUCCESS',
-          actorType: 'AGENT',
-          autonomy: 'AUTONOMOUS',
-          loopRunId: runId,
-          loopPhase: e.phase,
-          teamRole,
-          metadata: { revision: revisionCounter, score: ('critique' in e) ? e.critique.score : undefined, passed: ('critique' in e) ? e.critique.passed : undefined }
-        })).catch(() => {});
-      });
+          // Call telemetryService directly because this.telemetry is ITelemetry (no recordEvent exposed)
+          import('../lib/telemetry-service.js')
+            .then((m) =>
+              m.telemetryService.recordEvent({
+                skillName: 'reflexion-loop',
+                projectName: undefined,
+                agent: undefined,
+                duration: 0,
+                status: 'SUCCESS',
+                actorType: 'AGENT',
+                autonomy: 'AUTONOMOUS',
+                loopRunId: runId,
+                loopPhase: e.phase,
+                teamRole,
+                metadata: {
+                  revision: revisionCounter,
+                  score: 'critique' in e ? e.critique.score : undefined,
+                  passed: 'critique' in e ? e.critique.passed : undefined,
+                  criticFallback: runner.wasDegraded() ? true : undefined,
+                },
+              })
+            )
+            .catch(() => {});
+        }
+      );
       runId = result.runId; // Unfortunately the events fired before this won't have it unless generated upfront.
 
-
       if (projectName || agent) {
-
       }
 
       return {
         content: [
           {
             type: 'text',
-            text: `Reflexion Loop Finished.\n` +
-                  `Final Score: ${result.finalScore}/10\n` +
-                  `Verdict: ${result.verdict}\n` +
-                  (result.interview?.questions.length ? '\nQuestions waiting:\n' + JSON.stringify(result.interview.questions, null, 2) + '\n' : '') +
-                  ((result.stopReason === 'passed' || result.stopReason === 'user-approve') ? '\nIDE Prompt:\n' + result.idePrompt : '')
-          }
-        ]
+            text:
+              `Reflexion Loop Finished.\n` +
+              `Final Score: ${result.finalScore}/10\n` +
+              `Verdict: ${result.verdict}\n` +
+              (result.interview?.questions.length
+                ? '\nQuestions waiting:\n' +
+                  JSON.stringify(result.interview.questions, null, 2) +
+                  '\n'
+                : '') +
+              (result.stopReason === 'passed' ||
+              result.stopReason === 'user-approve'
+                ? '\nIDE Prompt:\n' + result.idePrompt
+                : ''),
+          },
+        ],
       };
     } catch (e: any) {
       return { isError: true, content: [{ type: 'text', text: e.message }] };
