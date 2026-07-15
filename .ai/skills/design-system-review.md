@@ -2,9 +2,9 @@
 name: design-system-review
 description: >
   AI-augmented design review with a strict 2-iteration guard, sequential memory
-  persistence, and KI creation. Enforces Shadcn/Radix token alignment and
-  coordinates designer quality gates.
-cost: ~1100 tokens
+  persistence, and KI creation. Enforces Shadcn/Radix token alignment, layout
+  fidelity against the Figma frame, and coordinates designer quality gates.
+cost: ~1400 tokens
 modes: [read-only, write, mcp]
 surface: public
 ---
@@ -116,7 +116,54 @@ Before doing ANY analysis:
 - **Negative (Fail):** Nested conditionals instead of early returns, inline
   fetch calls, missing error boundaries.
 
-### Gate 4: Storybook Figma Link Validation
+### Gate 4: Layout Fidelity (MANDATORY for any UI-facing change — BLOCKING)
+
+This gate exists because token alignment and primitive alignment do NOT prove
+the built UI matches the design. A component can use every correct token and
+Shadcn primitive and still be the wrong width, the wrong proportions, or reflow
+its sub-elements incorrectly. Layout requirements stated in prose ("side by
+side", "wider", "stacked") are CONSEQUENCES of building to the frame, never the
+instruction. Build to the frame; the prose is a hint, the frame is the spec.
+
+- **Fetch the design source at review time (NON-NEGOTIABLE):** Retrieve the
+  specific Figma node for this component via the Figma MCP `get_figma_data` tool
+  — the actual frame, not a prose summary or a Phase-0 recollection. The frame's
+  measurements ARE the acceptance criteria. Follow the **Credential Protocol**
+  in the header if the Figma MCP is not yet authenticated.
+  - If no Figma node/URL is available for this component, do NOT silently pass.
+    Mark this gate `BLOCKED — no design source` and escalate per Gate 5 (Design
+    Debt); a UI change with no design source cannot be verified as matching the
+    design.
+- **Render the built result:** Capture the implemented component (delegate to
+  `visual-verifier` for the actual capture at the mandatory
+  Desktop/Tablet/Mobile resolutions). For interactive screens, exercise the
+  relevant states (default, focus, error, loading).
+- **Produce an itemised Layout Deviation Report** comparing built vs frame. Each
+  line is **MATCH** or **DEVIATION** with the specific difference:
+  - Container / card width and max-width at each breakpoint.
+  - Column widths and gaps for multi-column areas (e.g. side-by-side fields).
+  - Element placement and vertical rhythm (label → input → helper/error
+    spacing).
+  - Responsive reflow: how sub-elements (helper text, requirement lists, labels)
+    rearrange across breakpoints — a single list must not fragment across
+    columns unless the frame shows it that way.
+  - Button width, alignment, and inline-link placement.
+- **Positive (Pass):** Every line in the Layout Deviation Report is MATCH across
+  Desktop, Tablet, and Mobile.
+- **Negative (Fail):** Any DEVIATION line. A DEVIATION is a 🔴 **Critical**
+  finding — it BLOCKS completion. The component returns to the developer with
+  the report until it is all-MATCH, or a specific deviation is explicitly waived
+  by the Tech-Lead at a gate (record the waiver in the session file).
+- **Action on Fail:** List each DEVIATION with the frame's target value vs the
+  built value (e.g. "card max-width: frame 1100px, built ~720px"), and the
+  concrete fix. Paste the final all-MATCH report as the gate's evidence.
+
+> [!CAUTION] **Test-pass is not design-pass.** `check-types` and unit tests
+> passing say nothing about visual fidelity. A UI-facing change is NOT complete
+> until this gate's Layout Deviation Report is all-MATCH (or an explicit
+> Tech-Lead waiver is recorded). Never mark a UI slice complete on tests alone.
+
+### Gate 5: Storybook Figma Link Validation
 
 - **Action:** Check if the component has a Storybook story file
   (`*.stories.tsx`). If yes, verify it has `addon-designs` parameters with a
@@ -128,7 +175,7 @@ Before doing ANY analysis:
     audit output.
   - If skipped: flag as "Design Debt — No Figma link" in the session file.
 
-### Gate 5: Chromatic / Visual Regression (Optional, credentials required)
+### Gate 6: Chromatic / Visual Regression (Optional, credentials required)
 
 - **Trigger:** Only runs if the user has connected a Chromatic build.
 - **Credential Protocol:**
@@ -147,7 +194,8 @@ Before doing ANY analysis:
 
 ### Iteration 1 — Full Audit
 
-1. Run Gates 1–5 (in order).
+1. Run Gates 1–6 (in order). Gate 4 (Layout Fidelity) is BLOCKING for any
+   UI-facing change.
 2. Produce a **"Must Fix"** list sorted by severity:
    - 🔴 **Critical** — Accessibility failure or token violation blocking release
    - 🟡 **Recommended** — Code consistency and design alignment

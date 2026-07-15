@@ -1,7 +1,8 @@
 ---
 name: visual-verifier
 description: >
-  Performs smoke testing and captures media evidence for any web environment.
+  Performs smoke testing, captures media evidence, and compares renders against
+  the Figma design source for any web environment.
 cost: ~450 tokens
 modes: [read-only, write, mcp]
 surface: public
@@ -63,6 +64,30 @@ also by results and consistent iteration on a task.
   uploaded to GitHub storage for the PR report.
 - **Action:** Re-run capture on explicitly modified routes to ensure visual
   parity.
+
+### Gate 3: Design Fidelity Comparison (when a design source exists)
+
+Capturing evidence proves the app renders; it does NOT prove the render matches
+the design. When a Figma node/URL exists for the captured screen, this skill
+must compare, not just capture.
+
+- **Action:** Fetch the corresponding Figma frame via the Figma MCP
+  `get_figma_data` tool, then compare it against the captured Desktop render.
+- **Compare:** container/card width, column widths + gaps, element placement,
+  vertical rhythm, and responsive reflow of sub-elements (helper text, lists,
+  labels).
+- **Positive (Pass):** Captured render matches the frame on all the above; note
+  "Design Fidelity: MATCH" in the evidence report.
+- **Negative (Fail):** Any mismatch — record it as a DEVIATION with the frame's
+  target vs the built value. A DEVIATION means the change is NOT visually
+  verified; report it and hand back for fix.
+- **Escalation:** For a full itemised Layout Deviation Report and the blocking
+  2-iteration guard, defer to `design-system-review` (Gate 4: Layout Fidelity).
+  This skill performs the capture + first-pass comparison;
+  `design-system-review` owns the authoritative blocking layout gate.
+
+> [!CAUTION] Prose layout words ("side by side", "wider") are consequences of
+> building to the frame, not the spec. Verify against the frame, not the words.
 
 ---
 

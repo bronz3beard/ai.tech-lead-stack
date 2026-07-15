@@ -105,7 +105,9 @@ lane may only invoke skills whose modes include read-only delivery.
 - **planner:** `planning-expert` or `vertical-slice-decomposer`
 - **developer:** Implement per plan
 - **reviewer:** `code-review-checklist` + `verification-auditor`
-- **qa:** `visual-verifier` / `accessibility-auditor` (when UI-facing)
+- **qa:** `design-system-review` (authoritative layout/design gate) driving
+  `visual-verifier` (capture) + `accessibility-auditor` — MANDATORY for any
+  UI-facing slice, not optional
 
 **Reviewer Rules:** The Reviewer NEVER shares the developer's context. The
 Reviewer must ACT, not read: run the stated verification gates and paste hard
@@ -113,6 +115,31 @@ evidence. **Loop Hardening:** For L/XL sizes, the plan gate SHOULD (L) or MUST
 (XL) be hardened via `rtk run reflexion-loop` before execution. Note that the
 reflexion loop is the stack's one declared non-agnostic feature (refer to
 `reflexion-loop.md` wording).
+
+**Visual Fidelity Gate (MANDATORY for any UI-facing slice — BLOCKING):** A UI
+slice does NOT close on `check-types` + passing tests; those prove the code
+compiles and behaves, not that it matches the design. For any slice that changes
+rendered UI, the QA persona MUST, before the slice is marked complete:
+
+1. **Fetch the design source at implementation time** — the specific Figma node
+   for the slice via the Figma MCP `get_figma_data` tool (the actual frame, not
+   the Phase-0 summary). The frame's measurements are acceptance criteria:
+   container/card width, column widths, gaps, breakpoints, and sub-element
+   reflow.
+2. **Run `design-system-review`** on the changed component. Its **Gate 4 (Layout
+   Fidelity)** produces an itemised built-vs-frame Layout Deviation Report and
+   is BLOCKING; `visual-verifier` performs the capture at Desktop/Tablet/Mobile.
+3. **Any DEVIATION blocks the slice.** It returns to the developer with the
+   report until all-MATCH, or a specific deviation is explicitly waived by the
+   Tech-Lead at a gate (record the waiver). Paste the final all-MATCH Layout
+   Deviation Report as the slice's completion evidence, alongside the test
+   output.
+
+> [!CAUTION] Layout words in prose ("side by side", "wider", "stacked") are
+> CONSEQUENCES of building to the frame, never the instruction. Build to the
+> frame; the prose is a hint, the frame is the spec. Implementing the words
+> without matching the frame is a FAILED slice, not a complete one. Test-pass is
+> not design-pass.
 
 ## Phase 4 — Tech-Lead Interview at Gates
 
