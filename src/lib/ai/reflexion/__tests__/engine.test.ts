@@ -4,7 +4,7 @@ import {
   resumeReflexion,
   runReflexion,
 } from '../engine';
-import { Answers, ReflexionStateV2 } from '../schema';
+import { Answers, ReflexionStateV2, Interview } from '../schema';
 
 function createMockRunner(
   generateResponse = 'plan',
@@ -18,7 +18,7 @@ function createMockRunner(
     modernWeb: 9,
   },
   adjudicateResponse = 'verdict',
-  interviewResponse: any = {
+  interviewResponse: Interview = {
     runId: '123',
     revision: 0,
     recommendation: 'approve',
@@ -67,6 +67,21 @@ describe('engine v2', () => {
     const res = await runReflexion(runner, cfg);
     expect(res.stopReason).toBe('budget-exceeded');
     expect(runner.generate).not.toHaveBeenCalled();
+  });
+
+  it('budget gate does not trip if cost is below maxCostUsd', async () => {
+    const runner = createMockRunner('plan', undefined, undefined, undefined, {
+      tokens: 100,
+      costUsd: 0.5,
+    });
+    const cfg: ReflexionConfig = {
+      brief: 'test',
+      mode: 'auto',
+      budget: { maxCostUsd: 1 },
+    };
+    const res = await runReflexion(runner, cfg);
+    expect(res.stopReason).not.toBe('budget-exceeded');
+    expect(runner.generate).toHaveBeenCalled();
   });
 
   it('zero-question auto-approve', async () => {

@@ -8,6 +8,7 @@ import {
 } from 'ai';
 import { MODELS } from '../../../app/api/chat/constants';
 import type { ReflexionRunner } from './engine';
+import { PRICE_PER_MTOK } from './pricing';
 import { CritiqueSchema, InterviewSchema } from './schema';
 
 /**
@@ -57,17 +58,33 @@ export function buildRunner(
   fallbackCritic?: LanguageModel
 ): ReflexionRunner {
   let accumulatedTokens = 0;
+  let totalCostUsd = 0;
   let degraded = false;
 
-  function addUsage(usage?: LanguageModelUsage) {
-    if (usage) {
-      accumulatedTokens += usage.totalTokens || 0;
-    }
-  }
+  const warnedAboutCost = new Set<string>();
 
-  // Cost tracking is not readily available via standard AI SDK metadata out-of-the-box
-  // for all providers here without mapping model IDs to pricing tables.
-  let warnedAboutCost = false;
+  function addUsage(usage: LanguageModelUsage | undefined, modelId: string) {
+    if (!usage) return;
+    accumulatedTokens += usage.totalTokens || 0;
+
+    const pricing = PRICE_PER_MTOK[modelId];
+    if (!pricing) {
+      if (!warnedAboutCost.has(modelId)) {
+        console.warn(
+          `reflexion: cost tracking not available for provider ${modelId}; cost contribution will be 0.`
+        );
+        warnedAboutCost.add(modelId);
+      }
+      return;
+    }
+
+    const usageFallback = usage as { promptTokens?: number; completionTokens?: number } & typeof usage;
+    const inputTokens = usageFallback.promptTokens ?? usage.inputTokens ?? 0;
+    const outputTokens = usageFallback.completionTokens ?? usage.outputTokens ?? 0;
+    const inputCost = (inputTokens / 1_000_000) * pricing.inputUsdPerMTok;
+    const outputCost = (outputTokens / 1_000_000) * pricing.outputUsdPerMTok;
+    totalCostUsd += inputCost + outputCost;
+  }
 
   return {
     models,
@@ -80,7 +97,7 @@ export function buildRunner(
         system,
         prompt,
       });
-      addUsage(usage);
+      addUsage(usage, models.creator);
       return text.trim();
     },
     async critique(prompt, system) {
@@ -91,7 +108,7 @@ export function buildRunner(
           system,
           prompt,
         });
-        addUsage(usage);
+        addUsage(usage, models.critic);
         return output;
       } catch (error) {
         if (isHardApiFailure(error) && fallbackCritic) {
@@ -102,7 +119,7 @@ export function buildRunner(
             system,
             prompt,
           });
-          addUsage(usage);
+          addUsage(usage, MODELS.GEMINI_FALLBACK_CRITIC);
           return output;
         }
         throw error;
@@ -115,7 +132,7 @@ export function buildRunner(
           system,
           prompt,
         });
-        addUsage(usage);
+        addUsage(usage, models.adjudicator);
         return text.trim();
       } catch (error) {
         if (isHardApiFailure(error) && fallbackCritic) {
@@ -125,7 +142,7 @@ export function buildRunner(
             system,
             prompt,
           });
-          addUsage(usage);
+          addUsage(usage, MODELS.GEMINI_FALLBACK_CRITIC);
           return text.trim();
         }
         throw error;
@@ -139,7 +156,7 @@ export function buildRunner(
           system,
           prompt,
         });
-        addUsage(usage);
+        addUsage(usage, models.critic);
         return { ...output, questions: output.questions.slice(0, 5) };
       } catch (error) {
         if (isHardApiFailure(error) && fallbackCritic) {
@@ -150,22 +167,16 @@ export function buildRunner(
             system,
             prompt,
           });
-          addUsage(usage);
+          addUsage(usage, MODELS.GEMINI_FALLBACK_CRITIC);
           return { ...output, questions: output.questions.slice(0, 5) };
         }
         throw error;
       }
     },
     getUsage() {
-      if (!warnedAboutCost) {
-        console.warn(
-          'reflexion: cost tracking not available for this provider; maxCostUsd cap will not fire.'
-        );
-        warnedAboutCost = true;
-      }
       return {
         tokens: accumulatedTokens,
-        costUsd: 0, // Fallback as per requirements
+        costUsd: Number(totalCostUsd.toFixed(6)),
       };
     },
   };

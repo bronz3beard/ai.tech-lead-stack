@@ -39,6 +39,7 @@ workflow-code-review|.agents/workflows/code-review.md
 workflow-competitive-analysis|.agents/workflows/competitive-analysis.md
 workflow-design-requirements-to-architecture|.agents/workflows/design-requirements-to-architecture.md
 workflow-design-system-review|.agents/workflows/design-system-review.md
+workflow-dev-team-orchestrator|.agents/workflows/dev-team-orchestrator.md
 workflow-dev-team|.agents/workflows/dev-team.md
 workflow-feature-orchestrator|.agents/workflows/feature-orchestrator.md
 workflow-init|.agents/workflows/init.md
@@ -57,4 +58,5 @@ workflow-style-logic-exporter|.agents/workflows/style-logic-exporter.md
 workflow-ui-spec-generator|.agents/workflows/ui-spec-generator.md
 workflow-verify-changes|.agents/workflows/verify-changes.md
 workflow-vertical-slice|.agents/workflows/vertical-slice.md
+workflow-visual-verifier|.agents/workflows/visual-verifier.md
 workflow-weekly-leadership-report|.agents/workflows/weekly-leadership-report.md
