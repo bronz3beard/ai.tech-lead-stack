@@ -207,10 +207,12 @@ function SessionCard({
   session,
   onDelete,
   onRestore,
+  isProcessing,
 }: {
   session: ReviewSession;
   onDelete?: (id: string) => void;
   onRestore?: (id: string) => void;
+  isProcessing?: boolean;
 }) {
   const router = useRouter();
   const passCount = session.gateResults.filter(
@@ -222,19 +224,22 @@ function SessionCard({
     <div className="group relative">
       <button
         onClick={() => router.push(`/design-review/${session.id}`)}
-        disabled={isDeleted}
+        disabled={isDeleted || isProcessing}
         className={`w-full text-left p-4 bg-zinc-900 border rounded-xl transition-all space-y-3 ${
           isDeleted
             ? 'opacity-50 grayscale border-zinc-800'
             : 'hover:bg-zinc-800/80 border-zinc-800 hover:border-zinc-700'
-        }`}
+        } ${isProcessing ? 'opacity-70 pointer-events-none' : ''}`}
       >
         <div className="flex items-start justify-between gap-2">
           <div>
             <p className="text-sm font-semibold text-zinc-100 group-hover:text-white transition-colors">
               {session.component}
             </p>
-            <p className="text-xs text-zinc-500 mt-0.5" suppressHydrationWarning>
+            <p
+              className="text-xs text-zinc-500 mt-0.5"
+              suppressHydrationWarning
+            >
               Updated {new Date(session.updatedAt).toLocaleDateString()}
             </p>
           </div>
@@ -295,10 +300,17 @@ function SessionCard({
             e.stopPropagation();
             onDelete?.(session.id);
           }}
-          className="absolute top-4 right-4 p-2 text-zinc-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all rounded-lg hover:bg-red-900/20 border border-transparent hover:border-red-800/30"
+          disabled={isProcessing}
+          className={`absolute top-4 right-4 p-2 text-zinc-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all rounded-lg hover:bg-red-900/20 border border-transparent hover:border-red-800/30 ${
+            isProcessing ? 'opacity-100 cursor-not-allowed' : ''
+          }`}
           title="Delete review"
         >
-          <Trash2 className="h-4 w-4" />
+          {isProcessing ? (
+            <Loader2 className="h-4 w-4 animate-spin text-red-400" />
+          ) : (
+            <Trash2 className="h-4 w-4" />
+          )}
         </button>
       )}
 
@@ -308,10 +320,17 @@ function SessionCard({
             e.stopPropagation();
             onRestore?.(session.id);
           }}
-          className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-emerald-400 transition-all rounded-lg hover:bg-emerald-900/20 border border-emerald-800/30 flex items-center gap-2 text-xs font-semibold"
+          disabled={isProcessing}
+          className={`absolute top-4 right-4 p-2 text-zinc-400 hover:text-emerald-400 transition-all rounded-lg hover:bg-emerald-900/20 border border-emerald-800/30 flex items-center gap-2 text-xs font-semibold ${
+            isProcessing ? 'opacity-70 cursor-not-allowed' : ''
+          }`}
         >
-          <RotateCcw className="h-4 w-4" />
-          Restore
+          {isProcessing ? (
+            <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
+          ) : (
+            <RotateCcw className="h-4 w-4" />
+          )}
+          {isProcessing ? 'Restoring...' : 'Restore'}
         </button>
       )}
     </div>
@@ -366,7 +385,7 @@ export function ReviewQueue({
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showDeleted, setShowDeleted] = useState(false);
-  const [, setIsProcessing] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
   const handleSessionCreated = (sessionId: string) => {
     setIsModalOpen(false);
@@ -483,6 +502,7 @@ export function ReviewQueue({
                       session={s}
                       onDelete={handleDelete}
                       onRestore={handleRestore}
+                      isProcessing={isProcessing === s.id}
                     />
                   ))}
                 </div>
@@ -500,6 +520,7 @@ export function ReviewQueue({
                       session={s}
                       onDelete={handleDelete}
                       onRestore={handleRestore}
+                      isProcessing={isProcessing === s.id}
                     />
                   ))}
                 </div>
