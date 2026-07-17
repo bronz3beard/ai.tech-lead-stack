@@ -435,8 +435,6 @@ export class Handlers {
     const stack = args.stack ?? '';
     const mode = args.mode || 'interview';
     const budget = args.budget;
-    const projectName = args.projectName;
-    const agent = args.agent;
 
     try {
       const runner = runnerFromEnv();
