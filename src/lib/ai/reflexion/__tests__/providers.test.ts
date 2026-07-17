@@ -1,7 +1,5 @@
 import * as aiModule from 'ai';
 import { buildRunner } from '../providers-env';
-import { PRICE_PER_MTOK } from '../pricing';
-import { MODELS } from '@/app/api/chat/constants';
 
 jest.mock('../pricing', () => ({
   PRICE_PER_MTOK: {
