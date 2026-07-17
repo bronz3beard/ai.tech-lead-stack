@@ -84,37 +84,30 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           REFLEXION_MAX_COST_USD: ${{ vars.REFLEXION_MAX_COST_USD || '3' }}
           REFLEXION_MAX_REVISIONS: ${{ vars.REFLEXION_MAX_REVISIONS || '3' }}
-          # Pin the reflexion output directory to an absolute, repo-root path so the
-          # loop and the upload step cannot disagree about where artifacts live.
-          # scripts/reflexion-issue-runner.js / reflexion-loop.ts MUST honour this
-          # env var when choosing where to write .reflexion-out (fix in that script
-          # if it currently hardcodes a relative or script-relative path).
-          REFLEXION_OUT_DIR: ${{ github.workspace }}/.reflexion-out
         run: node scripts/reflexion-issue-runner.js
 
+      # TEMPORARY debug step — remove once the artifact upload is confirmed working.
+      # The runner writes to $GITHUB_WORKSPACE/.reflexion-out (see OUT_DIR in
+      # scripts/reflexion-issue-runner.js). This proves the files exist there.
       - name: Debug — list reflexion output
         if: always()
         run: |
           echo "GITHUB_WORKSPACE = $GITHUB_WORKSPACE"
-          echo "PWD             = $(pwd)"
-          echo "--- expected out dir: $GITHUB_WORKSPACE/.reflexion-out ---"
-          ls -la "$GITHUB_WORKSPACE/.reflexion-out" 2>/dev/null || echo "(nothing at \$GITHUB_WORKSPACE/.reflexion-out)"
-          echo "--- any .reflexion-out anywhere in the workspace: ---"
-          find "$GITHUB_WORKSPACE" -type d -name ".reflexion-out" 2>/dev/null || echo "(none found)"
-          echo "--- files inside any found .reflexion-out dirs: ---"
-          find "$GITHUB_WORKSPACE" -type f -path "*/.reflexion-out/*" 2>/dev/null || echo "(no files found)"
+          ls -la "$GITHUB_WORKSPACE/.reflexion-out" 2>/dev/null || echo "(nothing at .reflexion-out)"
 
       - name: Upload State Artifact
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: reflexion-state-${{ github.event.issue.number || github.event.inputs.issue_number }}
-          # Absolute, repo-root path (matches REFLEXION_OUT_DIR) so the glob cannot
-          # miss the files due to a working-directory mismatch. include-hidden-files
-          # is required because the directory name begins with a dot.
+          # Matches OUT_DIR = $GITHUB_WORKSPACE/.reflexion-out in the runner.
           path: ${{ github.workspace }}/.reflexion-out/**
+          # THE FIX: .reflexion-out is a hidden (dot) directory; upload-artifact@v4
+          # excludes hidden files by default, which is why prior runs reported
+          # "No files were found" even though the loop wrote plan.md/critique.json/
+          # interview.md there. This line makes them upload.
           include-hidden-files: true
           retention-days: 14
-          # Fail loudly if the artifact is missing instead of silently passing.
-          # A missing artifact means every resume will fail, so surface it here.
+          # Fail loudly if the artifact is missing, instead of silently passing and
+          # only surfacing the problem later when a resume can't find it.
           if-no-files-found: error
