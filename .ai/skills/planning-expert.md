@@ -204,6 +204,10 @@ backend-first, and state those assumptions back.)
 - **The Cycle:** **Implement → Test → Verify → Commit**.
 - **Task Structure:** Description + Acceptance Criteria + Specific Verification
   CLI commands (Build, Test, Lint).
+- **ATDD Generation:** When planning acceptance criteria, you MUST generate a
+  living Gherkin scenario file in `.ai/output/features/<feature-name>.feature`.
+  Use declarative business language (avoid imperative commands like "Click" or
+  "Type"). Commit these files as part of the PR batch.
 
 ### Phase 3: Checkpoints & Handoff
 

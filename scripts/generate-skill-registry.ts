@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import matter from 'gray-matter';
 import { z } from 'zod';
+import * as prettier from 'prettier';
 
 const skillsDir = path.join(process.cwd(), '.ai/skills');
 const workflowsDir = path.join(process.cwd(), '.agents/workflows');
@@ -234,7 +235,12 @@ async function main() {
   const newTable = generateReadmeTable(skills);
 
   const currentReadme = fs.readFileSync(readmeFile, 'utf8');
-  const newReadme = injectTable(currentReadme, newTable);
+  const rawReadme = injectTable(currentReadme, newTable);
+  const prettierConfig = await prettier.resolveConfig(readmeFile);
+  const newReadme = await prettier.format(rawReadme, {
+    ...prettierConfig,
+    filepath: readmeFile,
+  });
 
   if (isCheck) {
     if (outputDest) {
