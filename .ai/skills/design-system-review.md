@@ -125,11 +125,30 @@ its sub-elements incorrectly. Layout requirements stated in prose ("side by
 side", "wider", "stacked") are CONSEQUENCES of building to the frame, never the
 instruction. Build to the frame; the prose is a hint, the frame is the spec.
 
-- **Fetch the design source at review time (NON-NEGOTIABLE):** Retrieve the
-  specific Figma node for this component via the Figma MCP `get_figma_data` tool
-  — the actual frame, not a prose summary or a Phase-0 recollection. The frame's
-  measurements ARE the acceptance criteria. Follow the **Credential Protocol**
-  in the header if the Figma MCP is not yet authenticated.
+- **Fetch the design source at plan and review time (NON-NEGOTIABLE):** Retrieve
+  the specific Figma node for this component via the Figma MCP `get_figma_data`
+  tool — the actual frame, not a prose summary or a Phase-0 recollection. The
+  Figma MCP `get_figma_data` fetch MUST happen when the plan/acceptance criteria
+  are produced, and the plan MUST embed the actual fetched measurements. A plan
+  that only PROMISES to fetch during execution, or that states goals like 'match
+  Figma constraints' without concrete numbers, FAILS this gate and MUST NOT be
+  approved. Follow the **Credential Protocol** in the header if the Figma MCP is
+  not yet authenticated.
+  - **Tool-name-robustness note:** The Figma fetch tool's base name is
+    `get_figma_data` (from the figma-developer-mcp server) but MAY be exposed
+    with a client prefix (e.g. `mcp_Figma_get_figma_data`). Use whichever name
+    is actually present in the tool list. If NO Figma fetch tool is available,
+    STOP and tell the human — do not proceed from memory or produce a plan
+    without fetched numbers.
+  - **Anti-deferral clause:** Deferring the fetch to execution is NOT
+    acceptable. 'The execution step will call get_figma_data' is not a
+    substitute for fetching now and recording the numbers. The frame is the
+    spec; the numbers are the acceptance criteria.
+  - **Required "Frame read" block:** This block must appear per screen/component
+    IN THE PLAN, listing the concrete values pulled from the fetched node, e.g.:
+    container width + max-width, column widths + gaps, key spacing/vertical
+    rhythm, button width, and any breakpoint-specific values. If these numbers
+    are absent, the plan is incomplete by definition.
   - If no Figma node/URL is available for this component, do NOT silently pass.
     Mark this gate `BLOCKED — no design source` and escalate per Gate 5 (Design
     Debt); a UI change with no design source cannot be verified as matching the

@@ -148,8 +148,13 @@ reflexion loop is the stack's one declared non-agnostic feature (refer to
 
 **Visual Fidelity Gate (MANDATORY for any UI-facing slice — BLOCKING):** A UI
 slice does NOT close on `check-types` + passing tests; those prove the code
-compiles and behaves, not that it matches the design. For any slice that changes
-rendered UI, the QA persona MUST, before the slice is marked complete:
+compiles and behaves, not that it matches the design. For any UI-facing slice,
+the PLAN for that slice MUST already contain the fetched Figma measurements (a
+'Frame read' block with concrete numbers per screen). If the plan lacks fetched
+numbers, it is not ready for approval — return it for Figma fetching before any
+code is written. Deferring the fetch to execution is a defect. For any slice
+that changes rendered UI, the QA persona MUST, before the slice is marked
+complete:
 
 1. **Fetch the design source at implementation time** — the specific Figma node
    for the slice via the Figma MCP `get_figma_data` tool (the actual frame, not

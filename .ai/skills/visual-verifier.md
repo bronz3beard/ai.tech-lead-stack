@@ -73,6 +73,9 @@ must compare, not just capture.
 
 - **Action:** Fetch the corresponding Figma frame via the Figma MCP
   `get_figma_data` tool, then compare it against the captured Desktop render.
+  _(Note: The Figma fetch and recorded measurements are a PLAN-TIME requirement
+  owned by `design-system-review` Gate 4; `visual-verifier` compares the
+  rendered result against those already-recorded numbers)._
 - **Compare:** container/card width, column widths + gaps, element placement,
   vertical rhythm, and responsive reflow of sub-elements (helper text, lists,
   labels).
