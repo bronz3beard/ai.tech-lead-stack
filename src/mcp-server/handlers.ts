@@ -383,6 +383,45 @@ export class Handlers {
     }
   }
 
+  async handleReflexionStatus(args: Record<string, any>) {
+    try {
+      const { runId, stateDir } = args;
+      if (!runId) throw new Error('runId is required');
+
+      const outDir = stateDir || '.reflexion-out';
+      const stateStore = new FileStateStore(outDir);
+      const state = await stateStore.load(runId);
+
+      if (!state) {
+        return {
+          content: [{ type: 'text', text: `Run ID ${runId} not found in ${outDir}.` }],
+          isError: true,
+        };
+      }
+
+      let extra = '';
+      if (state.phase === 'AWAITING_ANSWERS') {
+        extra = '\nRun is parked for interview. Use reflexion_resume with answers to proceed.\nQuestions:\n' + 
+                JSON.stringify(state.interview?.questions, null, 2);
+      } else if (state.phase === 'APPROVED' || state.phase.startsWith('STOPPED')) {
+        extra = `\nRun is finished. Final verdict: ${state.stopReason}. \nTo get the final IDE Prompt, you can call reflexion_resume with { directive: "approve" } or read the state file directly.`;
+      }
+
+      const score = state.critiques.length > 0 ? state.critiques[state.critiques.length - 1].score : 'N/A';
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Run ID: ${state.runId}\nPhase: ${state.phase}\nRevision: ${state.revision}\nLast Score: ${score}${extra}`,
+          },
+        ],
+      };
+    } catch (e: any) {
+      return { isError: true, content: [{ type: 'text', text: e.message }] };
+    }
+  }
+
   async handleReflexionLoop(args: Record<string, any>) {
     const brief = args.brief?.trim();
     if (!brief) {
@@ -401,27 +440,43 @@ export class Handlers {
 
     try {
       const runner = runnerFromEnv();
-
       const stateStore = new FileStateStore('.reflexion-out');
+      const runId = `run-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
-      let runId = 'unknown';
-      let revisionCounter = 0;
-      const result = await runReflexion(
+      const initialState = {
+        version: 2 as const,
+        runId,
+        brief,
+        phase: 'INIT',
+        plan: '',
+        critiques: [],
+        revision: 0,
+        params: { passThreshold, maxRevisions, focus: [] },
+        usage: { totalTokens: 0, costUsd: 0, perPhase: [] },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        criticDegraded: false,
+      };
+
+      await stateStore.save(initialState);
+
+      // Fire and forget
+      runReflexion(
         runner,
         {
           brief,
           stack,
           maxRevisions,
           passThreshold,
-          mode,
+          mode: mode as any,
           budget,
           stateStore,
         },
         (e) => {
           let teamRole: string | undefined;
+          let revisionCounter = 0;
           if ('revision' in e) revisionCounter = e.revision;
-          if (e.phase === 'critique' || e.phase === 'scored')
-            teamRole = 'critic';
+          if (e.phase === 'critique' || e.phase === 'scored') teamRole = 'critic';
           if (e.phase === 'adjudicate') teamRole = 'adjudicator';
           if (e.phase === 'interview') teamRole = 'interviewer';
 
@@ -448,30 +503,24 @@ export class Handlers {
               })
             )
             .catch(() => {});
-        }
-      );
-      runId = result.runId; // Unfortunately the events fired before this won't have it unless generated upfront.
-
-      if (projectName || agent) {
-      }
+        },
+        initialState
+      ).catch((e) => {
+        console.error('[MCP] Async reflexion loop failed:', e);
+        stateStore.load(runId).then(s => {
+          if (s) {
+            s.phase = 'STOPPED(error)';
+            s.stopReason = 'error' as any;
+            stateStore.save(s).catch(() => {});
+          }
+        }).catch(() => {});
+      });
 
       return {
         content: [
           {
             type: 'text',
-            text:
-              `Reflexion Loop Finished.\n` +
-              `Final Score: ${result.finalScore}/10\n` +
-              `Verdict: ${result.verdict}\n` +
-              (result.interview?.questions.length
-                ? '\nQuestions waiting:\n' +
-                  JSON.stringify(result.interview.questions, null, 2) +
-                  '\n'
-                : '') +
-              (result.stopReason === 'passed' ||
-              result.stopReason === 'user-approve'
-                ? '\nIDE Prompt:\n' + result.idePrompt
-                : ''),
+            text: `Reflexion Loop started asynchronously.\nRun ID: ${runId}\nStatus: running\n\nUse the reflexion_status tool with this Run ID to poll for completion.`,
           },
         ],
       };

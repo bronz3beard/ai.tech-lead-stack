@@ -60,7 +60,8 @@ describe('MCP Handlers Extension', () => {
         budget: { maxCostUsd: 1 },
         stateStore: expect.any(Object)
       }),
-      expect.any(Function)
+      expect.any(Function),
+      expect.any(Object)
     );
   });
 

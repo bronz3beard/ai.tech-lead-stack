@@ -281,6 +281,19 @@ const REFLEXION_RESUME_TOOL: Tool = {
   }
 };
 
+const REFLEXION_STATUS_TOOL: Tool = {
+  name: 'reflexion_status',
+  description: 'Checks the status of an asynchronous Reflexion Loop run.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      runId: { type: 'string' },
+      stateDir: { type: 'string', description: 'Optional: Directory where state is stored (defaults to .reflexion-out)' },
+    },
+    required: ['runId']
+  }
+};
+
 /**
  * Handlers: Tool Listing
  */
@@ -296,6 +309,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       CREATE_KI_TOOL,
       REFLEXION_LOOP_TOOL,
       REFLEXION_RESUME_TOOL,
+      REFLEXION_STATUS_TOOL,
     ],
   };
 });
@@ -340,6 +354,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   if (name === 'reflexion_resume') {
     return await handlers.handleReflexionResume(args || {});
+  }
+
+  if (name === 'reflexion_status') {
+    return await handlers.handleReflexionStatus(args || {});
   }
 
   throw new Error(`Unknown tool: ${name}`);

@@ -208,13 +208,34 @@ async function main(): Promise<number> {
     );
   } else {
     const briefFile = arg('--brief-file');
-    const positional = process.argv.slice(2).find((a) => !a.startsWith('--'));
-    const brief = briefFile
-      ? fs.readFileSync(briefFile, 'utf-8').trim()
-      : positional?.trim();
+    const fileArg = arg('--file');
+    
+    let positional: string | undefined;
+    const args = process.argv.slice(2);
+    for (let i = 0; i < args.length; i++) {
+      if (args[i].startsWith('--')) {
+        const flag = args[i];
+        if (['--brief-file', '--file', '--repo', '--max', '--threshold', '--max-cost-usd', '--max-tokens', '--focus', '--out', '--resume', '--answers'].includes(flag)) {
+          i++; // skip its value
+        }
+      } else {
+        positional = args[i];
+        break;
+      }
+    }
+
+    let brief: string | undefined;
+    if (fileArg) {
+      brief = fs.readFileSync(fileArg, 'utf-8'); // read verbatim
+    } else if (briefFile) {
+      brief = fs.readFileSync(briefFile, 'utf-8').trim();
+    } else {
+      brief = positional?.trim();
+    }
+
     if (!brief) {
       console.error(
-        'Usage: reflexion-loop "<brief>" [--repo .] [--max 3] [--threshold 8] [--out .reflexion-out]'
+        'Usage: reflexion-loop "<brief>" [--file <path>] [--repo .] [--max 3] [--threshold 8] [--out .reflexion-out]'
       );
       return 1;
     }

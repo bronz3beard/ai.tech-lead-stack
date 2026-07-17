@@ -42,6 +42,9 @@ describe('Telemetry Events', () => {
     const args = { brief: 'telemetry check', mode: 'auto', projectName: 'test', agent: 'test' };
     await handlers.handleReflexionLoop(args);
 
+    // Wait for background tasks and dynamic imports to resolve since it's fire-and-forget
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
     // Should have emitted 3 step events (critique, adjudicate, interview) + 1 completion event
     expect(withAnalytics).toHaveBeenCalledTimes(3);
 
