@@ -59,6 +59,9 @@ jobs:
       - name: Validate AI Skills
         run: pnpm run validate:skills
 
+      - name: Validate Gherkin Scenarios
+        run: pnpm run validate:gherkin
+
       - name: Verify Script Permissions
         run: pnpm run validate:scripts
 
