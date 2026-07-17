@@ -39,6 +39,54 @@ describe('reflexion-issue-runner-utils', () => {
       });
       expect(result).toContain('<!-- processed-comment-id:888 -->');
     });
+
+    it('should include the plan block on the interview path', () => {
+      const result = formatRunnerComment({
+        runId: '123',
+        plan: 'My generated plan',
+        interviewQuestions: 'Question 1',
+      });
+      expect(result).toContain('<details><summary><b>📋 Current plan — take it as-is to build now, or answer the questions below to refine and get an updated plan.</b></summary>');
+      expect(result).toContain('```markdown\nMy generated plan\n```');
+      
+      const planIndex = result.indexOf('📋 Current plan');
+      const questionsIndex = result.indexOf('#### Questions');
+      expect(planIndex).toBeLessThan(questionsIndex);
+    });
+
+    it('should include the plan block on the approve path', () => {
+      const result = formatRunnerComment({
+        runId: '123',
+        plan: 'My approved plan',
+        idePrompt: 'Prompt text',
+      });
+      expect(result).toContain('<details><summary><b>📋 Approved plan — copy/paste to build in your IDE (plan skill optional)</b></summary>');
+      expect(result).toContain('```markdown\nMy approved plan\n```');
+      
+      const planIndex = result.indexOf('📋 Approved plan');
+      const promptIndex = result.indexOf('ide-prompt.md');
+      expect(planIndex).toBeLessThan(promptIndex);
+    });
+
+    it('should truncate the plan if the total length exceeds 60000 characters', () => {
+      const longPlan = 'A'.repeat(70000);
+      const result = formatRunnerComment({
+        runId: '123',
+        plan: longPlan,
+      });
+      expect(result.length).toBeLessThanOrEqual(60500); // 60000 limit + a little buffer just in case
+      expect(result).toContain('… plan truncated; full plan.md is in the run artifact `reflexion-state-<issue>`');
+    });
+
+    it('should not include the plan on the diagnostic error path', () => {
+      const result = formatRunnerComment({
+        runId: '123',
+        plan: 'My plan',
+        diagnostic: 'Something went wrong',
+      });
+      expect(result).not.toContain('📋');
+      expect(result).not.toContain('My plan');
+    });
   });
 
   describe('extractYamlBlock', () => {

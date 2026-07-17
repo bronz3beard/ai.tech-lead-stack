@@ -667,6 +667,31 @@ Start a new run:
 If the adjudicator has questions, it parks and exits with code `2`. Edit
 `.reflexion-out/interview.md` to provide answers.
 
+**Interacting with a Parked Run (AWAITING_ANSWERS)**
+
+- **Use the plan as-is**: If you are satisfied with the original scores and the
+  current plan, you can skip further revisions and approve the plan by
+  uncommenting `# directive: "approve"` in the YAML template.
+- **Improve the plan**: If you want to refine the plan, leave the directive
+  commented out and provide answers to the questions in the correct format.
+
+**Example response format for improving the plan:**
+
+````yaml
+```yaml answers:
+runId: "1234567890"
+# directive: "approve"
+decisions:
+  - id: "q1"
+    answer: "We should use Tailwind CSS for styling the new component."
+  - id: "q2"
+    answer: "Keep the state entirely local to the component."
+````
+
+```
+
+After submitting your answers, wait for the next loop to finish and present the updated plan.
+
 Resume a run:
 `rtk run reflexion-loop --resume .reflexion-out --answers .reflexion-out/interview.md`
 
@@ -683,3 +708,4 @@ The MCP server exposes `reflexion_loop` and `reflexion_resume`. Use your agent
 to call `reflexion_loop` with parameters `brief`, `mode: 'interview'`. If
 parked, it returns the run ID and questions. Call `reflexion_resume` with the
 `runId` and your answers payload to continue.
+```
