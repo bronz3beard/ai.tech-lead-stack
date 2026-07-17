@@ -72,7 +72,10 @@ Before data extraction, verify the environment:
 2. **Authentication Gate**: If ClickUp navigation fails due to login screens,
    halt and request the user to refresh their Chrome session.
 3. **Format Gate**: Ensure the final output is wrapped in a **single Markdown
-   code block** for easy copy-pasting.
+   code block** for easy copy-pasting. Note: Since this skill generates a
+   terminal markdown report for human copy-pasting and does not interact with
+   the ClickUp API directly, rendering using `scripts/clickup-format.ts` is not
+   applicable.
 4. **Content Audit**: Ensure "Minor Concerns" captures roles that appear
    inactive in the git log (e.g., no QA commits = potential bottleneck).
 

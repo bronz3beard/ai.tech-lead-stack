@@ -156,6 +156,12 @@ structure every time, then add the slice to the Ledger as `emitted`:
 - **Deliver** the full set as a `vertical-slices.md` handoff (paste-ready for
   ClickUp). Only auto-create ClickUp items if a ClickUp connector is present
   **and** the user explicitly confirms; otherwise hand off the blocks.
+- **ClickUp Formatting Standard:** If using automated scripts or tools to create
+  or format these slices in ClickUp:
+  - You MUST format the description and tasks using `scripts/clickup-format.ts`
+    to ensure consistent headings, checklists, and bolding.
+  - Keep tables under 4 columns for task comments/descriptions to prevent table
+    wrapping/truncation in ClickUp.
 - Close with the **Ledger** showing all slices and the next action.
 
 ## ⚖️ Anti-Rationalization (MANDATORY)

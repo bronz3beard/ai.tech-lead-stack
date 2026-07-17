@@ -16,14 +16,14 @@ jest.mock('../telemetry', () => ({
           _agent: string,
           _cost: string | undefined,
           callback: () => Promise<any>,
-            _overridesArg?: { userEmail?: string; userRole?: string }
+          _overridesArg?: Parameters<Telemetry['withAnalytics']>[6]
         ) => callback()
       ),
   })),
 }));
 
-import { FileSystemService } from '@/lib/skills';
 import { KiService } from '@/lib/ki/ki-service';
+import { FileSystemService } from '@/lib/skills';
 import { AlignmentService } from '@/lib/skills/alignment-service';
 import * as fs from 'fs/promises';
 import { Handlers } from '../handlers';
@@ -48,7 +48,9 @@ describe('MCP Server', () => {
     ) as jest.Mocked<FileSystemService>;
     mockTelemetry = new Telemetry() as jest.Mocked<Telemetry>;
     mockKiService = new KiService() as jest.Mocked<KiService>;
-    mockAlignmentService = new AlignmentService('mock-root') as jest.Mocked<AlignmentService>;
+    mockAlignmentService = new AlignmentService(
+      'mock-root'
+    ) as jest.Mocked<AlignmentService>;
 
     // Default mock implementations
     mockFsService.getSearchDirs.mockReturnValue(['mock-dir-1', 'mock-dir-2']);
@@ -70,7 +72,12 @@ describe('MCP Server', () => {
       }
     );
 
-    handlers = new Handlers(mockFsService, mockTelemetry, mockAlignmentService, mockKiService);
+    handlers = new Handlers(
+      mockFsService,
+      mockTelemetry,
+      mockAlignmentService,
+      mockKiService
+    );
   });
 
   describe('CallToolRequestSchema handler - get_skills / get_skill', () => {
@@ -91,7 +98,8 @@ describe('MCP Server', () => {
         'gpt-4',
         'test-agent',
         'unknown',
-        expect.any(Function)
+        expect.any(Function),
+        {}
       );
     });
 
@@ -129,7 +137,72 @@ describe('MCP Server', () => {
         undefined,
         undefined,
         'unknown',
-        expect.any(Function)
+        expect.any(Function),
+        {}
+      );
+    });
+
+    it('should pass custom telemetry overrides to withAnalytics', async () => {
+      const result = await handlers.handleGetSkill('get_skill', {
+        skillName: 'test-skill',
+        projectName: 'test-project',
+        model: 'gpt-4',
+        agent: 'test-agent',
+        loopRunId: 'mission-123',
+        teamRole: 'architect',
+        actorType: 'USER',
+        autonomy: 'AUTONOMOUS',
+        loopPhase: 'planning',
+      });
+
+      expect(result.isError).toBe(false);
+      expect(mockTelemetry.withAnalytics).toHaveBeenCalledWith(
+        'test-skill',
+        'test-project',
+        'gpt-4',
+        'test-agent',
+        'unknown',
+        expect.any(Function),
+        {
+          loopRunId: 'mission-123',
+          teamRole: 'architect',
+          actorType: 'USER',
+          autonomy: 'AUTONOMOUS',
+          loopPhase: 'planning',
+        }
+      );
+    });
+
+    it('should default teamRole to qa and actorType to AGENT for qa-handover-generator', async () => {
+      mockFsService.readSkill.mockImplementation(async (skillName) => {
+        if (skillName === 'qa-handover-generator') {
+          return {
+            content: 'cost: ~1500 tokens\nQA Handover content',
+            path: 'mock/qa.md',
+          };
+        }
+        return null;
+      });
+
+      const result = await handlers.handleGetSkill('get_skill', {
+        skillName: 'qa-handover-generator',
+        projectName: 'test-project',
+        model: 'gpt-4',
+        agent: 'test-agent',
+      });
+
+      expect(result.isError).toBe(false);
+      expect(mockTelemetry.withAnalytics).toHaveBeenCalledWith(
+        'qa-handover-generator',
+        'test-project',
+        'gpt-4',
+        'test-agent',
+        '~1500 tokens',
+        expect.any(Function),
+        {
+          teamRole: 'qa',
+          actorType: 'AGENT',
+        }
       );
     });
   });

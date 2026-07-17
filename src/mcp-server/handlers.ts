@@ -121,6 +121,29 @@ export class Handlers {
       const metaMatch = rawContent.match(/cost:\s*(.*)/);
       if (metaMatch) skillCost = metaMatch[1].trim();
 
+      const overrides: {
+        actorType?: string | null;
+        autonomy?: string | null;
+        loopRunId?: string | null;
+        loopPhase?: string | null;
+        teamRole?: string | null;
+      } = {};
+
+      if (typeof args.actorType === 'string') overrides.actorType = args.actorType;
+      if (typeof args.autonomy === 'string') overrides.autonomy = args.autonomy;
+      if (typeof args.loopRunId === 'string') overrides.loopRunId = args.loopRunId;
+      if (typeof args.loopPhase === 'string') overrides.loopPhase = args.loopPhase;
+      if (typeof args.teamRole === 'string') overrides.teamRole = args.teamRole;
+
+      if (safeSkillName === 'qa-handover-generator') {
+        if (overrides.teamRole === undefined) {
+          overrides.teamRole = 'qa';
+        }
+        if (overrides.actorType === undefined) {
+          overrides.actorType = 'AGENT';
+        }
+      }
+
       const fileContent = shouldSkipAnalytics
         ? rawContent
         : await this.telemetry.withAnalytics(
@@ -129,7 +152,8 @@ export class Handlers {
             model,
             agent,
             skillCost,
-            async () => rawContent
+            async () => rawContent,
+            overrides
           );
 
       return {

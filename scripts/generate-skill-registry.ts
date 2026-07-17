@@ -160,6 +160,11 @@ const originalRows: Record<string, string[]> = {
     'Phase 0 stack + domain-boundary + design-input discovery, then a deployability-test + BDD + design-state slicing engine, a persistent Slice Ledger for multi-turn anti-drift, and a fixed Output Contract per task.',
     'Turning brownfield/greenfield stories and designs into 2-day, dark-releasable slices under Trunk-Based Development.',
   ],
+  'qa-handover-generator': [
+    'Produces a QA handover + universal smoke-test criteria document for a changed feature and delivers it to ClickUp.',
+    'Performs Phase 0 G-Stack discovery of state architecture, maps components to server-driven vs client-side patterns, and renders ClickUp markup via the clickup-format module.',
+    'Generating high-fidelity QA handovers and smoke test checklists for developers and automated testing agents.',
+  ],
 };
 
 function generateReadmeTable(skills: Skill[]): string {
