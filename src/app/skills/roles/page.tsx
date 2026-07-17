@@ -33,6 +33,20 @@ interface RoleSection {
 
 const ALL_SKILLS: Skill[] = [
   {
+    id: 'solutioning-facilitator',
+    name: 'Solutioning Facilitator',
+    description: 'Facilitates a live, multi-role solutioning session and keeps a running record of every option, concern, and decision so nothing is lost or re-argued.',
+    useCases: [
+      'Running a live session when a feature gap surfaces mid-sprint.',
+      'Keeping a Solution Ledger of every option, concern, and decision across rounds.',
+      'Deciding whether to build now, spike, or defer.',
+    ],
+    realWorldExample:
+      'A checkout flow is found to have no offline case mid-sprint; the session converges on one flagged first slice with QA acceptance criteria, and logs the rejected alternatives with reasons.',
+    addedAt: '2026-07-17',
+    roles: ['PM', 'DESIGNER', 'QA', 'DEVELOPER'],
+  },
+  {
     id: 'vertical-slice',
     name: 'Vertical Slice Decomposer',
     description: 'Decomposes user stories into thin, independently deployable vertical slices.',
