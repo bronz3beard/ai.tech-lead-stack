@@ -6,6 +6,8 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { User } from '@prisma/client';
 import { jsonSchema, tool } from 'ai';
 import { MODELS } from './constants';
+import { FigmaService } from '@/lib/figma-api';
+import { ClickUpService } from '@/lib/clickup-api';
 
 /**
  * Strictly extracts a string message from an unknown error object.
@@ -319,7 +321,7 @@ export async function initializeModel(
 /**
  * Defines the toolset available to the AI agent during analytical and streaming turns.
  */
-export function getChatTools(provider: CodeProvider = skillsService) {
+export function getChatTools(provider: CodeProvider = skillsService, integrations: { figmaApiKey?: string; clickupToken?: string } = {}) {
   return {
     list_skills: tool({
       description: 'Lists all available skills and workflows.',
@@ -437,6 +439,71 @@ export function getChatTools(provider: CodeProvider = skillsService) {
               ? `File not found: ${filePath}`
               : `Access error for ${filePath}: ${getErrorMessage(e)}`,
           };
+        }
+      },
+    }),
+    get_clickup_task: tool({
+      description: 'Fetch a ClickUp task by its URL or task id. Call this whenever the user provides a ClickUp link or task id, so you can read the real title, description, and acceptance criteria.',
+      inputSchema: jsonSchema<{ taskUrlOrId: string }>({
+        type: 'object',
+        properties: { taskUrlOrId: { type: 'string' } },
+        required: ['taskUrlOrId'],
+      }),
+      execute: async (args: { taskUrlOrId: string }) => {
+        if (!integrations.clickupToken) {
+          return { error: 'No ClickUp token configured for this project. Add CLICKUP_API_TOKEN to the project env settings.' };
+        }
+        try {
+          const id = ClickUpService.parseTaskId(args.taskUrlOrId);
+          const clickup = new ClickUpService(integrations.clickupToken);
+          const task = await clickup.getTask(id);
+          return task;
+        } catch (e: unknown) {
+          return { error: getErrorMessage(e) };
+        }
+      },
+    }),
+    get_figma_design: tool({
+      description: "Fetch a Figma file's metadata (and top-level frames/comments) by its URL or file key, for design context.",
+      inputSchema: jsonSchema<{ figmaUrlOrKey: string }>({
+        type: 'object',
+        properties: { figmaUrlOrKey: { type: 'string' } },
+        required: ['figmaUrlOrKey'],
+      }),
+      execute: async (args: { figmaUrlOrKey: string }) => {
+        if (!integrations.figmaApiKey) {
+          return { error: 'No Figma API key configured for this project.' };
+        }
+        try {
+          const m = args.figmaUrlOrKey.match(/(?:file|design)\/([A-Za-z0-9]+)/);
+          const fileKey = m ? m[1] : args.figmaUrlOrKey;
+          const figma = new FigmaService(integrations.figmaApiKey);
+          
+          const file = await figma.getFile(fileKey);
+          
+          let pages: string[] = [];
+          if (file.document && Array.isArray(file.document.children)) {
+            pages = file.document.children.map((child: any) => child.name);
+          }
+          
+          let commentsList: any[] = [];
+          try {
+            const commentsData = await figma.getComments(fileKey);
+            commentsList = (commentsData.comments || []).slice(0, 20);
+          } catch (commentErr) {
+            console.warn('Failed to fetch figma comments', commentErr);
+          }
+          
+          return {
+            name: file.name,
+            lastModified: file.lastModified,
+            thumbnailUrl: file.thumbnailUrl,
+            version: file.version,
+            pages,
+            comments: commentsList,
+          };
+        } catch (e: unknown) {
+          return { error: getErrorMessage(e) };
         }
       },
     }),

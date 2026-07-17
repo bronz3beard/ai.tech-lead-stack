@@ -340,7 +340,7 @@ export async function POST(req: Request) {
     }
 
     // Workflow Detection & Orchestration
-    let finalSystemInstruction = `${CHAT_GUARD_INSTRUCTION}${project.repoUrl ? `\n\nProject Repository: ${project.repoUrl}` : ''}`;
+    let finalSystemInstruction = `${CHAT_GUARD_INSTRUCTION}${project.repoUrl ? `\n\nProject Repository: ${project.repoUrl}` : ''} If the user provides a ClickUp task URL or id, call get_clickup_task before answering. If they provide a Figma URL, call get_figma_design.`;
 
     // Context Resumption: Inject hidden summary for returning conversations
     // A summary is used if: (a) the chat has a pre-computed summary, OR
@@ -361,7 +361,31 @@ export async function POST(req: Request) {
           });
 
           // Initialize Chat Tools with resolved provider
-          const tools = getChatTools(provider);
+          const { decrypt } = await import('@/lib/crypto');
+          const projectSettings = project.settings as any;
+          const integrations: { figmaApiKey?: string; clickupToken?: string } = {};
+
+          if (projectSettings?.figmaApiKey) {
+            try {
+              integrations.figmaApiKey = decrypt(projectSettings.figmaApiKey).trim();
+            } catch (err) {
+              console.error('Failed to decrypt figmaApiKey:', err);
+            }
+          }
+
+          if (projectSettings?.encryptedEnvVars) {
+            try {
+              const envText = decrypt(projectSettings.encryptedEnvVars);
+              const clickupMatch = envText.split('\n').find((line: string) => line.trim().startsWith('CLICKUP_TOKEN='));
+              if (clickupMatch) {
+                integrations.clickupToken = clickupMatch.replace('CLICKUP_TOKEN=', '').trim();
+              }
+            } catch (err) {
+              console.error('Failed to decrypt encryptedEnvVars:', err);
+            }
+          }
+
+          const tools = getChatTools(provider, integrations);
 
           // Prepare history
           const modelMessages: ModelMessage[] = messages.map((m: any) => {

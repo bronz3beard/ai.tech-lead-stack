@@ -40,7 +40,7 @@ export default function SolutioningPage() {
             Solutioning Facilitator
           </h1>
           <p className="text-xl md:text-2xl text-slate-400 leading-relaxed max-w-2xl mx-auto">
-            When a team finds a gap in a feature mid-flight, the fix usually gets argued out on the spot — and the reasoning evaporates the moment the call ends. The Solutioning Facilitator runs that conversation as a structured interview and keeps a perfect, running record of every option, objection, and decision.
+            When a team finds a gap in a feature mid-flight, the fix usually gets argued out on the spot — and the reasoning evaporates the moment the call ends. This facilitator runs that conversation as a structured interview inside a coding agent that can see your repo, and keeps a perfect, running record of every option, objection, and decision.
           </p>
         </div>
       </section>
@@ -53,8 +53,21 @@ export default function SolutioningPage() {
               Solutioning — proposing and comparing fixes on the fly when a requirement turns out to be missing — is where a lot of real design happens. It is also where a lot goes wrong: the loudest voice wins, QA and Design get talked over, decisions get made but never written down, and next sprint the team re-argues something it already settled.
             </p>
             <p>
-              This facilitator fixes the process, not the product. It refuses to jump to solutions before the problem is agreed, interviews one role at a time, and maintains a Solution Ledger it restates every round so nothing is lost and nothing gets re-litigated. It works in any LLM (Claude, ChatGPT, or Gemini) and is strictly advisory — it produces a decision record and backlog-ready stories, it does not touch code.
+              This facilitator fixes the process, not the product. It refuses to jump to solutions before the problem is agreed, interviews one role at a time, and maintains a Solution Ledger it restates every round so nothing is lost and nothing gets re-litigated. You run it inside a coding agent connected to your repository — your IDE agent (Cursor, Antigravity, Continue) or the tech-lead-stack Agent Chat — so its options stay grounded in the real code. It is strictly advisory: it produces a decision record and backlog-ready stories, it does not write code.
             </p>
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-3xl font-bold text-white">What it needs to be useful</h2>
+          <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-6 space-y-3 text-slate-300">
+            <p>This is not a generic chatbot session. To give grounded answers it needs three things:</p>
+            <ul className="list-disc list-inside space-y-2">
+              <li><span className="font-semibold text-slate-100">A code-connected agent</span> — your IDE agent (Cursor, Antigravity, Continue) or the tech-lead-stack Agent Chat, with this repo loaded. That lets it inspect the real code for feasibility, effort, and where the gap actually lives.</li>
+              <li><span className="font-semibold text-slate-100">The actual user story / task</span> — pasted in, or (in Agent Chat) pulled from its ClickUp link. This is the anchor for the whole session.</li>
+              <li><span className="font-semibold text-slate-100">The designs, if any</span> — a Figma link for the Design role. In an IDE with the Figma MCP, the agent can pull the frames itself.</li>
+            </ul>
+            <p className="text-sm text-slate-400">Without these it will still facilitate, but its options and estimates won&apos;t be grounded in your reality.</p>
           </div>
         </section>
 
@@ -103,16 +116,21 @@ export default function SolutioningPage() {
         <section className="space-y-6">
           <h2 className="text-3xl font-bold text-white">How to run a session</h2>
           <ol className="list-decimal list-inside space-y-3 text-lg text-slate-300">
-            <li>Get the people who are actually in the room — ideally PM, Design, QA, and a frontend and backend developer.</li>
-            <li>Copy the system prompt below into a new chat in Claude, ChatGPT, or Gemini.</li>
-            <li>Send the opening message, naming the feature and who is present.</li>
-            <li>Answer its questions one at a time. When more than one person is typing, prefix answers with your role (for example, &quot;QA: this needs an offline case&quot;).</li>
-            <li>When it converges, ask it to emit the Decision Record and a backlog-ready story. That is what you take out of the room.</li>
+            <li>Open a coding agent that has this repository loaded — your IDE agent (Cursor, Antigravity, or Continue) or the tech-lead-stack Agent Chat. It must be connected to your codebase.</li>
+            <li>Paste the system prompt below.</li>
+            <li>Paste the opening message below.</li>
+            <li>Paste the user story / task you are solutioning — copy it from ClickUp. This is the anchor for the session.</li>
+            <li>Optional: paste the task&apos;s URL.</li>
+            <li>Optional: paste the Figma design URL — or, in an IDE with the Figma MCP connected, let the agent pull the frames itself.</li>
+            <li>Send the message and answer the interview one role at a time. When it converges, ask it to emit the Decision Record and a backlog-ready story.</li>
           </ol>
           <div className="space-y-6 pt-4">
             <CopyBlock label="System prompt" text={SOLUTIONING_SYSTEM_PROMPT} />
             <CopyBlock label="Opening message" text={SOLUTIONING_OPENING_MESSAGE} />
           </div>
+          <p className="text-sm text-slate-400 pt-2">
+            Today this is a manual flow — you bring the task text and design link into the chat yourself (v1). Auto-pulling the ClickUp task and Figma designs from a URL inside Agent Chat is the next step.
+          </p>
         </section>
       </div>
     </div>
