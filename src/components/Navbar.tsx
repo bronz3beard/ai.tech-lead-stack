@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Settings,
   Sparkles,
+  Users,
   X,
 } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
@@ -71,6 +72,7 @@ const navigationGroups: NavGroup[] = [
     items: [
       { name: 'Interlink Skills', href: '/skills/roles', icon: BookOpen, description: 'Explore available interlink skills.' },
       { name: 'Forge Skill', href: '/skills/new', icon: Hammer, protected: true, description: 'Create and forge new skills.' },
+      { name: 'Solutioning', href: '/skills/solutioning', icon: Users, description: 'Facilitate a live, multi-role solutioning session.' },
     ],
   },
 ];
