@@ -29,6 +29,49 @@ jobs:
       (github.event_name == 'issue_comment' && github.event.action == 'created' && startsWith(github.event.comment.body, '/reflexion')) ||
       (github.event_name == 'workflow_dispatch')
     steps:
+      - name: Check Authorization
+        id: check_auth
+        run: |
+          AUTHORIZED_ACTORS="${{ vars.REFLEXION_AUTHORIZED_ACTORS || 'bronz3beard' }}"
+          ACTOR="${{ github.actor }}"
+          EVENT_NAME="${{ github.event_name }}"
+          COMMENT_ASSOC="${{ github.event.comment.author_association }}"
+          ISSUE_ASSOC="${{ github.event.issue.author_association }}"
+
+          # Check if actor is in the authorized list
+          # Using comma/space delimited checking
+          IS_AUTHORIZED=false
+          for authorized in $(echo "$AUTHORIZED_ACTORS" | tr ',' ' '); do
+            if [ "$authorized" = "$ACTOR" ]; then
+              IS_AUTHORIZED=true
+              break
+            fi
+          done
+
+          # Check associations based on event type to avoid bypassing logic
+          if [ "$EVENT_NAME" = "issue_comment" ]; then
+            if [ "$COMMENT_ASSOC" = "OWNER" ] || [ "$COMMENT_ASSOC" = "MEMBER" ] || [ "$COMMENT_ASSOC" = "COLLABORATOR" ]; then
+              IS_AUTHORIZED=true
+            fi
+          elif [ "$EVENT_NAME" = "issues" ]; then
+            if [ "$ISSUE_ASSOC" = "OWNER" ] || [ "$ISSUE_ASSOC" = "MEMBER" ] || [ "$ISSUE_ASSOC" = "COLLABORATOR" ]; then
+              IS_AUTHORIZED=true
+            fi
+          fi
+
+          if [ "$IS_AUTHORIZED" = "false" ]; then
+            echo "Actor $ACTOR is not authorized to trigger this workflow."
+            ISSUE_NUM="${{ github.event.issue.number || github.event.inputs.issue_number }}"
+            if [ -n "$ISSUE_NUM" ]; then
+              curl -s -X POST \
+                -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+                -H "Accept: application/vnd.github.v3+json" \
+                https://api.github.com/repos/${{ github.repository }}/issues/$ISSUE_NUM/comments \
+                -d '{"body":"### 🚨 Reflexion Loop Error\nOnly the repository owner or authorized users may trigger the reflexion loop. Unauthorized attempt by `@'"$ACTOR"'` rejected."}'
+            fi
+            exit 1
+          fi
+
       - name: Check Secrets
         id: check_secrets
         run: |
