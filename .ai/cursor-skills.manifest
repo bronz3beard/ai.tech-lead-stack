@@ -19,6 +19,7 @@ planning-expert|.ai/skills/planning-expert.md
 planning-expert-quick|.ai/skills/planning-expert-quick.md
 pr-automator|.ai/skills/pr-automator.md
 product-strategist|.ai/skills/product-strategist.md
+qa-handover-generator|.ai/skills/qa-handover-generator.md
 reflexion-loop|.ai/skills/reflexion-loop.md
 regression-bug-fix|.ai/skills/regression-bug-fix.md
 security-audit|.ai/skills/security-audit.md
@@ -48,6 +49,7 @@ workflow-plan-quick|.agents/workflows/plan-quick.md
 workflow-plan|.agents/workflows/plan.md
 workflow-pr-automator|.agents/workflows/pr-automator.md
 workflow-pr-design-review-init|.agents/workflows/pr-design-review-init.md
+workflow-qa-handover|.agents/workflows/qa-handover.md
 workflow-reflexion-loop|.agents/workflows/reflexion-loop.md
 workflow-regression-bug-fix|.agents/workflows/regression-bug-fix.md
 workflow-security-audit|.agents/workflows/security-audit.md

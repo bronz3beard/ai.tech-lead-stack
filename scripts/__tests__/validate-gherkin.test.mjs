@@ -1,9 +1,9 @@
-import { test } from 'node:test';
 import assert from 'node:assert';
 import { spawnSync } from 'node:child_process';
-import path from 'node:path';
 import fs from 'node:fs';
-import { validateGherkin } from './validate-gherkin.mjs';
+import path from 'node:path';
+import { test } from 'node:test';
+import { validateGherkin } from '../validate-gherkin.mjs';
 
 const IMPERATIVE_FIXTURE = path.join(
   import.meta.dirname,
