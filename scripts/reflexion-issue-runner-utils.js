@@ -35,9 +35,32 @@ function formatRunnerComment(opts) {
     return parts.join('\n\n');
   }
 
-  if (opts.idePrompt) {
+  const isApprove = !!opts.idePrompt;
+
+  if (isApprove) {
     parts.push('### ✅ Reflexion Loop Approved');
     parts.push('The plan has been approved. The finalized prompt is below:');
+  } else {
+    parts.push('### 🤖 Reflexion Loop Status');
+
+    if (opts.scoreTable) {
+      parts.push(opts.scoreTable);
+    }
+
+    if (opts.adjudicatorVerdict) {
+      parts.push(`**Verdict:** ${opts.adjudicatorVerdict}`);
+    }
+
+    if (opts.usageCost) {
+      parts.push(`*${opts.usageCost}*`);
+    }
+  }
+
+  if (opts.plan) {
+    parts.push('__PLAN_PLACEHOLDER__');
+  }
+
+  if (isApprove) {
     parts.push('<details><summary><b>ide-prompt.md</b></summary>');
     parts.push('');
     parts.push('```markdown');
@@ -49,38 +72,55 @@ function formatRunnerComment(opts) {
     if (opts.usageCost) {
       parts.push(`\n*${opts.usageCost}*`);
     }
-    return parts.join('\n\n');
+  } else {
+    if (opts.interviewQuestions) {
+      parts.push('#### Questions');
+      parts.push(opts.interviewQuestions);
+    }
+
+    if (opts.answersTemplate) {
+      parts.push('#### Your Turn: Reply to this issue');
+      parts.push(
+        'Copy and edit the YAML block below, and reply with it starting your comment with `/reflexion answers`:'
+      );
+      parts.push('');
+      parts.push(opts.answersTemplate);
+    }
   }
 
-  parts.push('### 🤖 Reflexion Loop Status');
+  let finalString = parts.join('\n\n');
 
-  if (opts.scoreTable) {
-    parts.push(opts.scoreTable);
+  if (opts.plan) {
+    const summaryText = isApprove
+      ? 'Approved plan — copy/paste to build in your IDE (plan skill optional)'
+      : 'Current plan — take it as-is to build now, or answer the questions below to refine and get an updated plan.';
+
+    const prefix = `<details><summary><b>📋 ${summaryText}</b></summary>\n\n\`\`\`markdown\n`;
+    const suffix = `\n\`\`\`\n\n</details>`;
+    const wrapperLen = prefix.length + suffix.length;
+
+    let availableSpace =
+      60000 - (finalString.length - '__PLAN_PLACEHOLDER__'.length) - wrapperLen;
+    const truncateNotice =
+      '\\n\\n… plan truncated; full plan.md is in the run artifact `reflexion-state-<issue>`';
+
+    let renderedPlan = opts.plan;
+    if (
+      renderedPlan.length > availableSpace &&
+      availableSpace > truncateNotice.length
+    ) {
+      renderedPlan =
+        renderedPlan.slice(0, availableSpace - truncateNotice.length) +
+        truncateNotice;
+    } else if (availableSpace <= truncateNotice.length) {
+      renderedPlan = truncateNotice;
+    }
+
+    const planBlock = prefix + renderedPlan + suffix;
+    finalString = finalString.replace('__PLAN_PLACEHOLDER__', () => planBlock);
   }
 
-  if (opts.adjudicatorVerdict) {
-    parts.push(`**Verdict:** ${opts.adjudicatorVerdict}`);
-  }
-
-  if (opts.usageCost) {
-    parts.push(`*${opts.usageCost}*`);
-  }
-
-  if (opts.interviewQuestions) {
-    parts.push('#### Questions');
-    parts.push(opts.interviewQuestions);
-  }
-
-  if (opts.answersTemplate) {
-    parts.push('#### Your Turn: Reply to this issue');
-    parts.push(
-      'Copy and edit the YAML block below, and reply with it starting your comment with `/reflexion answers`:'
-    );
-    parts.push('');
-    parts.push(opts.answersTemplate);
-  }
-
-  return parts.join('\n\n');
+  return finalString;
 }
 
 function extractYamlBlock(text) {

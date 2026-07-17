@@ -480,6 +480,12 @@ async function postResultComment(issueNumber, triggeringCommentId) {
     }
   }
 
+  let plan = null;
+  const planPath = path.join(OUT_DIR, 'plan.md');
+  if (fs.existsSync(planPath)) {
+    plan = fs.readFileSync(planPath, 'utf-8');
+  }
+
   let commentBody = formatRunnerComment({
     runId: RUN_ID,
     triggeringCommentId: triggeringCommentId,
@@ -489,6 +495,7 @@ async function postResultComment(issueNumber, triggeringCommentId) {
     answersTemplate,
     usageCost,
     idePrompt,
+    plan,
   });
 
   if (state.criticDegraded) {
