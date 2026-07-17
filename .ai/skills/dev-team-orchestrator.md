@@ -31,11 +31,30 @@ agent.
 > - **IDE / MCP-enabled Agent:** you have full write access and must use `rtk`
 >   (Run Tool Kit) to execute and verify changes.
 
+<!-- -->
+
+> [!IMPORTANT] **EXECUTION DISCIPLINE (IDE/MCP MODE)**
+>
+> - **Produce, don't deliberate:** never call a sequential-thinking/planning
+>   tool more than twice consecutively without emitting a concrete output. If
+>   unsure, emit the current phase's artifact.
+> - **No stall commands:** run no further search/terminal command between
+>   finishing a phase's inputs and emitting its artifact.
+> - **DIRECT EDITS ONLY:** never write generated regex/patch.js scripts that
+>   mutate source (they fail silently and leave no reviewable diff). Use native
+>   file edit tools.
+
 ## Phase 0 — Discovery (MANDATORY)
 
 - **Skill acquisition (NON-NEGOTIABLE):** IDE/MCP agent MUST call `get_skills`
   tool; Chat UI MUST call `get_skill`. Never read `.ai/skills/` via raw file
   access.
+- **Discovery Budget:** Apply a small cap of scoped searches only. Every
+  grep/find MUST exclude `node_modules`, `.next`, `.nx`, `dist`, and `build`. No
+  unscoped recursive search. Discovery is COMPLETE once the stack, relevant
+  files, and named config flags are known. The FIRST output after discovery MUST
+  be the Phase 1 sizing scores, with no terminal command between discovery and
+  sizing.
 - **Stack ID:** Inspect manifest/config (`package.json`, `tsconfig.json`, etc.)
   for framework + conventions.
 - **Mission Frame:** Formulate a one-sentence mission statement and a success
@@ -49,6 +68,9 @@ Evaluate the task based on the five-signal 0–2 rubric to determine the crew
 size. **HARD RULES:** idle personas are never instantiated; the sizing decision
 and its scores MUST be printed before any work begins; a size may be revised at
 a gate but never silently.
+
+**Phase artifact:** The printed sizing scores (the first thing emitted after
+discovery).
 
 | Signal       | 0                | 1                      | 2                        |
 | ------------ | ---------------- | ---------------------- | ------------------------ |
@@ -77,7 +99,15 @@ One row per task lane, tracking concurrent work.
 | ...     | ...  | ...  | ...  | ...             | ...        | ...    | ...       |
 
 - **Isolation:** One git worktree per lane (`rtk git worktree add ...`), single
-  writer per lane.
+  writer per lane. Lane creation is NOT silent — when a worktree/branch is
+  created, print the worktree path and branch, and record them in the Ledger row
+  and lane state file immediately.
+- **Worktree Bootstrap (MANDATORY):** A fresh worktree does not inherit
+  `node_modules`, built workspace packages, `.env` files, or generated clients
+  (e.g. Prisma). Before any `check-types` or `test` in a new lane, you MUST
+  bootstrap it: install deps, copy required `.env` file(s) from the source
+  checkout, generate clients, and build dependent workspace packages. Only then
+  run `check-types`/`tests`.
 - **Persistence:** State file `.dev-team/lanes/<lane-id>.md` updated at every
   gate.
 - **Anti-drift:** The Ledger is the source of truth. Reprint the Ledger after
@@ -151,8 +181,25 @@ Append them to `.dev-team/inbox.md` using the fenced yaml convention:
 question_1: ''
 ```
 
-If unanswered, the lane PARKS at its gate and other lanes continue working. Do
-not interrupt mid-lane.
+**Gate Guardrails (HARD RULES):**
+
+- **PARK IS A HARD STOP:** After writing questions to `.dev-team/inbox.md`, the
+  lane MUST stop ALL commands (no searches, reads, edits, discovery) and yield
+  until the human fills answers and signals continue. Continuing to work after
+  posting questions is a defect. Parking is correct behaviour, not a stall, and
+  must not be worked around by guessing an answer.
+- **INBOX IS READ-ONLY TO THE AGENT ONCE POPULATED:** The agent may CREATE the
+  question block, but once the human saves answers it must read them in place
+  and MUST NOT rm/overwrite/rewrite `.dev-team/inbox.md` (read into memory if a
+  normalized copy is needed; never destroy or paraphrase the human's file). The
+  inbox is for QUESTIONS only; status/confirmations go to the Lane Ledger or
+  chat, never as inbox answer entries.
+- **NEVER SILENTLY BYPASS A GATE ON TOOL FAILURE:** If a gate tool (e.g.
+  `reflexion-loop`) fails or times out, do NOT auto-skip by writing a
+  "bypassing" note and continuing. Retry once; if it still fails, PARK and ask
+  the human whether to proceed un-hardened. For Risk-2+ tasks
+  (auth/payments/data/infra), proceeding un-hardened REQUIRES explicit human
+  approval.
 
 ## Phase 5 — Friction Defect Protocol
 

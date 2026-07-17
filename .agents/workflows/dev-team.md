@@ -34,3 +34,10 @@ description: The flagship orchestration workflow for an agentic dev team
 8. **Telemetry**: Ensure telemetry events capture persona actions with `{ teamRole, loopRunId, actorType: 'AGENT' }`.
 
 9. **Anti-drift Guard**: Reprint the Lane Ledger after every detour or completed gate. Multiple lanes advance independently.
+
+**Execution guardrails (CRITICAL):**
+This workflow relies on the `dev-team-orchestrator` skill. You MUST follow its explicit execution guardrails covering:
+- **Execution Discipline:** Direct native file edits only (no patch.js/regex), produce-don't-deliberate, no stall commands.
+- **Discovery Budget:** Strict caps on search, omitting build/dependency directories.
+- **Lane & Worktree Integrity:** No silent lane creation; mandatory bootstrap (deps, `.env`, clients, builds) of fresh worktrees before testing.
+- **Hard Gate Rules:** Inbox is read-only after human writes; PARK is a hard stop; NEVER silently bypass a tool failure (e.g., `reflexion-loop`) without human consent.
