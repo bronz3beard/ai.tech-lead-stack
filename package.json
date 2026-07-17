@@ -46,6 +46,7 @@
   "scripts": {
     "generate:registry": "tsx scripts/generate-skill-registry.ts",
     "test": "jest",
+    "test:gherkin": "node --test scripts/validate-gherkin.test.mjs",
     "setup-browsers": "npx playwright install chromium",
     "postinstall": "[ -f prisma/schema.prisma ] && prisma generate || true",
     "format": "npx prettier --write \".ai/skills/*.md\" \"scripts/*.{js,mjs}\" \"README.md\"",

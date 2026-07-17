@@ -6,18 +6,18 @@ import fs from 'node:fs';
 import { validateGherkin } from './validate-gherkin.mjs';
 
 const IMPERATIVE_FIXTURE = path.join(
-  process.cwd(),
-  'tests/fixtures/imperative-fail.feature'
+  import.meta.dirname,
+  '../tests/fixtures/imperative-fail.feature'
 );
 const MALFORMED_FIXTURE = path.join(
-  process.cwd(),
-  'tests/fixtures/malformed-fail.feature'
+  import.meta.dirname,
+  '../tests/fixtures/malformed-fail.feature'
 );
 const VALID_FIXTURE = path.join(
-  process.cwd(),
-  'tests/fixtures/valid-declarative.feature'
+  import.meta.dirname,
+  '../tests/fixtures/valid-declarative.feature'
 );
-const CLI_SCRIPT = path.join(process.cwd(), 'scripts/validate-gherkin.mjs');
+const CLI_SCRIPT = path.join(import.meta.dirname, 'validate-gherkin.mjs');
 
 test('validateGherkin - valid declarative feature', () => {
   const content = fs.readFileSync(VALID_FIXTURE, 'utf8');
