@@ -1,5 +1,5 @@
 import { getWorkflowsForRole } from '@/lib/workflow-roles';
-import { Command, Send } from 'lucide-react';
+import { Command, Send, Maximize2, Minimize2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { ChangeEvent, SubmitEvent, useMemo, useRef, useState } from 'react';
 
@@ -28,6 +28,7 @@ export default function ChatInput({
 
   // Derive initial visibility from input, but allow manual close
   const [hasManuallyClosed, setHasManuallyClosed] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const showWorkflows = input.startsWith('/') && !hasManuallyClosed;
 
@@ -98,15 +99,23 @@ export default function ChatInput({
           }}
           onKeyDown={handleKeyDown}
           placeholder="Message or type '/' for workflows..."
-          className="w-full bg-zinc-900 border border-zinc-700 rounded-2xl py-3 pl-4 pr-12 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 resize-none overflow-hidden min-h-[56px] text-zinc-100 placeholder-zinc-500 shadow-inner"
+          className="w-full bg-zinc-900 border border-zinc-700 rounded-2xl py-3 pl-4 pr-12 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 resize-none overflow-y-auto min-h-[56px] text-zinc-100 placeholder-zinc-500 shadow-inner"
           rows={1}
-          style={{ height: 'auto', maxHeight: '200px' }}
+          style={isExpanded ? { height: '60vh', maxHeight: '60vh' } : { height: 'auto', maxHeight: '200px' }}
           onInput={(e) => {
+            if (isExpanded) return;
             const target = e.target as HTMLTextAreaElement;
             target.style.height = 'auto';
             target.style.height = `${target.scrollHeight}px`;
           }}
         />
+        <button
+          type="button"
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="absolute right-2 top-2 p-2 text-zinc-400 hover:text-zinc-200 transition-colors rounded-xl"
+        >
+          {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+        </button>
         <button
           type="submit"
           disabled={isLoading || !input.trim()}

@@ -12,6 +12,7 @@ import {
   Layers,
   Search,
   Terminal,
+  Download,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -263,7 +264,7 @@ export default function ChatMessageList({
               </div>
             ) : (
               /* ── Assistant message: open document layout with icon ── */
-              <div className="flex w-full justify-start gap-3">
+              <div className="group flex w-full justify-start gap-3">
                 {/* Bot icon column */}
                 <div className="mt-0.5 shrink-0">
                   <div className="w-7 h-7 rounded-full bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center">
@@ -338,10 +339,11 @@ export default function ChatMessageList({
 
                     {/* Message Content */}
                     {textContent ? (
-                      <div className="chat-prose">
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          components={{
+                      <>
+                        <div className="chat-prose">
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
                             code({
                               inline,
                               className,
@@ -382,6 +384,28 @@ export default function ChatMessageList({
                           {textContent}
                         </ReactMarkdown>
                       </div>
+                      {/* Message Actions */}
+                      <div className="mt-2 flex items-center gap-2 opacity-0 focus-within:opacity-100 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => {
+                            const blob = new Blob([textContent], { type: 'text/markdown' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `response-${message.id}.md`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                          }}
+                          className="flex items-center gap-1.5 px-2 py-1 cursor-pointer text-[11px] font-medium text-zinc-400 hover:text-zinc-200 hover:bg-white/5 rounded-md transition-colors border border-transparent hover:border-white/10"
+                          title="Download as Markdown"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          Download MD
+                        </button>
+                      </div>
+                    </>
                     ) : (
                       toolCalls.length > 0 &&
                       isLoading &&
