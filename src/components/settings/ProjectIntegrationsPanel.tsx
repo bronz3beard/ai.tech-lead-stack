@@ -23,6 +23,7 @@ interface Project {
     designSystemPath?: string;
     figmaApiKey?: string;
     chromaticApiKey?: string;
+    clickupApiKey?: string;
     encryptedEnvVars?: string;
   } | null;
 }
@@ -33,6 +34,7 @@ interface ProjectFormState {
   designSystemPath: string;
   figmaApiKey: string;
   chromaticApiKey: string;
+  clickupApiKey: string;
   encryptedEnvVars: string;
   isSaving: boolean;
   isSaved: boolean;
@@ -74,6 +76,7 @@ export default function ProjectIntegrationsPanel() {
             designSystemPath: p.settings?.designSystemPath ?? '',
             figmaApiKey: p.settings?.figmaApiKey ?? '',
             chromaticApiKey: p.settings?.chromaticApiKey ?? '',
+            clickupApiKey: p.settings?.clickupApiKey ?? '',
             encryptedEnvVars: p.settings?.encryptedEnvVars ?? '',
             isSaving: false,
             isSaved: false,
@@ -104,6 +107,7 @@ export default function ProjectIntegrationsPanel() {
       | 'designSystemPath'
       | 'figmaApiKey'
       | 'chromaticApiKey'
+      | 'clickupApiKey'
       | 'encryptedEnvVars'
     >,
     value: string
@@ -127,6 +131,7 @@ export default function ProjectIntegrationsPanel() {
         designSystemPath,
         figmaApiKey,
         chromaticApiKey,
+        clickupApiKey,
         encryptedEnvVars,
       } = formState[projectId];
       const res = await fetch(`/api/projects/${projectId}/settings`, {
@@ -139,6 +144,7 @@ export default function ProjectIntegrationsPanel() {
             designSystemPath,
             figmaApiKey,
             chromaticApiKey,
+            clickupApiKey,
             encryptedEnvVars,
           },
         }),
@@ -418,6 +424,29 @@ export default function ProjectIntegrationsPanel() {
                             'chromaticApiKey',
                             e.target.value
                           )
+                        }
+                        className="bg-zinc-950 border-zinc-700 text-zinc-100 font-mono text-xs"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor={`clickup-api-key-${project.id}`}
+                        className="text-zinc-300 flex items-center justify-between"
+                      >
+                        ClickUp API Key
+                        {state.clickupApiKey === '********' && (
+                          <span className="text-[10px] text-emerald-500 font-medium bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                            Configured
+                          </span>
+                        )}
+                      </Label>
+                      <Input
+                        id={`clickup-api-key-${project.id}`}
+                        type="password"
+                        placeholder="pk_..."
+                        value={state.clickupApiKey}
+                        onChange={(e) =>
+                          handleChange(project.id, 'clickupApiKey', e.target.value)
                         }
                         className="bg-zinc-950 border-zinc-700 text-zinc-100 font-mono text-xs"
                       />

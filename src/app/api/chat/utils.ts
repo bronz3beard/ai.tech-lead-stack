@@ -451,7 +451,7 @@ export function getChatTools(provider: CodeProvider = skillsService, integration
       }),
       execute: async (args: { taskUrlOrId: string }) => {
         if (!integrations.clickupToken) {
-          return { error: 'No ClickUp token configured for this project. Add CLICKUP_API_TOKEN to the project env settings.' };
+          return { error: 'No ClickUp API Key configured for this project. Add one in the Project Integrations settings.' };
         }
         try {
           const id = ClickUpService.parseTaskId(args.taskUrlOrId);

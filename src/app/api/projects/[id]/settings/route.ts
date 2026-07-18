@@ -18,6 +18,7 @@ const UpdateProjectSettingsSchema = z.object({
     ]).optional(),
     figmaApiKey: z.union([z.string(), z.literal('')]).optional(),
     chromaticApiKey: z.union([z.string(), z.literal('')]).optional(),
+    clickupApiKey: z.union([z.string(), z.literal('')]).optional(),
     encryptedEnvVars: z.union([z.string(), z.literal('')]).optional(),
   }),
 });
@@ -26,7 +27,7 @@ const UpdateProjectSettingsSchema = z.object({
  * @desc Updates the integration settings for a project.
  * Only the project owner (ownerId) may update settings.
  *
- * @param req Body: { settings: { discordWebhookUrl?, discordDevWebhookUrl?, designSystemPath?, figmaApiKey?, chromaticApiKey?, encryptedEnvVars? } }
+ * @param req Body: { settings: { discordWebhookUrl?, discordDevWebhookUrl?, designSystemPath?, figmaApiKey?, chromaticApiKey?, clickupApiKey?, encryptedEnvVars? } }
  * @returns 200 { project: { id, settings } }
  */
 export async function PATCH(
@@ -68,6 +69,7 @@ export async function PATCH(
     designSystemPath,
     figmaApiKey,
     chromaticApiKey,
+    clickupApiKey,
     encryptedEnvVars
   } = parsed.data.settings;
   const newSettings = {
@@ -87,6 +89,9 @@ export async function PATCH(
     ...(chromaticApiKey && chromaticApiKey !== '********'
       ? { chromaticApiKey: encrypt(chromaticApiKey) }
       : chromaticApiKey === '' ? { chromaticApiKey: undefined } : {}),
+    ...(clickupApiKey && clickupApiKey !== '********'
+      ? { clickupApiKey: encrypt(clickupApiKey) }
+      : clickupApiKey === '' ? { clickupApiKey: undefined } : {}),
     ...(encryptedEnvVars && encryptedEnvVars !== '********'
       ? { encryptedEnvVars: encrypt(encryptedEnvVars) }
       : encryptedEnvVars === '' ? { encryptedEnvVars: undefined } : {}),
@@ -103,6 +108,7 @@ export async function PATCH(
     ...(updated.settings as Record<string, unknown>),
     figmaApiKey: (updated.settings as any)?.figmaApiKey ? '********' : undefined,
     chromaticApiKey: (updated.settings as any)?.chromaticApiKey ? '********' : undefined,
+    clickupApiKey: (updated.settings as any)?.clickupApiKey ? '********' : undefined,
     encryptedEnvVars: (updated.settings as any)?.encryptedEnvVars ? '********' : undefined,
   };
 

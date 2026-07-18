@@ -373,15 +373,11 @@ export async function POST(req: Request) {
             }
           }
 
-          if (projectSettings?.encryptedEnvVars) {
+          if (projectSettings?.clickupApiKey) {
             try {
-              const envText = decrypt(projectSettings.encryptedEnvVars);
-              const clickupMatch = envText.split('\n').find((line: string) => line.trim().startsWith('CLICKUP_TOKEN='));
-              if (clickupMatch) {
-                integrations.clickupToken = clickupMatch.replace('CLICKUP_TOKEN=', '').trim();
-              }
+              integrations.clickupToken = decrypt(projectSettings.clickupApiKey).trim();
             } catch (err) {
-              console.error('Failed to decrypt encryptedEnvVars:', err);
+              console.error('Failed to decrypt clickupApiKey:', err);
             }
           }
 
