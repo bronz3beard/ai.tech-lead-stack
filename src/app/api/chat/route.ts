@@ -406,6 +406,8 @@ export async function POST(req: Request) {
           });
 
           const lastUserMessageText = extractTextFromContent(lastUserMessage?.content);
+          const preferredProvider = user.preferredModel || 'gemini';
+          let workflowNameStr = 'general-chat';
 
           if (
             lastUserMessage &&
@@ -419,6 +421,7 @@ export async function POST(req: Request) {
             const workflowName = command
               .replace(/^get_/, '')
               .replace(/_/g, '-');
+            workflowNameStr = workflowName;
 
             if (!canAccessWorkflow(user.role, workflowName)) {
               writer.write({
@@ -435,7 +438,7 @@ export async function POST(req: Request) {
               workflowName,
               project.name,
               MODELS.GEMINI,
-              'pm-assistant',
+              preferredProvider,
               '~1000 tokens',
               async () => {
                  const content = await readWorkflow(workflowName);
@@ -455,7 +458,6 @@ export async function POST(req: Request) {
           }
 
           let stepCount = 0;
-          const preferredProvider = user.preferredModel || 'gemini';
           
           let configs: { modelId: string, keyIndex: number, label: string }[] = [];
           
@@ -546,7 +548,7 @@ export async function POST(req: Request) {
                             skillName,
                             projectName: project.name,
                             model: config.modelId,
-                            agent: 'pm-assistant',
+                            agent: preferredProvider,
                             duration: stepDuration,
                             status: resultPart && resultPart.result?.error ? 'ERROR' : 'SUCCESS',
                             error: resultPart && resultPart.result?.error ? String(resultPart.result.error) : undefined,
@@ -774,6 +776,23 @@ export async function POST(req: Request) {
                   id: 'final-status',
                   data: { status: 'DONE: Analysis successfully completed.' },
                 });
+
+                // --- STEP TELEMETRY ---
+                telemetryService.recordEvent({
+                  skillName: `analysis:${workflowNameStr}`,
+                  projectName: project.name,
+                  model: config.modelId,
+                  agent: preferredProvider,
+                  duration: 0, // Duration isn't critical here since we just want step count
+                  status: 'SUCCESS',
+                  userEmail: user.email ?? undefined,
+                  metadata: {
+                    totalSteps: stepCount,
+                    chatId: currentChatId,
+                  },
+                  actorType: 'AGENT',
+                  autonomy: 'AUTONOMOUS'
+                }).catch(err => console.error('[Telemetry] Total step log failed:', err));
 
                 // BACKGROUND SUMMARIZATION: After a successful stream, update the
                 // chat summary if this is an established conversation (> 5 messages)

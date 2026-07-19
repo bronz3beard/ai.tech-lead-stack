@@ -50,7 +50,7 @@ export const SYSTEM_INSTRUCTION_WORKFLOW_PREFIX = `You are a Tech Lead Agent. Yo
  * Limit for background analytical tool turns.
  * Set to a balanced value to ensure fast feedback while permitting complex research.
  */
-export const MAX_ANALYTICAL_STEPS = 12;
+export const MAX_ANALYTICAL_STEPS = 100;
 
 /**
  * Model identifiers.

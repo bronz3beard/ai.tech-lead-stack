@@ -1,5 +1,6 @@
 import { DashboardDisclaimer } from '@/components/dashboard/DashboardDisclaimer';
 import { InsightsTable } from '@/components/dashboard/InsightsTable';
+import { StepAnalyticsTable } from '@/components/dashboard/StepAnalyticsTable';
 import { ProjectSelect, type Project } from '@/components/ProjectSelect';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, LineChart } from '@/components/ui/chart';
@@ -118,6 +119,27 @@ async function getGlobalMetrics(projectId?: string, session?: any) {
       total,
     }));
 
+    const analysisTraces = finalTraces.filter(t => t.name.startsWith('analysis:'));
+    const stepMetricsMap: Record<string, { totalExecutions: number; totalSteps: number }> = {};
+    
+    analysisTraces.forEach(t => {
+      const skillName = t.name.replace('analysis:', '');
+      const steps = typeof t.metadata?.totalSteps === 'number' ? t.metadata.totalSteps : 
+                    (typeof t.metadata?.totalSteps === 'string' ? parseInt(t.metadata.totalSteps, 10) : 0);
+      if (!stepMetricsMap[skillName]) {
+        stepMetricsMap[skillName] = { totalExecutions: 0, totalSteps: 0 };
+      }
+      stepMetricsMap[skillName].totalExecutions += 1;
+      stepMetricsMap[skillName].totalSteps += (isNaN(steps) ? 0 : steps);
+    });
+
+    const stepMetrics = Object.entries(stepMetricsMap).map(([skillName, data]) => ({
+      skillName,
+      totalExecutions: data.totalExecutions,
+      averageSteps: data.totalSteps / data.totalExecutions,
+      totalSteps: data.totalSteps
+    })).sort((a, b) => b.totalSteps - a.totalSteps);
+
     return {
       totalExecutions,
       activeWorkflows:
@@ -125,6 +147,7 @@ async function getGlobalMetrics(projectId?: string, session?: any) {
       projects,
       topSkills,
       tracesByTime,
+      stepMetrics,
       traces: finalTraces,
     };
   } catch (error) {
@@ -135,6 +158,7 @@ async function getGlobalMetrics(projectId?: string, session?: any) {
       projects: [{ id: 'all', name: 'All Projects' }],
       topSkills: [],
       tracesByTime: [],
+      stepMetrics: [],
       traces: [],
     };
   }
@@ -255,6 +279,21 @@ export default async function PublicDashboard({ searchParams }: PageProps) {
           </CardHeader>
           <CardContent>
             <InsightsTable traces={metrics.traces} />
+          </CardContent>
+        </Card>
+
+        {/* Step Analytics Table */}
+        <Card className="border-slate-800 bg-slate-900/50 backdrop-blur-xl shadow-2xl overflow-hidden">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold text-white">
+              Total Thinking and Analysis Steps
+            </CardTitle>
+            <p className="text-slate-400">
+              Aggregated telemetry showing the total analytical turns taken per workflow.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <StepAnalyticsTable metrics={metrics.stepMetrics} />
           </CardContent>
         </Card>
 
