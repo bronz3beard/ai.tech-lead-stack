@@ -6,6 +6,32 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+// Custom hook to detect if the AI stream has stalled
+function useStallDetector(isLoading: boolean, streamDataLength: number, timeoutMs: number = 15000) {
+  const [isStalled, setIsStalled] = useState(false);
+  const [prevLength, setPrevLength] = useState(streamDataLength);
+  const [prevLoading, setPrevLoading] = useState(isLoading);
+
+  // Reset stall state during render if dependencies change (avoids sync setState in effect)
+  if (streamDataLength !== prevLength || isLoading !== prevLoading) {
+    setPrevLength(streamDataLength);
+    setPrevLoading(isLoading);
+    setIsStalled(false);
+  }
+
+  useEffect(() => {
+    if (!isLoading) return;
+
+    const timer = setTimeout(() => {
+      setIsStalled(true);
+    }, timeoutMs);
+
+    return () => clearTimeout(timer);
+  }, [isLoading, streamDataLength, timeoutMs]);
+
+  return isStalled;
+}
+
 export interface ChatBodyProps {
   projectId: string;
   chatId: string | null;
@@ -50,7 +76,7 @@ export default function ChatBody({
     [projectId, chatId]
   );
 
-  const { messages, status, sendMessage, error, setMessages } = useChat({
+  const { messages, status, sendMessage, error, setMessages, stop } = useChat({
     transport,
     onData: (data: unknown) => {
       setStreamData((prev) => [...prev, data]);
@@ -114,6 +140,23 @@ export default function ChatBody({
   }, [chatId, messagesInitialized, setMessages]);
 
   const isLoading = status === 'streaming';
+  const isStalled = useStallDetector(isLoading, streamData.length, 15000);
+
+  const handleRetry = () => {
+    if (isLoading) {
+      stop();
+    }
+    
+    chatCreatedNotified.current = false;
+    setStreamData([]);
+    
+    const robustPrompt = `CRITICAL INSTRUCTION: Your previous execution was interrupted or stalled before completion. You MUST continue exactly from where you left off. Analyze your previous output, identify the final completed step, and resume the task without starting over or repeating already completed work. Do not ask for confirmation, simply resume execution to complete the original request.`;
+    
+    sendMessage(
+      { parts: [{ type: 'text', text: robustPrompt }] },
+      { body: { projectId, chatId } }
+    );
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
@@ -139,6 +182,9 @@ export default function ChatBody({
           messages={messages}
           data={streamData}
           isLoading={isLoading}
+          isStalled={isStalled}
+          error={error}
+          onRetry={handleRetry}
         />
         {error && (
           <div className="p-4 mt-4 bg-red-900/20 border border-red-500/50 rounded-lg text-red-400">

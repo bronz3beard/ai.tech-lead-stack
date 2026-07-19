@@ -128,12 +128,18 @@ interface ChatMessageListProps {
   /** Streaming data for custom events — presence signals an active stream */
   data?: StreamDataItem[];
   isLoading?: boolean;
+  isStalled?: boolean;
+  error?: Error;
+  onRetry?: () => void;
 }
 
 export default function ChatMessageList({
   messages,
   data,
   isLoading,
+  isStalled,
+  error,
+  onRetry,
 }: ChatMessageListProps) {
   // Sentinel ref: the invisible div at the bottom of the list
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -225,6 +231,7 @@ export default function ChatMessageList({
   return (
     <div className="space-y-8 pb-4">
       {messages.map((message) => {
+        const isLastMessage = message.id === messages[messages.length - 1].id;
         // Cast to our local union once; the SDK types don't expose
         // 'tool-call'/'tool-result' part types publicly.
         const parts = message.parts as MessagePart[];
@@ -378,28 +385,30 @@ export default function ChatMessageList({
                           </ReactMarkdown>
                         </div>
 
-                        <div className="mt-2 flex items-center gap-2 opacity-0 focus-within:opacity-100 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => {
-                              const blob = new Blob([textContent], {
-                                type: 'text/markdown',
-                              });
-                              const url = URL.createObjectURL(blob);
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = `response-${message.id}.md`;
-                              document.body.appendChild(a);
-                              a.click();
-                              document.body.removeChild(a);
-                              URL.revokeObjectURL(url);
-                            }}
-                            className="flex items-center gap-1.5 px-2 py-1 cursor-pointer text-[11px] font-medium text-zinc-400 hover:text-zinc-200 hover:bg-white/5 rounded-md transition-colors border border-transparent hover:border-white/10"
-                            title="Download as Markdown"
-                          >
-                            <Download className="w-3.5 h-3.5" />
-                            Download MD
-                          </button>
-                        </div>
+                        {(!isLastMessage || !isLoading) && (
+                          <div className="mt-2 flex items-center gap-2 opacity-0 focus-within:opacity-100 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => {
+                                const blob = new Blob([textContent], {
+                                  type: 'text/markdown',
+                                });
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `response-${message.id}.md`;
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                                URL.revokeObjectURL(url);
+                              }}
+                              className="flex items-center gap-1.5 px-2 py-1 cursor-pointer text-[11px] font-medium text-zinc-400 hover:text-zinc-200 hover:bg-white/5 rounded-md transition-colors border border-transparent hover:border-white/10"
+                              title="Download as Markdown"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              Download MD
+                            </button>
+                          </div>
+                        )}
                       </>
                     ) : (
                       toolCalls.length > 0 &&
@@ -419,7 +428,7 @@ export default function ChatMessageList({
         );
       })}
 
-      {isLoading && (
+      {isLoading && !isStalled && (
         <div className="space-y-4 pt-2">
           {statusText && (
             <div className="flex justify-start">
@@ -487,6 +496,36 @@ export default function ChatMessageList({
           {messages[messages.length - 1]?.role !== 'assistant' &&
             !statusText &&
             !errorText && <StreamingIndicator />}
+        </div>
+      )}
+
+      {(isStalled || error) && (
+        <div className="flex justify-start pt-2">
+          <div className="max-w-[85%] bg-amber-500/10 border border-amber-500/20 rounded-2xl px-5 py-4 flex flex-col gap-3 shadow-lg backdrop-blur-sm">
+            <div className="flex items-start gap-3">
+              <div className="mt-1">
+                <Activity className="w-4 h-4 text-amber-500 animate-pulse" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] font-bold text-amber-400 uppercase tracking-widest mb-1 opacity-90">
+                  {error ? 'Execution Error' : 'Execution Stalled'}
+                </div>
+                <div className="text-sm text-amber-200 font-medium leading-relaxed">
+                  {error 
+                    ? error.message || 'An unexpected error occurred during execution.' 
+                    : 'The agent is taking longer than expected and might be stalled.'}
+                </div>
+              </div>
+            </div>
+            {onRetry && (
+              <button
+                onClick={onRetry}
+                className="mt-2 self-start px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
+              >
+                {error ? 'Retry Execution' : 'Interrupt & Continue'}
+              </button>
+            )}
+          </div>
         </div>
       )}
 
