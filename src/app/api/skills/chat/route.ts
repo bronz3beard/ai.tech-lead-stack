@@ -107,13 +107,15 @@ export async function POST(req: Request) {
     // Manual conversion: UIMessage (from transport JSON) → ModelMessage[]
     // We bypass `convertToModelMessages` because deserialized JSON from req.json()
     // fails its strict Zod schema validation (missing Date objects, metadata, etc.).
-    const modelMessages: ModelMessage[] = messages.map((m: any) => {
-      const text = extractTextFromParts(m.parts || []);
-      return {
-        role: m.role as 'user' | 'assistant' | 'system',
-        content: text,
-      };
-    });
+    const modelMessages: ModelMessage[] = messages
+      .filter((m: any) => ['user', 'assistant', 'system'].includes(m.role))
+      .map((m: any) => {
+        const text = extractTextFromParts(m.parts || []);
+        return {
+          role: m.role as 'user' | 'assistant' | 'system',
+          content: text,
+        };
+      });
 
     // Inject current editor content as context into the last user message
     if (currentContent && modelMessages.length > 0) {

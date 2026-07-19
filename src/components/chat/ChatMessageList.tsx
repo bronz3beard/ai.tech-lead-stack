@@ -8,11 +8,11 @@ import {
   ChevronDown,
   ChevronUp,
   Copy,
+  Download,
   FileText,
   Layers,
   Search,
   Terminal,
-  Download,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -256,26 +256,21 @@ export default function ChatMessageList({
         return (
           <div key={message.id}>
             {message.role === 'user' ? (
-              /* ── User message: tight indigo bubble aligned right ── */
               <div className="flex w-full justify-end">
                 <div className="max-w-[72%] bg-indigo-600 text-white rounded-2xl rounded-br-none px-5 py-3 shadow-lg text-[15px] leading-relaxed">
                   <div className="whitespace-pre-wrap">{textContent}</div>
                 </div>
               </div>
             ) : (
-              /* ── Assistant message: open document layout with icon ── */
               <div className="group flex w-full justify-start gap-3">
-                {/* Bot icon column */}
                 <div className="mt-0.5 shrink-0">
                   <div className="w-7 h-7 rounded-full bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center">
                     <Bot className="w-3.5 h-3.5 text-indigo-400" />
                   </div>
                 </div>
 
-                {/* Content column */}
                 <div className="flex-1 min-w-0 pb-4">
                   <div className="space-y-4">
-                    {/* Reasoning / Thinking Process — hidden in history mode */}
                     {!isHistory && reasoningContent && (
                       <div className="text-xs italic text-zinc-400 border-l-2 border-indigo-500/30 pl-3 py-1 bg-indigo-500/5 rounded-r-md">
                         <div className="flex items-center gap-1.5 mb-1 text-[10px] uppercase tracking-wider font-semibold opacity-70">
@@ -288,7 +283,6 @@ export default function ChatMessageList({
                       </div>
                     )}
 
-                    {/* Tool Call & Result Indicators — hidden in history mode */}
                     {hasTools && (
                       <div className="flex flex-col gap-2">
                         {parts.map((part, idx) => {
@@ -337,75 +331,76 @@ export default function ChatMessageList({
                       </div>
                     )}
 
-                    {/* Message Content */}
                     {textContent ? (
                       <>
                         <div className="chat-prose">
                           <ReactMarkdown
                             remarkPlugins={[remarkGfm]}
                             components={{
-                            code({
-                              inline,
-                              className,
-                              children,
-                              ...props
-                            }: Omit<CodeComponentProps, 'node'>) {
-                              const match = /language-(\w+)/.exec(
-                                className ?? ''
-                              );
-                              const language = match ? match[1] : '';
-                              const content = String(children).replace(
-                                /\n$/,
-                                ''
-                              );
-
-                              if (!inline && language === 'mermaid') {
-                                return <MermaidRenderer chart={content} />;
-                              }
-
-                              if (!inline && match) {
-                                return (
-                                  <CodeBlock
-                                    language={language}
-                                    value={content}
-                                  />
+                              code({
+                                inline,
+                                className,
+                                children,
+                                ...props
+                              }: Omit<CodeComponentProps, 'node'>) {
+                                const match = /language-(\w+)/.exec(
+                                  className ?? ''
                                 );
-                              }
+                                const language = match ? match[1] : '';
+                                const content = String(children).replace(
+                                  /\n$/,
+                                  ''
+                                );
 
-                              // Inline code — CSS handles the styling via .chat-prose code
-                              return (
-                                <code className={className ?? ''} {...props}>
-                                  {children}
-                                </code>
-                              );
-                            },
-                          }}
-                        >
-                          {textContent}
-                        </ReactMarkdown>
-                      </div>
-                      {/* Message Actions */}
-                      <div className="mt-2 flex items-center gap-2 opacity-0 focus-within:opacity-100 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => {
-                            const blob = new Blob([textContent], { type: 'text/markdown' });
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = `response-${message.id}.md`;
-                            document.body.appendChild(a);
-                            a.click();
-                            document.body.removeChild(a);
-                            URL.revokeObjectURL(url);
-                          }}
-                          className="flex items-center gap-1.5 px-2 py-1 cursor-pointer text-[11px] font-medium text-zinc-400 hover:text-zinc-200 hover:bg-white/5 rounded-md transition-colors border border-transparent hover:border-white/10"
-                          title="Download as Markdown"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                          Download MD
-                        </button>
-                      </div>
-                    </>
+                                if (!inline && language === 'mermaid') {
+                                  return <MermaidRenderer chart={content} />;
+                                }
+
+                                if (!inline && match) {
+                                  return (
+                                    <CodeBlock
+                                      language={language}
+                                      value={content}
+                                    />
+                                  );
+                                }
+
+                                // Inline code — CSS handles the styling via .chat-prose code
+                                return (
+                                  <code className={className ?? ''} {...props}>
+                                    {children}
+                                  </code>
+                                );
+                              },
+                            }}
+                          >
+                            {textContent}
+                          </ReactMarkdown>
+                        </div>
+
+                        <div className="mt-2 flex items-center gap-2 opacity-0 focus-within:opacity-100 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => {
+                              const blob = new Blob([textContent], {
+                                type: 'text/markdown',
+                              });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `response-${message.id}.md`;
+                              document.body.appendChild(a);
+                              a.click();
+                              document.body.removeChild(a);
+                              URL.revokeObjectURL(url);
+                            }}
+                            className="flex items-center gap-1.5 px-2 py-1 cursor-pointer text-[11px] font-medium text-zinc-400 hover:text-zinc-200 hover:bg-white/5 rounded-md transition-colors border border-transparent hover:border-white/10"
+                            title="Download as Markdown"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            Download MD
+                          </button>
+                        </div>
+                      </>
                     ) : (
                       toolCalls.length > 0 &&
                       isLoading &&
@@ -424,7 +419,6 @@ export default function ChatMessageList({
         );
       })}
 
-      {/* Show Analytical Progress / Streaming Indicator — only during live stream */}
       {isLoading && (
         <div className="space-y-4 pt-2">
           {statusText && (
@@ -453,7 +447,6 @@ export default function ChatMessageList({
                   </div>
                 </div>
 
-                {/* Research Insight Log */}
                 {allInsights.length > 0 && (
                   <div className="ml-6.5 mt-1 border-l border-zinc-800/80 pl-4 space-y-2">
                     {allInsights.map((insight, i) => (

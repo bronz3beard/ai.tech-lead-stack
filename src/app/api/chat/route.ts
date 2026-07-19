@@ -383,14 +383,16 @@ export async function POST(req: Request) {
 
           const tools = getChatTools(provider, integrations);
 
-          // Prepare history
-          const modelMessages: ModelMessage[] = messages.map((m: any) => {
-            const text = extractTextFromContent(m.parts || m.content || m.text);
-            return {
-              role: m.role,
-              content: text,
-            } as any;
-          });
+          // Prepare history (filter out 'data' or 'tool' roles that aren't fully hydrated)
+          const modelMessages: ModelMessage[] = messages
+            .filter((m: any) => ['user', 'assistant', 'system'].includes(m.role))
+            .map((m: any) => {
+              const text = extractTextFromContent(m.parts || m.content || m.text);
+              return {
+                role: m.role,
+                content: text,
+              } as any;
+            });
 
           const lastUserMessage = modelMessages[modelMessages.length - 1];
 

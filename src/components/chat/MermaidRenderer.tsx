@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
 import mermaid from 'mermaid';
+import { useEffect, useRef, useState } from 'react';
 
 interface MermaidRendererProps {
   chart: string;
@@ -17,7 +17,8 @@ mermaid.initialize({
   // synchronously via canvas/DOM before the page font loads; 'inherit' causes
   // it to fall back to the browser default, producing incorrect node sizes and
   // clipped labels. This stack matches the Tailwind default and is always available.
-  fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
+  fontFamily:
+    'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
   themeVariables: {
     primaryColor: '#6366f1', // Indigo 500
     primaryTextColor: '#f8fafc', // Slate 50
@@ -53,23 +54,33 @@ export default function MermaidRenderer({ chart }: MermaidRendererProps) {
 
       // ── Rule 2: Resolve unclosed double quotes in labels ──────────────────
       // If a line has an odd number of double quotes, append one before the closing bracket.
-      chart = chart.split('\n').map(line => {
-        const quoteCount = (line.match(/"/g) || []).length;
-        if (quoteCount % 2 !== 0) {
-          // If a label has an unclosed quote: Node["Label -> Node["Label"]
-          return line.replace(/(\["[^"\]]*)(\s*\])/g, '$1"$2')
-                     .replace(/(\("[^"\)]*)(\s*\))/g, '$1"$2');
-        }
-        return line;
-      }).join('\n');
+      chart = chart
+        .split('\n')
+        .map((line) => {
+          const quoteCount = (line.match(/"/g) || []).length;
+          if (quoteCount % 2 !== 0) {
+            // If a label has an unclosed quote: Node["Label -> Node["Label"]
+            return line
+              .replace(/(\["[^"\]]*)(\s*\])/g, '$1"$2')
+              .replace(/(\("[^"\)]*)(\s*\))/g, '$1"$2');
+          }
+          return line;
+        })
+        .join('\n');
 
       // ── Rule 3: Collapse multi-line quoted labels ────────────────────
       chart = chart.replace(/\["([\s\S]*?)"\]/g, (_match, content: string) => {
-        const singleLine = content.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+        const singleLine = content
+          .replace(/\n/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
         return `["${singleLine}"]`;
       });
       chart = chart.replace(/\("([\s\S]*?)"\)/g, (_match, content: string) => {
-        const singleLine = content.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+        const singleLine = content
+          .replace(/\n/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
         return `("${singleLine}")`;
       });
 
@@ -77,7 +88,8 @@ export default function MermaidRenderer({ chart }: MermaidRendererProps) {
       // Automatically quote unquoted labels that look like file paths or contain
       // characters that Mermaid classifies as tokens (., /, @, etc).
       // We only target node definitions preceded by an ID to avoid inner "A[Label ("path")]" errors.
-      chart = chart.replace(/(^|\s|-->|--|-.->|==>)([a-zA-Z0-9_-]+)([\[\(])(?!")([^"\]\)\n]*?[.\/@][^"\]\)\n]*?)([\]\)])/g, 
+      chart = chart.replace(
+        /(^|\s|-->|--|-.->|==>)([a-zA-Z0-9_-]+)([\[\(])(?!")([^"\]\)\n]*?[.\/@][^"\]\)\n]*?)([\]\)])/g,
         (match, prefix, id, open, label, close) => {
           const cleanLabel = label.trim().replace(/"/g, "'");
           return `${prefix}${id}${open}"${cleanLabel}"${close}`;
@@ -96,7 +108,10 @@ export default function MermaidRenderer({ chart }: MermaidRendererProps) {
       // ── Rule 7: Statement Separation (Prevents "Expecting SQE" errors) ──
       // If multiple node definitions appear on one line without a connection,
       // force a newline to satisfy the Mermaid parser.
-      chart = chart.replace(/([\]\)])[ \t]{2,}([a-zA-Z0-9_-]+[\[\(])/g, '$1\n$2');
+      chart = chart.replace(
+        /([\]\)])[ \t]{2,}([a-zA-Z0-9_-]+[\[\(])/g,
+        '$1\n$2'
+      );
 
       // ── Rule 8: Final cleanup ────────────────────────────────────────
       return chart
