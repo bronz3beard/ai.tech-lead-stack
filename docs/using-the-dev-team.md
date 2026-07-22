@@ -13,7 +13,8 @@
 1. [The one-sentence mental model](#1-the-one-sentence-mental-model)
 2. [When to use it — and when not to](#2-when-to-use-it--and-when-not-to)
 3. [The two runtime modes (this determines everything)](#3-the-two-runtime-modes-this-determines-everything)
-4. [How the team sizes itself to the task](#4-how-the-team-sizes-itself-to-the-task)
+4. [Choosing models](#4-choosing-models)
+5. [How the team sizes itself to the task](#5-how-the-team-sizes-itself-to-the-task)
 5. [What a good task hand-off contains](#5-what-a-good-task-hand-off-contains)
 6. [The five phases, from your seat](#6-the-five-phases-from-your-seat)
 7. [Working the gates: the interview inbox](#7-working-the-gates-the-interview-inbox)
@@ -97,7 +98,18 @@ you a plan first, then the execution.
 
 ---
 
-## 4. How the team sizes itself to the task
+## 4. Choosing models
+
+Model choices for AI responsibilities (`planner`, `implementer`, `auditor`, `adjudicator`) are configured flexibly across the platform:
+
+- **User Defaults**: Configured per user in **Settings → Orchestrator Defaults** (`/settings` in the web application).
+- **Per-Project Overrides**: Configured per project on the project settings surface under the **Project Models** tab (`/api/projects/[id]/model-routing`).
+- **Precedence Chain**: `Environment Variables (MODEL_*)` → `Project Routing` → `User Routing` → `System Default`.
+- **Environment Variables are Optional**: `MODEL_*` environment variables (`MODEL_PLANNER`, `MODEL_IMPLEMENTER`, `MODEL_AUDITOR`, `MODEL_ADJUDICATOR`) should be left **UNSET** so the UI and database remain the authoritative source of truth. Environment variables remain available as an optional headless override only.
+
+---
+
+## 5. How the team sizes itself to the task
 
 Before any work begins, the orchestrator scores your task on five signals, each
 0 to 2, and prints the scores. This is the **Crew Sizing Gate**, and it is the

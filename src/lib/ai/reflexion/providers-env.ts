@@ -1,12 +1,19 @@
-import { createAnthropic } from '@ai-sdk/anthropic';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import type { Project } from '@prisma/client';
 import {
   generateText,
   Output,
   type LanguageModel,
   type LanguageModelUsage,
 } from 'ai';
+
 import { MODELS } from '../../../app/api/chat/constants';
+import { createModel } from '../model-registry';
+import {
+  assertDistinctModels,
+  buildRoleModel,
+  keyFor,
+  type ResolveCtx,
+} from '../model-resolver';
 import type { ReflexionRunner } from './engine';
 import { PRICE_PER_MTOK } from './pricing';
 import { CritiqueSchema, InterviewSchema } from './schema';
@@ -41,13 +48,9 @@ export function isHardApiFailure(error: any): boolean {
   return keywords.some((keyword) => message.includes(keyword));
 }
 
-/** Local copy of the distinctness guard so this file imports nothing via '@/'. */
+/** Local distinctness guard, kept for callers that import it from here. */
 function assertDistinct(creator: string, critic: string): void {
-  if (creator === critic) {
-    throw new Error(
-      `Reflexion requires the creator (${creator}) and critic (${critic}) to be different models, so the writer never grades its own work.`
-    );
-  }
+  assertDistinctModels(creator, critic, 'creator', 'critic');
 }
 
 export function buildRunner(
@@ -78,9 +81,13 @@ export function buildRunner(
       return;
     }
 
-    const usageFallback = usage as { promptTokens?: number; completionTokens?: number } & typeof usage;
+    const usageFallback = usage as {
+      promptTokens?: number;
+      completionTokens?: number;
+    } & typeof usage;
     const inputTokens = usageFallback.promptTokens ?? usage.inputTokens ?? 0;
-    const outputTokens = usageFallback.completionTokens ?? usage.outputTokens ?? 0;
+    const outputTokens =
+      usageFallback.completionTokens ?? usage.outputTokens ?? 0;
     const inputCost = (inputTokens / 1_000_000) * pricing.inputUsdPerMTok;
     const outputCost = (outputTokens / 1_000_000) * pricing.outputUsdPerMTok;
     totalCostUsd += inputCost + outputCost;
@@ -183,38 +190,40 @@ export function buildRunner(
 }
 
 /**
- * CLI / MCP mode: keys from the environment. Creator = Gemini, Critic +
- * Adjudicator = Claude. Works headless across ANY repo.
+ * CLI / MCP mode: keys + model ids come from the environment (and, when supplied,
+ * per-project routing). Any responsibility can be any model — the SDK is chosen
+ * from the resolved model id, not hardcoded per slot. Works headless across ANY repo.
+ *
+ * The reflexion loop uses planner (creator), auditor (critic) and adjudicator;
+ * the `implementer` responsibility is used by the sandbox/write path, not here.
  */
-export function runnerFromEnv(): ReflexionRunner {
-  const geminiKey = process.env.GEMINI_API_KEY?.trim();
-  const claudeKey = process.env.ANTHROPIC_API_KEY?.trim();
-  if (!geminiKey) {
-    throw new Error(
-      'GEMINI_API_KEY is not set (needed for the generator). Get one at https://aistudio.google.com/apikey'
+export function runnerFromEnv(
+  ctx: ResolveCtx = {}
+): ReflexionRunner {
+  const planner = buildRoleModel('planner', ctx);
+  const auditor = buildRoleModel('auditor', ctx);
+  const adjudicator = buildRoleModel('adjudicator', ctx);
+
+  assertDistinct(planner.id, auditor.id);
+
+  // Fallback critic stays a fixed, cheap Gemini model, used only on hard critic
+  // failure. Build it best-effort so an all-Anthropic config without a Gemini key
+  // doesn't fail at setup.
+  let fallbackCritic: LanguageModel | undefined;
+  try {
+    fallbackCritic = createModel(
+      MODELS.GEMINI_FALLBACK_CRITIC,
+      keyFor('gemini', ctx)
     );
+  } catch {
+    fallbackCritic = undefined;
   }
-  if (!claudeKey) {
-    throw new Error(
-      'ANTHROPIC_API_KEY is not set (needed for the Claude critic). Get one at https://console.anthropic.com'
-    );
-  }
-
-  const google = createGoogleGenerativeAI({ apiKey: geminiKey });
-  const anthropic = createAnthropic({ apiKey: claudeKey });
-
-  const creatorId = process.env.REFLEXION_CREATOR_MODEL || MODELS.GEMINI;
-  const criticId = process.env.REFLEXION_CRITIC_MODEL || MODELS.CLAUDE;
-  const adjudicatorId =
-    process.env.REFLEXION_ADJUDICATOR_MODEL || MODELS.CLAUDE;
-
-  assertDistinct(creatorId, criticId);
 
   return buildRunner(
-    google(creatorId),
-    anthropic(criticId),
-    anthropic(adjudicatorId),
-    { creator: creatorId, critic: criticId, adjudicator: adjudicatorId },
-    google(MODELS.GEMINI_FALLBACK_CRITIC)
+    planner.model,
+    auditor.model,
+    adjudicator.model,
+    { creator: planner.id, critic: auditor.id, adjudicator: adjudicator.id },
+    fallbackCritic
   );
 }

@@ -455,3 +455,25 @@ else
     echo "💡 Tip: We couldn't find your .zshrc or .bashrc. To use 'rtk run <tool>' natively, manually run:"
     echo "   $ALIAS_CMD"
 fi
+
+cat <<'EOF'
+
+✅ tech-lead-stack linked to this project.
+
+⚙️  Reflexion-loop models are PER PROJECT. Set them in THIS project's MCP config
+    "env" block (Antigravity → workspace MCP settings):
+
+      "env": {
+        "MODEL_PLANNER":     "claude-opus-4-6",
+        "MODEL_IMPLEMENTER": "gemini-3.5-flash",
+        "MODEL_AUDITOR":     "claude-sonnet-4-6",
+        "MODEL_ADJUDICATOR": "claude-sonnet-4-6",
+        "ANTHROPIC_API_KEY": "sk-ant-…",
+        "GEMINI_API_KEY":    "…"
+      }
+
+    Omit a model (or its key) in projects where it isn't allowed.
+    If unset, the loop falls back to defaults (planner=Gemini Flash,
+    auditor+adjudicator=Claude Sonnet) — which may not be permitted here.
+EOF
+

@@ -41,16 +41,11 @@ export async function POST(req: Request) {
     }
 
     let stack = '';
+    let project: (import('@prisma/client').Project) | null = null;
     if (projectId && typeof projectId === 'string') {
-      const project = await prisma.project.findFirst({
+      project = await prisma.project.findFirst({
         where: {
           AND: [{ id: projectId }, getProjectAccessFilter(session.user)],
-        },
-        select: {
-          name: true,
-          githubFullName: true,
-          repoUrl: true,
-          description: true,
         },
       });
       if (project) {
@@ -88,7 +83,7 @@ export async function POST(req: Request) {
     }
 
     // Throws a clear, user-facing error if a key is missing.
-    const runner = runnerFromUser(user);
+    const runner = runnerFromUser(user, project);
 
     // Create a ReflexionRun row before starting the engine
     const initialRun = await prisma.reflexionRun.create({

@@ -1,26 +1,30 @@
 import { User } from '@prisma/client';
-import { MODELS } from '@/app/api/chat/constants';
+
+import { resolveModelId } from '@/lib/ai/model-resolver';
 
 export interface OrchestratorModels {
   creatorModel: string;
   auditorModel: string;
 }
 
-export function getOrchestratorModels(user?: Pick<User, 'requirementsModel' | 'auditModel'> | null): OrchestratorModels {
-  const resolve = (m: string | null | undefined) => {
-    switch (m) {
-      case 'gemini': return MODELS.GEMINI;
-      case 'claude': return MODELS.CLAUDE;
-      case 'openai': return MODELS.OPENAI;
-      case 'jules': return MODELS.JULES;
-      default: return m || MODELS.GEMINI;
-    }
+/**
+ * Resolves the orchestrator's creator (planner) and auditor models through the
+ * single shared resolver, so env / project / user precedence is applied
+ * consistently everywhere. `creator` maps to the `planner` responsibility and
+ * `auditor` to `auditor`.
+ *
+ * BEHAVIOUR NOTE: the auditor system default is now Claude (unified with the
+ * reflexion critic). The old hardcoded 'jules' default is gone — set
+ * CODE_AUDIT_MODEL=jules, or an auditor entry in project/user routing, to keep it.
+ */
+export function getOrchestratorModels(
+  user?: Pick<User, 'requirementsModel' | 'auditModel'> | null
+): OrchestratorModels {
+  const ctx = { user: (user ?? undefined) as User | undefined };
+  return {
+    creatorModel: resolveModelId('planner', ctx),
+    auditorModel: resolveModelId('auditor', ctx),
   };
-
-  const creatorModel = resolve(user?.requirementsModel || process.env.REQUIREMENTS_DEVELOPMENT_MODEL);
-  const auditorModel = resolve(user?.auditModel || process.env.CODE_AUDIT_MODEL || 'jules');
-
-  return { creatorModel, auditorModel };
 }
 
 export function validateDistinctModels(creator: string, auditor: string): void {

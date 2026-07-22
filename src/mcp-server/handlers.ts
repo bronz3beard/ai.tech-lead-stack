@@ -8,6 +8,9 @@ import { AlignmentService } from '../lib/skills/alignment-service.js';
 import { FileSystemService } from '../lib/skills/fs-service.js';
 import { isSkillTrace } from '../lib/trace-utils.js';
 import { Telemetry } from './telemetry.js';
+import { UserResolver } from './user-resolver.js';
+import { decrypt } from '../lib/crypto.js';
+import { prisma } from '../lib/prisma.js';
 
 /**
  * Handlers manages the execution logic for all MCP tools.
@@ -341,7 +344,7 @@ export class Handlers {
         throw new Error('Run state not found in ' + outDir);
       }
 
-      const runner = runnerFromEnv();
+      const runner = runnerFromEnv({ decrypt });
       const cfg = {
         brief: state.brief,
         maxRevisions: state.params.maxRevisions,
@@ -461,7 +464,41 @@ export class Handlers {
     const budget = args.budget;
 
     try {
-      const runner = runnerFromEnv();
+      let user = null;
+      let project = null;
+
+      try {
+        const userResolver = new UserResolver();
+        const userEmail = userResolver.getUserEmail();
+        if (userEmail && userEmail !== 'unknown') {
+          user = await prisma.user.findFirst({
+            where: { email: userEmail },
+          });
+        }
+      } catch {
+        // Fallback gracefully
+      }
+
+      if (args.projectName && typeof args.projectName === 'string') {
+        try {
+          project = await prisma.project.findFirst({
+            where: {
+              OR: [
+                { name: args.projectName },
+                { githubFullName: args.projectName },
+              ],
+            },
+          });
+        } catch {
+          // Fallback gracefully
+        }
+      }
+
+      const runner = runnerFromEnv({
+        user: user ?? undefined,
+        project: project ?? undefined,
+        decrypt,
+      });
       const stateStore = new FileStateStore('.reflexion-out');
       const runId = `run-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 

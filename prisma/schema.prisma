@@ -52,6 +52,7 @@ model User {
   firstName         String?
   lastName          String?
   preferredModel    String?          @default("gemini")
+  settings          Json?
   accounts          Account[]
   analyticsEvents   AnalyticsEvent[]
   chats             Chat[]

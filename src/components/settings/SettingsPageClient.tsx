@@ -6,6 +6,7 @@ import ApiKeyCard from './ApiKeyCard';
 import ConfigGuide from './ConfigGuide';
 import ProfileForm from './ProfileForm';
 import ProjectIntegrationsPanel from './ProjectIntegrationsPanel';
+import ProjectModelRouting from './ProjectModelRouting';
 import ProjectSharingPanel, { UIProjectAccess } from './ProjectSharingPanel';
 import SharedProjectsReadOnly from './SharedProjectsReadOnly';
 
@@ -23,12 +24,15 @@ export default function SettingsPageClient({
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 max-w-[540px]">
+        <TabsList className="grid w-full grid-cols-5 max-w-[680px]">
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="api-keys">API Keys</TabsTrigger>
           <TabsTrigger value="projects">Project Access</TabsTrigger>
           {(role === 'DEVELOPER' || role === 'ADMIN') && (
-            <TabsTrigger value="integrations">Integrations</TabsTrigger>
+            <>
+              <TabsTrigger value="model-routing">Project Models</TabsTrigger>
+              <TabsTrigger value="integrations">Integrations</TabsTrigger>
+            </>
           )}
           <TabsTrigger
             value="setup"
@@ -91,9 +95,14 @@ export default function SettingsPageClient({
         </TabsContent>
 
         {(role === 'DEVELOPER' || role === 'ADMIN') && (
-          <TabsContent value="integrations" className="mt-10">
-            <ProjectIntegrationsPanel />
-          </TabsContent>
+          <>
+            <TabsContent value="model-routing" className="mt-10">
+              <ProjectModelRouting />
+            </TabsContent>
+            <TabsContent value="integrations" className="mt-10">
+              <ProjectIntegrationsPanel />
+            </TabsContent>
+          </>
         )}
         <TabsContent value="setup" className="mt-8">
           <ConfigGuide />

@@ -94,13 +94,19 @@ lead-init
 
 ```
 
-### 🛠 Final Checklist
+### 🤖 AI Model Routing & Precedence
 
-1. **Permissions**: Run `chmod +x scripts/cleanup.sh` in your toolbox repo.
-2. **Execution**: You can now run `lead-init` to build it and `lead-clean` to
-   tear it down.
-3. **Mission Control**: Your `lead-init` will now automatically run a pre-flight
-   check to make sure you didn't miss a step.
+Model choices for AI responsibilities (`planner`, `implementer`, `auditor`,
+`adjudicator`) are configured directly in the web UI at `/settings` (User
+default routing) and on the Project settings surface (Per-project model
+routing).
+
+- **UI & DB Authoritative**: `MODEL_*` environment variables (`MODEL_PLANNER`,
+  `MODEL_IMPLEMENTER`, `MODEL_AUDITOR`, `MODEL_ADJUDICATOR`) should be left
+  **UNSET** so the UI and database remain the source of truth.
+- **Precedence Chain**: `Project.settings.modelRouting` →
+  `User.settings.modelRouting` → `System Default`. Environment variables remain
+  available as an optional headless override only.
 
 ## 🧠 The Methodology: Four Pillars
 

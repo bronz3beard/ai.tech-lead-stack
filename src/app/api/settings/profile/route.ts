@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { ModelRoutingSchema } from '@/lib/ai/model-routing-schema';
+
+import { Prisma } from '@prisma/client';
 
 const UpdateProfileSchema = z.object({
   firstName: z.string().optional(),
@@ -10,6 +13,7 @@ const UpdateProfileSchema = z.object({
   preferredModel: z.enum(['gemini', 'claude', 'openai', 'jules']).optional(),
   requirementsModel: z.string().optional(),
   auditModel: z.string().optional(),
+  modelRouting: ModelRoutingSchema.optional(),
 });
 
 export async function GET() {
@@ -30,6 +34,7 @@ export async function GET() {
       preferredModel: true,
       requirementsModel: true,
       auditModel: true,
+      settings: true,
     },
   });
 
@@ -37,10 +42,13 @@ export async function GET() {
     return NextResponse.json({ message: 'User not found' }, { status: 404 });
   }
 
-  return NextResponse.json({ ...user });
+  const settingsObj = (user.settings as Record<string, unknown> | null) ?? {};
+  const modelRouting = (settingsObj.modelRouting as Record<string, string> | undefined) ?? {};
+
+  return NextResponse.json({ ...user, modelRouting });
 }
 
-export async function PATCH(req: Request) {
+async function handleUpdate(req: Request) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
@@ -58,7 +66,35 @@ export async function PATCH(req: Request) {
       );
     }
 
-    const { firstName, lastName, preferredModel, requirementsModel, auditModel } = parsed.data;
+    const {
+      firstName,
+      lastName,
+      preferredModel,
+      requirementsModel,
+      auditModel,
+      modelRouting,
+    } = parsed.data;
+
+    let updatedSettings: Record<string, unknown> | undefined = undefined;
+
+    if (modelRouting !== undefined) {
+      const existingUser = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { settings: true },
+      });
+      const currentSettings =
+        (existingUser?.settings as Record<string, unknown> | null) ?? {};
+      const currentRouting =
+        (currentSettings.modelRouting as Record<string, string> | undefined) ?? {};
+
+      updatedSettings = {
+        ...currentSettings,
+        modelRouting: {
+          ...currentRouting,
+          ...modelRouting,
+        },
+      };
+    }
 
     const updatedUser = await prisma.user.update({
       where: { id: session.user.id },
@@ -68,6 +104,7 @@ export async function PATCH(req: Request) {
         ...(preferredModel !== undefined ? { preferredModel } : {}),
         ...(requirementsModel !== undefined ? { requirementsModel } : {}),
         ...(auditModel !== undefined ? { auditModel } : {}),
+        ...(updatedSettings !== undefined ? { settings: updatedSettings as Prisma.InputJsonValue } : {}),
       },
       select: {
         email: true,
@@ -78,12 +115,29 @@ export async function PATCH(req: Request) {
         preferredModel: true,
         requirementsModel: true,
         auditModel: true,
+        settings: true,
       },
     });
 
-    return NextResponse.json({ message: 'Profile updated', user: updatedUser });
+    const savedRouting =
+      ((updatedUser.settings as Record<string, unknown> | null)
+        ?.modelRouting as Record<string, string> | undefined) ?? {};
+
+    return NextResponse.json({
+      message: 'Profile updated',
+      user: { ...updatedUser, modelRouting: savedRouting },
+      modelRouting: savedRouting,
+    });
   } catch (error) {
     console.error('Error updating profile:', error);
     return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
   }
+}
+
+export async function PUT(req: Request) {
+  return handleUpdate(req);
+}
+
+export async function PATCH(req: Request) {
+  return handleUpdate(req);
 }

@@ -1,55 +1,57 @@
-import type { User } from '@prisma/client';
+import type { Project, User } from '@prisma/client';
 
 import { MODELS } from '@/app/api/chat/constants';
-import { resolveGeminiApiKeys } from '@/app/api/chat/utils';
-import {
-  getOrchestratorModels,
-  validateDistinctModels,
-} from '@/lib/ai/orchestrator';
+import { createModel } from '@/lib/ai/model-registry';
+import { buildRoleModel, keyFor } from '@/lib/ai/model-resolver';
+import { validateDistinctModels } from '@/lib/ai/orchestrator';
 import { decrypt } from '@/lib/crypto';
 
-import { createAnthropic } from '@ai-sdk/anthropic';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import type { LanguageModel } from 'ai';
 
 import type { ReflexionRunner } from './engine';
 import { buildRunner } from './providers-env';
 
 /**
- * Website mode: keys come from the logged-in user's encrypted, stored keys —
- * the same source `initializeModel` uses for /chat. The user's chosen creator
- * model is honoured (via `getOrchestratorModels`); the critic is pinned to
- * Claude so the grader is always a different model from the writer.
+ * Website mode: model ids + keys come from the logged-in user (their per-role
+ * routing and encrypted, stored keys), with per-project routing layered on top
+ * via `project`. `decrypt` is injected into the resolver so this stays the only
+ * place that reaches into crypto.
  *
- * This file is imported ONLY from server code (the API route). It is never run
- * under `tsx`, so the '@/' alias resolves fine.
+ * Unlike before, the critic is no longer pinned to Claude — the user chooses each
+ * responsibility's model. The distinctness guard still enforces planner != auditor
+ * so the writer never grades its own work.
+ *
+ * This file is imported ONLY from server code (the API route), so the '@/' alias
+ * resolves fine. It is never run under `tsx`.
  */
-export function runnerFromUser(user: User): ReflexionRunner {
-  const geminiKey = resolveGeminiApiKeys(user, decrypt)[0];
-  if (!geminiKey) {
-    throw new Error(
-      'No Gemini API key saved. Add one in Settings to use the Reflexion Loop.'
-    );
-  }
-  if (!user.claudeApiKey?.trim()) {
-    throw new Error(
-      'No Claude API key saved. The Reflexion Loop uses Claude as its critic — add one in Settings.'
-    );
-  }
+export function runnerFromUser(
+  user: User,
+  project?: Project | null
+): ReflexionRunner {
+  const ctx = { user, project, decrypt };
 
-  const google = createGoogleGenerativeAI({ apiKey: geminiKey });
-  const anthropic = createAnthropic({
-    apiKey: decrypt(user.claudeApiKey).trim(),
-  });
+  const planner = buildRoleModel('planner', ctx);
+  const auditor = buildRoleModel('auditor', ctx);
+  const adjudicator = buildRoleModel('adjudicator', ctx);
 
-  const { creatorModel } = getOrchestratorModels(user);
-  const criticId = MODELS.CLAUDE;
-  validateDistinctModels(creatorModel, criticId);
+  validateDistinctModels(planner.id, auditor.id);
+
+  // Best-effort fixed fallback critic (see providers-env for rationale).
+  let fallbackCritic: LanguageModel | undefined;
+  try {
+    fallbackCritic = createModel(
+      MODELS.GEMINI_FALLBACK_CRITIC,
+      keyFor('gemini', ctx)
+    );
+  } catch {
+    fallbackCritic = undefined;
+  }
 
   return buildRunner(
-    google(creatorModel),
-    anthropic(criticId),
-    anthropic(criticId),
-    { creator: creatorModel, critic: criticId, adjudicator: criticId },
-    google(MODELS.GEMINI_FALLBACK_CRITIC)
+    planner.model,
+    auditor.model,
+    adjudicator.model,
+    { creator: planner.id, critic: auditor.id, adjudicator: adjudicator.id },
+    fallbackCritic
   );
 }
