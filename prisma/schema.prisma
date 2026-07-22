@@ -160,6 +160,7 @@ enum Role {
   QA
   PM
   DEVELOPER
+  HR
   ADMIN
 }
 

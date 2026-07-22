@@ -11,6 +11,8 @@ export class FileSystemService implements CodeProvider {
   private repoWorkflowsDir: string;
   private repoPmSkillsDir: string;
   private repoPmWorkflowsDir: string;
+  private repoHrSkillsDir: string;
+  private repoHrWorkflowsDir: string;
   /** Root of the caller's project (not the tech-lead-stack repo itself). Null when cwd IS the tech-lead-stack. */
   private clientProjectRoot: string | null;
 
@@ -19,6 +21,8 @@ export class FileSystemService implements CodeProvider {
     this.repoWorkflowsDir = path.join(repoRoot, '.agents', 'workflows');
     this.repoPmSkillsDir = path.join(repoRoot, '.ai', 'pm-skills');
     this.repoPmWorkflowsDir = path.join(repoRoot, '.agents', 'pm-workflows');
+    this.repoHrSkillsDir = path.join(repoRoot, '.ai', 'hr-skills');
+    this.repoHrWorkflowsDir = path.join(repoRoot, '.agents', 'hr-workflows');
     this.clientProjectRoot = clientProjectRoot;
   }
 
@@ -100,6 +104,14 @@ export class FileSystemService implements CodeProvider {
         {
           dir: path.join(this.clientProjectRoot, '.agents', 'pm-workflows'),
           type: 'workflow',
+        },
+        {
+          dir: path.join(this.clientProjectRoot, '.ai', 'hr-skills'),
+          type: 'skill',
+        },
+        {
+          dir: path.join(this.clientProjectRoot, '.agents', 'hr-workflows'),
+          type: 'workflow',
         }
       );
     }
@@ -109,7 +121,9 @@ export class FileSystemService implements CodeProvider {
       { dir: this.repoSkillsDir, type: 'skill' },
       { dir: this.repoWorkflowsDir, type: 'workflow' },
       { dir: this.repoPmSkillsDir, type: 'skill' },
-      { dir: this.repoPmWorkflowsDir, type: 'workflow' }
+      { dir: this.repoPmWorkflowsDir, type: 'workflow' },
+      { dir: this.repoHrSkillsDir, type: 'skill' },
+      { dir: this.repoHrWorkflowsDir, type: 'workflow' }
     );
 
     for (const config of searchConfigs) {
@@ -165,10 +179,13 @@ export class FileSystemService implements CodeProvider {
       type === 'skill' ? this.repoSkillsDir : this.repoWorkflowsDir;
     const repoPmDir = 
       type === 'skill' ? this.repoPmSkillsDir : this.repoPmWorkflowsDir;
+    const repoHrDir =
+      type === 'skill' ? this.repoHrSkillsDir : this.repoHrWorkflowsDir;
 
     // Only include local dir when we have a resolved client project root
     let localDir = null;
     let localPmDir = null;
+    let localHrDir = null;
     if (this.clientProjectRoot) {
       localDir = path.join(
         this.clientProjectRoot,
@@ -178,9 +195,13 @@ export class FileSystemService implements CodeProvider {
         this.clientProjectRoot,
         type === 'skill' ? path.join('.ai', 'pm-skills') : path.join('.agents', 'pm-workflows')
       );
+      localHrDir = path.join(
+        this.clientProjectRoot,
+        type === 'skill' ? path.join('.ai', 'hr-skills') : path.join('.agents', 'hr-workflows')
+      );
     }
 
-    const searchDirs = [repoDir, repoPmDir, ...(localDir ? [localDir, localPmDir!] : [])];
+    const searchDirs = [repoDir, repoPmDir, repoHrDir, ...(localDir ? [localDir, localPmDir!, localHrDir!] : [])];
 
     for (const dir of searchDirs) {
       const fullPath = path.join(
@@ -218,10 +239,12 @@ export class FileSystemService implements CodeProvider {
         path.join(this.clientProjectRoot, '.ai', 'skills'),
         path.join(this.clientProjectRoot, '.agents', 'workflows'),
         path.join(this.clientProjectRoot, '.ai', 'pm-skills'),
-        path.join(this.clientProjectRoot, '.agents', 'pm-workflows')
+        path.join(this.clientProjectRoot, '.agents', 'pm-workflows'),
+        path.join(this.clientProjectRoot, '.ai', 'hr-skills'),
+        path.join(this.clientProjectRoot, '.agents', 'hr-workflows')
       );
     }
-    dirs.push(this.repoSkillsDir, this.repoWorkflowsDir, this.repoPmSkillsDir, this.repoPmWorkflowsDir);
+    dirs.push(this.repoSkillsDir, this.repoWorkflowsDir, this.repoPmSkillsDir, this.repoPmWorkflowsDir, this.repoHrSkillsDir, this.repoHrWorkflowsDir);
     return dirs;
   }
 }

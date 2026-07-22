@@ -208,7 +208,7 @@ export default function ProjectSharingPanel({
                         Role-Based Access
                       </Label>
                       <div className="flex flex-wrap gap-6 mb-6">
-                        {['DEVELOPER', 'PM', 'QA', 'DESIGNER'].map((role) => {
+                        {['DEVELOPER', 'PM', 'QA', 'DESIGNER', 'HR'].map((role) => {
                           const hasAccess = project.roleGrants.includes(role);
                           return (
                             <div key={role} className="flex items-center space-x-2">

@@ -45,6 +45,15 @@ export const WORKFLOW_ROLES: Record<string, string[]> = {
   "pm-newsletter-generator": ["PM"],
   "pm-design-system-auditor": ["PM"],
   "pm-release-note-drafter": ["PM"],
+
+  // HR Only
+  "hr-intake-specifier": ["HR"],
+  "hr-pipeline-translator": ["HR"],
+  "hr-jd-drafter": ["HR"],
+  "hr-ad-distributor": ["HR"],
+  "hr-candidate-sourcer": ["HR"],
+  "hr-interview-auditor": ["HR"],
+  "hr-endorsement-synthesizer": ["HR"],
 };
 
 export const WORKFLOW_DESCRIPTIONS: Record<string, string> = {
@@ -87,6 +96,13 @@ export const WORKFLOW_DESCRIPTIONS: Record<string, string> = {
   "pm-newsletter-generator": "Generate product-focused updates and highlights from recent code changes",
   "pm-design-system-auditor": "Check code implementation against design system standards and consistency",
   "pm-release-note-drafter": "Automatically draft user-centric release notes from merged features",
+  "hr-intake-specifier": "Draft high-fidelity requisition intake briefs from new-client kickoff calls",
+  "hr-pipeline-translator": "Translate recruitment pipeline activity into clear client status updates",
+  "hr-jd-drafter": "Transform intake notes or a client draft into a finalized, inclusive Job Description",
+  "hr-ad-distributor": "Publish and manage job ads across LinkedIn and Ashby with cross-channel parity",
+  "hr-candidate-sourcer": "Source passive candidates and enrich the pipeline with match-scored prospects",
+  "hr-interview-auditor": "Evaluate applicants against the requisition scorecard with evidence-backed ratings",
+  "hr-endorsement-synthesizer": "Synthesize resumes and interview notes into an evidence-traceable top 3-5 shortlist",
 };
 
 export interface WorkflowInfo {
