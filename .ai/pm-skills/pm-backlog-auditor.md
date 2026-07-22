@@ -4,6 +4,7 @@ description:
   Validate project backlog for logical consistency and feasibility. Detects
   circular dependencies and missing technical prerequisites.
 cost: ~650 tokens
+modes: [read-only, mcp]
 ---
 
 # PM Backlog Auditor (The Logic Gate)

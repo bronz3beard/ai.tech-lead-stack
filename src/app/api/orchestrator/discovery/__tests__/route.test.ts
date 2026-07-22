@@ -68,7 +68,9 @@ describe('getEnhancedSystemInstruction', () => {
     const result = getEnhancedSystemInstruction({
       figmaUrl: 'https://www.figma.com/design/abc123',
     });
-    expect(result).toContain('FIGMA DESIGN: https://www.figma.com/design/abc123');
+    expect(result).toContain(
+      'FIGMA DESIGN: https://www.figma.com/design/abc123'
+    );
   });
 
   it('prepends the context block when branchUrl is provided', () => {
@@ -114,9 +116,19 @@ describe('extractTextFromParts', () => {
 
   it('ignores non-text parts', () => {
     const parts = [
-      { type: 'tool-call', toolCallId: 'abc', toolName: 'write_to_sandbox', args: {} },
+      {
+        type: 'tool-call',
+        toolCallId: 'abc',
+        toolName: 'write_to_sandbox',
+        args: {},
+      },
       { type: 'text', text: 'Visible text only' },
-      { type: 'tool-result', toolCallId: 'abc', toolName: 'write_to_sandbox', result: {} },
+      {
+        type: 'tool-result',
+        toolCallId: 'abc',
+        toolName: 'write_to_sandbox',
+        result: {},
+      },
     ];
     expect(extractTextFromParts(parts)).toBe('Visible text only');
   });
@@ -145,7 +157,6 @@ describe('extractTextFromParts', () => {
 // ---------------------------------------------------------------------------
 describe('write_to_sandbox tool schema (jsonSchema fix — Zod v4 + AI SDK v6)', () => {
   it('produces a valid JSON Schema with type: object in inputSchema.jsonSchema', () => {
-
     const { tool, jsonSchema } = require('ai') as typeof import('ai');
 
     const schema = jsonSchema<{ path: string; content: string }>({
@@ -160,11 +171,17 @@ describe('write_to_sandbox tool schema (jsonSchema fix — Zod v4 + AI SDK v6)',
     const writeTool = tool({
       description: 'Writes a file to the ephemeral development environment.',
       inputSchema: schema,
-      execute: async ({ path }: { path: string; content: string }) => ({ success: true, path }),
+      execute: async ({ path }: { path: string; content: string }) => ({
+        success: true,
+        path,
+      }),
     });
 
     // The Tool object returned by tool() has inputSchema on it
-    const resolvedSchema = (writeTool.inputSchema as any).jsonSchema as Record<string, unknown>;
+    const resolvedSchema = (writeTool.inputSchema as any).jsonSchema as Record<
+      string,
+      unknown
+    >;
 
     expect(resolvedSchema).toBeDefined();
     expect(resolvedSchema.type).toBe('object');
@@ -175,7 +192,6 @@ describe('write_to_sandbox tool schema (jsonSchema fix — Zod v4 + AI SDK v6)',
   });
 
   it('does NOT produce the broken Zod v4 raw internal shape (no "def" key)', () => {
-
     const { tool, jsonSchema } = require('ai') as typeof import('ai');
 
     const writeTool = tool({
@@ -188,7 +204,10 @@ describe('write_to_sandbox tool schema (jsonSchema fix — Zod v4 + AI SDK v6)',
         },
         required: ['path', 'content'],
       }),
-      execute: async ({ path }: { path: string; content: string }) => ({ success: true, path }),
+      execute: async ({ path }: { path: string; content: string }) => ({
+        success: true,
+        path,
+      }),
     });
 
     // Raw Zod v4 shape would have a `def` key. jsonSchema() must NOT produce this.

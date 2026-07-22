@@ -1,4 +1,8 @@
-import { telemetryService, TelemetryService, withAnalytics } from '../telemetry-service';
+import {
+  telemetryService,
+  TelemetryService,
+  withAnalytics,
+} from '../telemetry-service';
 import { prisma } from '../prisma';
 
 jest.mock('../prisma', () => ({
@@ -48,7 +52,9 @@ describe('TelemetryService', () => {
   });
 
   it('should record an event to Prisma and Langfuse', async () => {
-    (prisma.analyticsEvent.create as jest.Mock).mockResolvedValue({ id: 'event-123' });
+    (prisma.analyticsEvent.create as jest.Mock).mockResolvedValue({
+      id: 'event-123',
+    });
 
     const params = {
       skillName: 'Test Skill',
@@ -64,8 +70,8 @@ describe('TelemetryService', () => {
     expect(prisma.analyticsEvent.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          skillName: 'test-skill', 
-          projectName: 'test-project', 
+          skillName: 'test-skill',
+          projectName: 'test-project',
           status: 'SUCCESS',
         }),
       })
@@ -76,8 +82,8 @@ describe('TelemetryService', () => {
     it('should wrap a successful skill execution', async () => {
       const mockSkill = jest.fn().mockResolvedValue('Success!');
       const wrappedSkill = await withAnalytics(
-        'test-skill', 
-        { userId: 'user-123', projectName: 'Test Project' }, 
+        'test-skill',
+        { userId: 'user-123', projectName: 'Test Project' },
         mockSkill
       );
 
@@ -88,10 +94,13 @@ describe('TelemetryService', () => {
 
     it('should handle error in skill execution', async () => {
       const mockSkill = jest.fn().mockRejectedValue(new Error('Failed'));
-      const wrappedSkill = await withAnalytics('test-skill', { userId: 'user-123' }, mockSkill);
+      const wrappedSkill = await withAnalytics(
+        'test-skill',
+        { userId: 'user-123' },
+        mockSkill
+      );
 
       await expect(wrappedSkill('test-input')).rejects.toThrow('Failed');
     });
   });
 });
-

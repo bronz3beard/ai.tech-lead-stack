@@ -3,20 +3,19 @@ process.env.ANTHROPIC_API_KEY = 'test';
 import { runReflexion, resumeReflexion } from '../engine';
 import { Handlers } from '../../../../mcp-server/handlers';
 
-
 jest.mock('../engine', () => ({
   runReflexion: jest.fn().mockResolvedValue({
     runId: 'mcp-run',
     verdict: 'Success',
     idePrompt: 'Mock IDE prompt',
-    stopReason: 'passed'
+    stopReason: 'passed',
   }),
   resumeReflexion: jest.fn().mockResolvedValue({
     runId: 'mcp-run',
     verdict: 'Success',
     idePrompt: 'Mock IDE prompt',
-    stopReason: 'user-approve'
-  })
+    stopReason: 'user-approve',
+  }),
 }));
 
 jest.mock('../state-store', () => {
@@ -25,17 +24,19 @@ jest.mock('../state-store', () => {
       load: jest.fn().mockResolvedValue({
         brief: 'test brief',
         params: { maxRevisions: 3, passThreshold: 8 },
-        runId: 'mcp-run'
+        runId: 'mcp-run',
       }),
-      save: jest.fn().mockResolvedValue(undefined)
-    }))
+      save: jest.fn().mockResolvedValue(undefined),
+    })),
   };
 });
 
 describe('MCP Handlers Extension', () => {
   const mockFs: any = {};
   const mockTelemetry: any = { recordEvent: jest.fn() };
-  const mockAlignment: any = { ensureAligned: jest.fn().mockResolvedValue(true) };
+  const mockAlignment: any = {
+    ensureAligned: jest.fn().mockResolvedValue(true),
+  };
   const mockKi: any = {};
 
   const handlers = new Handlers(mockFs, mockTelemetry, mockAlignment, mockKi);
@@ -44,7 +45,7 @@ describe('MCP Handlers Extension', () => {
     const args = {
       brief: 'test brief',
       mode: 'auto',
-      budget: { maxCostUsd: 1 }
+      budget: { maxCostUsd: 1 },
     };
 
     const result = await handlers.handleReflexionLoop(args);
@@ -58,7 +59,7 @@ describe('MCP Handlers Extension', () => {
         brief: 'test brief',
         mode: 'auto',
         budget: { maxCostUsd: 1 },
-        stateStore: expect.any(Object)
+        stateStore: expect.any(Object),
       }),
       expect.any(Function),
       expect.any(Object)
@@ -68,7 +69,7 @@ describe('MCP Handlers Extension', () => {
   it('handleReflexionResume calls engine with FileStateStore', async () => {
     const args = {
       runId: 'mcp-run',
-      answers: { runId: 'mcp-run', decisions: [] }
+      answers: { runId: 'mcp-run', decisions: [] },
     };
 
     const res = await handlers.handleReflexionResume(args);
@@ -82,7 +83,7 @@ describe('MCP Handlers Extension', () => {
       args.answers,
       expect.objectContaining({
         mode: 'interview',
-        stateStore: expect.any(Object)
+        stateStore: expect.any(Object),
       }),
       expect.any(Function)
     );

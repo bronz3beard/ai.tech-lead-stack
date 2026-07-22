@@ -38,7 +38,7 @@ describe('GitHubCodeProvider', () => {
     it('should read a file and decode base64 content', async () => {
       const mockContent = 'Hello GitHub';
       const mockBase64 = Buffer.from(mockContent).toString('base64');
-      
+
       mockOctokitInstance.rest.repos.getContent.mockResolvedValueOnce({
         data: {
           content: mockBase64,
@@ -60,13 +60,15 @@ describe('GitHubCodeProvider', () => {
         data: {},
       });
 
-      await expect(provider.readFile('test.txt')).rejects.toThrow('Path test.txt is not a file.');
+      await expect(provider.readFile('test.txt')).rejects.toThrow(
+        'Path test.txt is not a file.'
+      );
     });
 
     it('should return cached content on second call', async () => {
       const mockContent = 'Cached Content';
       const mockBase64 = Buffer.from(mockContent).toString('base64');
-      
+
       mockOctokitInstance.rest.repos.getContent.mockResolvedValueOnce({
         data: { content: mockBase64, encoding: 'base64' },
       });
@@ -74,12 +76,16 @@ describe('GitHubCodeProvider', () => {
       // First call
       const result1 = await provider.readFile('cache.txt');
       expect(result1).toBe(mockContent);
-      expect(mockOctokitInstance.rest.repos.getContent).toHaveBeenCalledTimes(1);
+      expect(mockOctokitInstance.rest.repos.getContent).toHaveBeenCalledTimes(
+        1
+      );
 
       // Second call - should use cache
       const result2 = await provider.readFile('cache.txt');
       expect(result2).toBe(mockContent);
-      expect(mockOctokitInstance.rest.repos.getContent).toHaveBeenCalledTimes(1);
+      expect(mockOctokitInstance.rest.repos.getContent).toHaveBeenCalledTimes(
+        1
+      );
     });
   });
 
@@ -87,7 +93,7 @@ describe('GitHubCodeProvider', () => {
     it('should read a skill file successfully', async () => {
       const mockContent = 'skill content';
       const mockBase64 = Buffer.from(mockContent).toString('base64');
-      
+
       mockOctokitInstance.rest.repos.getContent.mockResolvedValueOnce({
         data: { content: mockBase64 },
       });
@@ -102,15 +108,11 @@ describe('GitHubCodeProvider', () => {
     it('should list and parse skills across directories', async () => {
       // Mock .ai/skills
       mockOctokitInstance.rest.repos.getContent.mockResolvedValueOnce({
-        data: [
-          { name: 'skill1.md', type: 'file' },
-        ],
+        data: [{ name: 'skill1.md', type: 'file' }],
       });
       // Mock .agents/workflows
       mockOctokitInstance.rest.repos.getContent.mockResolvedValueOnce({
-        data: [
-          { name: 'flow1.md', type: 'file' },
-        ],
+        data: [{ name: 'flow1.md', type: 'file' }],
       });
 
       const skills = await provider.getDynamicSkills();
@@ -128,10 +130,14 @@ describe('GitHubCodeProvider', () => {
       });
 
       await provider.getDynamicSkills();
-      expect(mockOctokitInstance.rest.repos.getContent).toHaveBeenCalledTimes(2);
+      expect(mockOctokitInstance.rest.repos.getContent).toHaveBeenCalledTimes(
+        2
+      );
 
       await provider.getDynamicSkills();
-      expect(mockOctokitInstance.rest.repos.getContent).toHaveBeenCalledTimes(2); // No new calls
+      expect(mockOctokitInstance.rest.repos.getContent).toHaveBeenCalledTimes(
+        2
+      ); // No new calls
     });
   });
 });

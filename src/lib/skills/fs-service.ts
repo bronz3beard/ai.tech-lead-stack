@@ -180,7 +180,7 @@ export class FileSystemService implements CodeProvider {
       );
     }
 
-    const searchDirs = [...(localDir ? [localDir, localPmDir!] : []), repoDir, repoPmDir];
+    const searchDirs = [repoDir, repoPmDir, ...(localDir ? [localDir, localPmDir!] : [])];
 
     for (const dir of searchDirs) {
       const fullPath = path.join(

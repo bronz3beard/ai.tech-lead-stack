@@ -4,6 +4,7 @@ description:
   Summarize recent technical progress and blockers for non-technical briefings.
   Extracts business value from developer commit logs.
 cost: ~550 tokens
+modes: [read-only, mcp]
 ---
 
 # PM Context Summarizer (The Briefing Engine)

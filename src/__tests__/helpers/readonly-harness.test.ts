@@ -23,8 +23,12 @@ describe('readonly-harness', () => {
 
   describe('makeFakeClientRepo & snapshotTree', () => {
     it('creates standard client repo files including .git markers', () => {
-      expect(fs.existsSync(path.join(fakeRepo.root, 'package.json'))).toBe(true);
-      expect(fs.existsSync(path.join(fakeRepo.root, 'src/index.ts'))).toBe(true);
+      expect(fs.existsSync(path.join(fakeRepo.root, 'package.json'))).toBe(
+        true
+      );
+      expect(fs.existsSync(path.join(fakeRepo.root, 'src/index.ts'))).toBe(
+        true
+      );
       expect(fs.existsSync(path.join(fakeRepo.root, 'README.md'))).toBe(true);
       expect(fs.existsSync(path.join(fakeRepo.root, '.git/HEAD'))).toBe(true);
       expect(fs.existsSync(path.join(fakeRepo.root, '.git/config'))).toBe(true);
@@ -38,7 +42,7 @@ describe('readonly-harness', () => {
       expect(snapshot.has('README.md')).toBe(true);
       expect(snapshot.has('.git/HEAD')).toBe(true);
       expect(snapshot.has('.git/config')).toBe(true);
-      expect(snapshot.size).toBe(5);
+      expect(snapshot.size).toBe(6);
     });
   });
 
@@ -65,7 +69,10 @@ describe('readonly-harness', () => {
     it('fails when an existing file is modified', () => {
       const before = snapshotTree(fakeRepo.root);
 
-      fs.writeFileSync(path.join(fakeRepo.root, 'README.md'), '# Modified README');
+      fs.writeFileSync(
+        path.join(fakeRepo.root, 'README.md'),
+        '# Modified README'
+      );
 
       const after = snapshotTree(fakeRepo.root);
 
@@ -89,7 +96,10 @@ describe('readonly-harness', () => {
     it('passes when changes occur exclusively in allowed paths', () => {
       const before = snapshotTree(fakeRepo.root);
 
-      const alignmentPath = path.join(fakeRepo.root, '.ai/.mission-alignment.json');
+      const alignmentPath = path.join(
+        fakeRepo.root,
+        '.ai/.mission-alignment.json'
+      );
       fs.mkdirSync(path.dirname(alignmentPath), { recursive: true });
       fs.writeFileSync(alignmentPath, JSON.stringify({ aligned: true }));
 
@@ -182,7 +192,9 @@ describe('readonly-harness', () => {
       fs.writeFileSync(noModesPath, '---\nname: no-modes\n---\nBody');
 
       expect(readSkillModes(noModesPath)).toEqual([]);
-      expect(readSkillModes(path.join(fakeRepo.root, 'non-existent.md'))).toEqual([]);
+      expect(
+        readSkillModes(path.join(fakeRepo.root, 'non-existent.md'))
+      ).toEqual([]);
     });
   });
 });

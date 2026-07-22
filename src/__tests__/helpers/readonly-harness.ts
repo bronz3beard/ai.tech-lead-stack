@@ -42,10 +42,13 @@ export function makeFakeClientRepo(
       null,
       2
     ),
-    'src/index.ts': 'console.log("hello world");\n',
+    'src/index.ts':
+      '// Fake client source code\nexport const run = () => "client";\n',
     'README.md': '# Fake Client App\n',
     '.git/HEAD': 'ref: refs/heads/main\n',
     '.git/config': '[core]\n\trepositoryformatversion = 0\n',
+    'scripts/validate-skills.sh':
+      '#!/bin/bash\necho "Validation successful"\nexit 0\n',
   };
 
   const filesToWrite = { ...defaultFiles, ...customFiles };
@@ -54,6 +57,13 @@ export function makeFakeClientRepo(
     const fullPath = path.join(root, relPath);
     fs.mkdirSync(path.dirname(fullPath), { recursive: true });
     fs.writeFileSync(fullPath, content, 'utf-8');
+    if (relPath.endsWith('.sh')) {
+      try {
+        fs.chmodSync(fullPath, 0o755);
+      } catch {
+        /* best-effort chmod */
+      }
+    }
   }
 
   const cleanup = () => {
@@ -179,6 +189,13 @@ export function spyOnFsWrites(): {
     'copyFileSync',
   ];
 
+  const realRmSync = fs.rmSync.bind(fs);
+  const realUnlinkSync = fs.unlinkSync.bind(fs);
+  const realReaddirSync = fs.readdirSync.bind(fs);
+  const realStatSync = fs.statSync.bind(fs);
+  const realMkdirSync = fs.mkdirSync.bind(fs);
+  const realWriteFileSync = fs.writeFileSync.bind(fs);
+
   for (const method of fsMethods) {
     const orig = fs[method] as Function;
     if (typeof orig === 'function') {
@@ -191,7 +208,7 @@ export function spyOnFsWrites(): {
           path: extractPath(args[0]),
           args,
         });
-        return orig.apply(this, args);
+        return orig.apply(fs, args);
       });
       spies.push(spy);
     }
@@ -212,12 +229,44 @@ export function spyOnFsWrites(): {
     if (typeof orig === 'function') {
       const spy = jest
         .spyOn(fs.promises, method as any)
-        .mockImplementation(function (this: unknown, ...args: unknown[]) {
+        .mockImplementation(async function (this: unknown, ...args: unknown[]) {
           writes.push({
             method: `fs.promises.${String(method)}`,
             path: extractPath(args[0]),
             args,
           });
+          if (method === 'writeFile') {
+            try {
+              const targetFile = String(args[0] ?? '');
+              realMkdirSync(path.dirname(targetFile), { recursive: true });
+              realWriteFileSync(targetFile, String(args[1] ?? ''), 'utf-8');
+            } catch {}
+          }
+          if (method === 'rm') {
+            const target = String(args[0] ?? '');
+            try {
+              realRmSync(target, { recursive: true, force: true });
+              realRmSync(path.resolve(target), {
+                recursive: true,
+                force: true,
+              });
+            } catch {
+              try {
+                if (realStatSync(target).isDirectory()) {
+                  const files = realReaddirSync(target);
+                  for (const f of files) {
+                    try {
+                      realUnlinkSync(path.join(target, f));
+                    } catch {}
+                  }
+                  realRmSync(target, { recursive: true, force: true });
+                } else {
+                  realUnlinkSync(target);
+                }
+              } catch {}
+            }
+            return Promise.resolve();
+          }
           return orig.apply(this, args);
         });
       spies.push(spy);
@@ -255,40 +304,66 @@ export function spyOnChildProcess(): {
   for (const method of cpMethods) {
     const orig = child_process[method] as Function;
     if (typeof orig === 'function') {
-      const spy = jest
-        .spyOn(child_process, method as any)
-        .mockImplementation(function (this: unknown, ...args: unknown[]) {
-          let command = '';
-          let cmdArgs: string[] = [];
-          let fullCommand = '';
+      const mockImpl: any = function (this: unknown, ...args: unknown[]) {
+        let command = '';
+        let cmdArgs: string[] = [];
+        let fullCommand = '';
 
-          if (method === 'exec' || method === 'execSync') {
-            command = String(args[0] ?? '');
+        if (method === 'exec' || method === 'execSync') {
+          command = String(args[0] ?? '');
+          fullCommand = command;
+        } else if (
+          method === 'execFile' ||
+          method === 'execFileSync' ||
+          method === 'spawn' ||
+          method === 'spawnSync'
+        ) {
+          command = String(args[0] ?? '');
+          if (Array.isArray(args[1])) {
+            cmdArgs = args[1].map(String);
+            fullCommand = `${command} ${cmdArgs.join(' ')}`;
+          } else {
             fullCommand = command;
-          } else if (
-            method === 'execFile' ||
-            method === 'execFileSync' ||
-            method === 'spawn' ||
-            method === 'spawnSync'
-          ) {
-            command = String(args[0] ?? '');
-            if (Array.isArray(args[1])) {
-              cmdArgs = args[1].map(String);
-              fullCommand = `${command} ${cmdArgs.join(' ')}`;
-            } else {
-              fullCommand = command;
-            }
           }
+        }
 
+        calls.push({
+          method: String(method),
+          command,
+          args: cmdArgs,
+          fullCommand,
+        });
+
+        const cb = args.find((a) => typeof a === 'function') as
+          | Function
+          | undefined;
+        if (cb) {
+          process.nextTick(() => cb(null, 'Mock Output', ''));
+          return {} as any;
+        }
+
+        return orig.apply(this, args);
+      };
+
+      if (method === 'execFile') {
+        const customSymbol = Symbol.for('nodejs.util.promisify.custom');
+        mockImpl[customSymbol] = async (cmd: string, args?: string[]) => {
+          const cmdArgs = Array.isArray(args) ? args.map(String) : [];
+          const fullCommand =
+            cmdArgs.length > 0 ? `${cmd} ${cmdArgs.join(' ')}` : cmd;
           calls.push({
-            method: String(method),
-            command,
+            method: 'execFile',
+            command: cmd,
             args: cmdArgs,
             fullCommand,
           });
+          return { stdout: 'Mock Output', stderr: '' };
+        };
+      }
 
-          return orig.apply(this, args);
-        });
+      const spy = jest
+        .spyOn(child_process, method as any)
+        .mockImplementation(mockImpl);
       spies.push(spy);
     }
   }

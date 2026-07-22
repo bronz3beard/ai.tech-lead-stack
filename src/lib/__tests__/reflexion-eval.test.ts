@@ -48,7 +48,9 @@ describe('reflexion-eval logic', () => {
     const actual = { ...baseCritique, atomicBatches: 6 };
     const result = evaluateCritique(expected, actual);
     expect(result.success).toBe(false);
-    expect(result.errors).toContain('Expected pillar atomicBatches <= 5, got 6');
+    expect(result.errors).toContain(
+      'Expected pillar atomicBatches <= 5, got 6'
+    );
   });
 
   it('passes if specific pillar score is within limit', () => {
@@ -63,12 +65,17 @@ describe('reflexion-eval logic', () => {
     const actual = { ...baseCritique, actionableFix: 'Please add more tests.' };
     const result = evaluateCritique(expected, actual);
     expect(result.success).toBe(false);
-    expect(result.errors).toContain('Expected actionableFix to mention one of [split, slice], got: "Please add more tests."');
+    expect(result.errors).toContain(
+      'Expected actionableFix to mention one of [split, slice], got: "Please add more tests."'
+    );
   });
 
   it('passes if actionableFix mentions a required keyword (case insensitive)', () => {
     const expected = { passed: false, fixMustMentionAnyOf: ['split', 'slice'] };
-    const actual = { ...baseCritique, actionableFix: 'You need to SLICE this up.' };
+    const actual = {
+      ...baseCritique,
+      actionableFix: 'You need to SLICE this up.',
+    };
     const result = evaluateCritique(expected, actual);
     expect(result.success).toBe(true);
   });

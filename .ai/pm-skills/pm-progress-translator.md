@@ -4,6 +4,7 @@ description:
   Translate complex technical achievements into clear client updates. Bridges
   the gap between dev velocity and stakeholder value.
 cost: ~550 tokens
+modes: [read-only, mcp]
 ---
 
 # PM Progress Translator (The Value Bridge)

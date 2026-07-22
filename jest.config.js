@@ -7,6 +7,10 @@ module.exports = {
     '/node_modules/',
     '<rootDir>/scripts/.*\\.test\\.mjs$'
   ],
+  testMatch: [
+    '**/__tests__/**/*.test.[jt]s?(x)',
+    '**/?(*.)+(spec|test).[jt]s?(x)'
+  ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^(\\.{1,2}/.*)\\.js$': '$1',

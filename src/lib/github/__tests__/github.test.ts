@@ -42,7 +42,9 @@ describe('GitHubClient Safety Guards', () => {
         json: async () => ({ tree: { sha: '456' } }),
       });
 
-      await expect(client.getBranchState('discovery/requirements')).resolves.not.toThrow();
+      await expect(
+        client.getBranchState('discovery/requirements')
+      ).resolves.not.toThrow();
     });
 
     it('should strictly block the main branch', async () => {
@@ -58,8 +60,12 @@ describe('GitHubClient Safety Guards', () => {
     });
 
     it('should block production/prod branches', async () => {
-      await expect(client.getBranchState('production')).rejects.toThrow(/SECURITY VIOLATION/);
-      await expect(client.getBranchState('prod')).rejects.toThrow(/SECURITY VIOLATION/);
+      await expect(client.getBranchState('production')).rejects.toThrow(
+        /SECURITY VIOLATION/
+      );
+      await expect(client.getBranchState('prod')).rejects.toThrow(
+        /SECURITY VIOLATION/
+      );
     });
 
     it('should block branches not following feat/ or discovery/ prefix', async () => {
@@ -79,12 +85,16 @@ describe('GitHubClient Safety Guards', () => {
 
   describe('Security via API interaction', () => {
     it('updateRef should enforce branch validation before making network request', async () => {
-      await expect(client.updateRef('main', 'sha123')).rejects.toThrow(/SECURITY VIOLATION/);
+      await expect(client.updateRef('main', 'sha123')).rejects.toThrow(
+        /SECURITY VIOLATION/
+      );
       expect(global.fetch).not.toHaveBeenCalled();
     });
 
     it('commitFiles should enforce branch validation before starting flow', async () => {
-      await expect(client.commitFiles('master', 'msg', {})).rejects.toThrow(/SECURITY VIOLATION/);
+      await expect(client.commitFiles('master', 'msg', {})).rejects.toThrow(
+        /SECURITY VIOLATION/
+      );
       expect(global.fetch).not.toHaveBeenCalled();
     });
   });

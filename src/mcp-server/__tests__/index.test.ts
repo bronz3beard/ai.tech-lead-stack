@@ -15,7 +15,7 @@ jest.mock('../telemetry', () => ({
           _model: string,
           _agent: string,
           _cost: string | undefined,
-          callback: () => Promise<any>,
+          callback: () => Promise<any>
         ) => callback()
       ),
   })),

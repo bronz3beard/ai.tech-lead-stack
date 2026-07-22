@@ -20,7 +20,7 @@ const frontmatterSchema = z.object({
 type Skill = z.infer<typeof frontmatterSchema>;
 
 function parseSkills(): Skill[] {
-  const files = fs.readdirSync(skillsDir).filter((f) => f.endsWith('.md'));
+  const files = fs.readdirSync(skillsDir).filter((f: string) => f.endsWith('.md'));
   const skills: Skill[] = [];
 
   for (const file of files) {
@@ -51,7 +51,7 @@ function generateManifest(skills: Skill[]): string {
   manifest += `\n# Antigravity-style workflows (.agents/workflows) — distinct names to avoid clashing with skills\n`;
   const workflows = fs
     .readdirSync(workflowsDir)
-    .filter((f) => f.endsWith('.md'))
+    .filter((f: string) => f.endsWith('.md'))
     .sort();
   for (const file of workflows) {
     const name = `workflow-${file.replace('.md', '')}`;

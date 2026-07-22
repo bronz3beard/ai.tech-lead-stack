@@ -147,8 +147,14 @@ describe('Agentic Metrics', () => {
 
   describe('convergence', () => {
     it('returns 0s for empty array or no passed runs', () => {
-      expect(convergence([])).toEqual({ meanRevisionsToPass: 0, meanScoreDelta: 0 });
-      expect(convergence([mockRun({ status: 'FAILED' })])).toEqual({ meanRevisionsToPass: 0, meanScoreDelta: 0 });
+      expect(convergence([])).toEqual({
+        meanRevisionsToPass: 0,
+        meanScoreDelta: 0,
+      });
+      expect(convergence([mockRun({ status: 'FAILED' })])).toEqual({
+        meanRevisionsToPass: 0,
+        meanScoreDelta: 0,
+      });
     });
 
     it('calculates metrics correctly', () => {
@@ -210,7 +216,9 @@ describe('Agentic Metrics', () => {
   describe('costPerPassedPlan', () => {
     it('returns 0 if no passed runs', () => {
       expect(costPerPassedPlan([])).toBe(0);
-      expect(costPerPassedPlan([mockRun({ status: 'FAILED', costUsd: 10 })])).toBe(0);
+      expect(
+        costPerPassedPlan([mockRun({ status: 'FAILED', costUsd: 10 })])
+      ).toBe(0);
     });
 
     it('calculates cost correctly', () => {

@@ -77,18 +77,26 @@ describe('resolveGeminiApiKeys', () => {
   });
 
   it('logs info in development mode when keys are found', () => {
-    Object.defineProperty(process.env, 'NODE_ENV', { value: 'development', configurable: true });
+    Object.defineProperty(process.env, 'NODE_ENV', {
+      value: 'development',
+      configurable: true,
+    });
     process.env.GEMINI_API_KEY = 'env_key_very_long_for_masking';
 
     resolveGeminiApiKeys({ geminiApiKey: null }, mockDecrypt);
 
     expect(console.info).toHaveBeenCalledWith(
-      expect.stringContaining('[chat] Gemini: Found 1 key(s). Preferred: env_...ng')
+      expect.stringContaining(
+        '[chat] Gemini: Found 1 key(s). Preferred: env_...ng'
+      )
     );
   });
 
   it('does not log info in production mode', () => {
-    Object.defineProperty(process.env, 'NODE_ENV', { value: 'production', configurable: true });
+    Object.defineProperty(process.env, 'NODE_ENV', {
+      value: 'production',
+      configurable: true,
+    });
     process.env.GEMINI_API_KEY = 'env_key_very_long_for_masking';
 
     resolveGeminiApiKeys({ geminiApiKey: null }, mockDecrypt);
@@ -119,7 +127,9 @@ describe('getErrorMessage', () => {
   });
 
   it('extracts message from an object with response.data.error.message', () => {
-    const error = { response: { data: { error: { message: 'Response data error message' } } } };
+    const error = {
+      response: { data: { error: { message: 'Response data error message' } } },
+    };
     expect(getErrorMessage(error)).toBe('Response data error message');
   });
 
@@ -155,13 +165,23 @@ describe('getErrorMessage', () => {
   });
 
   it('should extract message from nested AI SDK structures', () => {
-    expect(getErrorMessage({ error: { message: 'Nested error' } })).toBe('Nested error');
-    expect(getErrorMessage({ data: { error: { message: 'Data error' } } })).toBe('Data error');
-    expect(getErrorMessage({ response: { data: { error: { message: 'Response error' } } } })).toBe('Response error');
+    expect(getErrorMessage({ error: { message: 'Nested error' } })).toBe(
+      'Nested error'
+    );
+    expect(
+      getErrorMessage({ data: { error: { message: 'Data error' } } })
+    ).toBe('Data error');
+    expect(
+      getErrorMessage({
+        response: { data: { error: { message: 'Response error' } } },
+      })
+    ).toBe('Response error');
   });
 
   it('should fallback to stringification for objects without message field', () => {
-    expect(getErrorMessage({ someField: 'value' })).toBe('{"someField":"value"}');
+    expect(getErrorMessage({ someField: 'value' })).toBe(
+      '{"someField":"value"}'
+    );
   });
 
   it('should stringify primitive types', () => {
@@ -172,11 +192,11 @@ describe('getErrorMessage', () => {
   });
 
   it('should handle circular structures gracefully by stringifying what it can or catching', () => {
-     const circular: any = { field: 'value' };
-     circular.self = circular;
-     // The function should gracefully handle circular structures by falling back to String()
-     expect(() => getErrorMessage(circular)).not.toThrow();
-     expect(getErrorMessage(circular)).toBe('[object Object]');
+    const circular: any = { field: 'value' };
+    circular.self = circular;
+    // The function should gracefully handle circular structures by falling back to String()
+    expect(() => getErrorMessage(circular)).not.toThrow();
+    expect(getErrorMessage(circular)).toBe('[object Object]');
   });
 });
 
@@ -206,17 +226,41 @@ describe('isQuotaError', () => {
   });
 
   it('should identify quota issues via deep heuristic check', () => {
-    expect(isQuotaError(new Error('OpenAI API returned an error: 429 Too Many Requests'))).toBe(true);
-    expect(isQuotaError({ message: 'You exceeded your current quota, please check your plan and billing details.' })).toBe(true);
-    expect(isQuotaError({ error: { message: 'Rate limit reached for requests' } })).toBe(true);
-    expect(isQuotaError({ response: { data: { error: { message: 'resource exhausted' } } } })).toBe(true);
+    expect(
+      isQuotaError(
+        new Error('OpenAI API returned an error: 429 Too Many Requests')
+      )
+    ).toBe(true);
+    expect(
+      isQuotaError({
+        message:
+          'You exceeded your current quota, please check your plan and billing details.',
+      })
+    ).toBe(true);
+    expect(
+      isQuotaError({ error: { message: 'Rate limit reached for requests' } })
+    ).toBe(true);
+    expect(
+      isQuotaError({
+        response: { data: { error: { message: 'resource exhausted' } } },
+      })
+    ).toBe(true);
   });
 
   it('should return false for non-quota errors', () => {
-    expect(isQuotaError({ status: 500, message: 'Internal Server Error' })).toBe(false);
-    expect(isQuotaError({ code: 'NOT_FOUND', message: 'The requested resource was not found' })).toBe(false);
+    expect(
+      isQuotaError({ status: 500, message: 'Internal Server Error' })
+    ).toBe(false);
+    expect(
+      isQuotaError({
+        code: 'NOT_FOUND',
+        message: 'The requested resource was not found',
+      })
+    ).toBe(false);
     expect(isQuotaError(new Error('Network error'))).toBe(false);
-    expect(isQuotaError({ data: { message: 'Invalid API key provided.' } })).toBe(false);
+    expect(
+      isQuotaError({ data: { message: 'Invalid API key provided.' } })
+    ).toBe(false);
   });
 
   it('should handle circular objects gracefully without crashing', () => {
@@ -232,7 +276,6 @@ describe('isQuotaError', () => {
     expect(isQuotaError(circularQuota)).toBe(true);
   });
 });
-
 
 // ---------------------------------------------------------------------------
 // getChatTools — jsonSchema + inputSchema regression guard (Zod v4 + AI SDK v6)
@@ -252,7 +295,6 @@ jest.mock('@/lib/skills', () => ({
 }));
 
 describe('getChatTools — inputSchema regression (Zod v4 + AI SDK v6)', () => {
-
   const { getChatTools } = require('../utils') as typeof import('../utils');
 
   function getJsonSchema(t: Record<string, unknown>): Record<string, unknown> {

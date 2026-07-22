@@ -23,7 +23,10 @@ describe('providers v2', () => {
 
   it('buildRunner accumulates usage and provides interview() with missing model pricing', async () => {
     (aiModule.generateText as jest.Mock)
-      .mockResolvedValueOnce({ text: 'text', usage: { promptTokens: 5, completionTokens: 5, totalTokens: 10 } })
+      .mockResolvedValueOnce({
+        text: 'text',
+        usage: { promptTokens: 5, completionTokens: 5, totalTokens: 10 },
+      })
       .mockResolvedValueOnce({
         output: { runId: '1', questions: [] },
         usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 },
@@ -51,10 +54,14 @@ describe('providers v2', () => {
     expect(runner.getUsage().costUsd).toBe(0); // Cost remains 0
 
     expect(spy).toHaveBeenCalledWith(
-      expect.stringContaining('cost tracking not available for provider unknown-a')
+      expect.stringContaining(
+        'cost tracking not available for provider unknown-a'
+      )
     );
     expect(spy).toHaveBeenCalledWith(
-      expect.stringContaining('cost tracking not available for provider unknown-b')
+      expect.stringContaining(
+        'cost tracking not available for provider unknown-b'
+      )
     );
 
     spy.mockRestore();
@@ -63,11 +70,22 @@ describe('providers v2', () => {
   it('buildRunner computes correct costUsd using deterministic fixture rates', async () => {
     // mock generate with gemini-3.5-flash (creator): 1,000 prompt (1.0/M), 2,000 completion (2.0/M) = $0.001 + $0.004 = $0.005
     (aiModule.generateText as jest.Mock)
-      .mockResolvedValueOnce({ text: 'text', usage: { promptTokens: 1000, completionTokens: 2000, totalTokens: 3000 } })
+      .mockResolvedValueOnce({
+        text: 'text',
+        usage: {
+          promptTokens: 1000,
+          completionTokens: 2000,
+          totalTokens: 3000,
+        },
+      })
       // mock critique with claude-sonnet-4-6 (critic): 2,000 prompt (3.0/M), 1,000 completion (4.0/M) = $0.006 + $0.004 = $0.010
       .mockResolvedValueOnce({
         output: { score: 9 },
-        usage: { promptTokens: 2000, completionTokens: 1000, totalTokens: 3000 },
+        usage: {
+          promptTokens: 2000,
+          completionTokens: 1000,
+          totalTokens: 3000,
+        },
       });
 
     const mockModel = {} as aiModule.LanguageModel;
@@ -86,9 +104,15 @@ describe('providers v2', () => {
   });
 
   it('401 on Claude falls back to gemini-3.1-pro-preview', async () => {
-    const mockCreator = { id: 'gemini-3.5-flash' } as unknown as aiModule.LanguageModel;
-    const mockCritic = { id: 'claude-sonnet-4-6' } as unknown as aiModule.LanguageModel;
-    const mockFallbackCritic = { id: 'gemini-3.1-pro-preview' } as unknown as aiModule.LanguageModel;
+    const mockCreator = {
+      id: 'gemini-3.5-flash',
+    } as unknown as aiModule.LanguageModel;
+    const mockCritic = {
+      id: 'claude-sonnet-4-6',
+    } as unknown as aiModule.LanguageModel;
+    const mockFallbackCritic = {
+      id: 'gemini-3.1-pro-preview',
+    } as unknown as aiModule.LanguageModel;
 
     const error401 = new Error('unauthorized') as Error & { status?: number };
     error401.status = 401;
@@ -97,7 +121,11 @@ describe('providers v2', () => {
       .mockRejectedValueOnce(error401) // First call to Claude fails
       .mockResolvedValueOnce({
         output: { score: 7, passed: false, actionableFix: 'fix' },
-        usage: { promptTokens: 1_000_000, completionTokens: 1_000_000, totalTokens: 2_000_000 },
+        usage: {
+          promptTokens: 1_000_000,
+          completionTokens: 1_000_000,
+          totalTokens: 2_000_000,
+        },
       }); // Fallback succeeds
 
     const runner = buildRunner(
@@ -135,9 +163,15 @@ describe('providers v2', () => {
   });
 
   it('successful passed=false critique does not trigger fallback and wasDegraded remains false', async () => {
-    const mockCreator = { id: 'gemini-3.5-flash' } as unknown as aiModule.LanguageModel;
-    const mockCritic = { id: 'claude-sonnet-4-6' } as unknown as aiModule.LanguageModel;
-    const mockFallbackCritic = { id: 'gemini-3.1-pro-preview' } as unknown as aiModule.LanguageModel;
+    const mockCreator = {
+      id: 'gemini-3.5-flash',
+    } as unknown as aiModule.LanguageModel;
+    const mockCritic = {
+      id: 'claude-sonnet-4-6',
+    } as unknown as aiModule.LanguageModel;
+    const mockFallbackCritic = {
+      id: 'gemini-3.1-pro-preview',
+    } as unknown as aiModule.LanguageModel;
 
     (aiModule.generateText as jest.Mock).mockResolvedValueOnce({
       output: { score: 5, passed: false, actionableFix: 'fix' },

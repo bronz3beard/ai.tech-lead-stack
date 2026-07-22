@@ -5,7 +5,9 @@ describe('Analytics Normalization', () => {
   describe('normalizeProjectName', () => {
     it('should normalize project names to kebab-case', () => {
       expect(normalizeProjectName('Tech Lead Stack')).toBe('tech-lead-stack');
-      expect(normalizeProjectName('My Awesome Project')).toBe('my-awesome-project');
+      expect(normalizeProjectName('My Awesome Project')).toBe(
+        'my-awesome-project'
+      );
       expect(normalizeProjectName('already-kebab')).toBe('already-kebab');
     });
 

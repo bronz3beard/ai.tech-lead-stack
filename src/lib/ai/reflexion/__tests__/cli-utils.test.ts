@@ -1,4 +1,7 @@
-import { parseYamlAnswers, formatInterviewMd } from '../../../../../scripts/reflexion-loop-utils';
+import {
+  parseYamlAnswers,
+  formatInterviewMd,
+} from '../../../../../scripts/reflexion-loop-utils';
 
 describe('CLI logic', () => {
   it('parses answers block from plain YAML', () => {
@@ -36,11 +39,17 @@ Other text
 
   it('formats interview.md correctly', () => {
     const questions = [
-      { id: 'q1', target: 'plan' as const, ref: '## Setup', question: 'What version?', why: 'Need to know' }
+      {
+        id: 'q1',
+        target: 'plan' as const,
+        ref: '## Setup',
+        question: 'What version?',
+        why: 'Need to know',
+      },
     ];
     const md = formatInterviewMd('run-789', questions);
     expect(md).toContain('## Questions');
-    expect(md).toContain("**q1** [plan `## Setup`]: What version?");
+    expect(md).toContain('**q1** [plan `## Setup`]: What version?');
     expect(md).toContain('```yaml answers:');
     expect(md).toContain('runId: "run-789"');
     expect(md).toContain('id: "q1"');

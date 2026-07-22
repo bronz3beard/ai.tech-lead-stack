@@ -1,12 +1,43 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 import { StateStore, ReflexionStateV2, ReflexionStateV2Schema } from './schema';
+
+export function resolveStateDir(dir: string): string {
+  const resolved = path.resolve(dir);
+
+  let current = resolved;
+  let isInsideClient = false;
+
+  while (current !== path.parse(current).root) {
+    try {
+      const pkgPath = path.join(current, 'package.json');
+      if (fs.existsSync(pkgPath)) {
+        const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+        if (pkg.name && !pkg.name.includes('tech-lead-stack')) {
+          isInsideClient = true;
+          break;
+        }
+      }
+    } catch {
+      // ignore parse error
+    }
+    current = path.dirname(current);
+  }
+
+  if (isInsideClient) {
+    const safeBase = path.join(os.tmpdir(), 'tech-lead-stack-reflexion');
+    return path.join(safeBase, path.basename(dir));
+  }
+
+  return resolved;
+}
 
 export class FileStateStore implements StateStore {
   private dir: string;
 
   constructor(dir: string) {
-    this.dir = dir;
+    this.dir = resolveStateDir(dir);
   }
 
   async load(runId: string): Promise<ReflexionStateV2 | null> {

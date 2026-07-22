@@ -1,5 +1,6 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import matter from 'gray-matter';
 import { resumeReflexion, runReflexion } from '../lib/ai/reflexion/engine.js';
 import { runnerFromEnv } from '../lib/ai/reflexion/providers-env.js';
 import { FileStateStore } from '../lib/ai/reflexion/state-store.js';
@@ -50,11 +51,25 @@ export class Handlers {
       )
       .sort();
 
+    const formattedSkills = await Promise.all(
+      skillFiles.map(async (s) => {
+        const skill = await this.fsService.readSkill(s);
+        if (skill) {
+          const parsed = matter(skill.content);
+          const modes = Array.isArray(parsed.data?.modes) ? parsed.data.modes : [];
+          if (modes.length > 0) {
+            return `- ${s} [modes: ${modes.join(', ')}]`;
+          }
+        }
+        return `- ${s}`;
+      })
+    );
+
     return {
       content: [
         {
           type: 'text',
-          text: `Available skills (found in ${searchDirs.join(', ')}):\n${skillFiles.map((s) => `- ${s}`).join('\n')}`,
+          text: `Available skills (found in ${searchDirs.join(', ')}):\n${formattedSkills.join('\n')}`,
         },
       ],
       isError: false,

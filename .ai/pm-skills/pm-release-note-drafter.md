@@ -4,6 +4,7 @@ description:
   Automatically draft user-centric release notes from merged features.
   Celebrates shipping while maintaining technical accuracy.
 cost: ~650 tokens
+modes: [read-only, mcp]
 ---
 
 # PM Release Note Drafter (The Ship Captain)

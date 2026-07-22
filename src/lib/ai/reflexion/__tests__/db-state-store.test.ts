@@ -7,8 +7,8 @@ jest.mock('../../../prisma', () => ({
     reflexionRun: {
       findUnique: jest.fn(),
       upsert: jest.fn(),
-    }
-  }
+    },
+  },
 }));
 
 describe('DbStateStore', () => {
@@ -20,15 +20,17 @@ describe('DbStateStore', () => {
     brief: 'DB brief',
     phase: 'AWAITING_ANSWERS',
     plan: '## DB Plan',
-    critiques: [{
-      gstackDiagnosis: 9,
-      atomicBatches: 9,
-      productionEthos: 9,
-      modernWeb: 9,
-      score: 9,
-      passed: true,
-      actionableFix: ''
-    }],
+    critiques: [
+      {
+        gstackDiagnosis: 9,
+        atomicBatches: 9,
+        productionEthos: 9,
+        modernWeb: 9,
+        score: 9,
+        passed: true,
+        actionableFix: '',
+      },
+    ],
     revision: 1,
     params: {
       passThreshold: 8,
@@ -37,10 +39,10 @@ describe('DbStateStore', () => {
     usage: {
       totalTokens: 100,
       costUsd: 0.1,
-      perPhase: []
+      perPhase: [],
     },
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   };
 
   afterEach(() => {
@@ -50,19 +52,21 @@ describe('DbStateStore', () => {
   it('loads and parses state from DB', async () => {
     (prisma.reflexionRun.findUnique as jest.Mock).mockResolvedValue({
       id: 'run-db-123',
-      stateJson: dummyState
+      stateJson: dummyState,
     });
 
     const loaded = await store.load('run-db-123');
     expect(loaded).toBeDefined();
     expect(loaded?.runId).toBe('run-db-123');
-    expect(prisma.reflexionRun.findUnique).toHaveBeenCalledWith({ where: { id: 'run-db-123' }});
+    expect(prisma.reflexionRun.findUnique).toHaveBeenCalledWith({
+      where: { id: 'run-db-123' },
+    });
   });
 
   it('returns null if stateJson is missing or invalid', async () => {
     (prisma.reflexionRun.findUnique as jest.Mock).mockResolvedValue({
       id: 'run-db-123',
-      stateJson: { bad: 'data' }
+      stateJson: { bad: 'data' },
     });
 
     const spy = jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -73,17 +77,19 @@ describe('DbStateStore', () => {
 
   it('saves state mapping phase to status correctly', async () => {
     await store.save(dummyState);
-    expect(prisma.reflexionRun.upsert).toHaveBeenCalledWith(expect.objectContaining({
-      where: { id: 'run-db-123' },
-      create: expect.objectContaining({
-        status: 'AWAITING_INTERVIEW',
-        latestScore: 9,
-        revision: 1,
-        costUsd: 0.1
-      }),
-      update: expect.objectContaining({
-        status: 'AWAITING_INTERVIEW',
+    expect(prisma.reflexionRun.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'run-db-123' },
+        create: expect.objectContaining({
+          status: 'AWAITING_INTERVIEW',
+          latestScore: 9,
+          revision: 1,
+          costUsd: 0.1,
+        }),
+        update: expect.objectContaining({
+          status: 'AWAITING_INTERVIEW',
+        }),
       })
-    }));
+    );
   });
 });

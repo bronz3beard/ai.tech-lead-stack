@@ -4,6 +4,7 @@ description:
   Identify technical risks and bottlenecks that could impact upcoming deadlines.
   Focuses on "Architectural Drift" and "God Object" detection.
 cost: ~650 tokens
+modes: [read-only, mcp]
 ---
 
 # PM Risk Detector (The Warning Signal)

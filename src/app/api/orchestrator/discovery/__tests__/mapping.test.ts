@@ -201,7 +201,10 @@ describe('Discovery Route Message Mapping (flatMap)', () => {
     expect(result[0].content[0].type).toBe('tool-call');
     expect(result[1].role).toBe('tool');
     expect(result[1].content[0].type).toBe('tool-result');
-    expect(result[1].content[0].result).toEqual({ success: true, path: 'test2.txt' });
+    expect(result[1].content[0].result).toEqual({
+      success: true,
+      path: 'test2.txt',
+    });
   });
 
   it('handles explicit tool role messages', () => {
@@ -257,7 +260,10 @@ describe('Discovery Route Message Mapping (flatMap)', () => {
     });
     expect(result[1].role).toBe('tool');
     expect(result[1].content[0].type).toBe('tool-result');
-    expect(result[1].content[0].result).toEqual({ success: true, path: 'src/App.tsx' });
+    expect(result[1].content[0].result).toEqual({
+      success: true,
+      path: 'src/App.tsx',
+    });
   });
 
   it('maps toolInvocations array on tool message when parts is missing', () => {

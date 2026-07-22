@@ -4,6 +4,7 @@ description:
   Generate product-focused updates and highlights from recent code changes. Uses
   Conventional Commits to track feature narrative.
 cost: ~650 tokens
+modes: [read-only, mcp]
 ---
 
 # PM Newsletter Generator (The Narrative Architect)

@@ -24,15 +24,17 @@ describe('FileStateStore', () => {
     brief: 'Test brief',
     phase: 'AWAITING_ANSWERS',
     plan: '## Test Plan',
-    critiques: [{
-      gstackDiagnosis: 9,
-      atomicBatches: 9,
-      productionEthos: 9,
-      modernWeb: 9,
-      score: 9,
-      passed: true,
-      actionableFix: ''
-    }],
+    critiques: [
+      {
+        gstackDiagnosis: 9,
+        atomicBatches: 9,
+        productionEthos: 9,
+        modernWeb: 9,
+        score: 9,
+        passed: true,
+        actionableFix: '',
+      },
+    ],
     revision: 1,
     params: {
       passThreshold: 8,
@@ -41,10 +43,10 @@ describe('FileStateStore', () => {
     usage: {
       totalTokens: 100,
       costUsd: 0.1,
-      perPhase: []
+      perPhase: [],
     },
     createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   };
 
   it('saves state atomically and loads it', async () => {
@@ -67,15 +69,32 @@ describe('FileStateStore', () => {
   it('migrates v1 output if state.json is missing', async () => {
     fs.mkdirSync(TEST_DIR, { recursive: true });
     fs.writeFileSync(path.join(TEST_DIR, 'plan.md'), '## V1 Plan');
-    fs.writeFileSync(path.join(TEST_DIR, 'critique.json'), JSON.stringify({
-      runId: 'v1-run-id',
-      brief: 'V1 Brief',
-      revisionsUsed: 2,
-      rounds: [
-        { draft: '## V1 Plan', critique: { score: 5, passed: false, actionableFix: 'fix' } },
-        { draft: '## V1 Plan', critique: { gstackDiagnosis: 8, atomicBatches: 8, productionEthos: 8, modernWeb: 8, score: 8, passed: true, actionableFix: '' } }
-      ]
-    }));
+    fs.writeFileSync(
+      path.join(TEST_DIR, 'critique.json'),
+      JSON.stringify({
+        runId: 'v1-run-id',
+        brief: 'V1 Brief',
+        revisionsUsed: 2,
+        rounds: [
+          {
+            draft: '## V1 Plan',
+            critique: { score: 5, passed: false, actionableFix: 'fix' },
+          },
+          {
+            draft: '## V1 Plan',
+            critique: {
+              gstackDiagnosis: 8,
+              atomicBatches: 8,
+              productionEthos: 8,
+              modernWeb: 8,
+              score: 8,
+              passed: true,
+              actionableFix: '',
+            },
+          },
+        ],
+      })
+    );
 
     const store = new FileStateStore(TEST_DIR);
     const loaded = await store.load('any-run-id');

@@ -2,7 +2,8 @@ import { encrypt, decrypt } from '../crypto';
 
 describe('crypto', () => {
   const originalEnv = process.env;
-  const validKey = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+  const validKey =
+    '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
 
   beforeEach(() => {
     jest.resetModules();
@@ -40,14 +41,22 @@ describe('crypto', () => {
   describe('ENCRYPTION_KEY validation', () => {
     it('should throw an error if ENCRYPTION_KEY is not set', () => {
       delete process.env.ENCRYPTION_KEY;
-      expect(() => encrypt('test')).toThrow('ENCRYPTION_KEY environment variable is not set');
-      expect(() => decrypt('part1:part2:part3')).toThrow('ENCRYPTION_KEY environment variable is not set');
+      expect(() => encrypt('test')).toThrow(
+        'ENCRYPTION_KEY environment variable is not set'
+      );
+      expect(() => decrypt('part1:part2:part3')).toThrow(
+        'ENCRYPTION_KEY environment variable is not set'
+      );
     });
 
     it('should throw an error if ENCRYPTION_KEY is not 64 characters', () => {
       process.env.ENCRYPTION_KEY = 'short';
-      expect(() => encrypt('test')).toThrow('ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes)');
-      expect(() => decrypt('part1:part2:part3')).toThrow('ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes)');
+      expect(() => encrypt('test')).toThrow(
+        'ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes)'
+      );
+      expect(() => decrypt('part1:part2:part3')).toThrow(
+        'ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes)'
+      );
     });
   });
 
@@ -64,9 +73,15 @@ describe('crypto', () => {
     });
 
     it('should throw an error if ciphertext format is invalid', () => {
-      expect(() => decrypt('invalid_format')).toThrow('Invalid ciphertext format. Expected <iv>:<ciphertext>:<authtag>');
-      expect(() => decrypt('part1:part2')).toThrow('Invalid ciphertext format. Expected <iv>:<ciphertext>:<authtag>');
-      expect(() => decrypt('part1:part2:part3:part4')).toThrow('Invalid ciphertext format. Expected <iv>:<ciphertext>:<authtag>');
+      expect(() => decrypt('invalid_format')).toThrow(
+        'Invalid ciphertext format. Expected <iv>:<ciphertext>:<authtag>'
+      );
+      expect(() => decrypt('part1:part2')).toThrow(
+        'Invalid ciphertext format. Expected <iv>:<ciphertext>:<authtag>'
+      );
+      expect(() => decrypt('part1:part2:part3:part4')).toThrow(
+        'Invalid ciphertext format. Expected <iv>:<ciphertext>:<authtag>'
+      );
     });
 
     it('should fail to decrypt if ciphertext is tampered with', () => {
@@ -75,7 +90,10 @@ describe('crypto', () => {
 
       const parts = ciphertext.split(':');
       // Modify the ciphertext part significantly to ensure it changes
-      parts[1] = parts[1] === '0000000000000000000000' ? '1111111111111111111111' : '0000000000000000000000';
+      parts[1] =
+        parts[1] === '0000000000000000000000'
+          ? '1111111111111111111111'
+          : '0000000000000000000000';
       const tamperedCiphertext = parts.join(':');
 
       expect(() => decrypt(tamperedCiphertext)).toThrow(); // Decipher throws when auth tag fails

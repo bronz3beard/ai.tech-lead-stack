@@ -38,7 +38,9 @@ jest.mock('../../lib/ai/reflexion/providers-env', () => {
   const actual = jest.requireActual('../../lib/ai/reflexion/providers-env');
   return {
     ...actual,
-    runnerFromEnv: jest.fn().mockImplementation((ctx) => actual.runnerFromEnv(ctx)),
+    runnerFromEnv: jest
+      .fn()
+      .mockImplementation((ctx) => actual.runnerFromEnv(ctx)),
   };
 });
 
@@ -60,10 +62,14 @@ describe('Handlers.handleReflexionLoop project model routing', () => {
   });
 
   it('uses Project.settings.modelRouting.planner when projectName resolves', async () => {
-    const mockFsService = new FileSystemService('root') as jest.Mocked<FileSystemService>;
+    const mockFsService = new FileSystemService(
+      'root'
+    ) as jest.Mocked<FileSystemService>;
     const mockTelemetry = new Telemetry() as jest.Mocked<Telemetry>;
     const mockKiService = new KiService() as jest.Mocked<KiService>;
-    const mockAlignmentService = new AlignmentService('root') as jest.Mocked<AlignmentService>;
+    const mockAlignmentService = new AlignmentService(
+      'root'
+    ) as jest.Mocked<AlignmentService>;
 
     const handlers = new Handlers(
       mockFsService,

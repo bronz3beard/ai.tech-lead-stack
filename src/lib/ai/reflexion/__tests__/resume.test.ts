@@ -1,13 +1,12 @@
-
 // Mock next/server
 jest.mock('next/server', () => {
   return {
     NextResponse: {
       json: jest.fn((body, init) => ({
         status: init?.status || 200,
-        json: async () => body
-      }))
-    }
+        json: async () => body,
+      })),
+    },
   };
 });
 
@@ -26,8 +25,8 @@ jest.mock('../../../prisma', () => ({
     },
     user: {
       findUnique: jest.fn(),
-    }
-  }
+    },
+  },
 }));
 
 describe('Resume Route', () => {
@@ -35,9 +34,10 @@ describe('Resume Route', () => {
     jest.clearAllMocks();
   });
 
-  const createMockRequest = (body: any) => ({
-    json: async () => body
-  } as any);
+  const createMockRequest = (body: any) =>
+    ({
+      json: async () => body,
+    }) as any;
 
   it('rejects unauthorized access', async () => {
     (getServerSession as jest.Mock).mockResolvedValue(null);
@@ -48,7 +48,9 @@ describe('Resume Route', () => {
   });
 
   it('rejects mismatching userId (401)', async () => {
-    (getServerSession as jest.Mock).mockResolvedValue({ user: { id: 'user-2' } });
+    (getServerSession as jest.Mock).mockResolvedValue({
+      user: { id: 'user-2' },
+    });
     (prisma.reflexionRun.findUnique as jest.Mock).mockResolvedValue({
       id: 'run-123',
       userId: 'user-1', // different user
@@ -63,7 +65,9 @@ describe('Resume Route', () => {
   });
 
   it('returns 400 for invalid payload', async () => {
-    (getServerSession as jest.Mock).mockResolvedValue({ user: { id: 'user-1' } });
+    (getServerSession as jest.Mock).mockResolvedValue({
+      user: { id: 'user-1' },
+    });
 
     const req = createMockRequest({ decisions: 'bad' });
 

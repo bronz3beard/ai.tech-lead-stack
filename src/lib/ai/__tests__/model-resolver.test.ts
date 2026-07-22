@@ -29,7 +29,9 @@ describe('model-resolver', () => {
     process.env.MODEL_PLANNER = 'claude-sonnet-4-6';
 
     const ctx: ResolveCtx = {
-      project: { settings: { modelRouting: { planner: 'gemini-3.5-flash' } } } as any,
+      project: {
+        settings: { modelRouting: { planner: 'gemini-3.5-flash' } },
+      } as any,
       user: { settings: { modelRouting: { planner: 'gpt-5.4' } } } as any,
     };
 
@@ -43,8 +45,12 @@ describe('model-resolver', () => {
 
   it("returns source='project' when Project.settings has modelRouting", () => {
     const ctx: ResolveCtx = {
-      project: { settings: { modelRouting: { planner: 'claude-opus-4-6' } } } as any,
-      user: { settings: { modelRouting: { planner: 'gemini-3.5-flash' } } } as any,
+      project: {
+        settings: { modelRouting: { planner: 'claude-opus-4-6' } },
+      } as any,
+      user: {
+        settings: { modelRouting: { planner: 'gemini-3.5-flash' } },
+      } as any,
     };
 
     const resolved = resolveModelWithSource('planner', ctx);
@@ -57,7 +63,9 @@ describe('model-resolver', () => {
 
   it("returns source='user' when User.settings has modelRouting", () => {
     const ctx: ResolveCtx = {
-      user: { settings: { modelRouting: { planner: 'claude-haiku-4-5' } } } as any,
+      user: {
+        settings: { modelRouting: { planner: 'claude-haiku-4-5' } },
+      } as any,
     };
 
     const resolved = resolveModelWithSource('planner', ctx);
@@ -86,7 +94,12 @@ describe('model-resolver', () => {
   });
 
   it("returns source='default' for all responsibilities when nothing is set", () => {
-    for (const role of ['planner', 'implementer', 'auditor', 'adjudicator'] as const) {
+    for (const role of [
+      'planner',
+      'implementer',
+      'auditor',
+      'adjudicator',
+    ] as const) {
       const resolved = resolveModelWithSource(role, {});
       expect(resolved.source).toBe('default');
       expect(resolved.id).toBeDefined();
@@ -128,6 +141,8 @@ describe('model-resolver', () => {
       id: 'claude-sonnet-4-6',
       source: 'user',
     });
-    expect(resolveModelWithSource('adjudicator', fullCtx).source).toBe('default');
+    expect(resolveModelWithSource('adjudicator', fullCtx).source).toBe(
+      'default'
+    );
   });
 });

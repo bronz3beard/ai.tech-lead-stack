@@ -4,6 +4,7 @@ description:
   Translate meeting notes into actionable technical tasks linked to code.
   Ensures full traceability from product intent to technical footprint.
 cost: ~650 tokens
+modes: [read-only, mcp]
 ---
 
 # PM Action Item Mapper (The Traceability Link)

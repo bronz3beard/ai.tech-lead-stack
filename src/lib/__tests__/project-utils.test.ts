@@ -7,13 +7,19 @@ describe('normalizeProjectName', () => {
   });
 
   it('should extract base name from scoped packages', () => {
-    expect(normalizeProjectName('@bronz3beard/tech-lead-stack')).toBe('tech-lead-stack');
+    expect(normalizeProjectName('@bronz3beard/tech-lead-stack')).toBe(
+      'tech-lead-stack'
+    );
     expect(normalizeProjectName('@scope/repo-name')).toBe('repo-name');
   });
 
   it('should handle path-like names and extract the last part', () => {
-    expect(normalizeProjectName('agent-toolbox/tech-lead-stack')).toBe('tech-lead-stack');
-    expect(normalizeProjectName('Bronz3beard/ai.tech-lead-stack')).toBe('tech-lead-stack');
+    expect(normalizeProjectName('agent-toolbox/tech-lead-stack')).toBe(
+      'tech-lead-stack'
+    );
+    expect(normalizeProjectName('Bronz3beard/ai.tech-lead-stack')).toBe(
+      'tech-lead-stack'
+    );
     expect(normalizeProjectName('path/to/my-project')).toBe('my-project');
   });
 
