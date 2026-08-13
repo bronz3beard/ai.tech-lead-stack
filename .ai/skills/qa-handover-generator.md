@@ -11,6 +11,14 @@ description: >
 cost: ~950 tokens
 modes: [read-only, write, mcp]
 surface: public
+category: Ship & Communicate
+how:
+  'Performs Phase 0 G-Stack discovery of state architecture, maps components to
+  server-driven vs client-side patterns, and renders ClickUp markup via the
+  clickup-format module.'
+useCase:
+  'Generating high-fidelity QA handovers and smoke test checklists for
+  developers and automated testing agents.'
 ---
 
 # QA Handover Generator

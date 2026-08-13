@@ -6,6 +6,7 @@ description: >
 cost: ~1200 tokens
 modes: [read-only, write]
 surface: public
+category: Ship & Communicate
 ---
 
 # Weekly Leadership Report

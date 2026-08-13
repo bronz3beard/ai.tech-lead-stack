@@ -15,6 +15,9 @@ const frontmatterSchema = z.object({
   cost: z.string().regex(/^~[0-9]+\s+tokens$/),
   modes: z.array(z.enum(['read-only', 'write', 'mcp'])).min(1),
   surface: z.enum(['public', 'internal']),
+  category: z.string().optional(),
+  how: z.string().optional(),
+  useCase: z.string().optional(),
 });
 
 type Skill = z.infer<typeof frontmatterSchema>;
@@ -167,25 +170,88 @@ const originalRows: Record<string, string[]> = {
   ],
 };
 
+const CATEGORY_ORDER = [
+  'Orchestrators',
+  'Discover & Define',
+  'Plan & Harden',
+  'Build & Fix',
+  'Review & Verify',
+  'Design & UI',
+  'Ship & Communicate'
+];
+
+const CATEGORY_DESCRIPTIONS: Record<string, string> = {
+  'Orchestrators': 'High-level directors that coordinate other skills and drive multi-step workflows.',
+  'Discover & Define': 'Exploratory agents for codebase onboarding, requirement gathering, and technical design.',
+  'Plan & Harden': 'Strategic planners that break down work into atomic steps and vertical slices.',
+  'Build & Fix': 'Implementation engines for fixing bugs and addressing feedback.',
+  'Review & Verify': 'Quality gatekeepers for code standards, accessibility, and security.',
+  'Design & UI': 'Visual agents focused on UI specs, styling logic, and layout verification.',
+  'Ship & Communicate': 'Automation for PRs, changelogs, and team updates.',
+  'Uncategorised': 'Skills that have not yet been assigned a category.'
+};
+
 function generateReadmeTable(skills: Skill[]): string {
-  let table = `<!-- SKILLS_TABLE:START -->\n`;
-  table += `| Skill | Description | How it works | Use Case | Modes | Est. Context Footprint |\n`;
-  table += `| :--- | :--- | :--- | :--- | :--- | :--- |\n`;
+  let table = `<!-- SKILLS_TABLE:START -->\n\n`;
 
   const publicSkills = skills.filter((s) => s.surface === 'public');
+  
+  const categorized = new Map<string, Skill[]>();
+  const uncategorized: Skill[] = [];
 
   for (const s of publicSkills) {
-    let description = s.description.replace(/\n/g, ' ');
-    let how = '-';
-    let useCase = '-';
-    if (originalRows[s.name]) {
-      [description, how, useCase] = originalRows[s.name];
+    if (s.category && CATEGORY_ORDER.includes(s.category)) {
+      if (!categorized.has(s.category)) {
+        categorized.set(s.category, []);
+      }
+      categorized.get(s.category)!.push(s);
+    } else {
+      uncategorized.push(s);
+      if (s.category) {
+        console.warn(`WARNING: Skill ${s.name} has unrecognised category '${s.category}'`);
+      } else {
+        console.warn(`WARNING: Skill ${s.name} has no category`);
+      }
     }
-    const modesStr = s.modes.join(', ');
-    table += `| **\`${s.name}\`** | ${description} | ${how} | ${useCase} | ${modesStr} | ${s.cost} |\n`;
   }
 
-  table += `\n### Internal Skills\n\n`;
+  const getRow = (s: Skill) => {
+    let description = s.description.replace(/\n/g, ' ');
+    let how = s.how || '-';
+    let useCase = s.useCase || '-';
+    if (originalRows[s.name]) {
+      if (how === '-') how = originalRows[s.name][1];
+      if (useCase === '-') useCase = originalRows[s.name][2];
+    }
+    const modesStr = s.modes.join(', ');
+    return `| **\`${s.name}\`** | ${description} | ${how} | ${useCase} | ${modesStr} | ${s.cost} |\n`;
+  };
+
+  const renderCategory = (title: string, catSkills: Skill[]) => {
+    if (catSkills.length === 0) return '';
+    let res = `### ${title}\n\n`;
+    if (CATEGORY_DESCRIPTIONS[title]) {
+      res += `${CATEGORY_DESCRIPTIONS[title]}\n\n`;
+    }
+    res += `| Skill | Description | How it works | Use Case | Modes | Est. Context Footprint |\n`;
+    res += `| :--- | :--- | :--- | :--- | :--- | :--- |\n`;
+    for (const s of catSkills) {
+      res += getRow(s);
+    }
+    res += `\n`;
+    return res;
+  };
+
+  for (const cat of CATEGORY_ORDER) {
+    const catSkills = categorized.get(cat) || [];
+    table += renderCategory(cat, catSkills);
+  }
+
+  if (uncategorized.length > 0) {
+    table += renderCategory('Uncategorised', uncategorized);
+  }
+
+  table += `### Internal Skills\n\n`;
   table += `| Skill | Description | Modes | Est. Context Footprint |\n`;
   table += `| :--- | :--- | :--- | :--- |\n`;
 

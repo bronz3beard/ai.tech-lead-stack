@@ -6,6 +6,11 @@ description: >
 cost: ~450 tokens
 modes: [read-only, write, mcp]
 surface: public
+category: Design & UI
+how:
+  'Runs local app via Playwright and captures Desktop/Mobile screenshots for the
+  PR body.'
+useCase: 'Proving that a CSS fix works as intended across different viewports.'
 ---
 
 # Visual Verifier

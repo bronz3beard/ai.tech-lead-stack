@@ -10,6 +10,14 @@ description: >
 cost: ~2000 tokens
 modes: [read-only, write, mcp]
 surface: public
+category: Plan & Harden
+how:
+  'Phase 0 stack + domain-boundary + design-input discovery, then a
+  deployability-test + BDD + design-state slicing engine, a persistent Slice
+  Ledger for multi-turn anti-drift, and a fixed Output Contract per task.'
+useCase:
+  'Turning brownfield/greenfield stories and designs into 2-day, dark-releasable
+  slices under Trunk-Based Development.'
 ---
 
 # Vertical Slice Decomposer (The Corridor Cutter)

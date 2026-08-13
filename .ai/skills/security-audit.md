@@ -6,6 +6,12 @@ description: >
 cost: ~550 tokens
 modes: [read-only, mcp]
 surface: public
+category: Review & Verify
+how:
+  'Scans skills, scripts, and inputs for malicious patterns (`curl \| bash`,
+  `eval()`).'
+useCase:
+  'Running on agent-generated scripts to ensure no backdoors are introduced.'
 ---
 
 # Universal Agent Security Audit

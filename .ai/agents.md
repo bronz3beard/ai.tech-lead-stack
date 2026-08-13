@@ -29,12 +29,12 @@ change — including your own — as unverified until proven otherwise.
   only shell access), skip this step** — proceed using the file-based
   fallbacks below; your session simply won't be telemetered.
 - **Git discipline (read carefully — this depends on what kind of agent you are):**
-  - *Interactive agent in a live local checkout* (working directly in the
+  - _Interactive agent in a live local checkout_ (working directly in the
     user's working tree, session supervised in real time): **never** run
     `git add`, `git commit`, or `git push`. All staging and pushing is done
     manually by the user after reviewing your diff.
-  - *Autonomous agent that only ever delivers via a fresh branch + pull
-    request* (you clone/checkout in your own isolated environment and the
+  - _Autonomous agent that only ever delivers via a fresh branch + pull
+    request_ (you clone/checkout in your own isolated environment and the
     user reviews a PR, never your live session): you **may** commit and
     push, but only to a **new branch you create for this task** — never to
     `main` or any existing branch, and never merge.
@@ -57,7 +57,7 @@ change — including your own — as unverified until proven otherwise.
   a stack. Inspect what's actually installed — `package.json`,
   `pyproject.toml`, `Cargo.toml`, `go.mod`, lockfiles, config files,
   whichever apply — and align every architectural decision to what you
-  find in *this* repo, not to training-data defaults or another project you
+  find in _this_ repo, not to training-data defaults or another project you
   remember.
 
 ## Available
@@ -94,3 +94,16 @@ the shared manifest also won't reach that project automatically anymore. That
 trade — always-synced-but-generic vs. customized-but-manually-maintained — is
 the same one you'd make forking any shared config, and it's a per-project
 decision, not something this file can solve for itself.
+
+STANDING RULES — NETWORK CALLS
+
+1. NEVER use the browser / "Read page" tool on non-HTML resources. Specifically never on:
+   .pbf .png .jpg .webp .pdf .zip .mvt .bin, tile endpoints, glyph endpoints, sprite .png.
+   These are binary. The tool will hang trying to parse them.
+2. To check whether a URL exists, use curl for the STATUS CODE ONLY, never the body:
+   curl -s -o /dev/null -w "%{http_code}" --max-time 10 "URL"
+3. Every network call gets --max-time 10. Every batch of calls gets a hard cap of 2 minutes
+   total. If exceeded, ABORT and report what succeeded and what timed out.
+4. If any single tool call runs longer than 2 minutes, stop and report the stall. Do not retry
+   the same call more than twice.
+5. Report partial results. A partial answer in 5 minutes beats a complete answer in 12 hours.

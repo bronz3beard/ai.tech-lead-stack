@@ -13,6 +13,13 @@ description: >
 cost: ~1200 tokens
 modes: [read-only, write, mcp]
 surface: public
+category: Plan & Harden
+how:
+  'Deep codebase audit followed by an atomic G-Stack blueprint and commit-ready
+  task list.'
+useCase:
+  'Breaking down complex Jira tickets or architectural refactors into
+  test-driven steps.'
 ---
 
 # Planning Expert (The Sovereign Zenith)

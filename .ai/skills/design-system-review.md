@@ -7,6 +7,7 @@ description: >
 cost: ~1400 tokens
 modes: [read-only, write, mcp]
 surface: public
+category: Design & UI
 ---
 
 # Design System Review (Iteration Guard)

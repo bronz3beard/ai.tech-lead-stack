@@ -11,6 +11,7 @@ description: >
 cost: ~800 tokens
 modes: [read-only]
 surface: public
+category: Discover & Define
 ---
 
 # Solutioning Facilitator

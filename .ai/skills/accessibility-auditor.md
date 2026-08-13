@@ -7,6 +7,11 @@ description: >
 cost: ~650 tokens
 modes: [read-only, write, mcp]
 surface: public
+category: Review & Verify
+how:
+  'Static analysis via `grep`, visual scrutiny of CSS, and read-only runtime DOM
+  inspection.'
+useCase: 'Ensuring WCAG 2.1 compliance and multi-viewport accessibility.'
 ---
 
 # Accessibility Auditor (The Inclusive Designer)

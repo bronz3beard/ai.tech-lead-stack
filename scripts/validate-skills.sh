@@ -115,7 +115,7 @@ for file in "${files[@]}"; do
 done
 
 echo "🔍 Checking registry drift..."
-if ! npx tsx scripts/generate-skill-registry.ts --check; then
+if ! ./node_modules/.bin/tsx scripts/generate-skill-registry.ts --check; then
   echo "::error::Skill registry (manifest or README) is out of sync. Please run 'npm run generate:registry'"
   echo "Error: Skill registry drift detected."
   EXIT_CODE=1

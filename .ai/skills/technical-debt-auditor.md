@@ -6,6 +6,11 @@ description: >
 cost: ~850 tokens
 modes: [read-only, write, mcp]
 surface: public
+category: Review & Verify
+how:
+  'Metrics-driven analysis combined with G-Stack methodology to prioritize
+  refactoring tasks.'
+useCase: 'Routine codebase maintenance and pre-refactoring audits.'
 ---
 
 # Technical Debt Auditor (Health Scanner)

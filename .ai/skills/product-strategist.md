@@ -7,6 +7,11 @@ description: >
 cost: ~850 tokens
 modes: [read-only, write, mcp]
 surface: public
+category: Discover & Define
+how:
+  'Scans metrics and positioning to ensure current implementation work maps to
+  high-ROI customer goals.'
+useCase: 'Auditing a proposed feature list against the core product vision.'
 ---
 
 # Product Strategist (Heuristic Auditor)

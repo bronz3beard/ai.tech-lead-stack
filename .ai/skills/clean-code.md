@@ -6,6 +6,12 @@ description: >
 cost: ~950 tokens
 modes: [read-only, write, mcp]
 surface: public
+category: Review & Verify
+how:
+  'Scans for "God Objects" and tight coupling. Recommends strategy patterns and
+  colocation of code.'
+useCase:
+  'Checking a new feature branch before merging to prevent technical debt.'
 ---
 
 # Clean Code & SOLID Auditor

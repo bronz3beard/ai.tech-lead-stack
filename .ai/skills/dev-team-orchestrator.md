@@ -8,6 +8,7 @@ description: >
 cost: ~2500 tokens
 modes: [read-only, write, mcp]
 surface: public
+category: Orchestrators
 ---
 
 # Dev Team Orchestrator (The Agentic Crew)

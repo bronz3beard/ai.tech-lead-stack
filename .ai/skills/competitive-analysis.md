@@ -8,6 +8,7 @@ description: >
 cost: ~850 tokens
 modes: [read-only, write, mcp]
 surface: public
+category: Discover & Define
 ---
 
 # Competitive Analysis (Self-Improvement Flywheel)

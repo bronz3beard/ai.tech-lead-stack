@@ -11,6 +11,7 @@ description: >
 cost: ~900 tokens
 modes: [read-only, write]
 surface: public
+category: Plan & Harden
 ---
 
 # Reflexion Loop (Special Feature)
