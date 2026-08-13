@@ -2,7 +2,6 @@
 
 ![CI Status](https://github.com/bronz3beard/tech-lead-stack/actions/workflows/agent-ci.yml/badge.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Skills](https://img.shields.io/badge/skills-33-brightgreen.svg)
 ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
 A high-performance repository of "Skills" and RTK-powered tools designed for
@@ -25,9 +24,17 @@ Live Web App:
 - [The Web App](#the-web-app)
 - [Docs](#docs)
 - [Available Skills](#available-skills)
+  - [Orchestrators](#orchestrators)
+  - [Discover & Define](#discover-define)
+  - [Plan & Harden](#plan-harden)
+  - [Build & Fix](#build-fix)
+  - [Review & Verify](#review-verify)
+  - [Design & UI](#design-ui)
+  - [Ship & Communicate](#ship-communicate)
+  - [Internal Skills](#internal-skills)
 - [🧠 The Methodology: Four Pillars](#-the-methodology-four-pillars)
-- [🛠 Technical Architecture: RTK & MCP Synergy](#-technical-architecture-rtk--mcp-synergy)
-- [🛠 Technical Overview: Skill Discovery & Priority](#-technical-overview-skill-discovery--priority)
+- [🛠 Technical Architecture: RTK & MCP Synergy](#-technical-architecture-rtk-mcp-synergy)
+- [🛠 Technical Overview: Skill Discovery & Priority](#-technical-overview-skill-discovery-priority)
 - [How to use in any project](#how-to-use-in-any-project)
 - [Branching Strategy](#branching-strategy)
 - [Requirements](#requirements)

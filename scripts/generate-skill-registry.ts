@@ -23,7 +23,9 @@ const frontmatterSchema = z.object({
 type Skill = z.infer<typeof frontmatterSchema>;
 
 function parseSkills(): Skill[] {
-  const files = fs.readdirSync(skillsDir).filter((f: string) => f.endsWith('.md'));
+  const files = fs
+    .readdirSync(skillsDir)
+    .filter((f: string) => f.endsWith('.md'));
   const skills: Skill[] = [];
 
   for (const file of files) {
@@ -177,25 +179,31 @@ const CATEGORY_ORDER = [
   'Build & Fix',
   'Review & Verify',
   'Design & UI',
-  'Ship & Communicate'
+  'Ship & Communicate',
 ];
 
 const CATEGORY_DESCRIPTIONS: Record<string, string> = {
-  'Orchestrators': 'High-level directors that coordinate other skills and drive multi-step workflows.',
-  'Discover & Define': 'Exploratory agents for codebase onboarding, requirement gathering, and technical design.',
-  'Plan & Harden': 'Strategic planners that break down work into atomic steps and vertical slices.',
-  'Build & Fix': 'Implementation engines for fixing bugs and addressing feedback.',
-  'Review & Verify': 'Quality gatekeepers for code standards, accessibility, and security.',
-  'Design & UI': 'Visual agents focused on UI specs, styling logic, and layout verification.',
+  Orchestrators:
+    'High-level directors that coordinate other skills and drive multi-step workflows.',
+  'Discover & Define':
+    'Exploratory agents for codebase onboarding, requirement gathering, and technical design.',
+  'Plan & Harden':
+    'Strategic planners that break down work into atomic steps and vertical slices.',
+  'Build & Fix':
+    'Implementation engines for fixing bugs and addressing feedback.',
+  'Review & Verify':
+    'Quality gatekeepers for code standards, accessibility, and security.',
+  'Design & UI':
+    'Visual agents focused on UI specs, styling logic, and layout verification.',
   'Ship & Communicate': 'Automation for PRs, changelogs, and team updates.',
-  'Uncategorised': 'Skills that have not yet been assigned a category.'
+  Uncategorised: 'Skills that have not yet been assigned a category.',
 };
 
 function generateReadmeTable(skills: Skill[]): string {
   let table = `<!-- SKILLS_TABLE:START -->\n\n`;
 
   const publicSkills = skills.filter((s) => s.surface === 'public');
-  
+
   const categorized = new Map<string, Skill[]>();
   const uncategorized: Skill[] = [];
 
@@ -208,12 +216,27 @@ function generateReadmeTable(skills: Skill[]): string {
     } else {
       uncategorized.push(s);
       if (s.category) {
-        console.warn(`WARNING: Skill ${s.name} has unrecognised category '${s.category}'`);
+        console.error(
+          'ERROR: Skill ' +
+            s.name +
+            " has unrecognised category '" +
+            s.category +
+            "'"
+        );
       } else {
-        console.warn(`WARNING: Skill ${s.name} has no category`);
+        console.error('ERROR: Skill ' + s.name + ' has no category');
       }
     }
   }
+
+  if (uncategorized.length > 0) {
+    console.error(
+      'ERROR: Uncategorised skills found. All public skills must be categorised.'
+    );
+    process.exit(1);
+  }
+
+  console.log('✅ Uncategorised group is EMPTY for all public skills.');
 
   const getRow = (s: Skill) => {
     let description = s.description.replace(/\n/g, ' ');
@@ -247,9 +270,7 @@ function generateReadmeTable(skills: Skill[]): string {
     table += renderCategory(cat, catSkills);
   }
 
-  if (uncategorized.length > 0) {
-    table += renderCategory('Uncategorised', uncategorized);
-  }
+  // We no longer render the Uncategorised section because the build fails above if any exist.
 
   table += `### Internal Skills\n\n`;
   table += `| Skill | Description | Modes | Est. Context Footprint |\n`;
