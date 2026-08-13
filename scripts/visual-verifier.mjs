@@ -1,85 +1,137 @@
+#!/usr/bin/env node
 /**
  * @file visual-verifier.mjs
  * @description Captures multi-viewport screenshots of target URLs using Playwright.
- * Designed for visual regression testing and evidence gathering in AI-led workflows.
- * Supports automatic Playwright installation, auth-redirect detection, and
- * OPTIONAL per-project authentication so it can screenshot pages behind a login.
- *
- * @tool visual-verifier
- * @usage node scripts/visual-verifier.mjs [url1 url2 ...] [--no-check]
- * @params
- *   urls       - List of URLs to screenshot (defaults to E2E_BASE_URL or http://localhost:3000)
- *   --no-check - Skips the initial HTTP availability check
- *
- * @env  (PER-PROJECT, supplied at invocation — NEVER hardcoded here or in any skill)
- *   E2E_BASE_URL        - default target URL (overrides http://localhost:3000)
- *   E2E_STORAGE_STATE   - path to a pre-authenticated Playwright storageState JSON (PREFERRED:
- *                         no password ever reaches this script)
- *   E2E_LOGIN_URL       - login page URL for programmatic login (fallback path)
- *   E2E_USER            - test-account username/email (env only; never logged/committed)
- *   E2E_PASS            - test-account password    (env only; never logged/committed)
- *   E2E_USER_SELECTOR   - CSS for the username/email field (default: input[type="email"])
- *   E2E_PASS_SELECTOR   - CSS for the password field        (default: input[type="password"])
- *   E2E_SUBMIT_SELECTOR - CSS for the submit button         (default: button[type="submit"])
- *   E2E_SUCCESS_SELECTOR- optional CSS that confirms login succeeded (waited on if set)
- *
- * SECURITY: credentials are read ONLY from the environment, never from argv, and are
- * never printed, returned, or written to a tracked file. The generated storageState is
- * a session secret — write it to a gitignored path (default: auth/.e2e.storageState.json).
+ * Outputs a structured JSON manifest detailing status, auth details, and screenshots
+ * on stdout. Human-readable logs are directed to stderr.
  */
 
-import { execSync } from 'child_process';
+import { execFileSync, execSync } from 'child_process';
 import fs from 'fs';
-import http from 'http';
-import https from 'https';
 import path from 'path';
+import crypto from 'crypto';
 import { chromium, devices } from 'playwright';
 
-/**
- * Performs a lightweight HTTP(S) GET request to verify URL availability.
- * @param {string} url - The URL to check.
- * @returns {Promise<boolean>} - True if status is 2xx or 3xx.
- */
-async function checkUrl(url) {
-  return new Promise((resolve) => {
-    const protocol = url.startsWith('https') ? https : http;
-    const req = protocol.get(url, (res) => {
-      resolve(res.statusCode >= 200 && res.statusCode < 400);
-    });
-    req.on('error', () => resolve(false));
-    req.end();
-  });
-}
+// Redirect console.log and console.warn to stderr
+const originalLog = console.log;
+const originalWarn = console.warn;
+const originalError = console.error;
 
-/**
- * Launch Chromium, auto-installing the browser binary on first run if missing.
- * @returns {Promise<import('playwright').Browser>}
- */
-async function launchBrowser() {
+console.log = (...args) => process.stderr.write(args.join(' ') + '\n');
+console.warn = (...args) => process.stderr.write(args.join(' ') + '\n');
+console.error = (...args) => process.stderr.write(args.join(' ') + '\n');
+
+function getFeatureBranch() {
   try {
-    return await chromium.launch({ headless: true });
+    const branch = execSync('git rev-parse --abbrev-ref HEAD', {
+      encoding: 'utf-8',
+      stdio: 'pipe',
+    }).trim();
+    return branch.replace(/[^a-zA-Z0-9-]/g, '-');
   } catch {
-    console.warn(
-      `\n⚠️  Playwright browser not found. Attempting to install automatically...`
-    );
-    execSync('npx playwright install chromium', { stdio: 'inherit' });
-    return await chromium.launch({ headless: true });
+    return 'unknown-branch';
   }
 }
 
 /**
- * Resolve per-project auth configuration from the environment only.
- * @returns {{mode: 'storageState'|'login'|'none', [k:string]: any}}
+ * Detects if a page represents an authentication wall, is unreachable, or is blank.
+ * @param {Object} options
+ * @param {string} options.requestedUrl
+ * @param {string} options.finalUrl
+ * @param {import('playwright').Page} options.page
+ * @param {number} options.httpStatus
+ * @returns {Promise<string|null>} null if clear, or reason string ('auth_wall', 'target_unreachable', 'rejected_blank')
  */
+export async function detectAuthWall({
+  requestedUrl,
+  finalUrl,
+  page,
+  httpStatus,
+}) {
+  if (httpStatus >= 500 || httpStatus === 404) {
+    return 'target_unreachable';
+  }
+  if (httpStatus === 401 || httpStatus === 403) {
+    return 'auth_wall';
+  }
+
+  let reqUrlObj, finUrlObj;
+  try {
+    reqUrlObj = new URL(requestedUrl);
+    finUrlObj = new URL(finalUrl);
+  } catch {
+    return null; // fallback
+  }
+
+  const authSegments = new Set([
+    'login',
+    'signin',
+    'sign-in',
+    'signup',
+    'auth',
+    'oauth',
+    'authorize',
+    'session',
+    'sso',
+  ]);
+
+  const getSegments = (u) =>
+    u.pathname
+      .split('/')
+      .filter(Boolean)
+      .map((s) => s.toLowerCase());
+  const reqSegments = getSegments(reqUrlObj);
+  const finSegments = getSegments(finUrlObj);
+
+  const hasPathChanged = reqUrlObj.pathname !== finUrlObj.pathname;
+  const pathSignal =
+    hasPathChanged && finSegments.some((seg) => authSegments.has(seg));
+
+  let domSignal = false;
+  try {
+    const pwdCount = await page.locator('input[type="password"]').count();
+    if (pwdCount > 0) {
+      domSignal = true;
+    } else {
+      const formHasAuthName = await page.evaluate(() => {
+        const forms = document.querySelectorAll('form');
+        for (const form of forms) {
+          const ariaLabel = form.getAttribute('aria-label') || '';
+          if (/sign[- ]?in|log[- ]?in/i.test(ariaLabel)) return true;
+        }
+        return false;
+      });
+      domSignal = formHasAuthName;
+    }
+  } catch (e) {
+    // Ignore
+  }
+
+  if (domSignal || pathSignal) {
+    return 'auth_wall';
+  }
+
+  try {
+    const isBlank = await page.evaluate(() => {
+      const text = document.body.innerText.trim();
+      const hasMedia =
+        document.querySelectorAll('img, svg, canvas, table').length > 0;
+      return text.length < 20 && !hasMedia;
+    });
+    if (isBlank) return 'rejected_blank';
+  } catch (e) {
+    // Ignore
+  }
+
+  return null;
+}
+
 function resolveAuth() {
   const env = process.env;
   const stateExists = Boolean(
     env.E2E_STORAGE_STATE && fs.existsSync(env.E2E_STORAGE_STATE)
   );
   const hasLogin = Boolean(env.E2E_LOGIN_URL && env.E2E_USER && env.E2E_PASS);
-  // Prefer an existing session file (no password needed). Otherwise log in if we
-  // can, caching to E2E_STORAGE_STATE when that path was supplied. A storage path
-  // that does not exist yet AND no creds = a misconfigured state that will warn.
   let mode;
   if (stateExists) mode = 'storageState';
   else if (hasLogin) mode = 'login';
@@ -89,7 +141,6 @@ function resolveAuth() {
     mode,
     storageStatePath: env.E2E_STORAGE_STATE || null,
     loginUrl: env.E2E_LOGIN_URL || null,
-    // Held only in local scope; never logged or returned.
     user: env.E2E_USER || null,
     pass: env.E2E_PASS || null,
     userSel: env.E2E_USER_SELECTOR || 'input[type="email"]',
@@ -99,16 +150,6 @@ function resolveAuth() {
   };
 }
 
-/**
- * Ensure we have a usable Playwright storageState file for authenticated capture.
- * - storageState mode: validates the provided file exists.
- * - login mode: performs a ONE-TIME programmatic login for the test account and
- *   saves the session to a gitignored path for reuse.
- * Returns the path to a storageState JSON, or null if unauthenticated.
- * @param {import('playwright').Browser} browser
- * @param {ReturnType<typeof resolveAuth>} auth
- * @returns {Promise<string|null>}
- */
 async function ensureStorageState(browser, auth) {
   if (auth.mode === 'storageState') {
     if (auth.storageStatePath && fs.existsSync(auth.storageStatePath)) {
@@ -124,34 +165,38 @@ async function ensureStorageState(browser, auth) {
   if (auth.mode === 'login') {
     const outPath =
       auth.storageStatePath || path.join('auth', '.e2e.storageState.json');
+    // Guard: Git ignored check
+    try {
+      execSync(`git check-ignore -q "${outPath}"`);
+    } catch {
+      console.warn(
+        `⚠️  Refusing to write session state to unignored path: ${outPath}`
+      );
+      return null;
+    }
+
     fs.mkdirSync(path.dirname(outPath), { recursive: true });
-    console.log(
-      '🔐 No storage state provided — performing one-time programmatic login for the test account...'
-    );
+    console.log('🔐 Performing one-time programmatic login...');
     const ctx = await browser.newContext();
     const page = await ctx.newPage();
     try {
       await page.goto(auth.loginUrl, { waitUntil: 'load', timeout: 60000 });
-      // Values come from env and are never logged.
       await page.fill(auth.userSel, auth.user);
       await page.fill(auth.passSel, auth.pass);
-      await Promise.all([
-        page.waitForLoadState('networkidle').catch(() => {}),
-        page.click(auth.submitSel),
-      ]);
+
+      await page.click(auth.submitSel);
+      await page.waitForLoadState('networkidle').catch(() => {});
+
       if (auth.successSel) {
         await page.waitForSelector(auth.successSel, { timeout: 30000 });
       } else {
         await page.waitForTimeout(3000);
       }
       await ctx.storageState({ path: outPath });
-      console.log(
-        `🔐 Auth state captured → ${outPath}  (this is a session secret — keep it gitignored).`
-      );
+      console.log(`🔐 Auth state captured -> ${outPath}`);
       return outPath;
     } catch (error) {
-      // Never include credentials in error output.
-      console.error(`❌ Programmatic login failed: ${error.message}`);
+      console.error(`❌ Programmatic login failed.`);
       return null;
     } finally {
       await ctx.close();
@@ -161,152 +206,81 @@ async function ensureStorageState(browser, auth) {
   return null;
 }
 
-/**
- * Capture screenshots across multiple device configurations.
- * @param {string} url
- * @param {Object} options
- * @param {boolean} [options.skipCheck]
- * @param {string|null} [options.storageStatePath] - Playwright storageState to authenticate the context.
- * @param {boolean} [options.authExpected] - Whether auth was supplied (controls auth-wall failure).
- * @param {string} [options.outputDir]
- * @returns {Promise<{authWall: boolean}>}
- */
-async function captureScreenshots(url, options = {}) {
-  const {
-    outputDir = '.github/evidence',
-    skipCheck = false,
-    storageStatePath = null,
-    authExpected = false,
-  } = options;
-
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
-  }
-
-  if (!skipCheck) {
-    const isAlive = await checkUrl(url);
-    if (!isAlive) {
-      console.warn(
-        `⚠️  Warning: URL ${url} might not be reachable. Proceeding anyway with Playwright.`
-      );
-    }
-  }
-
-  let browser;
+async function launchBrowser() {
   try {
-    browser = await launchBrowser();
-  } catch (installError) {
-    console.error(
-      `❌ Error: Could not launch or install Playwright: ${installError.message}`
+    return await chromium.launch({ headless: true });
+  } catch {
+    console.warn(
+      `\n⚠️  Playwright browser not found. Attempting to install automatically...`
     );
-    console.error(
-      `👉 Potential Fix: 'npm run setup-browsers' manually on your host machine.`
-    );
-    return { authWall: false };
-  }
-
-  const configs = [
-    { name: 'desktop', width: 1920, height: 1080 },
-    { name: 'tablet', width: 768, height: 1024 },
-    { name: 'mobile', ...devices['iPhone 14'] },
-  ];
-
-  console.log(`📸 Starting screenshot capture for: ${url}`);
-  let authWall = false;
-
-  for (const config of configs) {
-    const context = await browser.newContext({
-      viewport: config.width
-        ? { width: config.width, height: config.height }
-        : config.viewport,
-      userAgent: config.userAgent,
-      // Authenticate the context if we have a session state.
-      ...(storageStatePath ? { storageState: storageStatePath } : {}),
-    });
-    const page = await context.newPage();
-
     try {
-      await page.goto(url, { waitUntil: 'load', timeout: 60000 });
-      await page
-        .waitForLoadState('networkidle')
-        .catch(() =>
-          console.log('  Wait for networkidle timed out, proceeding anyway...')
-        );
-      await page.waitForTimeout(2000);
-
-      const finalUrl = page.url();
-      const isAuthRedirect = (urlPath, finalUrlPath) => {
-        const authKeywords = [
-          'login',
-          'signin',
-          'auth',
-          'authorize',
-          'session',
-        ];
-        return authKeywords.some(
-          (kw) =>
-            !urlPath.toLowerCase().includes(kw) &&
-            finalUrlPath.toLowerCase().includes(kw)
-        );
-      };
-
-      if (isAuthRedirect(url, finalUrl)) {
-        authWall = true;
-        console.warn(
-          `\n⚠️  WARNING: Requested ${url} but ended up at ${finalUrl}. Auth wall likely detected.`
-        );
-        if (authExpected) {
-          console.warn(
-            '   Auth was supplied but the session did not stick (expired state or failed login).'
-          );
-        } else {
-          console.warn(
-            '   No auth supplied. Provide E2E_STORAGE_STATE (or E2E_LOGIN_URL + E2E_USER/E2E_PASS) to capture authenticated pages.'
-          );
+      execFileSync(
+        'npx',
+        ['playwright', 'install', 'chromium', '--with-deps'],
+        {
+          timeout: 180000,
+          stdio: ['ignore', 'pipe', 'pipe'],
         }
-      }
-
-      const urlPath = url.replace(/^https?:\/\//, '').replace(/[\/:]/g, '-');
-      const fileName = `${urlPath || 'index'}-${config.name}.png`;
-      const filePath = path.join(outputDir, fileName);
-
-      await page.screenshot({ path: filePath, fullPage: true });
-      console.log(`✅ Captured ${config.name} screenshot: ${filePath}`);
-    } catch (error) {
-      console.error(
-        `❌ Failed to capture ${config.name} screenshot: ${error.message}`
       );
-    } finally {
-      await context.close();
+      return await chromium.launch({ headless: true });
+    } catch (e) {
+      throw new Error('Browser install failed or unavailable');
     }
   }
+}
 
-  await browser.close();
-  console.log('🏁 Screenshot capture complete.');
-  return { authWall };
+function hashFile(filePath) {
+  const fileBuffer = fs.readFileSync(filePath);
+  const hashSum = crypto.createHash('sha256');
+  hashSum.update(fileBuffer);
+  return hashSum.digest('hex');
 }
 
 // -----------------------------------------------------------------------------
-// CLI Argument Parsing
+// Main execution
 // -----------------------------------------------------------------------------
-const args = process.argv.slice(2);
-const skipCheck = args.includes('--no-check');
-const targetUrls = args.filter((a) => !a.startsWith('--'));
+async function main() {
+  const args = process.argv.slice(2);
+  let outDirIdx = args.indexOf('--out-dir');
+  let outputDir = `.ai/evidence/${getFeatureBranch()}`;
 
-if (targetUrls.length === 0) {
-  targetUrls.push(process.env.E2E_BASE_URL || 'http://localhost:3000');
-}
+  if (outDirIdx !== -1 && args[outDirIdx + 1]) {
+    outputDir = args[outDirIdx + 1];
+    args.splice(outDirIdx, 2);
+  }
 
-(async () => {
+  const targetUrls = args.filter((a) => !a.startsWith('--'));
+  if (targetUrls.length === 0) {
+    targetUrls.push(process.env.E2E_BASE_URL || 'http://localhost:3000');
+  }
+
+  const manifest = {
+    schemaVersion: 1,
+    status: 'ok',
+    reason: null,
+    featureBranch: getFeatureBranch(),
+    capturedAt: new Date().toISOString(),
+    outputDir,
+    targets: [],
+    shots: [],
+  };
+
   const auth = resolveAuth();
   let storageStatePath = null;
+  let browser;
 
-  // Establish (or validate) an authenticated session ONCE, before any capture.
+  try {
+    browser = await launchBrowser();
+  } catch (err) {
+    manifest.status = 'blocked';
+    manifest.reason = 'browser_unavailable';
+    process.stdout.write(JSON.stringify(manifest, null, 2) + '\n');
+    process.exit(30); // 30: blocked - browser unavailable
+  }
+
   if (auth.mode !== 'none') {
     try {
-      const setupBrowser = await launchBrowser();
-      storageStatePath = await ensureStorageState(setupBrowser, auth);
-      await setupBrowser.close();
+      storageStatePath = await ensureStorageState(browser, auth);
     } catch (e) {
       console.warn(
         `⚠️  Auth setup skipped (${e.message}). Proceeding unauthenticated.`
@@ -314,29 +288,141 @@ if (targetUrls.length === 0) {
     }
   }
 
-  let authWallHit = false;
-  for (const url of targetUrls) {
-    const result = await captureScreenshots(url, {
-      skipCheck,
-      storageStatePath,
-      authExpected: auth.mode !== 'none',
-    }).catch((err) => {
-      console.error(err);
-      return { authWall: false };
+  let totalViewports = 0;
+  let successShots = 0;
+  let anyAuthWall = false;
+  let anyUnreachable = false;
+
+  for (let i = 0; i < targetUrls.length; i++) {
+    const url = targetUrls[i];
+    const urlSlug = targetUrls.length > 1 ? `target-${i + 1}` : '';
+    const targetDir = urlSlug ? path.join(outputDir, urlSlug) : outputDir;
+
+    fs.mkdirSync(targetDir, { recursive: true });
+
+    const configs = [
+      { name: 'desktop', width: 1920, height: 1080 },
+      { name: 'tablet', width: 768, height: 1024 },
+      { name: 'mobile', ...devices['iPhone 14'] },
+    ];
+
+    let targetHttpStatus = null;
+    let targetFinalUrl = url;
+    let targetAuthWall = false;
+
+    for (const config of configs) {
+      totalViewports++;
+      let shotStatus = 'failed';
+      let shotPath = '';
+      let bytes = 0;
+      let sha256 = '';
+
+      const context = await browser.newContext({
+        viewport: config.width
+          ? { width: config.width, height: config.height }
+          : config.viewport,
+        userAgent: config.userAgent,
+        ...(storageStatePath ? { storageState: storageStatePath } : {}),
+      });
+      const page = await context.newPage();
+
+      try {
+        const response = await page.goto(url, {
+          waitUntil: 'load',
+          timeout: 60000,
+        });
+        targetHttpStatus = response ? response.status() : 0;
+        targetFinalUrl = page.url();
+
+        await page.waitForLoadState('networkidle').catch(() => {});
+        await page.waitForTimeout(2000);
+
+        const rejectionReason = await detectAuthWall({
+          requestedUrl: url,
+          finalUrl: targetFinalUrl,
+          page,
+          httpStatus: targetHttpStatus,
+        });
+
+        if (rejectionReason === 'auth_wall') {
+          shotStatus = 'rejected_auth_wall';
+          targetAuthWall = true;
+          anyAuthWall = true;
+        } else if (rejectionReason === 'target_unreachable') {
+          shotStatus = 'rejected_http_error';
+          anyUnreachable = true;
+        } else if (rejectionReason === 'rejected_blank') {
+          shotStatus = 'rejected_blank';
+        } else {
+          // Capture
+          const fileName = `${config.name}.png`;
+          const filePath = path.join(targetDir, fileName);
+          await page.screenshot({ path: filePath, fullPage: true });
+          shotPath = filePath;
+          shotStatus = 'captured';
+
+          const stats = fs.statSync(filePath);
+          bytes = stats.size;
+          sha256 = hashFile(filePath);
+          successShots++;
+        }
+      } catch (e) {
+        console.error(`Failed to capture ${url} on ${config.name}:`, e.message);
+      } finally {
+        await context.close();
+      }
+
+      manifest.shots.push({
+        viewport: config.name,
+        width: config.width || config.viewport.width,
+        height: config.height || config.viewport.height,
+        path: shotStatus === 'captured' ? shotPath : undefined,
+        bytes: shotStatus === 'captured' ? bytes : undefined,
+        sha256: shotStatus === 'captured' ? sha256 : undefined,
+        status: shotStatus,
+      });
+    }
+
+    manifest.targets.push({
+      requestedUrl: url,
+      finalUrl: targetFinalUrl,
+      httpStatus: targetHttpStatus,
+      authWall: targetAuthWall,
     });
-    if (result?.authWall) authWallHit = true;
   }
 
-  // If auth was expected but we still hit a login wall, fail loudly so the
-  // calling agent (pr-automator) STOPS instead of attaching login-page shots.
-  if (auth.mode !== 'none' && authWallHit) {
-    console.error(
-      JSON.stringify({
-        status: 'failed',
-        error:
-          'Auth wall hit despite supplied auth (expired session or failed login). Refusing to treat login-page screenshots as evidence.',
-      })
-    );
-    process.exit(2);
+  await browser.close();
+
+  if (totalViewports > 0 && successShots === totalViewports) {
+    manifest.status = 'ok';
+    process.stdout.write(JSON.stringify(manifest, null, 2) + '\n');
+    process.exit(0);
+  } else if (successShots > 0) {
+    manifest.status = 'partial';
+    process.stdout.write(JSON.stringify(manifest, null, 2) + '\n');
+    process.exit(10);
+  } else {
+    manifest.status = 'blocked';
+    if (anyAuthWall) {
+      manifest.reason = auth.mode !== 'none' ? 'auth_wall' : 'no_auth_supplied';
+      process.stdout.write(JSON.stringify(manifest, null, 2) + '\n');
+      process.exit(20);
+    } else if (anyUnreachable) {
+      manifest.reason = 'target_unreachable';
+      process.stdout.write(JSON.stringify(manifest, null, 2) + '\n');
+      process.exit(40);
+    } else {
+      manifest.status = 'failed';
+      process.stdout.write(JSON.stringify(manifest, null, 2) + '\n');
+      process.exit(1);
+    }
   }
-})();
+}
+
+// Ensure this file runs when executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}

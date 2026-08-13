@@ -162,7 +162,7 @@ Do **not** convert the error into a "here's the command, you run it" handoff.
 | :------------------------------------------- | :------------------------------------------------------------------------------------------------------------------ |
 | `could not add label: 'X' not found`         | Only pass labels confirmed by `gh label list`. Drop the unknown label (or omit `--label` entirely) and retry.       |
 | assignee could not be added                  | Drop `--assignee` and retry. The PR opening matters more than self-assignment.                                      |
-| `unknown flag: --body-file`                  | Use the fallback: `--body "$(cat .github/.pr_body_temp.md)"`.                                                       |
+| `unknown flag: --body-file`                  | Use the fallback: `--body "$(cat .ai/tmp/pr-body.md)"`.                                                             |
 | body file not found / bad path               | `mkdir -p .github`, rewrite the body to `.github/.pr_body_temp.md`, retry.                                          |
 | gh drops into an interactive prompt / editor | You omitted a flag. Provide **all** of `--base`, `--head`, `--title`, and a body flag so it runs non-interactively. |
 
@@ -273,39 +273,18 @@ Do **not** convert the error into a "here's the command, you run it" handoff.
      | Any `.tsx`/`.jsx` is rendered OR any `.css`/`.scss`/`tailwind` changed          | **Proceed to Step D.**                                             |
 
      **Step D — Capture (only if Step C says "Proceed"):**
-     1. Run `rtk run visual-verifier`. If the app requires login, export the
-        per-project auth env first (see Authenticated Evidence), e.g.:
-
-        ```bash
-        E2E_BASE_URL=… E2E_STORAGE_STATE=… rtk run visual-verifier
-        # or: E2E_LOGIN_URL=… E2E_USER=… E2E_PASS=… rtk run visual-verifier
-        ```
-
-        If it exits non-zero (auth wall / expired session) or no auth was
-        supplied: do **not** attach login-page screenshots. Note "Screenshots
-        pending" in the body and continue — evidence does not block creation.
-
-     2. Identify/create the evidence branch `pr/evidence-[project-name]` (a
-        dedicated docs branch — it must NEVER contain code).
-     3. Persist the screenshots (per the Git Command Policy carve-out):
-        - `git checkout pr/evidence-[project-name]` (create if missing).
-        - Move screenshots into `screenshots/<feature-branch>/`.
-        - **Stage ONLY the screenshots — never `git add .`:**
-          `git add screenshots/<feature-branch>/`
-        - `git commit -m "docs(evidence): capture for <feature-branch>"`
-        - **Push, gated by `evidencePush`:**
-          - `user` (default): do NOT push. Output the exact command and ask the
-            user to run it: `git push origin pr/evidence-[project-name]`.
-          - `agent`: you MAY run that single push — and only that one, to this
-            evidence branch: `git push origin pr/evidence-[project-name]`.
-        - **Construct URLs:**
-          `https://raw.githubusercontent.com/<OWNER>/<REPO>/pr/evidence-[project-name]/screenshots/<feature-branch>/<viewport>.png`
-     4. Switch back to the original feature branch (read-only checkout — no
-        staging, no commit, no push).
+     1. Run `rtk run visual-verifier`. This outputs a structured JSON manifest.
+     2. Process the manifest with `rtk run publish-evidence <manifestPath>`.
+        This uses the Git Data API, avoids worktree checkouts, handles repo
+        visibility (Path A/Path B) and outputs a JSON publish payload.
+     3. Verify the published evidence via
+        `rtk run verify-evidence <publishPayloadPath>`.
+     4. Note: Evidence images never leave the target repository.
 
    - **Metadata:**
-     - `gh label list --json name` to fetch available repository labels. Select
-       only labels that exist (e.g. `bug`, `enhancement`) based on the diff.
+     - Run `rtk run resolve-labels <pr_number>` AFTER PR creation. Labels are
+       fully decoupled from creation, using deterministic diff analysis and full
+       pagination.
      - Determine appropriate reviewers.
      - Exclude the PR author from the `## FYI 🙋` section.
    - **Template:** search `.github/`, `.gitlab/`, or root for
@@ -315,16 +294,13 @@ Do **not** convert the error into a "here's the command, you run it" handoff.
    - **Strict adherence:** use the discovered template as the mandatory schema.
    - **Write RAW markdown to the body file** — no surrounding ` ```markdown `
      fences. Fences end up rendered literally in the PR. The file at
-     `.github/.pr_body_temp.md` must contain exactly what should appear in the
-     PR description.
-   - **Screenshots section:** locate `## Screenshots` (or similar) and inject
-     the captured URLs, or the "pending" note if capture was blocked:
-
-     ```markdown
-     | Desktop          | Tablet          | Mobile          |
-     | :--------------- | :-------------- | :-------------- |
-     | ![Desktop](URL1) | ![Tablet](URL2) | ![Mobile](URL3) |
-     ```
+     `.ai/tmp/pr-body.md` must contain exactly what should appear in the PR
+     description.
+   - **Screenshots section:** Handled by
+     `rtk run pr-body-inject <template> <manifest> <verifyPayload>`. It will
+     idempotently replace the screenshots block with a table of anonymously
+     verified URLs (Path A) or a local drag-and-drop block (Path B) or a pending
+     block.
 
    - **Summary:** a high-level "Why" and "What," mapped to the template's
      Description section.
@@ -349,9 +325,8 @@ Do **not** convert the error into a "here's the command, you run it" handoff.
        --base "<BASE_BRANCH>" \
        --head "<HEAD_BRANCH>" \
        --title "<TITLE>" \
-       --body-file .github/.pr_body_temp.md \
-       --assignee "<GH_LOGIN>" \
-       --label "<LABEL1>" --label "<LABEL2>"
+       --body-file .ai/tmp/pr-body.md \
+       --assignee "<GH_LOGIN>"
      ```
 
    - Include `--head` explicitly so `gh` never prompts. Include only labels
@@ -366,9 +341,9 @@ Do **not** convert the error into a "here's the command, you run it" handoff.
    - **After successful creation**, clean up local temp files:
 
      ```bash
-     rm -f .github/.pr_body_temp.md
+     rm -f .ai/tmp/pr-body.md
      rm -f .ai/evidence/pre-commit-review.md   # only if runCodeReview was true
-     rm -rf .github/evidence/                  # local screenshot temp, if any
+     # Never delete .ai/evidence/<feature-branch>/ entirely since Path B users need to drag and drop from it
      ```
 
    - **Report the PR URL** returned by `gh pr create` to the user, and tell them

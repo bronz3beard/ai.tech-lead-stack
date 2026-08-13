@@ -1,0 +1,24 @@
+--- scripts/visual-verifier.mjs
++++ scripts/visual-verifier.mjs
+@@ -1,3 +1,4 @@
++#!/usr/bin/env node
+ /**
+  * @file visual-verifier.mjs
+  * @description Captures multi-viewport screenshots of target URLs using Playwright.
+@@ -5,10 +6,13 @@
+  * Supports automatic Playwright installation, auth-redirect detection, and
+  * OPTIONAL per-project authentication so it can screenshot pages behind a login.
+  *
++ * Outputs a structured JSON manifest detailing status, auth details, and screenshots
++ * on stdout. Human-readable logs are directed to stderr.
++ *
+  * @tool visual-verifier
+- * @usage node scripts/visual-verifier.mjs [url1 url2 ...] [--no-check]
++ * @usage node scripts/visual-verifier.mjs [url1 url2 ...] [--out-dir <dir>]
+  * @params
+- *   urls       - List of URLs to screenshot (defaults to E2E_BASE_URL or http://localhost:3000)
+- *   --no-check - Skips the initial HTTP availability check
++ *   urls        - List of URLs to screenshot (defaults to E2E_BASE_URL or http://localhost:3000)
++ *   --out-dir   - Directory to save screenshots (defaults to .ai/evidence/<feature-branch>)
+  *
+  * @env  (PER-PROJECT, supplied at invocation — NEVER hardcoded here or in any skill)
