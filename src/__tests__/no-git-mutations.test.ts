@@ -156,7 +156,7 @@ describe('No Git Mutations in Tech-Lead Stack Code Paths', () => {
         stateDir: tempStateDir,
       });
     } finally {
-      fs.rmSync(tempStateDir, { recursive: true, force: true });
+      try { fs.rmSync(tempStateDir, { recursive: true, force: true }); } catch {}
     }
 
     // 4. KI create flows

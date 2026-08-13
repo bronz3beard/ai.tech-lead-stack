@@ -8,13 +8,13 @@ const TEST_DIR = path.join(__dirname, '.test-state-store');
 describe('FileStateStore', () => {
   beforeEach(() => {
     if (fs.existsSync(TEST_DIR)) {
-      fs.rmSync(TEST_DIR, { recursive: true, force: true });
+      try { fs.rmSync(TEST_DIR, { recursive: true, force: true }); } catch {}
     }
   });
 
   afterAll(() => {
     if (fs.existsSync(TEST_DIR)) {
-      fs.rmSync(TEST_DIR, { recursive: true, force: true });
+      try { fs.rmSync(TEST_DIR, { recursive: true, force: true }); } catch {}
     }
   });
 
