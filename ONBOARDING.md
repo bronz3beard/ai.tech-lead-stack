@@ -47,6 +47,13 @@ not get a `.cursor/` folder. Example:
 The installer also merges the **tech-lead-stack** MCP server into
 **`~/.cursor/mcp.json`**.
 
+**Updating an Existing Installation:**
+If you are pulling new updates for the `tech-lead-stack`, you don't need to re-run `install.sh` across your projects. Just update the MCP server bundle by running the following in the `tech-lead-stack` root directory:
+```bash
+pnpm install
+pnpm run mcp:build
+```
+
 The current skills available in the toolbox are:
 
 - **`planning-expert`**

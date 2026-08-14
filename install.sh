@@ -225,6 +225,7 @@ fi
 # Ensure stack's own dependencies are installed using the preferred manager
 echo "🛠️ Ensuring Stack dependencies are installed with $PKG_MANAGER..."
 (cd "$SOURCE_DIR" && "$PKG_MANAGER" install --quiet)
+(cd "$SOURCE_DIR" && "$PKG_MANAGER" run mcp:build --quiet)
 
 # 1. Symlinks (Robust & Non-Recursive)
 mkdir -p "$TARGET_DIR/.github"

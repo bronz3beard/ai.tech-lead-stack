@@ -1,15 +1,16 @@
 ---
 name: reflexion-loop
 description: >
-  ✨ SPECIAL FEATURE (not agent-agnostic — requires API keys). A self-correcting
-  generator–critic–adjudicator loop that turns a brief into a
-  Four-Pillars-graded implementation plan. Gemini drafts the plan, Claude grades
-  it 0–10 on each pillar and returns ONE actionable fix, the router rewrites or
-  stops, and Claude writes the final verdict. Runs the real two-model loop via
-  `rtk run reflexion-loop` or the `reflexion_loop` MCP tool. Use when you want a
-  plan hardened by an independent critic before committing engineering time.
+  [LOOP · DUAL-MODEL · API KEYS] ✨ SPECIAL FEATURE (not agent-agnostic —
+  requires API keys). A self-correcting generator–critic–adjudicator loop that
+  turns a brief into a Four-Pillars-graded implementation plan. Gemini drafts
+  the plan, Claude grades it 0–10 on each pillar and returns ONE actionable fix,
+  the router rewrites or stops, and Claude writes the final verdict. Runs the
+  real two-model loop via `rtk run reflexion-loop` or the `reflexion_loop` MCP
+  tool. Use when you want a plan hardened by an independent critic before
+  committing engineering time. (Note: The stated token cost is per loop/run).
 cost: ~900 tokens
-modes: [read-only, write]
+modes: [read-only, write, mcp]
 surface: public
 category: Plan & Harden
 ---
@@ -26,6 +27,9 @@ the loop phase in an IDE/MCP agent.
 > directly (Gemini as the writer, Claude as the grader) so the writer never
 > grades its own work — the same rule the codebase enforces in
 > `validateDistinctModels`. It needs `GEMINI_API_KEY` and `ANTHROPIC_API_KEY`.
+
+**Sibling tiers:** No API keys? Use `reflexion-loop-sub-max` ($100/mo tier) or
+`reflexion-loop-sub-pro` ($20/mo tier).
 
 ## Two surfaces, two behaviours (read this)
 
@@ -65,6 +69,8 @@ Artifacts: `.reflexion-out/plan.md`, `ide-prompt.md`, `critique.json`,
 - `--interactive`: Adjudicator questions are asked inline on TTY.
 - `--answers <file.yaml|->`: Resume with a yaml answers payload.
 - `--resume <runId|dir>`: Resume a parked run.
+- `--max <n>`: Revision cap (default: 3).
+- `--threshold <n>`: Pass score threshold (default: 8).
 - `--max-cost-usd <n>` / `--max-tokens <n>`: Set budget caps for the run.
 - `--focus <p,p>`: Comma-separated list of pillars to focus the critic on.
 

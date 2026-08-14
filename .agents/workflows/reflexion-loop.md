@@ -1,10 +1,6 @@
 ---
-description: ✨ Special feature Requires GEMINI_API_KEY + ANTHROPIC_API_KEY - run the two-model self-correcting plan loop (Gemini drafts, Claude grades)
----
-
----
 name: reflexion-loop
-description: ✨ Special feature — run the two-model self-correcting plan loop (Gemini drafts, Claude grades). Requires GEMINI_API_KEY + ANTHROPIC_API_KEY.
+description: "[LOOP · DUAL-MODEL · API KEYS] ✨ Special feature — run the two-model self-correcting plan loop (Gemini drafts, Claude grades). Requires GEMINI_API_KEY + ANTHROPIC_API_KEY."
 ---
 
 // turbo
@@ -34,7 +30,11 @@ its own work. Your job is to invoke it and present the result.
 4. **Adjudicate (Human-in-the-Loop).** Report:
    > "The Reflexion loop concluded at revision **N** with score **S/10**. Approve
    > to proceed, or override the last fix and run another loop?"
-   If the run **exited 2** (capped without passing), say so and summarise the gap.
+   Handle the run's exit state correctly:
+   - **0 (Passed/user-approve):** The plan is ready.
+   - **2 (Parked/awaiting answers):** The adjudicator has questions. Instruct the user to edit `interview.md` and resume.
+   - **3 (Budget-exceeded/user-stop):** The budget cap was tripped or manually stopped. Summarise the gap.
+   - **4 (Refine-contract-violation/internal error):** The loop failed strict verification.
 
 5. **On approval**, hand `.reflexion-out/plan.md` to `planning-expert` or
    `vertical-slice-decomposer` to execute the atomic task list.
