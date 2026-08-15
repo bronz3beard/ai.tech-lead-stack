@@ -33,7 +33,11 @@ routing UI/MCP work depends on Phase B.
 - `src/components/dashboard/InsightsTable.tsx` shows
   `hasLangfuseCost ? actual : FALLBACK_TOKEN_COST[skill]`.
 
-- `src/lib/ai/model-resolver.ts` resolves per-responsibility model routing. **Note:** `MODEL_*` environment variables (`MODEL_PLANNER`, `MODEL_IMPLEMENTER`, `MODEL_AUDITOR`, `MODEL_ADJUDICATOR`) should be left **UNSET** so the UI/DB remains authoritative. Environment variables remain available as an optional headless override only.
+- `src/lib/ai/model-resolver.ts` resolves per-responsibility model routing.
+  **Note:** `MODEL_*` environment variables (`MODEL_PLANNER`,
+  `MODEL_IMPLEMENTER`, `MODEL_AUDITOR`, `MODEL_ADJUDICATOR`) should be left
+  **UNSET** so the UI/DB remains authoritative. Environment variables remain
+  available as an optional headless override only.
 
 **UI / persistence**
 

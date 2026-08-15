@@ -1,115 +1,134 @@
 ---
 name: reflexion-loop-sub-max
 description: >
-  [LOOP · SUB-MAX · NO API KEYS] $100/mo tier context-isolated plan hardening
-  loop. (Note: The stated token cost is per loop/run).
-cost: ~1200 tokens
+  [LOOP · SUB-MAX · NO API KEYS · CROSS-MODEL VERIFY] $100/mo tier
+  context-isolated plan hardening loop. Manages multi-vendor model isolation
+  (L0-L3) and exhaustion limits without losing work, delivering cross-model
+  verified plans without requiring API keys. (Note: The stated token cost is per
+  loop/run).
+cost: ~1400 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Plan & Harden
-how: Simulated context isolation
-useCase: When you need a hardened plan but only have one subscription
+how:
+  'Multi-vendor model contract, Findings Ledger, and context-firewalled critic
+  isolation'
+useCase:
+  'Plan hardening on a $100/mo subscription without requiring external API keys'
 ---
 
 # Reflexion Loop ($100/mo Tier - No API Keys)
 
-## The Central Design Problem
+> [!NOTE] **Tier profile ($100/mo subscription):** Hardens implementation plans
+> using multi-vendor model isolation (L0–L3) without requiring API keys. Handles
+> model exhaustion limits seamlessly while preserving verification integrity.
 
-The dual-model loop's integrity comes from `validateDistinctModels` — the writer
-physically cannot grade its own work because a different vendor's model does the
-grading. With one subscription and no API keys you cannot reproduce that
-guarantee. So you replace **MODEL isolation** with **CONTEXT isolation**.
+## Pre-Flight Model Contract (MANDATORY BEFORE PHASE 0)
 
-This skill provides a Context Firewall. Do not claim it has the same assurance
-as the dual-model API version.
+Read active models from the agent harness at runtime. Formulate and print the
+Pre-Flight Model Contract before Phase 0:
 
-### Context Firewall
+| Role               | Model class assigned                                            | Isolation vs writer | Continuity Fallback      |
+| ------------------ | --------------------------------------------------------------- | ------------------- | ------------------------ |
+| Generator (Writer) | frontier (e.g. Claude 3.7 Sonnet as of June 2026)               | N/A (author)        | Rung 1 -> Rung 2         |
+| Critic (Auditor)   | different vendor frontier (e.g. Gemini 2.5 Pro as of June 2026) | L0 (cross-vendor)   | Rung 1 -> Rung 2 -> Park |
 
-You must specify a "Context Firewall" with three isolation levels, in descending
-strength, and the skill MUST DECLARE which one it used in every artifact:
+### Environment Check (`CLAUDE_CODE_SUBAGENT_MODEL`)
 
-- **L1 (strongest)**: A second, different vendor's subscription the dev already
-  pays for (e.g., drafts in one IDE agent, critiques in another). Closest to the
-  API guarantee.
-- **L2 (default)**: A fresh sub-agent / task-tool invocation with a clean
-  context window, receiving ONLY: the plan text + the rubric + the Phase-0
-  diagnosis. It MUST NOT receive the drafting conversation, the author's
-  rationale, or any "here's what I was going for" preamble.
-- **L3 (weakest)**: A new chat session in the same tool, plan pasted in cold.
+If `CLAUDE_CODE_SUBAGENT_MODEL` is set to anything other than `inherit`, warn
+plainly in chat and cap claimed isolation level at **L2** (same-model
+sub-agent). Never claim L0 or L1 when overridden by environment variables.
 
-**Rule:** The critic is FORBIDDEN from seeing the writer's reasoning. A critic
-that reads the author's justification grades the justification, not the plan.
+### Four-Level Isolation Ladder
 
-## Four Pillars Compliance
+- **L0 (Cross-Vendor)**: Generator and critic run on models from different
+  vendors. Default target.
+- **L1 (Cross-Family, Same Vendor)**: Generator and critic run on different
+  model families from same vendor (shared lineage limitation apply).
+- **L2 (Fresh Sub-Agent)**: Same model, fresh sub-agent context receiving ONLY
+  plan text + rubric + diagnosis.
+- **L3 (Fresh Session)**: Same model, plan pasted into a new session cold.
 
-This loop mechanically enforces the Four Pillars:
+**Rule:** Critic is FORBIDDEN from seeing writer's drafting conversation or
+rationale.
 
-- **P1 G-Stack**: Phase 0 is a hard precondition; the generator receives the
-  diagnosis or does not run.
-- **P2 MinimumCD**: Every emitted task <100 LOC with its own verification gate;
-  plans that cannot be sliced are rejected, not stretched.
-- **P3 Prod Ethos**: The critic's numeric rubric IS the gate; include an
-  explicit ANTI-RATIONALIZATION table (see below).
-- **P4 Modern Web**: The critic scores whether the plan reaches for modern
-  platform APIs over legacy shims, and flags legacy choices as deviations.
+## Quota Discipline & Findings Ledger
+
+- **Turn Budget:** 12 agent turns per run. Print
+  `[turn N/12 | model: <active-model>]`.
+- **Findings Ledger (`.loop-out/<runId>/findings.md`):** Write stack facts, file
+  paths, domain boundaries, decisions taken, and **OPTIONS REJECTED WITH
+  REASONS** (mandatory) to survive model swaps without re-discovery.
+- **State File (`.loop-out/<runId>/state.json`):** Checkpoint after EVERY phase.
+  Include `generatorModel`, `criticModel`, `activeIsolationLevel`, and `status`.
+- **Cold Resume Protocol:** If `.loop-out/<runId>/state.json` exists, read it
+  and Findings Ledger, then resume from recorded phase. **Never re-run Phase 0
+  discovery on resume.**
+
+## Model Continuity, UNREVIEWED vs PROVISIONAL Verdicts
+
+### Exhaustion Modes A/B/C & Fallback Ladder
+
+- **Mode A (MODEL-SCOPED):** Quota spent on one model. Try Rung 1 (cross-vendor
+  frontier) -> Rung 2 (same vendor lower class). Recompute isolation level.
+- **Mode B (ACCOUNT-WIDE):** Consolidate into Findings Ledger, checkpoint state
+  as `PARKED`, report reset window. State 3 disclosure applies.
+- **Mode C (SILENT DOWNGRADE):** Poll model identity at every phase boundary.
+  Any change is treated as a swap event.
+- **PROVISIONAL Verdict:** If plan passed critique under a degraded critic (same
+  model or L2/L3 isolation), mark verdict as `PROVISIONAL`. PROVISIONAL plans
+  require explicit Tech-Lead sign-off.
+- **UNREVIEWED Verdict:** If the run stopped before the critic ran or completed
+  (Mode B park), mark status as `UNREVIEWED`.
+
+## Three Mandatory End-State Disclosures (VERY FIRST LINE OF VERDICT OUTPUT)
+
+The FIRST line of `.loop-out/<runId>/verdict.md` and final chat output MUST emit
+exactly one of these three end states:
+
+- **STATE 1 — Separation Held (Auditor finished on a different model):**
+
+  ```text
+  Model separation held: written by <generator-model>, audited by <critic-model>.
+  ```
+
+- **STATE 2 — Separation Lost (Auditor FINISHED, but on the writer's model):**
+
+  ```text
+  MODEL SEPARATION LOST: <generator-model> wrote this work and also audited it.
+  <exhausted-model> hit its usage limit at <phase/step>, so the audit fell back to the same model that produced the work. This audit was not independent.
+  ```
+
+- **STATE 3 — Audit Incomplete (Run stopped before auditor finished):**
+
+  ```text
+  AUDIT NOT COMPLETED: the run stopped at <phase/step> before the audit finished.
+  <exhausted-model> hit an account-wide usage limit, so no model was available to continue. The work below is UNREVIEWED, not approved. Quota resets <window>.
+  ```
+
+### Selection Rule
+
+State 2 REQUIRES that an audit RAN TO COMPLETION on the writer's model. If the
+audit did not complete, State 3 applies — NEVER State 2. An unfinished audit is
+not a weak audit, it is an absent one.
+
+Emit Provenance Table
+(`| Phase | Role | Model | Isolation | Reason for swap | Effect on the claim |`)
+beneath disclosure line.
+
+## Four Pillars Compliance & Anti-Rationalization
 
 ### Anti-Rationalization Rebuttals
 
-| Rationalization                                    | Rebuttal                                                                                        |
-| -------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| "The plan looks fine, let's skip the rubric."      | Unscored is unhardened. Produce the rubric.                                                     |
-| "I'll harden it after I start coding."             | The loop exists because rework after code is 10x more expensive.                                |
-| "I have no second model so the loop is pointless." | Context isolation is degraded, not absent — declare the level and proceed.                      |
-| "The critic agreed with me immediately."           | A 10/10 first pass is a firewall-leak smell. Re-run the critique at a stronger isolation level. |
-
-## Quota Discipline (Turns, not USD)
-
-On a subscription, the scarce resource is MESSAGES and rolling-window rate
-limits.
-
-- **Turn Budget:** 12 agent turns per run. Print the turn count in every phase
-  header, e.g. `[turn 4/12]`.
-- **Checkpoint:** After EVERY PHASE, checkpoint to
-  `.loop-out/<runId>/state.json` — brief, diagnosis, revision number, all scores
-  so far, the pending one-fix, isolation level used.
-- **Cold Resume Protocol:** On invocation, if `.loop-out/<runId>/state.json`
-  exists, read it and resume from the recorded phase. **Never re-run Phase 0
-  discovery on a resume**; that is the single most expensive thing you can waste
-  a fresh window on.
-- **Turn Cap:** On hitting the turn cap: checkpoint, print state `CAPPED`, and
-  stop. Never silently continue past a budget.
-
-## Loop Mechanics
-
-1. **Phase 0 (Diagnosis):** Read manifest/config to identify stack +
-   constraints. Every grep MUST exclude `node_modules`, `.next`, `.nx`, `dist`,
-   `build`. No unscoped recursion.
-2. **Generate:** Implementation plan, atomic tasks <100 LOC each, explicit
-   verification gate per task.
-3. **Critique:** Score G-Stack, Atomic Batches, Production Ethos, and Modern Web
-   at 0-10 each, plus an overall, plus EXACTLY ONE actionable fix. Each score
-   needs a one-line justification citing something concrete in the plan — no
-   bare numbers.
-4. **Route:** Pass at overall >= 8, cap at 3 revisions. Carry ONLY that one fix
-   into the rewrite (diminishing-returns discipline).
-5. **Adjudicate:** Plain-English go/no-go for the Tech Lead.
-
-## Artifacts
-
-Located in `.loop-out/<runId>/`:
-
-- `state.json`
-- `plan.md`
-- `critique-r<N>.md`
-- `verdict.md`
-- `ide-prompt.md`
-- `scores.md` (Use a plain ASCII score-per-revision table, NOT an SVG)
+| Rationalization                                                               | Rebuttal                                                                                         |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| "The plan looks fine, let me skip the rubric."                                | Unscored is unhardened. Produce the rubric.                                                      |
+| "I'll harden it after I start coding."                                        | Rework after code is 10x more expensive.                                                         |
+| "I have no second model so the loop is pointless."                            | Context isolation is degraded, not absent — declare level and proceed.                           |
+| "The audit passed anyway, so the notice would just worry them."               | A pass from the author is not a pass; the notice IS the finding. Emit disclosure line as line 1. |
+| "The model swap was handled automatically, so it's an implementation detail." | Handling it seamlessly is why developer cannot see it, which is exactly why it must be stated.   |
+| "It is already recorded in the provenance table below."                       | A table row is not a disclosure; the first line is.                                              |
 
 ## Exit States
 
-The run concludes in one of these states:
-
-- `PASSED`
-- `PARKED`
-- `CAPPED`
-- `ABORTED`
+Concludes in one of: `PASSED`, `PROVISIONAL`, `PARKED`, `CAPPED`, `ABORTED`.

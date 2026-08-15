@@ -40,7 +40,7 @@ How each concept from the two source docs lands on something that already exists
 | "The team tells on itself" — friction defects on its own repo | Blog | GitHub issue tooling (`rtk gh issue list`) | Friction Defect Protocol + issue template (WS-4) |
 | "Defect libraries to test the code review workflow" | Blog + Paper §V | `scripts/autoeval-check.mjs` (generic), critic prompt | `defect-library/` + `scripts/reflexion-eval.ts` (WS-3) |
 | Differentiate agent activity from human activity in analytics | Your requirement | `AnalyticsEvent` (Prisma), `withAnalytics` (MCP), Langfuse sync, `/dashboard` | `actorType`/`autonomy`/`loopRunId`/`loopPhase`/`teamRole` columns + **Agentic Health** dashboard (WS-1/6) |
-| Agent-agnostic ("Agent-Ambiguous") | Repo ethos | All `.ai/skills/*.md` | All new skills are plain markdown; reflexion remains the one declared exception, unchanged in that regard |
+| Agent-agnostic ("Agent-Ambiguous") [Note: Term corrected to "Agent-Agnostic" in August 2026] | Repo ethos | All `.ai/skills/*.md` | All new skills are plain markdown; reflexion remains the one declared exception, unchanged in that regard |
 
 ---
 

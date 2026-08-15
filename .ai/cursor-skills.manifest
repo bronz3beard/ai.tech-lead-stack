@@ -12,6 +12,8 @@ competitive-analysis|.ai/skills/competitive-analysis.md
 daily-standup|.ai/skills/daily-standup.md
 design-system-review|.ai/skills/design-system-review.md
 dev-team-orchestrator|.ai/skills/dev-team-orchestrator.md
+dev-team-sub-max|.ai/skills/dev-team-sub-max.md
+dev-team-sub-pro|.ai/skills/dev-team-sub-pro.md
 feature-design-assistant|.ai/skills/feature-design-assistant.md
 feature-orchestrator|.ai/skills/feature-orchestrator.md
 mission-architect|.ai/skills/mission-architect.md
@@ -43,6 +45,8 @@ workflow-code-review|.agents/workflows/code-review.md
 workflow-competitive-analysis|.agents/workflows/competitive-analysis.md
 workflow-design-requirements-to-architecture|.agents/workflows/design-requirements-to-architecture.md
 workflow-design-system-review|.agents/workflows/design-system-review.md
+workflow-dev-team-sub-max|.agents/workflows/dev-team-sub-max.md
+workflow-dev-team-sub-pro|.agents/workflows/dev-team-sub-pro.md
 workflow-dev-team|.agents/workflows/dev-team.md
 workflow-feature-orchestrator|.agents/workflows/feature-orchestrator.md
 workflow-init|.agents/workflows/init.md
