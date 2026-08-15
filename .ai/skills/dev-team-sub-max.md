@@ -21,6 +21,9 @@ useCase:
 
 # Dev Team Orchestrator — Sub-Max Tier ($100/mo)
 
+> Tier siblings: dev-team-orchestrator (API keys, dual-model) · dev-team-sub-max
+> ($100 tier) · dev-team-sub-pro ($20 tier). See the tier table in the README.
+>
 > [!NOTE] **Tier profile ($100/mo subscription):** Designed for high-tier
 > subscription agents (e.g. Pro/Max or Team plans). Runs up to **2 parallel
 > lanes** with git worktree isolation, enforces turn budgets, uses
@@ -63,12 +66,12 @@ agent.
 The orchestrator MUST read active models from the agent harness at runtime.
 Formulate and print the Pre-Flight Model Contract before Phase 0:
 
-| Role             | Model class assigned                                            | Isolation vs writer | Continuity Fallback        |
-| ---------------- | --------------------------------------------------------------- | ------------------- | -------------------------- |
-| planner          | frontier (e.g. Claude 3.7 Sonnet as of June 2026)               | N/A (writer)        | Rung 1 -> Rung 2           |
-| reviewer / qa    | different vendor frontier (e.g. Gemini 2.5 Pro as of June 2026) | L0 (cross-vendor)   | Rung 1 -> Rung 2 -> Park   |
-| developer        | mid-tier (e.g. Claude 3.5 Sonnet as of June 2026)               | N/A (implementer)   | Rung 1 -> Rung 2 -> Rung 3 |
-| discovery / grep | small/fast (e.g. Gemini 2.5 Flash as of June 2026)              | N/A (read-only)     | Rung 3                     |
+| Role             | Model class assigned          | Isolation vs writer | Continuity Fallback        |
+| ---------------- | ----------------------------- | ------------------- | -------------------------- |
+| planner          | frontier                      | N/A (writer)        | Rung 1 -> Rung 2           |
+| reviewer / qa    | a different vendor's frontier | L0 (cross-vendor)   | Rung 1 -> Rung 2 -> Park   |
+| developer        | mid-tier                      | N/A (implementer)   | Rung 1 -> Rung 2 -> Rung 3 |
+| discovery / grep | small/fast                    | N/A (read-only)     | Rung 3                     |
 
 ### Environment Check (`CLAUDE_CODE_SUBAGENT_MODEL`)
 

@@ -4,7 +4,7 @@ description: >
   [LOOP · SUB-PRO · NO API KEYS · CROSS-MODEL VERIFY] $20/mo tier
   context-isolated loop. Single-pass cross-model plan check enforcing Mode B
   quota handling and mandatory disclosure without requiring API keys.
-cost: ~1200 tokens
+cost: ~1300 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Plan & Harden
@@ -18,6 +18,10 @@ useCase:
 
 # Reflexion Loop ($20/mo Tier - No API Keys)
 
+> Tier siblings: reflexion-loop (API keys, dual-model) · reflexion-loop-sub-max
+> ($100 tier) · reflexion-loop-sub-pro ($20 tier). See the tier table in the
+> README.
+>
 > [!NOTE] **Tier profile ($20/mo subscription):** Honest promise: **"One good
 > adversarial pass"**, not a hardened plan. Operates as a single-pass
 > cross-model check on a 5-turn budget without API keys.
@@ -35,10 +39,10 @@ useCase:
 
 Read active models from agent harness at runtime. Formulate and print:
 
-| Role               | Model class assigned                                            | Isolation vs writer | Continuity Fallback |
-| ------------------ | --------------------------------------------------------------- | ------------------- | ------------------- |
-| Generator (Writer) | frontier / mid (e.g. Claude 3.7 Sonnet as of June 2026)         | N/A (author)        | Consolidate & Park  |
-| Critic (Auditor)   | different vendor frontier (e.g. Gemini 2.5 Pro as of June 2026) | L0 (cross-vendor)   | L1 -> L2 -> Park    |
+| Role               | Model class assigned          | Isolation vs writer | Continuity Fallback |
+| ------------------ | ----------------------------- | ------------------- | ------------------- |
+| Generator (Writer) | frontier / mid                | N/A (author)        | Consolidate & Park  |
+| Critic (Auditor)   | a different vendor's frontier | L0 (cross-vendor)   | L1 -> L2 -> Park    |
 
 > **Sub-Pro Note:** Sub-pro is **throughput-limited** (one critique pass,
 > tighter turn budget), not model-limited. Cross-vendor L0 isolation is

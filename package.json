@@ -41,6 +41,22 @@
         "skill": "vertical-slice-decomposer",
         "description": "Decompose stories into vertical slices"
       },
+      "dev-team-sub-max": {
+        "skill": "dev-team-sub-max",
+        "description": "Subscription-tier ($100/mo) dev team orchestrator"
+      },
+      "dev-team-sub-pro": {
+        "skill": "dev-team-sub-pro",
+        "description": "Subscription-tier ($20/mo) dev pair orchestrator"
+      },
+      "reflexion-loop-sub-max": {
+        "skill": "reflexion-loop-sub-max",
+        "description": "$100/mo tier context-isolated loop"
+      },
+      "reflexion-loop-sub-pro": {
+        "skill": "reflexion-loop-sub-pro",
+        "description": "$20/mo tier context-isolated loop"
+      },
       "reflexion-eval": "npm run reflexion:eval"
     }
   },
@@ -154,6 +170,8 @@
     "typescript": "^6.0.2"
   },
   "keywords": [
+    "agentic-dev-team",
+    "ai-developer",
     "agent",
     "tech-lead",
     "automation",

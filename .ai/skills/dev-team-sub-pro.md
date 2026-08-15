@@ -6,7 +6,7 @@ description: >
   worktrees, enforcing turn budgets, builder/checker roles, cross-vendor model
   isolation, Mode B quota handling, and tier-ceiling enforcement without
   requiring API keys.
-cost: ~2400 tokens
+cost: ~2500 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Orchestrators
@@ -20,6 +20,9 @@ useCase:
 
 # Dev Team Orchestrator — Sub-Pro Tier ($20/mo)
 
+> Tier siblings: dev-team-orchestrator (API keys, dual-model) · dev-team-sub-max
+> ($100 tier) · dev-team-sub-pro ($20 tier). See the tier table in the README.
+>
 > [!NOTE] **Tier profile ($20/mo subscription):** Honest promise: **A
 > disciplined pair, not a team.** Designed for standard subscription tiers (e.g.
 > Pro/Plus plans). Operates as a single-lane **Builder + Checker pair** directly
@@ -54,10 +57,10 @@ Produces a blueprint in read-only chat; executes in IDE/MCP mode.
 
 Read active models from agent harness at runtime. Formulate and print:
 
-| Role                      | Model class assigned                                            | Isolation vs writer | Continuity Fallback |
-| ------------------------- | --------------------------------------------------------------- | ------------------- | ------------------- |
-| Builder (Plan + Dev)      | frontier / mid (e.g. Claude 3.7 Sonnet as of June 2026)         | N/A (writer)        | Consolidate & Park  |
-| Checker (Review + Verify) | different vendor frontier (e.g. Gemini 2.5 Pro as of June 2026) | L0 (cross-vendor)   | L1 -> L2 -> Park    |
+| Role                      | Model class assigned          | Isolation vs writer | Continuity Fallback |
+| ------------------------- | ----------------------------- | ------------------- | ------------------- |
+| Builder (Plan + Dev)      | frontier / mid                | N/A (writer)        | Consolidate & Park  |
+| Checker (Review + Verify) | a different vendor's frontier | L0 (cross-vendor)   | L1 -> L2 -> Park    |
 
 > **Sub-Pro Note:** Sub-pro is **throughput-limited** (quota, single lane, crew
 > ceiling M, tighter turn budget), not model-limited. Cross-vendor L0 isolation

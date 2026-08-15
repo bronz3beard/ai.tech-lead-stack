@@ -9,13 +9,17 @@ description: >
   real two-model loop via `rtk run reflexion-loop` or the `reflexion_loop` MCP
   tool. Use when you want a plan hardened by an independent critic before
   committing engineering time. (Note: The stated token cost is per loop/run).
-cost: ~900 tokens
+cost: ~1000 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Plan & Harden
 ---
 
 # Reflexion Loop (Special Feature)
+
+> Tier siblings: reflexion-loop (API keys, dual-model) · reflexion-loop-sub-max
+> ($100 tier) · reflexion-loop-sub-pro ($20 tier). See the tier table in the
+> README.
 
 ## Runtime modes
 

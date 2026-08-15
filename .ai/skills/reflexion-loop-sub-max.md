@@ -19,6 +19,10 @@ useCase:
 
 # Reflexion Loop ($100/mo Tier - No API Keys)
 
+> Tier siblings: reflexion-loop (API keys, dual-model) · reflexion-loop-sub-max
+> ($100 tier) · reflexion-loop-sub-pro ($20 tier). See the tier table in the
+> README.
+>
 > [!NOTE] **Tier profile ($100/mo subscription):** Hardens implementation plans
 > using multi-vendor model isolation (L0–L3) without requiring API keys. Handles
 > model exhaustion limits seamlessly while preserving verification integrity.
@@ -28,10 +32,10 @@ useCase:
 Read active models from the agent harness at runtime. Formulate and print the
 Pre-Flight Model Contract before Phase 0:
 
-| Role               | Model class assigned                                            | Isolation vs writer | Continuity Fallback      |
-| ------------------ | --------------------------------------------------------------- | ------------------- | ------------------------ |
-| Generator (Writer) | frontier (e.g. Claude 3.7 Sonnet as of June 2026)               | N/A (author)        | Rung 1 -> Rung 2         |
-| Critic (Auditor)   | different vendor frontier (e.g. Gemini 2.5 Pro as of June 2026) | L0 (cross-vendor)   | Rung 1 -> Rung 2 -> Park |
+| Role               | Model class assigned          | Isolation vs writer | Continuity Fallback      |
+| ------------------ | ----------------------------- | ------------------- | ------------------------ |
+| Generator (Writer) | frontier                      | N/A (author)        | Rung 1 -> Rung 2         |
+| Critic (Auditor)   | a different vendor's frontier | L0 (cross-vendor)   | Rung 1 -> Rung 2 -> Park |
 
 ### Environment Check (`CLAUDE_CODE_SUBAGENT_MODEL`)
 
