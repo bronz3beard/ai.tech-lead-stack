@@ -40,7 +40,11 @@ Read active models from agent harness at runtime. Formulate and print:
 | Generator (Writer) | frontier / mid (e.g. Claude 3.7 Sonnet as of June 2026)         | N/A (author)        | Consolidate & Park  |
 | Critic (Auditor)   | different vendor frontier (e.g. Gemini 2.5 Pro as of June 2026) | L0 (cross-vendor)   | L1 -> L2 -> Park    |
 
-> **Sub-Pro Note:** Uses cross-vendor Sonnet/frontier pairing (no Opus class).
+> **Sub-Pro Note:** Sub-pro is **throughput-limited** (one critique pass,
+> tighter turn budget), not model-limited. Cross-vendor L0 isolation is
+> reachable on the entry tier wherever the platform offers one lineup across
+> paid tiers. Model availability is platform-dependent; read the harness's
+> actual model list at runtime instead of assuming a tier ceiling.
 
 ### Environment Check (`CLAUDE_CODE_SUBAGENT_MODEL` — FULL)
 

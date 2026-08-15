@@ -6,7 +6,7 @@ description: >
   worktrees, enforcing turn budgets, builder/checker roles, cross-vendor model
   isolation, Mode B quota handling, and tier-ceiling enforcement without
   requiring API keys.
-cost: ~2300 tokens
+cost: ~2400 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Orchestrators
@@ -59,9 +59,11 @@ Read active models from agent harness at runtime. Formulate and print:
 | Builder (Plan + Dev)      | frontier / mid (e.g. Claude 3.7 Sonnet as of June 2026)         | N/A (writer)        | Consolidate & Park  |
 | Checker (Review + Verify) | different vendor frontier (e.g. Gemini 2.5 Pro as of June 2026) | L0 (cross-vendor)   | L1 -> L2 -> Park    |
 
-> **Sub-Pro Note:** The $20 tier does not include Opus class; Sonnet class is
-> its frontier. Model separation comes from **cross-vendor pairing**, not
-> cross-class pairing.
+> **Sub-Pro Note:** Sub-pro is **throughput-limited** (quota, single lane, crew
+> ceiling M, tighter turn budget), not model-limited. Cross-vendor L0 isolation
+> is reachable on the entry tier wherever the platform offers one lineup across
+> paid tiers. Model availability is platform-dependent; read the harness's
+> actual model list at runtime instead of assuming a tier ceiling.
 
 ### Environment Check (`CLAUDE_CODE_SUBAGENT_MODEL` — FULL)
 
@@ -143,8 +145,14 @@ fallback rungs.
   when capacity returns or requires explicit Tech-Lead waiver.
 - **UNREVIEWED Slices:** Work where the run stopped before Checker ran or
   completed (Mode B park). UNREVIEWED work has received NO verification pass.
-- **Risk-2 Work Rule:** Auth, payments, data, and infrastructure changes MAY NOT
-  close on a PROVISIONAL or UNREVIEWED approval — PARK instead.
+- **Mid-Flight Risk-2 Escalation:** Intake screening is imperfect. If work is
+  DISCOVERED to touch Risk-2 areas (auth, payments, data, infra) after
+  acceptance, the lane PARKS immediately. Record the discovery and evidence in
+  the lane state file and inbox, and escalate to a higher tier
+  (`dev-team-sub-max` or `dev-team-orchestrator`). Do not close the slice on a
+  PROVISIONAL or UNREVIEWED approval, and do not continue assuming the original
+  sizing was right. Mid-flight discovery is the expected failure mode this rule
+  catches.
 
 ### Findings Ledger Structure (COMPRESSED)
 
@@ -213,11 +221,12 @@ beneath disclosure line.
 
 ### Anti-Rationalization Protocol
 
-| Rationalization                                                               | Rebuttal / Required Behavior                                                                     |
-| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| "It's an L task, but I can handle it in Sub-Pro."                             | Score L/XL or Risk 2 MUST be refused immediately. Escalate to Sub-Max or Dev-Team-Orchestrator.  |
-| "Since we don't use worktrees, I'll commit directly."                         | `git add` and `git push` are strictly forbidden. Edits remain uncommitted.                       |
-| "I'm the Builder so I can self-certify the review."                           | Checker must run in fresh sub-agent context and paste hard evidence.                             |
-| "The audit passed anyway, so the notice would just worry them."               | A pass from the author is not a pass; the notice IS the finding. Emit disclosure line as line 1. |
-| "The model swap was handled automatically, so it's an implementation detail." | Handling it seamlessly is why developer cannot see it, which is exactly why it must be stated.   |
-| "It is already recorded in the provenance table below."                       | A table row is not a disclosure; the first line is.                                              |
+| Rationalization                                                               | Rebuttal / Required Behavior                                                                                     |
+| ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| "It's an L task, but I can handle it in Sub-Pro."                             | Score L/XL or Risk 2 MUST be refused immediately. Escalate to Sub-Max or Dev-Team-Orchestrator.                  |
+| "The sizing said Risk-1, so this is fine."                                    | Sizing scored the brief, not the code; when discovery contradicts the brief, discovery wins — PARK and escalate. |
+| "Since we don't use worktrees, I'll commit directly."                         | `git add` and `git push` are strictly forbidden. Edits remain uncommitted.                                       |
+| "I'm the Builder so I can self-certify the review."                           | Checker must run in fresh sub-agent context and paste hard evidence.                                             |
+| "The audit passed anyway, so the notice would just worry them."               | A pass from the author is not a pass; the notice IS the finding. Emit disclosure line as line 1.                 |
+| "The model swap was handled automatically, so it's an implementation detail." | Handling it seamlessly is why developer cannot see it, which is exactly why it must be stated.                   |
+| "It is already recorded in the provenance table below."                       | A table row is not a disclosure; the first line is.                                                              |
