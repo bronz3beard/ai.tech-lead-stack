@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import { buildBackends } from './backends.js';
+import { getProjects, refreshProjects } from './projects.js';
 import { buildRegistry, resolveSkill } from './registry.js';
 import type { AgentBackend, Proposal } from './types.js';
 
@@ -61,6 +62,8 @@ app.get('/backend', async (_req, res) => {
 });
 
 app.get('/skills', (_req, res) => res.json({ skills: registry }));
+app.get('/projects', (_req, res) => res.json(getProjects()));
+app.post('/projects/refresh', (_req, res) => res.json(refreshProjects()));
 
 // Read-only path (writes:false skills, e.g. /ask): resolve, run, return spoken answer.
 app.post('/ask', async (req, res) => {
@@ -157,6 +160,7 @@ buildBackends().then((b) => {
       }
     }
     console.log(`voice-relay on :${PORT} (token required) LAN URL: http://${lanIp}:${PORT}`);
-    console.log(`skills loaded: ${registry.length}`);
+    refreshProjects();
+    console.log(`skills loaded: ${registry.length}  |  projects found: ${getProjects().length}`);
   });
 });
