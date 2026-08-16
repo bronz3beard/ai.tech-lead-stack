@@ -23,7 +23,7 @@ const getDirname = () => {
     : path.join(cwd, 'peripherals/voice-relay/src');
 };
 
-const ALIASES_PATH = path.resolve(getDirname(), '../voice-aliases.json');
+const ALIASES_PATH = path.resolve(getDirname(), '../project-aliases.json');
 
 function loadAliases(): ProjectAliases {
   try {
@@ -113,13 +113,27 @@ export function scanProjects(roots: string | undefined): ProjectEntry[] {
   return Array.from(found.values());
 }
 
-let cachedProjects: ProjectEntry[] = [];
+let _projects: ProjectEntry[] = [];
+let _mockProjects: ProjectEntry[] | null = null;
 
-export function getProjects(): ProjectEntry[] {
-  return cachedProjects;
+export function __setMockProjects(mocks: ProjectEntry[] | null) {
+  _mockProjects = mocks;
 }
 
 export function refreshProjects(): ProjectEntry[] {
-  cachedProjects = scanProjects(process.env.REPOS_ROOT);
-  return cachedProjects;
+  if (_mockProjects) {
+    _projects = _mockProjects;
+    return _projects;
+  }
+  const roots = process.env.PROJECT_ROOTS;
+  _projects = scanProjects(roots);
+  return _projects;
+}
+
+export function getProjects(): ProjectEntry[] {
+  if (_mockProjects) return _mockProjects;
+  if (_projects.length === 0) {
+    return refreshProjects();
+  }
+  return _projects;
 }

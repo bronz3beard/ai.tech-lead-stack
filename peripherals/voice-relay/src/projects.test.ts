@@ -26,6 +26,13 @@ test('recursive project discovery', () => {
     
     fs.mkdirSync(path.join(tmpRoot, 'category', 'node_modules', 'repo2', '.git'), { recursive: true });
     
+    fs.mkdirSync(path.join(tmpRoot, 'ignored-repo', '.git'), { recursive: true });
+
+    // Mock project-aliases.json in the dir above src
+    const srcParent = path.resolve(process.cwd()); // tests run in peripheral root
+    const mockAliases = { _ignore: ['ignored-repo'] };
+    fs.writeFileSync(path.join(srcParent, 'project-aliases.json'), JSON.stringify(mockAliases));
+
     const projects = scanProjects(tmpRoot);
     
     const ids = projects.map(p => p.id).sort();
@@ -33,5 +40,8 @@ test('recursive project discovery', () => {
     
   } finally {
     fs.rmSync(tmpRoot, { recursive: true, force: true });
+    try {
+      fs.unlinkSync(path.resolve(process.cwd(), 'project-aliases.json'));
+    } catch { /* ignore */ }
   }
 });

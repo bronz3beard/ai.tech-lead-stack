@@ -485,6 +485,11 @@ copy-paste IDE prompt; only the IDE/MCP surface edits code.
 | `/onboarding`                      | Onboarding interface for new devs        |
 | `/settings`                        | API keys and Agent routing configuration |
 
+## Peripherals & Sibling Apps
+
+- **[Voice Relay Service](peripherals/voice-relay/README.md)**: A local node service that parses spoken transcripts and executes them via keyless agent CLIs (`agy`, `claude`, `codex`, `cursor-agent`).
+- **[Voice Assistant App](../../../voice-assistant-app)**: A mobile client (iOS/Android) that acts as a hands-free voice interface for the Tech Lead Stack. It connects to the local `voice-relay` peripheral to execute codebase changes via voice commands.
+
 ## Docs
 
 | Document                                                                                                                       | Purpose                                       |
