@@ -148,6 +148,7 @@ interface CliTool {
   bin: string;
   label: string;
   authPath: AuthPath;
+  requiresWorktreeForReadOnly?: boolean;
   // PLAN-ONLY invocation (must not write files):
   proposeArgs: (prompt: string) => string[];
   // WRITE invocation (only runs after explicit approval):
@@ -166,6 +167,7 @@ export const CLI_TOOLS: Record<string, CliTool> = {
     bin: 'agy',
     label: 'Antigravity (Ultra, OAuth)',
     authPath: 'subscription-oauth', // free under Ultra; consumer OAuth has daily limits
+    requiresWorktreeForReadOnly: true,
     // TODO(gemini): confirm agy's non-interactive prompt flag + any --yolo/approval flag. OAuth login (no key).
     proposeArgs: (p) => ['--prompt', PLAN_GUARD + p],
     applyArgs: (p) => ['--prompt', p],
@@ -234,6 +236,7 @@ export const CLI_TOOLS: Record<string, CliTool> = {
     bin: 'cursor-agent',
     label: 'Cursor',
     authPath: 'subscription-login',
+    requiresWorktreeForReadOnly: true,
     // TODO(gemini): confirm cursor-agent headless flags + a real read-only/plan mode.
     proposeArgs: (p) => ['-p', PLAN_GUARD + p],
     applyArgs: (p) => ['-p', p],
@@ -253,7 +256,7 @@ export class CliBackend implements AgentBackend {
 
   async detect(): Promise<DetectResult> {
     try {
-      await pexec(this.tool.bin, ['--version'], { timeout: 8000 });
+      await pexec('which', [this.tool.bin], { timeout: 8000 });
       // TODO(gemini): add a real auth/login probe per tool (e.g. whoami/status) to confirm logged-in.
       return { detected: true, authPath: this.tool.authPath };
     } catch {
@@ -265,30 +268,62 @@ export class CliBackend implements AgentBackend {
     }
   }
 
-  private async run(args: string[], cwd: string): Promise<AgentResult> {
+  private async run(args: string[], cwd: string, readonly: boolean = false): Promise<AgentResult> {
+    let runCwd = cwd;
+    let worktreeDir = '';
+    
+    if (readonly && this.tool.requiresWorktreeForReadOnly) {
+      worktreeDir = path.join(cwd, `.voice-relay-worktree-${Date.now()}`);
+      try {
+        await pexec('git', ['worktree', 'add', worktreeDir, '-d'], { cwd });
+        runCwd = worktreeDir;
+      } catch (e: any) {
+        return {
+          ok: false,
+          text: '',
+          error: `Failed to create read-only worktree: ${e.message}`,
+        };
+      }
+    }
+
+    let resultText = '';
+    let resultRaw = '';
+    let runError = null;
+    let runOk = false;
+
     try {
       const { stdout } = await pexec(this.tool.bin, args, {
-        cwd,
+        cwd: runCwd,
         timeout: 1000 * 60 * 10,
         maxBuffer: 1024 * 1024 * 32,
       });
-      const text = this.tool.parse ? this.tool.parse(stdout) : stdout;
-      return { ok: true, text: text.trim(), raw: stdout };
+      resultRaw = stdout;
+      resultText = this.tool.parse ? this.tool.parse(stdout) : stdout;
+      runOk = true;
     } catch (e: any) {
-      return {
-        ok: false,
-        text: '',
-        error: e?.stderr?.toString?.() || e?.message || 'agent run failed',
-      };
+      runError = e?.stderr?.toString?.() || e?.message || 'agent run failed';
     }
+
+    if (worktreeDir) {
+      try {
+        await pexec('git', ['worktree', 'remove', '--force', worktreeDir], { cwd });
+      } catch (e) {
+        console.error(`Failed to cleanup worktree ${worktreeDir}:`, e);
+      }
+    }
+
+    if (runError) {
+      return { ok: false, text: '', error: runError };
+    }
+    return { ok: runOk, text: resultText.trim(), raw: resultRaw };
   }
 
   async ask(input: RunInput): Promise<AgentResult> {
-    return this.run(this.tool.askArgs(input.prompt), input.cwd);
+    return this.run(this.tool.askArgs(input.prompt), input.cwd, true);
   }
 
   async propose(input: RunInput): Promise<ProposalResult> {
-    const r = await this.run(this.tool.proposeArgs(input.prompt), input.cwd);
+    const r = await this.run(this.tool.proposeArgs(input.prompt), input.cwd, true);
     // summary = first ~2 sentences of the plan, for speaking aloud
     const summary = r.text
       .split(/(?<=[.!?])\s+/)
