@@ -22,15 +22,20 @@ if (!TOKEN || TOKEN === 'changeme-shared-token') {
 
 const registry = buildRegistry();
 let backends: AgentBackend[] = [];
+let _mockBackends: AgentBackend[] | null = null;
+export function __setMockBackends(mocks: AgentBackend[] | null) {
+  _mockBackends = mocks;
+}
+
 export const proposals = new Map<string, Proposal>();
 
 function pickBackend(id?: string): AgentBackend {
+  const list = _mockBackends || backends;
   if (id) {
-    const b = backends.find((x) => x.id === id);
+    const b = list.find((x) => x.id === id);
     if (b) return b;
   }
-  // default preference order: whatever the user is signed into, else local
-  return backends.find((x) => x.id !== 'local') ?? backends[0];
+  return list.find((x) => x.id !== 'local') ?? list[0];
 }
 
 export const app = express();

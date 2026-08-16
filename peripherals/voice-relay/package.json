@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "description": "Mac-side relay: voice transcript -> resolve tech-lead-stack skill/workflow -> drive an agent CLI (agnostic) -> gated propose/approve/apply. Keyless; rides your subscription logins.",
   "type": "module",
+  "license": "MIT",
   "scripts": {
+    "test": "tsx --test src/**/*.test.ts",
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts"
   },
