@@ -108,6 +108,7 @@ export class LocalOllamaBackend implements AgentBackend {
       const res = await fetch(`${OLLAMA_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(1000 * 60 * 5),
         body: JSON.stringify({
           model: OLLAMA_MODEL,
           stream: false,
@@ -120,10 +121,16 @@ export class LocalOllamaBackend implements AgentBackend {
       const data: any = await res.json();
       return { ok: true, text: data?.message?.content ?? '', raw: data };
     } catch (e: any) {
+      let errStr = e?.message ?? 'ollama request failed';
+      if (e?.name === 'TimeoutError' || errStr.includes('aborted')) {
+        errStr = 'Local Ollama timed out. Is the model too slow?';
+      } else if (e?.cause?.code === 'ECONNREFUSED' || errStr.includes('ECONNREFUSED') || errStr.includes('fetch failed')) {
+        errStr = 'Local Ollama is unreachable. Please ensure it is running.';
+      }
       return {
         ok: false,
         text: '',
-        error: e?.message ?? 'ollama request failed',
+        error: errStr,
       };
     }
   }
@@ -301,7 +308,16 @@ export class CliBackend implements AgentBackend {
       resultText = this.tool.parse ? this.tool.parse(stdout) : stdout;
       runOk = true;
     } catch (e: any) {
-      runError = e?.stderr?.toString?.() || e?.message || 'agent run failed';
+      if (e?.killed) {
+        runError = 'The agent was killed or timed out.';
+      } else if (e?.code === 'ETIMEDOUT') {
+        runError = 'The agent took too long and timed out.';
+      } else {
+        runError = e?.stderr?.toString?.() || e?.message || 'agent run failed';
+        if (runError.length > 500) {
+          runError = runError.slice(0, 500) + '... (truncated)';
+        }
+      }
     }
 
     if (worktreeDir) {
