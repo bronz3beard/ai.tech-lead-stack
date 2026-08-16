@@ -62,7 +62,7 @@ app.get('/backend', async (_req, res) => {
 });
 
 app.get('/skills', (_req, res) => res.json({ skills: registry }));
-app.get('/projects', (_req, res) => res.json(getProjects()));
+app.get('/projects', (_req, res) => res.json(refreshProjects()));
 app.post('/projects/refresh', (_req, res) => res.json(refreshProjects()));
 
 // GATE step 1: command pipeline (unified)
@@ -183,23 +183,38 @@ app.post('/apply', async (req, res) => {
   res.json({ proposalId, status: p.status, ...result });
 });
 
-buildBackends().then((b) => {
+buildBackends().then(async (b) => {
   backends = b;
   if (process.env.NODE_ENV !== 'test') {
-    app.listen(PORT, '0.0.0.0', () => {
-      const interfaces = os.networkInterfaces();
-      let lanIp = '127.0.0.1';
-      for (const name of Object.keys(interfaces)) {
-        for (const iface of interfaces[name] || []) {
-          if (iface.family === 'IPv4' && !iface.internal) {
-            lanIp = iface.address;
-            break;
-          }
+    const interfaces = os.networkInterfaces();
+    let lanIp = '127.0.0.1';
+    for (const name of Object.keys(interfaces)) {
+      for (const iface of interfaces[name] || []) {
+        if (iface.family === 'IPv4' && !iface.internal) {
+          lanIp = iface.address;
+          break;
         }
       }
-      console.log(`voice-relay on :${PORT} (token required) LAN URL: http://${lanIp}:${PORT}`);
-      refreshProjects();
-      console.log(`skills loaded: ${registry.length}  |  projects found: ${getProjects().length}`);
+    }
+    
+    // Refresh projects synchronously before boot log
+    refreshProjects();
+    
+    // Detect backends for structured log
+    const detectedBackends = await Promise.all(
+      backends.map(async (bk) => {
+        const d = await bk.detect();
+        return d.detected ? bk.label : null;
+      })
+    );
+    const activeBackendsStr = detectedBackends.filter(Boolean).join(', ');
+
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`\n🚀 voice-relay started on :${PORT}`);
+      console.log(`🔗 LAN URL: http://${lanIp}:${PORT} (token required)`);
+      console.log(`📦 Projects found: ${getProjects().length}`);
+      console.log(`🛠️  Skills loaded: ${registry.length}`);
+      console.log(`🤖 Backends active: ${activeBackendsStr || 'None'}\n`);
     });
   }
 });
