@@ -62,3 +62,6 @@ auth/
 .github/.pr_body_temp.md
 
 /README.backup.md
+
+# voice-relay
+peripherals/voice-relay/node_modules

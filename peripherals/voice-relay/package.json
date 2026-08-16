@@ -1,0 +1,21 @@
+{
+  "name": "voice-relay",
+  "version": "0.1.0",
+  "description": "Mac-side relay: voice transcript -> resolve tech-lead-stack skill/workflow -> drive an agent CLI (agnostic) -> gated propose/approve/apply. Keyless; rides your subscription logins.",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^4.19.2",
+    "gray-matter": "^4.0.3"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
