@@ -22,7 +22,7 @@ if (!TOKEN || TOKEN === 'changeme-shared-token') {
 
 const registry = buildRegistry();
 let backends: AgentBackend[] = [];
-const proposals = new Map<string, Proposal>();
+export const proposals = new Map<string, Proposal>();
 
 function pickBackend(id?: string): AgentBackend {
   if (id) {
@@ -33,7 +33,7 @@ function pickBackend(id?: string): AgentBackend {
   return backends.find((x) => x.id !== 'local') ?? backends[0];
 }
 
-const app = express();
+export const app = express();
 app.use(express.json({ limit: '1mb' }));
 
 // simple shared-token auth (LAN / Tailscale only; the phone holds no vendor secrets, just this token)
@@ -65,11 +65,50 @@ app.get('/skills', (_req, res) => res.json({ skills: registry }));
 app.get('/projects', (_req, res) => res.json(getProjects()));
 app.post('/projects/refresh', (_req, res) => res.json(refreshProjects()));
 
-// Read-only path (writes:false skills, e.g. /ask): resolve, run, return spoken answer.
-app.post('/ask', async (req, res) => {
-  const { transcript, backend: backendId, cwd } = req.body ?? {};
-  const resolved = resolveSkill(transcript ?? '', registry);
-  const backend = pickBackend(backendId);
+// GATE step 1: command pipeline (unified)
+app.post('/command', async (req, res) => {
+  const { transcript, projectId: explicitProjectId, backend: backendId } = req.body ?? {};
+  if (!transcript) return res.status(400).json({ error: 'transcript is required' });
+
+  const allProjects = getProjects();
+  let matchedProject = null;
+  let remainingTranscript = transcript;
+
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+  const t = norm(transcript);
+
+  let bestAliasMatch: { p: any; alias: string } | null = null;
+
+  for (const p of allProjects) {
+    const aliasesToMatch = [p.name, ...(p.aliases || [])];
+    for (const a of aliasesToMatch) {
+      const na = norm(a);
+      if (!na) continue;
+      if (t === na || t.startsWith(na + ' ')) {
+        if (!bestAliasMatch || na.length > norm(bestAliasMatch.alias).length) {
+          bestAliasMatch = { p, alias: na };
+        }
+      }
+    }
+  }
+
+  if (bestAliasMatch) {
+    matchedProject = bestAliasMatch.p;
+    remainingTranscript = t.slice(norm(bestAliasMatch.alias).length).trim();
+  } else if (explicitProjectId) {
+    matchedProject = allProjects.find((p) => p.id === explicitProjectId || p.path === explicitProjectId);
+  }
+
+  if (!matchedProject) {
+    return res.json({
+      kind: 'need-project',
+      message:
+        "I'm not sure which project you'd like me to work in. Tell me the project, then the skill, then what you'd like - for example, 'Homegrid, plan, add rate limiting.'",
+      projects: allProjects,
+    });
+  }
+
+  const resolved = resolveSkill(remainingTranscript, registry);
   const skill = resolved?.entry ?? {
     id: 'ask',
     aliases: [],
@@ -77,52 +116,50 @@ app.post('/ask', async (req, res) => {
     workflow: 'ask',
     writes: false,
   };
-  const prompt = resolved?.prompt ?? transcript ?? '';
-  if (!cwd) return res.status(400).json({ error: 'cwd is required' });
-  const result = await backend.ask({ prompt, cwd, skill });
-  res.json({ skill: skill.id, backend: backend.id, ...result });
-});
 
-// GATE step 1: propose. For writes:true skills only. Runs plan-only; NEVER writes.
-app.post('/propose', async (req, res) => {
-  const { transcript, backend: backendId, cwd } = req.body ?? {};
-  const resolved = resolveSkill(transcript ?? '', registry);
-  if (!resolved)
-    return res
-      .status(400)
-      .json({ error: 'could not resolve a skill from the transcript' });
+  const prompt = resolved?.prompt ?? remainingTranscript;
+  const cwd = matchedProject.path;
   const backend = pickBackend(backendId);
-  if (!backend.writesSupported)
-    return res
-      .status(400)
-      .json({ error: `backend '${backend.id}' is read-only; use /ask` });
 
-  if (!cwd) return res.status(400).json({ error: 'cwd is required' });
-  const r = await backend.propose({
-    prompt: resolved.prompt,
-    cwd,
-    skill: resolved.entry,
-  });
-  if (!r.ok) return res.status(500).json(r);
+  if (!skill.writes) {
+    const result = await backend.ask({ prompt, cwd, skill });
+    return res.json({
+      kind: 'answer',
+      skill: skill.id,
+      backend: backend.id,
+      projectName: matchedProject.name,
+      ...result,
+    });
+  } else {
+    if (!backend.writesSupported) {
+      return res.status(400).json({ error: `backend '${backend.id}' is read-only; use a read-only skill` });
+    }
 
-  const id = crypto.randomUUID();
-  proposals.set(id, {
-    id,
-    createdAt: Date.now(),
-    backendId: backend.id,
-    skillId: resolved.entry.id,
-    prompt: resolved.prompt,
-    cwd,
-    summary: r.summary,
-    status: 'proposed',
-  });
-  res.json({
-    proposalId: id,
-    skill: resolved.entry.id,
-    backend: backend.id,
-    summary: r.summary,
-    plan: r.diffPreview,
-  });
+    const r = await backend.propose({ prompt, cwd, skill });
+    if (!r.ok) return res.status(500).json(r);
+
+    const id = crypto.randomUUID();
+    proposals.set(id, {
+      id,
+      createdAt: Date.now(),
+      backendId: backend.id,
+      skillId: skill.id,
+      prompt,
+      cwd,
+      summary: r.summary,
+      status: 'proposed',
+    });
+
+    return res.json({
+      kind: 'proposal',
+      proposalId: id,
+      projectName: matchedProject.name,
+      skill: skill.id,
+      backend: backend.id,
+      summary: r.summary,
+      plan: r.diffPreview,
+    });
+  }
 });
 
 // GATE step 2: apply. Requires a matching proposalId AND explicit approve:true. No other path writes.
@@ -148,19 +185,21 @@ app.post('/apply', async (req, res) => {
 
 buildBackends().then((b) => {
   backends = b;
-  app.listen(PORT, '0.0.0.0', () => {
-    const interfaces = os.networkInterfaces();
-    let lanIp = '127.0.0.1';
-    for (const name of Object.keys(interfaces)) {
-      for (const iface of interfaces[name] || []) {
-        if (iface.family === 'IPv4' && !iface.internal) {
-          lanIp = iface.address;
-          break;
+  if (process.env.NODE_ENV !== 'test') {
+    app.listen(PORT, '0.0.0.0', () => {
+      const interfaces = os.networkInterfaces();
+      let lanIp = '127.0.0.1';
+      for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name] || []) {
+          if (iface.family === 'IPv4' && !iface.internal) {
+            lanIp = iface.address;
+            break;
+          }
         }
       }
-    }
-    console.log(`voice-relay on :${PORT} (token required) LAN URL: http://${lanIp}:${PORT}`);
-    refreshProjects();
-    console.log(`skills loaded: ${registry.length}  |  projects found: ${getProjects().length}`);
-  });
+      console.log(`voice-relay on :${PORT} (token required) LAN URL: http://${lanIp}:${PORT}`);
+      refreshProjects();
+      console.log(`skills loaded: ${registry.length}  |  projects found: ${getProjects().length}`);
+    });
+  }
 });
