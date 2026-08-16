@@ -3,11 +3,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { ResolvedSkill, SkillEntry } from './types.js';
 
-// The tech-lead-stack repo root (where .agents/ and .ai/ live). Override with STACK_REPO env.
-const STACK_REPO = process.env.STACK_REPO!;
-
-// Hand-authored overlay of spoken aliases + writes flags, keyed by canonical id.
-// This is the ONLY file you maintain by hand; everything else is derived from the repo.
 const getDirname = () => {
   if (typeof __dirname !== 'undefined') {
     return __dirname;
@@ -18,6 +13,9 @@ const getDirname = () => {
     : path.join(cwd, 'peripherals/voice-relay/src');
 };
 
+// The tech-lead-stack repo root (where .agents/ and .ai/ live). Override with STACK_REPO env.
+const STACK_REPO = process.env.STACK_REPO || path.resolve(getDirname(), '../../../');
+
 const OVERLAY_PATH = path.resolve(getDirname(), '../voice-aliases.json');
 
 interface Overlay {
@@ -26,6 +24,7 @@ interface Overlay {
     writes?: boolean;
     type?: 'workflow' | 'skill';
     skill?: string;
+    workflow?: string;
   };
 }
 
@@ -37,47 +36,75 @@ function loadOverlay(): Overlay {
   }
 }
 
-// Scan .agents/workflows/*.md, read frontmatter { name, description }.
-function scanWorkflows(): Record<
-  string,
-  { name: string; description?: string }
-> {
-  const dir = path.join(STACK_REPO, '.agents', 'workflows');
-  const out: Record<string, { name: string; description?: string }> = {};
+function scanDir(baseDir: string, type: 'workflow' | 'skill', out: Record<string, any>) {
   let files: string[] = [];
   try {
-    files = fs.readdirSync(dir).filter((f) => f.endsWith('.md'));
+    files = fs.readdirSync(baseDir).filter((f) => f.endsWith('.md'));
   } catch {
-    return out;
+    return;
   }
   for (const f of files) {
     try {
-      const fm = matter(fs.readFileSync(path.join(dir, f), 'utf8'));
-      const name = (fm.data?.name as string) || f.replace(/\.md$/, '');
-      out[name] = {
-        name,
+      const fm = matter(fs.readFileSync(path.join(baseDir, f), 'utf8'));
+      const id = f.replace(/\.md$/, '');
+      const name = (fm.data?.name as string) || id;
+      out[id] = {
+        id,
+        type,
+        workflow: type === 'workflow' ? name : undefined,
+        skill: type === 'skill' ? name : undefined,
         description: fm.data?.description as string | undefined,
       };
     } catch {
       /* skip unreadable */
     }
   }
-  return out;
 }
 
-// Build the registry: workflow frontmatter (source of truth for ids) + overlay (aliases/writes).
+function scanManifest(manifestPath: string, out: Record<string, any>) {
+  try {
+    const lines = fs.readFileSync(manifestPath, 'utf8').split('\n');
+    for (const line of lines) {
+      if (!line.trim() || line.startsWith('#')) continue;
+      const [id, relPath] = line.split('|');
+      if (id && relPath) {
+        const type = relPath.includes('workflows/') ? 'workflow' : 'skill';
+        if (!out[id]) {
+          out[id] = {
+            id,
+            type,
+            workflow: type === 'workflow' ? path.basename(relPath, '.md') : undefined,
+            skill: type === 'skill' ? path.basename(relPath, '.md') : undefined,
+          };
+        }
+      }
+    }
+  } catch {
+    /* skip */
+  }
+}
+
 export function buildRegistry(): SkillEntry[] {
   const overlay = loadOverlay();
-  const workflows = scanWorkflows();
+  const raw: Record<string, any> = {};
+
+  scanDir(path.join(STACK_REPO, '.agents', 'workflows'), 'workflow', raw);
+  scanDir(path.join(STACK_REPO, '.agents', 'pm-workflows'), 'workflow', raw);
+  scanDir(path.join(STACK_REPO, '.agents', 'hr-workflows'), 'workflow', raw);
+  scanDir(path.join(STACK_REPO, '.ai', 'skills'), 'skill', raw);
+  
+  scanManifest(path.join(STACK_REPO, '.ai', 'cursor-skills.manifest'), raw);
+
   const ids = new Set<string>([
-    ...Object.keys(workflows),
+    ...Object.keys(raw),
     ...Object.keys(overlay),
   ]);
 
   const entries: SkillEntry[] = [];
   for (const id of ids) {
     const ov = overlay[id] || {};
-    const wf = workflows[id];
+    const base = raw[id] || {};
+    
     const aliases = new Set<string>([
       id,
       id.replace(/-/g, ' '),
@@ -85,22 +112,20 @@ export function buildRegistry(): SkillEntry[] {
       `slash ${id}`,
       ...(ov.aliases || []),
     ]);
+
     entries.push({
       id,
       aliases: [...aliases],
-      type: ov.type || 'workflow',
-      workflow: wf ? wf.name : id,
-      skill: ov.skill,
-      // DEFAULT SAFE: if we don't KNOW a skill is read-only, treat it as writing => gated.
+      type: ov.type || base.type || 'workflow',
+      workflow: ov.workflow || base.workflow,
+      skill: ov.skill || base.skill,
       writes: ov.writes ?? true,
-      description: wf?.description,
+      description: base.description,
     });
   }
   return entries;
 }
 
-// Resolve a spoken transcript to a skill + the remaining prompt.
-// Matches the longest alias that the transcript starts with (after light normalisation).
 export function resolveSkill(
   transcript: string,
   registry: SkillEntry[]
@@ -117,7 +142,6 @@ export function resolveSkill(
   for (const entry of registry) {
     for (const alias of entry.aliases) {
       const a = norm(alias);
-      // accept "use the <alias> skill", "<alias>", "<alias> ..."
       const patterns = [
         a,
         `use the ${a} skill`,
