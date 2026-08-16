@@ -2,6 +2,8 @@ import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import type {
   AgentBackend,
   AgentResult,
@@ -11,32 +13,68 @@ import type {
   RunInput,
 } from './types.js';
 
+const getDirname = () => {
+  if (typeof __dirname !== 'undefined') {
+    return __dirname;
+  }
+  const cwd = process.cwd();
+  return cwd.endsWith('voice-relay') 
+    ? path.join(cwd, 'src') 
+    : path.join(cwd, 'peripherals/voice-relay/src');
+};
+
 const pexec = promisify(execFile);
-const STACK_REPO = process.env.STACK_REPO!;
+const STACK_REPO = process.env.STACK_REPO || path.resolve(getDirname(), '../../../');
 
 // Load a skill/workflow's markdown as context (MVP stand-in for the tech-lead-stack MCP get_skills call).
 // TODO(gemini): replace with a real get_skills MCP call so methodology stays the single source of truth.
-function loadSkillContext(skillName?: string, workflowName?: string): string {
-  const tryRead = (p: string) => {
-    try {
-      return fs.readFileSync(p, 'utf8');
-    } catch {
+async function loadSkillContext(skillName?: string, workflowName?: string, cwd?: string): Promise<string> {
+  const target = skillName || workflowName;
+  if (!target) return '';
+
+  const transport = new StdioClientTransport({
+    command: 'npx',
+    args: ['tsx', path.join(STACK_REPO, 'src/mcp-server/index.ts')],
+    env: { ...process.env, REPOS_ROOT: process.env.REPOS_ROOT || '' }
+  });
+
+  const client = new Client(
+    { name: 'voice-relay', version: '0.1.0' },
+    { capabilities: {} }
+  );
+
+  try {
+    await client.connect(transport);
+    
+    const projectName = cwd ? path.basename(cwd) : undefined;
+
+    const result = await client.callTool({
+      name: 'get_skills',
+      arguments: {
+        skillName: target,
+        projectName,
+        model: 'voice-relay',
+        agent: 'voice-relay',
+      }
+    });
+
+    if (result.isError || !Array.isArray(result.content) || result.content.length === 0) {
       return '';
     }
-  };
-  if (skillName) {
-    const c = tryRead(
-      path.join(STACK_REPO, '.ai', 'skills', `${skillName}.md`)
-    );
-    if (c) return c;
+    
+    const content = result.content[0] as { type: string, text: string };
+    if (content.type === 'text') {
+      return content.text;
+    }
+    return '';
+  } catch (e) {
+    console.error('MCP get_skills failed:', e);
+    return '';
+  } finally {
+    try {
+      await client.close();
+    } catch {}
   }
-  if (workflowName) {
-    const c = tryRead(
-      path.join(STACK_REPO, '.agents', 'workflows', `${workflowName}.md`)
-    );
-    if (c) return c;
-  }
-  return '';
 }
 
 // ---------------- Local Ollama backend (read-only, keyless, works today) ----------------
@@ -62,7 +100,7 @@ export class LocalOllamaBackend implements AgentBackend {
   }
 
   async ask(input: RunInput): Promise<AgentResult> {
-    const ctx = loadSkillContext(input.skill.skill, input.skill.workflow);
+    const ctx = await loadSkillContext(input.skill.skill, input.skill.workflow, input.cwd);
     const system =
       'You are answering questions about a codebase, read-only. Do not propose file edits.\n' +
       (ctx ? `Follow this methodology when relevant:\n${ctx}\n` : '');
