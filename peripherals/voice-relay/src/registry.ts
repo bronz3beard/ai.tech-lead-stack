@@ -8,7 +8,17 @@ const STACK_REPO = process.env.STACK_REPO!;
 
 // Hand-authored overlay of spoken aliases + writes flags, keyed by canonical id.
 // This is the ONLY file you maintain by hand; everything else is derived from the repo.
-const OVERLAY_PATH = new URL('../voice-aliases.json', import.meta.url);
+const getDirname = () => {
+  if (typeof __dirname !== 'undefined') {
+    return __dirname;
+  }
+  const cwd = process.cwd();
+  return cwd.endsWith('voice-relay') 
+    ? path.join(cwd, 'src') 
+    : path.join(cwd, 'peripherals/voice-relay/src');
+};
+
+const OVERLAY_PATH = path.resolve(getDirname(), '../voice-aliases.json');
 
 interface Overlay {
   [id: string]: {
