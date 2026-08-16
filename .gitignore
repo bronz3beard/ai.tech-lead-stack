@@ -57,3 +57,6 @@ dev_server.log
 .tmp/*
 
 /README.backup.md
+
+# voice-relay
+peripherals/voice-relay/node_modules
