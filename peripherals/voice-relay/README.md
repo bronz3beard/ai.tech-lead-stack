@@ -19,14 +19,25 @@ A Node/TypeScript service that acts as a local relay for a voice assistant. It a
 Create a `.env` file in the root of the repository (or in this directory) with the following variables:
 
 ```env
-# A comma-separated list of paths to recursively scan for Git projects.
-PROJECT_ROOTS="/path/to/your/projects,/another/path"
+# folder containing all codebases (recursively scanned)
+PROJECT_ROOTS=/Users/bz3b/Desktop/repos
 
-# The shared secret token used to authenticate requests from the voice assistant client.
-RELAY_TOKEN="your-secure-token"
+# MUST equal the app's EXPO_PUBLIC_RELAY_TOKEN
+RELAY_TOKEN=<openssl rand -hex 32>
 
-# (Optional) Port to run the service on. Defaults to 4599.
+# MUST equal the port in the app's RELAY_URL
 PORT=4599
+
+# local|antigravity|claude|codex|cursor
+PREFERRED_BACKEND=local
+
+OLLAMA_URL=http://127.0.0.1:11434
+
+# depending on your RAM you might want to change this model
+# this model runs very well with 24Gb of RAM
+OLLAMA_MODEL=qwen3:14b
+
+# STACK_REPO optional: auto-resolve .agents/.ai relative to the relay's own path inside this repo
 ```
 
 ## Running the Service
