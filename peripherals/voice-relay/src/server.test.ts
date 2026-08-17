@@ -1,14 +1,19 @@
 import 'dotenv/config';
-import test from 'node:test';
+import test, { before } from 'node:test';
 import assert from 'node:assert';
 import request from 'supertest';
-import { app, proposals } from './server.js';
+import { app, proposals, refreshSkills } from './server.js';
 import crypto from 'node:crypto';
 import type { Proposal } from './types.js';
 
 const TOKEN = process.env.RELAY_TOKEN!;
 
+before(async () => {
+  await refreshSkills();
+});
+
 test('POST /apply refuses if proposalId is missing or unknown', async () => {
+
   const res = await request(app)
     .post('/apply')
     .set('x-relay-token', TOKEN)

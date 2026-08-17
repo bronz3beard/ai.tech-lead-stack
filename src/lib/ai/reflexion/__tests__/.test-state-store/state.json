@@ -1,0 +1,30 @@
+{
+  "version": 2,
+  "runId": "run-123",
+  "brief": "Test brief",
+  "phase": "AWAITING_ANSWERS",
+  "plan": "## Test Plan",
+  "critiques": [
+    {
+      "gstackDiagnosis": 9,
+      "atomicBatches": 9,
+      "productionEthos": 9,
+      "modernWeb": 9,
+      "score": 9,
+      "passed": true,
+      "actionableFix": ""
+    }
+  ],
+  "revision": 1,
+  "params": {
+    "passThreshold": 8,
+    "maxRevisions": 3
+  },
+  "usage": {
+    "totalTokens": 100,
+    "costUsd": 0.1,
+    "perPhase": []
+  },
+  "createdAt": "2026-08-17T00:46:00.722Z",
+  "updatedAt": "2026-08-17T00:46:00.722Z"
+}
