@@ -1,4 +1,5 @@
-import matter from 'gray-matter';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { ResolvedSkill, SkillEntry } from './types.js';
@@ -8,24 +9,18 @@ const getDirname = () => {
     return __dirname;
   }
   const cwd = process.cwd();
-  return cwd.endsWith('voice-relay') 
-    ? path.join(cwd, 'src') 
+  return cwd.endsWith('voice-relay')
+    ? path.join(cwd, 'src')
     : path.join(cwd, 'peripherals/voice-relay/src');
 };
 
-// The tech-lead-stack repo root (where .agents/ and .ai/ live). Override with STACK_REPO env.
-const STACK_REPO = process.env.STACK_REPO || path.resolve(getDirname(), '../../../');
-
+const STACK_REPO =
+  process.env.STACK_REPO || path.resolve(getDirname(), '../../../');
 const OVERLAY_PATH = path.resolve(getDirname(), '../voice-aliases.json');
 
 interface Overlay {
-  [id: string]: {
-    aliases?: string[];
-    writes?: boolean;
-    type?: 'workflow' | 'skill';
-    skill?: string;
-    workflow?: string;
-  };
+  readOnly?: string[];
+  [id: string]: any;
 }
 
 function loadOverlay(): Overlay {
@@ -36,47 +31,15 @@ function loadOverlay(): Overlay {
   }
 }
 
-function scanDir(baseDir: string, type: 'workflow' | 'skill', out: Record<string, any>) {
-  let files: string[] = [];
-  try {
-    files = fs.readdirSync(baseDir).filter((f) => f.endsWith('.md'));
-  } catch {
-    return;
-  }
-  for (const f of files) {
-    try {
-      const fm = matter(fs.readFileSync(path.join(baseDir, f), 'utf8'));
-      const id = f.replace(/\.md$/, '');
-      const name = (fm.data?.name as string) || id;
-      out[id] = {
-        id,
-        type,
-        workflow: type === 'workflow' ? name : undefined,
-        skill: type === 'skill' ? name : undefined,
-        description: fm.data?.description as string | undefined,
-      };
-    } catch {
-      /* skip unreadable */
-    }
-  }
-}
-
-function scanManifest(manifestPath: string, out: Record<string, any>) {
+function scanManifest(manifestPath: string, out: Set<string>) {
   try {
     const lines = fs.readFileSync(manifestPath, 'utf8').split('\n');
     for (const line of lines) {
       if (!line.trim() || line.startsWith('#')) continue;
-      const [id, relPath] = line.split('|');
-      if (id && relPath) {
-        const type = relPath.includes('workflows/') ? 'workflow' : 'skill';
-        if (!out[id]) {
-          out[id] = {
-            id,
-            type,
-            workflow: type === 'workflow' ? path.basename(relPath, '.md') : undefined,
-            skill: type === 'skill' ? path.basename(relPath, '.md') : undefined,
-          };
-        }
+      const [id] = line.split('|');
+      if (id) {
+        // Strip workflow- prefix from Antigravity workflows
+        out.add(id.replace(/^workflow-/, ''));
       }
     }
   } catch {
@@ -84,27 +47,77 @@ function scanManifest(manifestPath: string, out: Record<string, any>) {
   }
 }
 
-export function buildRegistry(): SkillEntry[] {
+async function fetchMcpSkills(): Promise<Set<string> | null> {
+  const transport = new StdioClientTransport({
+    command: 'npx',
+    args: ['tsx', path.join(STACK_REPO, 'src/mcp-server/index.ts')],
+    env: { ...process.env, REPOS_ROOT: process.env.REPOS_ROOT || '' },
+  });
+
+  const client = new Client(
+    { name: 'voice-relay-skills', version: '0.1.0' },
+    { capabilities: {} }
+  );
+
+  try {
+    await client.connect(transport);
+    const result = await client.callTool({
+      name: 'list_skills',
+      arguments: {},
+    });
+
+    if (
+      result.isError ||
+      !Array.isArray(result.content) ||
+      result.content.length === 0
+    ) {
+      return null;
+    }
+
+    const content = result.content[0] as { type: string; text: string };
+    if (content.type === 'text') {
+      const skills = new Set<string>();
+      // Parse output: "- accessibility-auditor [modes: ...]"
+      const lines = content.text.split('\n');
+      for (const line of lines) {
+        const match = line.match(/^-\s+([a-zA-Z0-9-]+)/);
+        if (match && match[1]) {
+          skills.add(match[1]);
+        }
+      }
+      return skills.size > 0 ? skills : null;
+    }
+    return null;
+  } catch (e) {
+    return null;
+  } finally {
+    try {
+      await client.close();
+    } catch {}
+  }
+}
+
+export async function buildRegistry(): Promise<SkillEntry[]> {
   const overlay = loadOverlay();
-  const raw: Record<string, any> = {};
+  const readOnlyList = new Set(overlay.readOnly || []);
+  let rawSkills = await fetchMcpSkills();
 
-  scanDir(path.join(STACK_REPO, '.agents', 'workflows'), 'workflow', raw);
-  scanDir(path.join(STACK_REPO, '.agents', 'pm-workflows'), 'workflow', raw);
-  scanDir(path.join(STACK_REPO, '.agents', 'hr-workflows'), 'workflow', raw);
-  scanDir(path.join(STACK_REPO, '.ai', 'skills'), 'skill', raw);
-  
-  scanManifest(path.join(STACK_REPO, '.ai', 'cursor-skills.manifest'), raw);
+  if (!rawSkills) {
+    rawSkills = new Set<string>();
+    scanManifest(
+      path.join(STACK_REPO, '.ai', 'cursor-skills.manifest'),
+      rawSkills
+    );
+  }
 
-  const ids = new Set<string>([
-    ...Object.keys(raw),
-    ...Object.keys(overlay),
-  ]);
+  // Also include anything manually listed in overlay (except the readOnly array itself)
+  for (const key of Object.keys(overlay)) {
+    if (key !== 'readOnly') rawSkills.add(key);
+  }
 
   const entries: SkillEntry[] = [];
-  for (const id of ids) {
+  for (const id of rawSkills) {
     const ov = overlay[id] || {};
-    const base = raw[id] || {};
-    
     const aliases = new Set<string>([
       id,
       id.replace(/-/g, ' '),
@@ -113,14 +126,18 @@ export function buildRegistry(): SkillEntry[] {
       ...(ov.aliases || []),
     ]);
 
+    // determine type: if it's in the manifest as a workflow, or if we just default it
+    // Without full paths, we'll default to workflow unless specified.
+    const isReadOnly = readOnlyList.has(id);
+
     entries.push({
       id,
       aliases: [...aliases],
-      type: ov.type || base.type || 'workflow',
-      workflow: ov.workflow || base.workflow,
-      skill: ov.skill || base.skill,
-      writes: ov.writes ?? true,
-      description: base.description,
+      type: ov.type || 'workflow',
+      workflow: ov.workflow || id,
+      skill: ov.skill || id,
+      writes: !isReadOnly, // Default to true, gated by readOnly allowlist
+      description: ov.description,
     });
   }
   return entries;

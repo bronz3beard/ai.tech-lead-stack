@@ -2,14 +2,15 @@ import 'dotenv/config';
 import express from 'express';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
-import os from 'node:os';
 import { buildBackends } from './backends.js';
 import { getProjects, refreshProjects } from './projects.js';
 import { buildRegistry, resolveSkill } from './registry.js';
-import type { AgentBackend, Proposal } from './types.js';
+import type { AgentBackend, Proposal, SkillEntry } from './types.js';
 
 if (!fs.existsSync('.env')) {
-  console.error('Missing .env file. Please copy .env.example to .env and configure it.');
+  console.error(
+    'Missing .env file. Please copy .env.example to .env and configure it.'
+  );
   process.exit(1);
 }
 
@@ -20,7 +21,12 @@ if (!TOKEN || TOKEN === 'changeme-shared-token') {
   process.exit(1);
 }
 
-const registry = buildRegistry();
+let registry: SkillEntry[] = [];
+export async function refreshSkills() {
+  registry = await buildRegistry();
+  return registry;
+}
+
 let backends: AgentBackend[] = [];
 let _mockBackends: AgentBackend[] | null = null;
 export function __setMockBackends(mocks: AgentBackend[] | null) {
@@ -68,19 +74,33 @@ app.get('/backend', async (_req, res) => {
 });
 
 app.get('/skills', (_req, res) => res.json({ skills: registry }));
-app.get('/projects', (_req, res) => res.json(refreshProjects()));
+app.post('/skills/refresh', async (_req, res) =>
+  res.json({ skills: await refreshSkills() })
+);
+
+app.get('/projects', (_req, res) => res.json(getProjects()));
 app.post('/projects/refresh', (_req, res) => res.json(refreshProjects()));
 
 // GATE step 1: command pipeline (unified)
 app.post('/command', async (req, res) => {
-  const { transcript, projectId: explicitProjectId, backend: backendId } = req.body ?? {};
-  if (!transcript) return res.status(400).json({ error: 'transcript is required' });
+  const {
+    transcript,
+    projectId: explicitProjectId,
+    backend: backendId,
+  } = req.body ?? {};
+  if (!transcript)
+    return res.status(400).json({ error: 'transcript is required' });
 
   const allProjects = getProjects();
   let matchedProject = null;
   let remainingTranscript = transcript;
 
-  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+  const norm = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
   const t = norm(transcript);
 
   let bestAliasMatch: { p: any; alias: string } | null = null;
@@ -102,7 +122,9 @@ app.post('/command', async (req, res) => {
     matchedProject = bestAliasMatch.p;
     remainingTranscript = t.slice(norm(bestAliasMatch.alias).length).trim();
   } else if (explicitProjectId) {
-    matchedProject = allProjects.find((p) => p.id === explicitProjectId || p.path === explicitProjectId);
+    matchedProject = allProjects.find(
+      (p) => p.id === explicitProjectId || p.path === explicitProjectId
+    );
   }
 
   if (!matchedProject) {
@@ -138,7 +160,9 @@ app.post('/command', async (req, res) => {
     });
   } else {
     if (!backend.writesSupported) {
-      return res.status(400).json({ error: `backend '${backend.id}' is read-only; use a read-only skill` });
+      return res.status(400).json({
+        error: `backend '${backend.id}' is read-only; use a read-only skill`,
+      });
     }
 
     const r = await backend.propose({ prompt, cwd, skill });
@@ -194,7 +218,8 @@ buildBackends().then(async (b) => {
   if (process.env.NODE_ENV !== 'test') {
     // Refresh projects synchronously before boot log
     refreshProjects();
-    
+    await refreshSkills();
+
     // Detect backends for structured log
     const detectedBackends = await Promise.all(
       backends.map(async (bk) => {

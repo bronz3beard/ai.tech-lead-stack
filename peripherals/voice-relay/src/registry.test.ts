@@ -1,10 +1,18 @@
 import 'dotenv/config';
-import test from 'node:test';
+import { test as nodeTest } from 'node:test';
 import assert from 'node:assert';
 import { buildRegistry, resolveSkill } from './registry.js';
 
-test('registry writes:false flag', () => {
-  const registry = buildRegistry();
+// If this file is accidentally executed by Jest (e.g. via an IDE extension),
+// this dummy test prevents the "Test suite must contain at least one test" error.
+if (typeof describe !== 'undefined' && typeof it !== 'undefined') {
+  describe('voice-relay tests', () => {
+    it('are run via node:test, not Jest', () => {});
+  });
+}
+
+nodeTest('registry writes:false flag', async () => {
+  const registry = await buildRegistry();
   
   // Every writes:false must be deliberate. We don't have a list of all 
   // writes:false skills, but we can verify that the default fallback 
@@ -22,8 +30,8 @@ test('registry writes:false flag', () => {
   }
 });
 
-test('resolveSkill matching', () => {
-  const registry = buildRegistry();
+nodeTest('resolveSkill matching', async () => {
+  const registry = await buildRegistry();
   
   // Test exact alias match
   const res1 = resolveSkill('plan a new feature', registry);
