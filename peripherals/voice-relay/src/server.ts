@@ -31,8 +31,9 @@ export const proposals = new Map<string, Proposal>();
 
 function pickBackend(id?: string): AgentBackend {
   const list = _mockBackends || backends;
-  if (id) {
-    const b = list.find((x) => x.id === id);
+  const targetId = id || process.env.PREFERRED_BACKEND;
+  if (targetId) {
+    const b = list.find((x) => x.id === targetId);
     if (b) return b;
   }
   return list.find((x) => x.id !== 'local') ?? list[0];
@@ -61,7 +62,7 @@ app.get('/backend', async (_req, res) => {
       ...(await b.detect()),
     }))
   );
-  const active = pickBackend(process.env.PREFERRED_BACKEND);
+  const active = pickBackend();
   const activeInfo = detected.find((d) => d.id === active.id);
   res.json({ active: activeInfo, available: detected });
 });
@@ -191,17 +192,6 @@ app.post('/apply', async (req, res) => {
 buildBackends().then(async (b) => {
   backends = b;
   if (process.env.NODE_ENV !== 'test') {
-    const interfaces = os.networkInterfaces();
-    let lanIp = '127.0.0.1';
-    for (const name of Object.keys(interfaces)) {
-      for (const iface of interfaces[name] || []) {
-        if (iface.family === 'IPv4' && !iface.internal) {
-          lanIp = iface.address;
-          break;
-        }
-      }
-    }
-    
     // Refresh projects synchronously before boot log
     refreshProjects();
     
@@ -216,7 +206,6 @@ buildBackends().then(async (b) => {
 
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`\n🚀 voice-relay started on :${PORT}`);
-      console.log(`🔗 LAN URL: http://${lanIp}:${PORT} (token required)`);
       console.log(`📦 Projects found: ${getProjects().length}`);
       console.log(`🛠️  Skills loaded: ${registry.length}`);
       console.log(`🤖 Backends active: ${activeBackendsStr || 'None'}\n`);
