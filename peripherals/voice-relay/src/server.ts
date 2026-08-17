@@ -73,144 +73,159 @@ app.get('/backend', async (_req, res) => {
   res.json({ active: activeInfo, available: detected });
 });
 
-app.get('/skills', (_req, res) => res.json({ skills: registry }));
+app.get('/skills', async (_req, res) => res.json({ skills: await refreshSkills() }));
 app.post('/skills/refresh', async (_req, res) =>
   res.json({ skills: await refreshSkills() })
 );
 
-app.get('/projects', (_req, res) => res.json(getProjects()));
+app.get('/projects', (_req, res) => res.json(refreshProjects()));
 app.post('/projects/refresh', (_req, res) => res.json(refreshProjects()));
 
 // GATE step 1: command pipeline (unified)
-app.post('/command', async (req, res) => {
-  const {
-    transcript,
-    projectId: explicitProjectId,
-    backend: backendId,
-  } = req.body ?? {};
-  if (!transcript)
-    return res.status(400).json({ error: 'transcript is required' });
+app.post('/command', async (req, res, next) => {
+  try {
+    const {
+      transcript,
+      projectId: explicitProjectId,
+      backend: backendId,
+    } = req.body ?? {};
+    if (!transcript)
+      return res.status(400).json({ error: 'transcript is required' });
 
-  const allProjects = getProjects();
-  let matchedProject = null;
-  let remainingTranscript = transcript;
+    const allProjects = refreshProjects(); // ensure fresh projects
+    let matchedProject = null;
+    let remainingTranscript = transcript;
 
-  const norm = (s: string) =>
-    s
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-  const t = norm(transcript);
+    const norm = (s: string) =>
+      s
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    const t = norm(transcript);
 
-  let bestAliasMatch: { p: any; alias: string } | null = null;
+    let bestAliasMatch: { p: any; alias: string } | null = null;
 
-  for (const p of allProjects) {
-    const aliasesToMatch = [p.name, ...(p.aliases || [])];
-    for (const a of aliasesToMatch) {
-      const na = norm(a);
-      if (!na) continue;
-      if (t === na || t.startsWith(na + ' ')) {
-        if (!bestAliasMatch || na.length > norm(bestAliasMatch.alias).length) {
-          bestAliasMatch = { p, alias: na };
+    for (const p of allProjects) {
+      const aliasesToMatch = [p.name, ...(p.aliases || [])];
+      for (const a of aliasesToMatch) {
+        const na = norm(a);
+        if (!na) continue;
+        if (t === na || t.startsWith(na + ' ')) {
+          if (!bestAliasMatch || na.length > norm(bestAliasMatch.alias).length) {
+            bestAliasMatch = { p, alias: na };
+          }
         }
       }
     }
-  }
 
-  if (bestAliasMatch) {
-    matchedProject = bestAliasMatch.p;
-    remainingTranscript = t.slice(norm(bestAliasMatch.alias).length).trim();
-  } else if (explicitProjectId) {
-    matchedProject = allProjects.find(
-      (p) => p.id === explicitProjectId || p.path === explicitProjectId
-    );
-  }
+    if (bestAliasMatch) {
+      matchedProject = bestAliasMatch.p;
+      remainingTranscript = t.slice(norm(bestAliasMatch.alias).length).trim();
+    } else if (explicitProjectId) {
+      matchedProject = allProjects.find(
+        (p) => p.id === explicitProjectId || p.path === explicitProjectId
+      );
+    }
 
-  if (!matchedProject) {
-    return res.json({
-      kind: 'need-project',
-      message:
-        "I'm not sure which project you'd like me to work in. Tell me the project, then the skill, then what you'd like - for example, 'Homegrid, plan, add rate limiting.'",
-      projects: allProjects,
-    });
-  }
-
-  const resolved = resolveSkill(remainingTranscript, registry);
-  const skill = resolved?.entry ?? {
-    id: 'ask',
-    aliases: [],
-    type: 'workflow',
-    workflow: 'ask',
-    writes: false,
-  };
-
-  const prompt = resolved?.prompt ?? remainingTranscript;
-  const cwd = matchedProject.path;
-  const backend = pickBackend(backendId);
-
-  if (!skill.writes) {
-    const result = await backend.ask({ prompt, cwd, skill });
-    return res.json({
-      kind: 'answer',
-      skill: skill.id,
-      backend: backend.id,
-      projectName: matchedProject.name,
-      ...result,
-    });
-  } else {
-    if (!backend.writesSupported) {
-      return res.status(400).json({
-        error: `backend '${backend.id}' is read-only; use a read-only skill`,
+    if (!matchedProject) {
+      return res.json({
+        kind: 'need-project',
+        message:
+          "I'm not sure which project you'd like me to work in. Tell me the project, then the skill, then what you'd like - for example, 'Homegrid, plan, add rate limiting.'",
+        projects: allProjects,
       });
     }
 
-    const r = await backend.propose({ prompt, cwd, skill });
-    if (!r.ok) return res.status(500).json(r);
+    const currentRegistry = await refreshSkills(); // ensure fresh skills
+    const resolved = resolveSkill(remainingTranscript, currentRegistry);
+    const skill = resolved?.entry ?? {
+      id: 'ask',
+      aliases: [],
+      type: 'workflow',
+      workflow: 'ask',
+      writes: false,
+    };
 
-    const id = crypto.randomUUID();
-    proposals.set(id, {
-      id,
-      createdAt: Date.now(),
-      backendId: backend.id,
-      skillId: skill.id,
-      prompt,
-      cwd,
-      summary: r.summary,
-      status: 'proposed',
-    });
+    const prompt = resolved?.prompt ?? remainingTranscript;
+    const cwd = matchedProject.path;
+    const backend = pickBackend(backendId);
 
-    return res.json({
-      kind: 'proposal',
-      proposalId: id,
-      projectName: matchedProject.name,
-      skill: skill.id,
-      backend: backend.id,
-      summary: r.summary,
-      plan: r.diffPreview,
-    });
+    if (!skill.writes) {
+      const result = await backend.ask({ prompt, cwd, skill });
+      return res.json({
+        kind: 'answer',
+        skill: skill.id,
+        backend: backend.id,
+        projectName: matchedProject.name,
+        ...result,
+      });
+    } else {
+      if (!backend.writesSupported) {
+        return res.status(400).json({
+          error: `backend '${backend.id}' is read-only; use a read-only skill`,
+        });
+      }
+
+      const r = await backend.propose({ prompt, cwd, skill });
+      if (!r.ok) return res.status(500).json(r);
+
+      const id = crypto.randomUUID();
+      proposals.set(id, {
+        id,
+        createdAt: Date.now(),
+        backendId: backend.id,
+        skillId: skill.id,
+        prompt,
+        cwd,
+        summary: r.summary,
+        status: 'proposed',
+      });
+
+      return res.json({
+        kind: 'proposal',
+        proposalId: id,
+        projectName: matchedProject.name,
+        skill: skill.id,
+        backend: backend.id,
+        summary: r.summary,
+        plan: r.diffPreview,
+      });
+    }
+  } catch (err) {
+    next(err);
   }
 });
 
 // GATE step 2: apply. Requires a matching proposalId AND explicit approve:true. No other path writes.
-app.post('/apply', async (req, res) => {
-  const { proposalId, approve } = req.body ?? {};
-  const p = proposalId && proposals.get(proposalId);
-  if (!p)
-    return res.status(404).json({ error: 'unknown or expired proposalId' });
-  if (p.status !== 'proposed')
-    return res.status(409).json({ error: `proposal already ${p.status}` });
+app.post('/apply', async (req, res, next) => {
+  try {
+    const { proposalId, approve } = req.body ?? {};
+    const p = proposalId && proposals.get(proposalId);
+    if (!p)
+      return res.status(404).json({ error: 'unknown or expired proposalId' });
+    if (p.status !== 'proposed')
+      return res.status(409).json({ error: `proposal already ${p.status}` });
 
-  if (approve !== true) {
-    p.status = 'rejected';
-    return res.json({ proposalId, status: 'rejected' });
+    if (approve !== true) {
+      p.status = 'rejected';
+      return res.json({ proposalId, status: 'rejected' });
+    }
+    const backend = pickBackend(p.backendId);
+    const skill = registry.find((s) => s.id === p.skillId)!;
+    p.status = 'approved';
+    const result = await backend.apply({ prompt: p.prompt, cwd: p.cwd, skill });
+    p.status = result.ok ? 'applied' : 'proposed'; // leave re-approvable on failure
+    res.json({ proposalId, status: p.status, ...result });
+  } catch (err) {
+    next(err);
   }
-  const backend = pickBackend(p.backendId);
-  const skill = registry.find((s) => s.id === p.skillId)!;
-  p.status = 'approved';
-  const result = await backend.apply({ prompt: p.prompt, cwd: p.cwd, skill });
-  p.status = result.ok ? 'applied' : 'proposed'; // leave re-approvable on failure
-  res.json({ proposalId, status: p.status, ...result });
+});
+
+// Global error handler for human-readable errors, no raw stack traces
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({ error: err.message || 'Internal server error' });
 });
 
 buildBackends().then(async (b) => {
@@ -231,6 +246,7 @@ buildBackends().then(async (b) => {
 
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`\n🚀 voice-relay started on :${PORT}`);
+      console.log(`📁 Roots: ${process.env.PROJECT_ROOTS || 'none'}`);
       console.log(`📦 Projects found: ${getProjects().length}`);
       console.log(`🛠️  Skills loaded: ${registry.length}`);
       console.log(`🤖 Backends active: ${activeBackendsStr || 'None'}\n`);

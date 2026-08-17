@@ -149,13 +149,13 @@ export class LocalOllamaBackend implements AgentBackend {
 }
 
 // ---------------- Generic CLI backend (agy / claude / codex / cursor) ----------------
-// Verified invocation shapes baked in; TODO(gemini) markers where exact flags need confirming
-// against the installed binary (run `<bin> --help`).
 interface CliTool {
   bin: string;
   label: string;
   authPath: AuthPath;
   requiresWorktreeForReadOnly?: boolean;
+  // Auth probe invocation (should exit 0 if logged in, non-zero if not):
+  authProbeArgs: string[];
   // PLAN-ONLY invocation (must not write files):
   proposeArgs: (prompt: string) => string[];
   // WRITE invocation (only runs after explicit approval):
@@ -174,19 +174,16 @@ export const CLI_TOOLS: Record<string, CliTool> = {
     bin: 'agy',
     label: 'Antigravity (Ultra, OAuth)',
     authPath: 'subscription-oauth', // free under Ultra; consumer OAuth has daily limits
-    requiresWorktreeForReadOnly: true,
-    // TODO(gemini): confirm agy's non-interactive prompt flag + any --yolo/approval flag. OAuth login (no key).
-    proposeArgs: (p) => ['--prompt', PLAN_GUARD + p],
-    applyArgs: (p) => ['--prompt', p],
-    askArgs: (p) => [
-      '--prompt',
-      'Answer read-only, do not edit files.\n\n' + p,
-    ],
+    authProbeArgs: ['agent'], // 'agy agent' or similar should work to test basic functionality/auth
+    proposeArgs: (p) => ['-p', p, '--mode', 'plan', '--dangerously-skip-permissions'],
+    applyArgs: (p) => ['-p', p, '--mode', 'accept-edits', '--dangerously-skip-permissions'],
+    askArgs: (p) => ['-p', p, '--mode', 'plan', '--dangerously-skip-permissions'],
   },
   claude: {
     bin: 'claude',
     label: 'Claude Code (login — VERIFY billing)',
     authPath: 'subscription-login-check-billing', // claude -p may draw from a metered Agent-SDK pool
+    authProbeArgs: ['config', 'info'], // 'claude config info' or similar
     proposeArgs: (p) => [
       '-p',
       p,
@@ -230,21 +227,17 @@ export const CLI_TOOLS: Record<string, CliTool> = {
     bin: 'codex',
     label: 'Codex (ChatGPT plan)',
     authPath: 'subscription-chatgpt', // free under ChatGPT plan; reuses saved login
-    proposeArgs: (p) => ['exec', '--sandbox', 'read-only', PLAN_GUARD + p],
-    applyArgs: (p) => ['exec', '--sandbox', 'workspace-write', p],
-    askArgs: (p) => [
-      'exec',
-      '--sandbox',
-      'read-only',
-      'Answer read-only.\n\n' + p,
-    ],
+    authProbeArgs: ['whoami'], // 'codex whoami'
+    proposeArgs: (p) => ['exec', '--sandbox', 'read-only', '--json', PLAN_GUARD + p],
+    applyArgs: (p) => ['exec', '--sandbox', 'workspace-write', '--json', p],
+    askArgs: (p) => ['exec', '--sandbox', 'read-only', '--json', 'Answer read-only.\n\n' + p],
   },
   cursor: {
     bin: 'cursor-agent',
     label: 'Cursor',
     authPath: 'subscription-login',
-    requiresWorktreeForReadOnly: true,
-    // TODO(gemini): confirm cursor-agent headless flags + a real read-only/plan mode.
+    requiresWorktreeForReadOnly: true, // Assuming no true plan mode
+    authProbeArgs: ['--status'],
     proposeArgs: (p) => ['-p', PLAN_GUARD + p],
     applyArgs: (p) => ['-p', p],
     askArgs: (p) => ['-p', 'Answer read-only, do not edit files.\n\n' + p],
@@ -264,8 +257,17 @@ export class CliBackend implements AgentBackend {
   async detect(): Promise<DetectResult> {
     try {
       await pexec('which', [this.tool.bin], { timeout: 8000 });
-      // TODO(gemini): add a real auth/login probe per tool (e.g. whoami/status) to confirm logged-in.
-      return { detected: true, authPath: this.tool.authPath };
+      // Probe auth state using the tool's probe arguments
+      try {
+        await pexec(this.tool.bin, this.tool.authProbeArgs, { timeout: 8000 });
+        return { detected: true, authPath: this.tool.authPath };
+      } catch (authError) {
+        return {
+          detected: true, // Binary exists, but not logged in or probe failed
+          authPath: this.tool.authPath,
+          note: `${this.tool.bin} requires login`,
+        };
+      }
     } catch {
       return {
         detected: false,
