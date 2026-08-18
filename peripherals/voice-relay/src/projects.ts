@@ -46,7 +46,7 @@ export function scanProjects(roots: string | undefined): ProjectEntry[] {
   
   const found = new Map<string, ProjectEntry>();
 
-  function walk(dir: string, depth: number) {
+  function walk(dir: string, rootDir: string, depth: number) {
     if (depth > MAX_DEPTH) return;
     if (found.size >= MAX_COUNT) return;
 
@@ -70,7 +70,8 @@ export function scanProjects(roots: string | undefined): ProjectEntry[] {
 
     if (hasGit) {
       const resolvedPath = path.resolve(dir);
-      const id = path.basename(resolvedPath);
+      const name = path.basename(resolvedPath);
+      const id = path.relative(rootDir, resolvedPath) || name;
       
       // Check ignore
       if (ignoreList.has(id) || ignoreList.has(resolvedPath)) {
@@ -79,11 +80,11 @@ export function scanProjects(roots: string | undefined): ProjectEntry[] {
       
       // It's a project! Prune recursion.
       if (!found.has(resolvedPath)) {
-        const overlay = aliasesOverlay[id] || {};
+        const overlay = aliasesOverlay[id] || aliasesOverlay[name] || {};
         found.set(resolvedPath, {
           id,
           path: resolvedPath,
-          name: overlay.name || id,
+          name: overlay.name || name,
           aliases: overlay.aliases || [],
         });
       }
@@ -102,15 +103,102 @@ export function scanProjects(roots: string | undefined): ProjectEntry[] {
       if (entry.startsWith('.') || SKIP_DIRS.has(entry)) {
         continue;
       }
-      walk(path.join(dir, entry), depth + 1);
+      walk(path.join(dir, entry), rootDir, depth + 1);
     }
   }
 
   for (const rootPath of rootPaths) {
-    walk(path.resolve(rootPath), 0);
+    const absRoot = path.resolve(rootPath);
+    walk(absRoot, absRoot, 0);
   }
 
-  return Array.from(found.values());
+  const projects = Array.from(found.values());
+  
+  // Handle name collisions
+  const nameCounts = new Map<string, number>();
+  for (const p of projects) {
+    nameCounts.set(p.name, (nameCounts.get(p.name) || 0) + 1);
+  }
+  
+  for (const p of projects) {
+    if (nameCounts.get(p.name)! > 1) {
+      const parentDir = path.basename(path.dirname(p.path));
+      if (parentDir && parentDir !== '.' && parentDir !== path.basename(p.path)) {
+        p.name = `${p.name} — ${parentDir}`;
+      }
+    }
+  }
+
+  return projects;
+}
+
+export interface ResolveProjectResult {
+  kind: 'matched' | 'need-project';
+  project?: ProjectEntry;
+  projects?: ProjectEntry[];
+  remainingTranscript?: string;
+  message?: string;
+}
+
+export function resolveProject(
+  transcript: string,
+  explicitProjectId: string | undefined,
+  allProjects: ProjectEntry[]
+): ResolveProjectResult {
+  let matchedProject: ProjectEntry | undefined;
+  let remainingTranscript = transcript;
+
+  const norm = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  const t = norm(transcript);
+
+  if (explicitProjectId) {
+    matchedProject = allProjects.find((p) => p.id === explicitProjectId);
+    if (matchedProject) {
+      return { kind: 'matched', project: matchedProject, remainingTranscript };
+    }
+  }
+
+  const candidates: { p: ProjectEntry; alias: string }[] = [];
+  for (const p of allProjects) {
+    const aliasesToMatch = [p.name, ...(p.aliases || [])];
+    for (const a of aliasesToMatch) {
+      const na = norm(a);
+      if (!na) continue;
+      if (t === na || t.startsWith(na + ' ')) {
+        candidates.push({ p, alias: na });
+      }
+    }
+  }
+
+  if (candidates.length > 0) {
+    const maxLen = Math.max(...candidates.map((c) => c.alias.length));
+    const bestCandidates = candidates.filter((c) => c.alias.length === maxLen);
+    const uniqueProjects = Array.from(new Set(bestCandidates.map((c) => c.p)));
+    
+    if (uniqueProjects.length === 1) {
+      matchedProject = uniqueProjects[0];
+      const bestAliasMatch = bestCandidates.find((c) => c.p === matchedProject)!;
+      remainingTranscript = t.slice(bestAliasMatch.alias.length).trim();
+      return { kind: 'matched', project: matchedProject, remainingTranscript };
+    } else if (uniqueProjects.length > 1) {
+      return {
+        kind: 'need-project',
+        projects: uniqueProjects,
+        message: 'I found multiple projects matching that name — which one?',
+      };
+    }
+  }
+
+  return {
+    kind: 'need-project',
+    projects: allProjects,
+    message: "I'm not sure which project you'd like me to work in. Tell me the project, then the skill, then what you'd like - for example, 'Homegrid, plan, add rate limiting.'",
+  };
 }
 
 let _projects: ProjectEntry[] = [];

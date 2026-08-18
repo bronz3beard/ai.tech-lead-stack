@@ -36,7 +36,7 @@ test('recursive project discovery', () => {
     const projects = scanProjects(tmpRoot);
     
     const ids = projects.map(p => p.id).sort();
-    assert.deepStrictEqual(ids, ['monorepo', 'repo1']);
+    assert.deepStrictEqual(ids, ['category/repo1', 'monorepo']);
     
   } finally {
     fs.rmSync(tmpRoot, { recursive: true, force: true });

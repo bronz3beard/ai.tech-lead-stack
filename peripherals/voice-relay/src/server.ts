@@ -2,8 +2,8 @@ import 'dotenv/config';
 import express from 'express';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
-import { buildBackends } from './backends.js';
-import { getProjects, refreshProjects } from './projects.js';
+import { buildBackends, activeProcesses, killProcess, abortedRequests } from './backends.js';
+import { getProjects, refreshProjects, resolveProject } from './projects.js';
 import { buildRegistry, resolveSkill } from './registry.js';
 import type { AgentBackend, Proposal, SkillEntry } from './types.js';
 
@@ -14,7 +14,7 @@ if (!fs.existsSync('.env')) {
   process.exit(1);
 }
 
-const PORT = Number(process.env.PORT || 4599);
+const PORT = Number(process.env.PORT || 4601);
 const TOKEN = process.env.RELAY_TOKEN;
 if (!TOKEN || TOKEN === 'changeme-shared-token') {
   console.error('RELAY_TOKEN is missing or invalid in .env');
@@ -73,7 +73,9 @@ app.get('/backend', async (_req, res) => {
   res.json({ active: activeInfo, available: detected });
 });
 
-app.get('/skills', async (_req, res) => res.json({ skills: await refreshSkills() }));
+app.get('/skills', async (_req, res) =>
+  res.json({ skills: await refreshSkills() })
+);
 app.post('/skills/refresh', async (_req, res) =>
   res.json({ skills: await refreshSkills() })
 );
@@ -88,54 +90,40 @@ app.post('/command', async (req, res, next) => {
       transcript,
       projectId: explicitProjectId,
       backend: backendId,
+      requestId
     } = req.body ?? {};
+    
+    console.log(`\n[Relay] /command received (requestId: ${requestId}) | transcript: ${transcript}`);
+
+    if (requestId && activeProcesses.has(requestId)) {
+      return res.status(409).json({ error: 'duplicate active requestId' });
+    }
+
+    req.on('close', () => {
+      console.log(`[Relay] HTTP connection closed by client (requestId: ${requestId})`);
+      if (requestId) {
+        abortedRequests.add(requestId);
+        killProcess(requestId);
+        setTimeout(() => abortedRequests.delete(requestId), 10 * 60 * 1000);
+      }
+    });
+
     if (!transcript)
       return res.status(400).json({ error: 'transcript is required' });
 
     const allProjects = refreshProjects(); // ensure fresh projects
-    let matchedProject = null;
-    let remainingTranscript = transcript;
+    const projectResult = resolveProject(transcript, explicitProjectId, allProjects);
 
-    const norm = (s: string) =>
-      s
-        .toLowerCase()
-        .replace(/[^a-z0-9\s]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-    const t = norm(transcript);
-
-    let bestAliasMatch: { p: any; alias: string } | null = null;
-
-    for (const p of allProjects) {
-      const aliasesToMatch = [p.name, ...(p.aliases || [])];
-      for (const a of aliasesToMatch) {
-        const na = norm(a);
-        if (!na) continue;
-        if (t === na || t.startsWith(na + ' ')) {
-          if (!bestAliasMatch || na.length > norm(bestAliasMatch.alias).length) {
-            bestAliasMatch = { p, alias: na };
-          }
-        }
-      }
-    }
-
-    if (bestAliasMatch) {
-      matchedProject = bestAliasMatch.p;
-      remainingTranscript = t.slice(norm(bestAliasMatch.alias).length).trim();
-    } else if (explicitProjectId) {
-      matchedProject = allProjects.find(
-        (p) => p.id === explicitProjectId || p.path === explicitProjectId
-      );
-    }
-
-    if (!matchedProject) {
+    if (projectResult.kind === 'need-project') {
       return res.json({
         kind: 'need-project',
-        message:
-          "I'm not sure which project you'd like me to work in. Tell me the project, then the skill, then what you'd like - for example, 'Homegrid, plan, add rate limiting.'",
-        projects: allProjects,
+        message: projectResult.message,
+        projects: projectResult.projects,
       });
     }
+
+    const matchedProject = projectResult.project!;
+    const remainingTranscript = projectResult.remainingTranscript!;
 
     const currentRegistry = await refreshSkills(); // ensure fresh skills
     const resolved = resolveSkill(remainingTranscript, currentRegistry);
@@ -152,12 +140,16 @@ app.post('/command', async (req, res, next) => {
     const backend = pickBackend(backendId);
 
     if (!skill.writes) {
-      const result = await backend.ask({ prompt, cwd, skill });
+      if (requestId && abortedRequests.has(requestId)) {
+        return res.status(499).json({ error: 'Request aborted by client before execution' });
+      }
+      const result = await backend.ask({ prompt, cwd, skill, requestId });
       return res.json({
         kind: 'answer',
         skill: skill.id,
         backend: backend.id,
         projectName: matchedProject.name,
+        projectPath: matchedProject.path,
         ...result,
       });
     } else {
@@ -167,7 +159,10 @@ app.post('/command', async (req, res, next) => {
         });
       }
 
-      const r = await backend.propose({ prompt, cwd, skill });
+      if (requestId && abortedRequests.has(requestId)) {
+        return res.status(499).json({ error: 'Request aborted by client before execution' });
+      }
+      const r = await backend.propose({ prompt, cwd, skill, requestId });
       if (!r.ok) return res.status(500).json(r);
 
       const id = crypto.randomUUID();
@@ -186,6 +181,7 @@ app.post('/command', async (req, res, next) => {
         kind: 'proposal',
         proposalId: id,
         projectName: matchedProject.name,
+        projectPath: matchedProject.path,
         skill: skill.id,
         backend: backend.id,
         summary: r.summary,
@@ -222,11 +218,27 @@ app.post('/apply', async (req, res, next) => {
   }
 });
 
-// Global error handler for human-readable errors, no raw stack traces
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('Unhandled error:', err);
-  res.status(500).json({ error: err.message || 'Internal server error' });
+app.post('/cancel', (req, res) => {
+  const { requestId } = req.body ?? {};
+  if (requestId) {
+    killProcess(requestId);
+    return res.json({ ok: true });
+  }
+  return res.status(400).json({ error: 'requestId required' });
 });
+
+// Global error handler for human-readable errors, no raw stack traces
+app.use(
+  (
+    err: any,
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ) => {
+    console.error('Unhandled error:', err);
+    res.status(500).json({ error: err.message || 'Internal server error' });
+  }
+);
 
 buildBackends().then(async (b) => {
   backends = b;
