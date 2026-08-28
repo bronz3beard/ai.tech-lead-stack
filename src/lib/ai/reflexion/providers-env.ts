@@ -1,4 +1,3 @@
-import type { Project } from '@prisma/client';
 import {
   generateText,
   Output,
@@ -21,10 +20,14 @@ import { CritiqueSchema, InterviewSchema } from './schema';
 /**
  * Inspects the error status or message to identify hard connection/auth/rate limit failures.
  */
-export function isHardApiFailure(error: any): boolean {
+export function isHardApiFailure(error: unknown): boolean {
   if (!error) return false;
+  const errObj =
+    typeof error === 'object' && error !== null
+      ? (error as Record<string, unknown>)
+      : undefined;
   // Check HTTP status code
-  const status = error.status ?? error.statusCode;
+  const status = errObj ? (errObj.status ?? errObj.statusCode) : undefined;
   if (typeof status === 'number') {
     if (
       status === 401 ||
@@ -36,7 +39,11 @@ export function isHardApiFailure(error: any): boolean {
     }
   }
   // Check message content
-  const message = String(error.message ?? error).toLowerCase();
+  const message = (
+    errObj && typeof errObj.message === 'string'
+      ? errObj.message
+      : String(error)
+  ).toLowerCase();
   const keywords = [
     'quota',
     'credit',
