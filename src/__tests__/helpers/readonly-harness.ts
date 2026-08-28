@@ -68,7 +68,12 @@ export function makeFakeClientRepo(
 
   const cleanup = () => {
     try {
-      fs.rmSync(root, { recursive: true, force: true });
+      fs.rmSync(root, {
+        recursive: true,
+        force: true,
+        maxRetries: 3,
+        retryDelay: 50,
+      });
     } catch {
       // Ignore errors during cleanup
     }
@@ -208,6 +213,41 @@ export function spyOnFsWrites(): {
           path: extractPath(args[0]),
           args,
         });
+        if (method === 'rmSync') {
+          const target = String(args[0] ?? '');
+          const opts = (
+            args[1] && typeof args[1] === 'object' ? args[1] : {}
+          ) as fs.RmOptions;
+          try {
+            return realRmSync(target, {
+              recursive: true,
+              force: true,
+              maxRetries: 3,
+              retryDelay: 50,
+              ...opts,
+            });
+          } catch {
+            try {
+              if (realStatSync(target).isDirectory()) {
+                const files = realReaddirSync(target);
+                for (const f of files) {
+                  try {
+                    realUnlinkSync(path.join(target, f));
+                  } catch {}
+                }
+                return realRmSync(target, {
+                  recursive: true,
+                  force: true,
+                  ...opts,
+                });
+              } else {
+                return realUnlinkSync(target);
+              }
+            } catch {
+              // fallback to default
+            }
+          }
+        }
         return orig.apply(fs, args);
       });
       spies.push(spy);
