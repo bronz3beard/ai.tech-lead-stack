@@ -5,41 +5,34 @@ description:
   whenever the user wants to open, draft, raise, or "PR" their current branch —
   including phrasings like "create a PR", "open a draft PR", "raise a pull
   request", or "PR this branch" — even if they don't name the skill. The skill
-  drafts a high-context PR body and then creates the draft PR itself via the gh
-  CLI; it does not hand the user a command to run.
-parameters:
-  - runCodeReview:
-      (boolean) If true, performs a code review using the code-review-checklist
-      skill before creating the PR. Defaults to false.
-  - evidencePush:
-      (enum `user` | `agent`) Who pushes the screenshot evidence branch. `user`
-      (default) = the agent stages/commits screenshots but hands the user the
-      push command. `agent` = the agent may push, but ONLY to the dedicated
-      `pr/evidence-*` branch, never the code branch. Defaults to `user`.
+  reviews git commit history, strictly maps changes to the project's PR
+  template, automatically applies repository labels, pushes the branch to remote
+  if unpushed, and creates the draft PR via the gh CLI.
 cost: ~1800 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Ship & Communicate
 how:
-  'Fetches visual proof (screenshots) and maps code changes to the original
-  Strategic Mission.'
-useCase: 'Finalizing a feature branch into a professional, evidence-backed PR.'
+  'Reviews commit history, populates project PR templates, automatically infers
+  labels, and creates a draft PR via GitHub CLI.'
+useCase:
+  'Finalizing a feature branch into a professional, template-compliant PR.'
 ---
 
 # PR Automator
 
 ## The one job of this skill — read this first
 
-The deliverable of this skill is **a created draft PR**. Not a drafted body. Not
-a link to GitHub's "compare" page. Not a terminal command for the user to paste.
-A run is complete **only** when you have actually executed
-`gh pr create --draft` yourself and returned the resulting PR URL to the user.
+The deliverable of this skill is **a created draft PR on GitHub**. Not a drafted
+body file. Not a compare link. Not a terminal command for the user to run. A run
+is complete **only** when you have executed `gh pr create --draft` and returned
+the resulting PR URL to the user.
 
-> [!IMPORTANT] **Drafting a beautiful PR body and then handing the user a
-> `gh pr create` command to run is a FAILURE of this skill, not a completion of
-> it.** If you were able to run discovery commands like `git diff` and
-> `gh api user`, you are able to run `gh pr create` — it is the same `git`/`gh`
-> tooling. Do not stop one step short of the finish line.
+> [!IMPORTANT] **Drafting a PR body and then asking the user to run `git push`
+> or `gh pr create` is a FAILURE of this skill.** When invoked via
+> `/pr-automator`, you have explicit permission to inspect history, push
+> unpushed commits on the feature branch (`git push -u origin <branch>`), and
+> execute `gh pr create --draft`. Do not stop one step short of the finish line.
 
 **Why creating the draft yourself is correct and not overstepping:** the PR is
 created in **draft** mode on purpose. Draft mode _is_ the human checkpoint — the
@@ -204,78 +197,64 @@ Do **not** convert the error into a "here's the command, you run it" handoff.
 
 ---
 
-## 🛠 Workflow
+## 🔐 Git & CLI Command Policy
 
-0. **Pre-Review (optional):**
-   - If `runCodeReview` is `true`, execute `.ai/skills/code-review-checklist.md`
-     FIRST. Ensure all items pass or are being addressed before proceeding.
-   - Write the filled-out checklist to `.ai/evidence/pre-commit-review.md` and
-     tell the user they can inspect it.
-   - If severe issues are found, PAUSE and ask whether to proceed.
-   - Keep the filled-out checklist in working memory to inject as PR evidence.
+| Allowed & Mandated in PR Automator                                                | Strictly Forbidden                                                       |
+| :-------------------------------------------------------------------------------- | :----------------------------------------------------------------------- |
+| Read history: `git status`, `git log`, `git diff`, `git rev-parse`, `git branch`. | Force-pushing (`--force`, `+ref`) under any circumstances.               |
+| Discover GitHub metadata: `gh api user`, `gh label list`, `gh auth status`.       | Deleting, rebasing, or merging any branch.                               |
+| **Push feature branch if unpushed:** `git push -u origin <HEAD_BRANCH>`.          | Modifying or pushing directly to `main` / `master` / protected branches. |
+| **Create the Draft PR:** `gh pr create --draft ...` non-interactively.            | Creating live (non-draft) PRs without explicit confirmation.             |
+| Push screenshots to `pr/evidence-*` only when evidence capture is enabled.        | `git add .` (always path-scope additions).                               |
 
-1. **Context & Evidence Gathering:**
-   - **Pre-flight push check (concrete procedure — resolves to "proceed" in the
-     normal case):**
+---
 
-     ```bash
-     HEAD_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+## 🛑 Hard Stops — The ONLY Reasons Not to Create the PR
 
-     # Is the branch on the remote at all?
-     if git ls-remote --exit-code --heads origin "$HEAD_BRANCH" >/dev/null 2>&1; then
-       echo "On remote — OK to open the PR over it."
-     else
-       echo "HARD STOP #1: '$HEAD_BRANCH' is not on origin. Ask the user to push it."
-     fi
+If and only if one of these is true, pause, explain the blocker, and provide the
+remediation step:
 
-     # Optional: warn (do not block) if local is ahead of the remote.
-     git fetch origin "$HEAD_BRANCH" >/dev/null 2>&1 || true
-     if [ "$(git rev-parse HEAD 2>/dev/null)" != "$(git rev-parse FETCH_HEAD 2>/dev/null)" ]; then
-       echo "NOTE: local is ahead of origin/$HEAD_BRANCH — newest commits won't be in the PR until pushed."
-     fi
-     ```
+1. **`gh` is not authenticated:** `gh auth status` fails completely. Instruct
+   the user to authenticate via `gh auth login`.
+2. **Repository explicitly rejects draft PRs:** Draft mode is disabled on the
+   repository or GitHub organization. Ask the user if they want a live PR
+   instead.
 
-     If the branch is on the remote, **proceed** — do not treat "I should be
-     careful" as a reason to hand off. If it is genuinely not on the remote,
-     that is Hard stop #1.
+_Note on unpushed branches:_ If the local feature branch is not on origin,
+**push it automatically** (`git push -u origin <HEAD_BRANCH>`). Do not treat an
+unpushed branch as a hard stop.
 
-   - **Also confirm auth is usable:** `gh auth status` (Hard stop #2 if it
-     fails).
-   - **Base Branch Discovery:** determine the correct base branch.
-   - **Project Name Discovery:** from `package.json` or root folder.
-   - **Assignee Discovery:** `gh api user -q .login` → the PR author.
-   - **UI Change Detection** — follow these steps **in order**:
+---
 
-     **Step A — Run the diff:**
+## 🔧 Recoverable Errors — Fix and Retry Autonomously
 
-     ```bash
-     git diff --name-only <base>...HEAD
-     ```
+| Error / Symptom                                | Autonomous Resolution                                                                                                          |
+| :--------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------- |
+| `could not add label: 'X' not found`           | Remove the invalid label and retry `gh pr create` with only confirmed labels.                                                  |
+| Assignee could not be added                    | Drop the `--assignee` flag and retry immediately.                                                                              |
+| `unknown flag: --body-file`                    | Fall back to `--body "$(cat .github/.pr_body_temp.md)"`.                                                                       |
+| Sandbox config access warning (`~/.config/gh`) | Run command with environment bypass or ensure non-interactive flags (`--base`, `--head`, `--title`, `--body-file`) are passed. |
+| Missing `.github` temp folder                  | Run `mkdir -p .github` before writing `.github/.pr_body_temp.md`.                                                              |
 
-     Collect changed files matching `*.tsx`, `*.jsx`, `*.css`, `*.scss`,
-     `*.html`, or `tailwind.config.*`.
+---
 
-     **Step B — For EVERY `.tsx`/`.jsx` file, run the import check first:**
+## 🛠 Step-by-Step Workflow
 
-     ```bash
-     # Replace <ComponentName> with the PascalCase export and <file> with the filename
-     grep -rl "<ComponentName>" src/ --include="*.tsx" --include="*.ts" \
-       | grep -v "<file>" \
-       | grep -vE "\.(test|spec)\." \
-       | grep -v "index\."
-     ```
+### Step 0: Input & Context Extraction
 
-     - **Empty output** → component is **unrendered**. ✅ Skip visual
-       verification for this file, and add to the PR body:
-       `> ⚠️ filename added but not yet imported — visual verification skipped.`
-     - **Matches** → component is **rendered**. Mark it for capture.
+Extract all parameters provided by the user in their prompt:
 
-     **Step C — Decision:**
+- **Base branch:** Target branch (defaults to `main` if not specified).
+- **Module / Section / Migration:** User-provided section or feature tag (e.g.
+  `part 2 api backend wire up for audit log table`).
+- **Sprint:** User-provided sprint number/name (e.g. `44`).
+- **Evidence policy:** If the user specifies "DO NOT collect evidence", "skip
+  evidence", or "no screenshots", activate the **Evidence Skip Fast-Path** (Step
+  4A).
+- **Testing & Readiness notes:** User-provided notes regarding manual testing,
+  unit testing, or release readiness.
 
-     | Condition                                                                       | Action                                                             |
-     | ------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-     | All `.tsx`/`.jsx` files are unrendered AND no `.css`/`.scss`/`tailwind` changed | **Skip visual verifier. Label PR `no-ui-impact`. Go to Metadata.** |
-     | Any `.tsx`/`.jsx` is rendered OR any `.css`/`.scss`/`tailwind` changed          | **Proceed to Step D.**                                             |
+---
 
      **Step D — Capture (only if Step C says "Proceed"):**
      1. Run `rtk run visual-verifier`. This outputs a structured JSON manifest.
@@ -286,14 +265,14 @@ Do **not** convert the error into a "here's the command, you run it" handoff.
         `rtk run verify-evidence <publishPayloadPath>`.
      4. Note: Evidence images never leave the target repository.
 
-   - **Metadata:**
-     - Run `rtk run resolve-labels <pr_number>` AFTER PR creation. Labels are
-       fully decoupled from creation, using deterministic diff analysis and full
-       pagination.
-     - Determine appropriate reviewers.
-     - Exclude the PR author from the `## FYI 🙋` section.
-   - **Template:** search `.github/`, `.gitlab/`, or root for
-     `PULL_REQUEST_TEMPLATE`.
+- **Metadata:**
+  - Run `rtk run resolve-labels <pr_number>` AFTER PR creation. Labels are fully
+    decoupled from creation, using deterministic diff analysis and full
+    pagination.
+  - Determine appropriate reviewers.
+  - Exclude the PR author from the `## FYI 🙋` section.
+- **Template:** search `.github/`, `.gitlab/`, or root for
+  `PULL_REQUEST_TEMPLATE`.
 
 2. **Drafting:**
    - **Strict adherence:** use the discovered template as the mandatory schema.
@@ -307,22 +286,9 @@ Do **not** convert the error into a "here's the command, you run it" handoff.
      verified URLs (Path A) or a local drag-and-drop block (Path B) or a pending
      block.
 
-   - **Summary:** a high-level "Why" and "What," mapped to the template's
-     Description section.
-   - **Code Review Evidence:** if `runCodeReview` was `true`, replace the
-     `{{code-review-checklist-evidence}}` placeholder with a High-Density Audit
-     Report containing: (1) the completed checklist from
-     `.ai/evidence/pre-commit-review.md`; (2) a clear **🛠 Audit Status:
-     PASS/FAIL** section; (3) a brief summary of the audit focus. Exclude the
-     raw `## 🛠 Outcome Actions` instruction block.
-   - **Technical changes:** use the template's semantics (add/update/fix).
-   - **Checklist:** fill all checkboxes based on metadata.
+---
 
-3. **Action (Draft Mode) — this step is mandatory and you execute it:**
-   - Pre-flight already confirmed the branch is on the remote and `gh` is
-     authenticated. Now **create the PR yourself** with the `gh` CLI. Do not
-     wait for a "create-pr" tool — it does not exist. Do not output the command
-     for the user instead of running it.
+### Step 2: Mandatory Commit History & Semantic Extraction
 
      ```bash
      gh pr create \
@@ -334,16 +300,9 @@ Do **not** convert the error into a "here's the command, you run it" handoff.
        --assignee "<GH_LOGIN>"
      ```
 
-   - Include `--head` explicitly so `gh` never prompts. Include only labels
-     confirmed by `gh label list`; if none match, omit `--label` entirely.
-   - **On error:** consult
-     [Recoverable errors](#-recoverable-errors--fix-and-retry-never-hand-off),
-     fix the input, and rerun. Only the three
-     [Hard stops](#-hard-stops--the-only-reasons-not-to-create-the-pr) justify
-     not creating the PR.
-   - **Fallback:** if `--body-file` is unsupported, use
-     `--body "$(cat .github/.pr_body_temp.md)"`.
-   - **After successful creation**, clean up local temp files:
+```bash
+git log <BASE_BRANCH>...HEAD --pretty=format:"%h %s"
+```
 
      ```bash
      rm -f .ai/tmp/pr-body.md
@@ -351,46 +310,138 @@ Do **not** convert the error into a "here's the command, you run it" handoff.
      # Never delete .ai/evidence/<feature-branch>/ entirely since Path B users need to drag and drop from it
      ```
 
-   - **Report the PR URL** returned by `gh pr create` to the user, and tell them
-     to review it and click "Ready for review" when they're happy. That URL is
-     the proof the run succeeded.
+- **`- add:`** New features, endpoints, components, utilities, or database
+  models.
+- **`- update:`** Modifications, enhancements, or state updates to existing
+  logic.
+- **`- fix:`** Bug fixes, regression resolutions, error handling improvements.
+- **`- refactor:`** Structural refactoring, typing improvements, cleanups.
+- **`- delete:`** Deleted files, deprecated mocks, removed dead code.
 
-## ✅ Definition of Done (self-check before you end the turn)
+_Ensure the semantic bullets accurately represent the actual commits made on the
+branch._
 
-You are done only when ALL of these are true:
+---
 
-1. `gh pr create --draft` executed successfully and returned a PR URL.
-2. You have shown that PR URL to the user.
-3. Temp files (`.github/.pr_body_temp.md`, and the review/evidence temps) are
-   removed.
+### Step 3: Dynamic Template Discovery & Verbatim Preservation
 
-If #1 isn't true and you're not blocked by a documented Hard stop, you are **not
-done** — go back and create the PR. A message that ends with a `gh pr create`
-command for the user to run (outside pure read-only chat) means the skill
-failed.
+Search the repository for a PR template in the following precedence order:
 
-## ⚖️ Anti-Rationalization
+1. `.github/pull_request_template.md`
+2. `.github/PULL_REQUEST_TEMPLATE.md`
+3. `.github/PULL_REQUEST_TEMPLATE/*.md`
+4. `.gitlab/merge_request_templates/*.md`
+5. `pull_request_template.md` (repository root)
+6. Fallback Default Template (if no file is found in target repository).
 
-| Excuse                                                           | Rebuttal                                                                                                                        |
-| :--------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------ |
-| "I drafted the body and gave the user the command to run."       | **Denied.** Running the command _is_ the job. Drafting + handing over is a failed run. Execute `gh pr create` yourself.         |
-| "Here's the GitHub compare link / a one-click terminal command." | **Denied.** A link or a command is not a created PR. The deliverable is the PR URL that `gh pr create` returns.                 |
-| "A `gh`/git command errored, so I handed it back."               | **Denied.** Errors are recoverable — fix the input and retry. Only the three documented Hard stops justify stopping.            |
-| "The branch isn't pushed, I'll just push it so the PR works."    | **Denied.** You never push the code branch. That's Hard stop #1 — ask the user to push, then open the PR over it.               |
-| "`git add .` is faster than staging only the screenshots."       | **Denied.** A bare add on the evidence branch can sweep in the user's uncommitted code. Path-scope it: `git add screenshots/…`. |
-| "There are local changes; let me commit them into the PR."       | **Denied.** You never stage or commit code. The PR reflects only what the user has already committed and pushed.                |
-| "The app needs login, so I can't finish — I'll stop."            | **Denied.** Evidence is best-effort and never blocks creation. Note "Screenshots pending" and still open the draft.             |
-| "I'll hardcode the test creds so it repeats."                    | **Denied.** Auth is per-project, supplied at invocation, env-only, never committed. Hardcoding leaks secrets into git + traces. |
-| "The login-page screenshot is good enough evidence."             | **Denied.** It proves nothing about the feature. Note it as pending instead of attaching it.                                    |
+#### Strict Preservation & Field Mapping Rules
 
-## Requirements
+- **Load the template verbatim:** Keep all original markdown headings,
+  instructions, blockquotes, and checkbox lists.
+- **Do not invent generic schemas:** If the repository has custom headings
+  (e.g., `## Module`, `## Shared Code Impact`, `## FYI 🙋`, `## Testing`,
+  `## Release Readiness`), retain every heading.
+- **Inject parsed values:**
+  - **`## Description 📝`:** Insert the semantic list (`- add: ...`,
+    `- update: ...`, etc.) generated in Step 2.
+  - **`## Module` / `Section`:** Map the user's section/module and sprint values
+    (e.g., `Migration Number/Section Name: <section>`, `Sprint: <sprint>`).
+  - **`## Shared Code Impact`:** Analyze
+    `git diff --name-only <BASE_BRANCH>...HEAD` to check if shared core
+    directories (e.g. `shared/`, `components/ui/`, `lib/`) were touched; mark
+    Yes/No accordingly.
+  - **`## Testing`:** Check the user prompt: if manual testing is confirmed
+    completed, mark `Manual testing completed: Yes`; otherwise map accurately.
+  - **`## Release Readiness`:** If the user stated ready for release, mark
+    `Ready for release: Yes` and `Needs additional work: No`.
+  - **`## FYI 🙋`:** List relevant team handles (excluding the PR author).
 
-- Use professional, concise language.
-- Link the PR to the relevant task ID (ClickUp, Jira, GitHub Issues).
-- **Create the draft PR yourself** whenever a shell is available — never hand
-  the user a command as a substitute for running it. Report the returned PR URL.
-- Honour the **Git Command Policy** — read history and open the PR; never push
-  the user's code.
-- Honour **Authenticated Evidence** — auth is per-project, env-only, never
-  hardcoded or committed; redact it from all output; evidence never blocks PR
-  creation.
+---
+
+### Step 4: Evidence Handling
+
+#### Option A: Evidence Skip Fast-Path (When user requests no evidence)
+
+If the user instructed not to collect evidence:
+
+1. Skip all Playwright runs, visual verification, and branch switching.
+2. In the template's `## Screenshots 📸` (or equivalent) section, write:
+   `*Evidence collection / UI smoke testing deferred to PR author as per instruction.*`
+3. Proceed directly to Step 5.
+
+#### Option B: Automated Evidence Capture (When evidence is enabled and UI is touched)
+
+1. Run `git diff --name-only <BASE_BRANCH>...HEAD` to check for `.tsx`, `.jsx`,
+   `.css`, or styling changes.
+2. If UI changes are present, capture screenshots using
+   `rtk run visual-verifier` (or project test harness).
+3. Persist screenshots to `pr/evidence-[project-name]` and switch back to the
+   feature branch.
+4. Inject table links into the `## Screenshots` section:
+
+   ```markdown
+   | Desktop          | Tablet          | Mobile          |
+   | :--------------- | :-------------- | :-------------- |
+   | ![Desktop](URL1) | ![Tablet](URL2) | ![Mobile](URL3) |
+   ```
+
+---
+
+### Step 5: Automatic Label Discovery & Heuristic Tagging
+
+1. Query available repository labels:
+
+   ```bash
+   gh label list --json name -q '.[].name'
+   ```
+
+2. Automatically match appropriate labels based on:
+   - **Branch / commit type:** `feat:` / `feature/` $\rightarrow$ `enhancement`;
+     `fix:` / `bug/` $\rightarrow$ `bug`.
+   - **Touched paths:** `tests/`, `*.spec.*` $\rightarrow$ `tests`; `app/`,
+     `components/` $\rightarrow$ UI label (e.g. `gilly-ui` or generic UI);
+     `api/`, `actions/` $\rightarrow$ `api-integration`.
+   - **Refactoring:** `refactor:` $\rightarrow$ `refactor`.
+   - **Diff size:** Check line changes for `size S`, `size M`, `size L`.
+3. Intersect inferred labels with available repository labels to ensure only
+   valid labels are passed.
+
+---
+
+### Step 6: PR Creation Execution (Non-Interactive)
+
+1. Write the completed PR description to `.github/.pr_body_temp.md` (plain
+   markdown, no surrounding markdown fences).
+2. Execute `gh pr create` with all parameters:
+
+   ```bash
+   gh pr create \
+     --draft \
+     --base "<BASE_BRANCH>" \
+     --head "$HEAD_BRANCH" \
+     --title "<TITLE>" \
+     --body-file .github/.pr_body_temp.md \
+     ${GH_USER:+--assignee "$GH_USER"} \
+     --label "<CONFIRMED_LABEL_1>" \
+     --label "<CONFIRMED_LABEL_2>"
+   ```
+
+3. Remove temporary files:
+
+   ```bash
+   rm -f .github/.pr_body_temp.md
+   ```
+
+4. Output the created draft PR URL to the user.
+
+---
+
+## ✅ Definition of Done
+
+1. `gh pr create --draft` executed cleanly.
+2. The PR body strictly followed the repository's PR template without missing
+   sections.
+3. Commit history was reviewed and converted into accurate semantic bullets
+   (`- add:`, `- update:`, `- fix:`).
+4. Relevant repository labels were automatically confirmed and attached.
+5. The live GitHub PR URL is presented to the user.
