@@ -11,6 +11,13 @@ description: >
 cost: ~1400 tokens
 modes: [read-only, write, mcp]
 surface: public
+category: Orchestrators
+how:
+  'Chains specialist skills (design assistant, planning expert/decomposer,
+  verification auditor) into a governed, runtime-aware loop.'
+useCase:
+  'Use from the feature-discovery chat to drive a single-feature change
+  end-to-end in the sandbox app.'
 ---
 
 # Feature Orchestrator (The Three-Phase Engine)

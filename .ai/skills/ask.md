@@ -10,6 +10,11 @@ description: >
 cost: ~700 tokens
 modes: [read-only, mcp]
 surface: public
+category: Discover & Define
+how:
+  'Diagnostic research via Phase 0 discovery, followed by high-density technical
+  advice and snippets.'
+useCase: 'Q&A about the codebase or "How would I change this?" queries.'
 ---
 
 # Codebase Consultant (The Advisor)

@@ -5,7 +5,9 @@ async function main() {
 
   const user = await prisma.user.findFirst();
   if (!user) {
-    console.error('No user found to associate fixtures with. Please create a user first.');
+    console.error(
+      'No user found to associate fixtures with. Please create a user first.'
+    );
     process.exit(1);
   }
 
@@ -125,15 +127,22 @@ async function main() {
       projectName: '[Fixture Project]',
       metadata: { frictionFiled: true },
       userId: user.id,
-    }
+    },
   ];
 
   await prisma.analyticsEvent.createMany({
-    data: [...healthyEvents, ...noddingEvents, ...blockedEvents, ...otherEvents],
+    data: [
+      ...healthyEvents,
+      ...noddingEvents,
+      ...blockedEvents,
+      ...otherEvents,
+    ],
   });
 
   console.log('Seeded fixtures successfully.');
-  console.log('To view them, load the dashboard and check the Agentic Health section.');
+  console.log(
+    'To view them, load the dashboard and check the Agentic Health section.'
+  );
 }
 
 main()

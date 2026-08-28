@@ -6,6 +6,11 @@ description: >
 cost: ~650 tokens
 modes: [read-only, write, mcp]
 surface: public
+category: Review & Verify
+how:
+  'Analyzes local diffs against 4 gates (Spec, SOLID, A11y, Evidence), ensuring
+  zero `any` types and compliance.'
+useCase: 'Rapid local verification before running `rtk run create-pr`.'
 ---
 
 # Pre-Commit QA Checklist (The Fast Review)

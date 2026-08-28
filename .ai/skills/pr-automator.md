@@ -19,6 +19,11 @@ parameters:
 cost: ~1800 tokens
 modes: [read-only, write, mcp]
 surface: public
+category: Ship & Communicate
+how:
+  'Fetches visual proof (screenshots) and maps code changes to the original
+  Strategic Mission.'
+useCase: 'Finalizing a feature branch into a professional, evidence-backed PR.'
 ---
 
 # PR Automator

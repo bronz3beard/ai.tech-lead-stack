@@ -6,6 +6,7 @@ description: >
 cost: ~1100 tokens
 modes: [read-only, write, mcp]
 surface: public
+category: Discover & Define
 ---
 
 # Codebase Onboarding Intelligence (The Master Discovery)

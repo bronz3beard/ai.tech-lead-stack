@@ -6,6 +6,11 @@ description: >
 cost: ~800 tokens
 modes: [read-only, write, mcp]
 surface: public
+category: Discover & Define
+how:
+  'Discovers existing patterns and generates technical specs before the first
+  line of code is written.'
+useCase: 'High-level ideation for a new service or module.'
 ---
 
 # Feature Design Assistant (The Discovery Engine)

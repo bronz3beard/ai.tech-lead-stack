@@ -6,6 +6,12 @@ description: >
 cost: ~1350 tokens
 modes: [read-only, mcp]
 surface: public
+category: Build & Fix
+how:
+  'Maps feedback to code impact, generates a localized remediation plan, and
+  verifies the fix against regressions.'
+useCase:
+  'Fixing "Login button misaligned" or "API returning 500" after a QA pass.'
 ---
 
 # Regression & Feedback Fix (The Remedy Engine)

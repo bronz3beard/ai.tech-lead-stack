@@ -65,7 +65,9 @@ export function formatInterviewMd(runId: string, questions: any[]): string {
   }
 
   md.push('## Answers');
-  md.push('Fill in the `answer` fields below, or set `directive` to `approve` or `stop`.');
+  md.push(
+    'Fill in the `answer` fields below, or set `directive` to `approve` or `stop`.'
+  );
   md.push('```yaml answers:');
   md.push(`runId: "${runId}"`);
   md.push('# directive: "approve"');

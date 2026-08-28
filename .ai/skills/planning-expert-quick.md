@@ -11,6 +11,12 @@ description: >
 cost: ~750 tokens
 modes: [read-only, write, mcp]
 surface: public
+category: Plan & Harden
+how:
+  'Anchors tech stack followed by a condensed W/W/H blueprint and rapid
+  execution cycle.'
+useCase:
+  'Common, less complex, lite-weight tasks where velocity is the priority.'
 ---
 
 # Planning Expert (The G-Stack Runner)

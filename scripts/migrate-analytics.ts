@@ -70,7 +70,7 @@ async function main() {
   // Pre-fetch all users to avoid N+1 queries during migration mapping
   const users = await prisma.user.findMany();
   const userMap = new Map<string, string>();
-  users.forEach(u => {
+  users.forEach((u) => {
     userMap.set(u.id, u.id);
     if (u.email) userMap.set(u.email, u.id);
   });
@@ -79,19 +79,31 @@ async function main() {
   const traceIds = new Set<string>(); // to deduplicate manually before createMany
 
   for (const trace of allTraces) {
-    if (!trace.name || trace.name === 'chat' || trace.name === 'session') continue; // only migrate skills
+    if (!trace.name || trace.name === 'chat' || trace.name === 'session')
+      continue; // only migrate skills
     if (traceIds.has(trace.id)) continue;
 
     let userId = trace.userId || 'anonymous';
     let resolvedUserId = userMap.get(userId);
 
-    if(!resolvedUserId) {
-        continue;
+    if (!resolvedUserId) {
+      continue;
     }
 
-    const totalTokens = trace.totalTokens || trace.usage?.totalTokens || trace.usage?.total || 0;
-    const promptTokens = trace.inputTokens || trace.usage?.inputTokens || trace.usage?.promptTokens || trace.usage?.input || 0;
-    const completionTokens = trace.outputTokens || trace.usage?.outputTokens || trace.usage?.completionTokens || trace.usage?.output || 0;
+    const totalTokens =
+      trace.totalTokens || trace.usage?.totalTokens || trace.usage?.total || 0;
+    const promptTokens =
+      trace.inputTokens ||
+      trace.usage?.inputTokens ||
+      trace.usage?.promptTokens ||
+      trace.usage?.input ||
+      0;
+    const completionTokens =
+      trace.outputTokens ||
+      trace.usage?.outputTokens ||
+      trace.usage?.completionTokens ||
+      trace.usage?.output ||
+      0;
 
     validEvents.push({
       id: trace.id,
@@ -107,7 +119,9 @@ async function main() {
       totalTokens,
       totalCost: trace.totalCost || 0,
       langfuseTraceId: trace.id,
-      metadata: trace.metadata ? JSON.parse(JSON.stringify(trace.metadata)) : {},
+      metadata: trace.metadata
+        ? JSON.parse(JSON.stringify(trace.metadata))
+        : {},
       createdAt: new Date(trace.timestamp),
     });
 
@@ -118,7 +132,7 @@ async function main() {
     console.log(`Inserting ${validEvents.length} events using createMany...`);
     await prisma.analyticsEvent.createMany({
       data: validEvents,
-      skipDuplicates: true
+      skipDuplicates: true,
     });
   }
 

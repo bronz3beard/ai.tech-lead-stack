@@ -12,18 +12,20 @@
 
 1. [The one-sentence mental model](#1-the-one-sentence-mental-model)
 2. [When to use it — and when not to](#2-when-to-use-it--and-when-not-to)
-3. [The two runtime modes (this determines everything)](#3-the-two-runtime-modes-this-determines-everything)
-4. [Choosing models](#4-choosing-models)
-5. [How the team sizes itself to the task](#5-how-the-team-sizes-itself-to-the-task)
-5. [What a good task hand-off contains](#5-what-a-good-task-hand-off-contains)
-6. [The five phases, from your seat](#6-the-five-phases-from-your-seat)
-7. [Working the gates: the interview inbox](#7-working-the-gates-the-interview-inbox)
-8. [Parallel lanes: running several tasks at once](#8-parallel-lanes-running-several-tasks-at-once)
-9. [Friction defects: when the team tells on itself](#9-friction-defects-when-the-team-tells-on-itself)
-10. [Worked example: a small task (XS/S)](#10-worked-example-a-small-task-xss)
-11. [Worked example: a large task (L/XL)](#11-worked-example-a-large-task-lxl)
-12. [Edge cases and gotchas](#12-edge-cases-and-gotchas)
-13. [Pre-flight checklist before any run](#13-pre-flight-checklist-before-any-run)
+3. [Which tier to choose](#3-which-tier-to-choose)
+4. [The two runtime modes (this determines everything)](#4-the-two-runtime-modes-this-determines-everything)
+5. [Choosing models](#5-choosing-models)
+6. [How the team sizes itself to the task](#6-how-the-team-sizes-itself-to-the-task)
+7. [What a good task hand-off contains](#7-what-a-good-task-hand-off-contains)
+8. [The five phases, from your seat](#8-the-five-phases-from-your-seat)
+9. [Working the gates: the interview inbox](#9-working-the-gates-the-interview-inbox)
+10. [Parallel lanes: running several tasks at once](#10-parallel-lanes-running-several-tasks-at-once)
+11. [Friction defects: when the team tells on itself](#11-friction-defects-when-the-team-tells-on-itself)
+12. [Worked example: a small task (XS/S)](#12-worked-example-a-small-task-xss)
+13. [Worked example: a large task (L/XL)](#13-worked-example-a-large-task-lxl)
+14. [Edge cases and gotchas](#14-edge-cases-and-gotchas)
+15. [Pre-flight checklist before any run](#15-pre-flight-checklist-before-any-run)
+16. [Closing the outer loop](#16-closing-the-outer-loop)
 
 ---
 
@@ -39,6 +41,18 @@ gates, never line-by-line instructions; the human appears only at gates; we
 advise, the User Tech-Lead decides._ If you find yourself telling the team
 exactly which lines to write, you are using it wrong — that is what the
 anti-micromanagement rule exists to prevent.
+
+### The Three-Loop Orientation
+
+To orient this skill within Andrew Ng's three-loop AI workflow model:
+
+| Loop | Cycle Time | Actor | Scope |
+| :--- | :--- | :--- | :--- |
+| **INNER** | Minutes | Agent-driven | Execution lanes (`dev-team-*`) and autonomous revisions (`reflexion-loop-*`). |
+| **MIDDLE** | Hours | Developer-driven | Strategic gates, PARKs, the interview inbox, plan approvals, and design waivers. |
+| **OUTER** | Days to weeks | Users and market | End-user feedback, analytics, and business impact. See [Closing the outer loop](#16-closing-the-outer-loop). <!-- Note: renumbering sections above will break this anchor --> |
+
+The dev team and its loop engines automate the INNER loop, intentionally surfacing to you at the MIDDLE loop for steering and approval.
 
 ---
 
@@ -75,7 +89,86 @@ needs.
 
 ---
 
-## 3. The two runtime modes (this determines everything)
+## 3. Which tier to choose
+
+The stack provides three tier-aligned dev team orchestrators to fit your
+available model budget and subscription level:
+
+| Tier / Skill                | Target Account / Budget                 | Parallel Lanes       | Worktree Isolation      | Hardening Engine                    | Tier Ceiling / Refusal                            |
+| --------------------------- | --------------------------------------- | -------------------- | ----------------------- | ----------------------------------- | ------------------------------------------------- |
+| **`dev-team-orchestrator`** | Full / Enterprise (API Keys configured) | 3+ parallel lanes    | Yes (Git Worktrees)     | `reflexion-loop` (Dual-model)       | Uncapped (XS to XL)                               |
+| **`dev-team-sub-max`**      | ~$100/mo Subscriptions (No API Keys)    | Max 2 parallel lanes | Yes (Git Worktrees)     | `reflexion-loop-sub-max`            | Uncapped (XL requires confirmation gate)          |
+| **`dev-team-sub-pro`**      | ~$20/mo Subscriptions (No API Keys)     | 1 lane (Single pair) | No (Branch on checkout) | `reflexion-loop-sub-pro` (Optional) | Capped at M size / Risk 1 (Refuses L/XL & Risk 2) |
+
+**Rule of thumb:**
+
+- Use **`dev-team-orchestrator`** if `GEMINI_API_KEY` and `ANTHROPIC_API_KEY`
+  are configured for maximum adversarial plan hardening.
+- Use **`dev-team-sub-max`** if you are running on a higher-tier subscription
+  (e.g. Max / Team plan) without external API keys and want multi-lane parallel
+  execution.
+- Use **`dev-team-sub-pro`** for standard subscription runs ($20/mo). It
+  enforces a disciplined Builder+Checker pair directly on your branch without
+  burning turn budget on worktree setup.
+
+> [!NOTE]
+> For platform limits, pricing changes, and CLI quota behaviors as of August 2026, see the Platform Facts in the [README](../README.md#which-tier-am-i-on).
+
+### What happens when you hit a model limit
+
+Subscription runs operate under rolling-window quota limits. The subscription
+orchestrators handle quota exhaustion seamlessly without losing work:
+
+1. **Three Exhaustion Modes:**
+   - **Mode A (Model-scoped):** Quota for one model is exhausted. The
+     orchestrator runs the fallback ladder laterally or downward to switch
+     models and continues.
+   - **Mode B (Account-wide):** Session or weekly limit reached across models.
+     The orchestrator compacts work into the Findings Ledger
+     (`.dev-team/analysis/<lane-id>.md`), PARKs, and reports the reset window.
+   - **Mode C (Silent downgrade):** The harness auto-swaps models mid-session
+     without error. The orchestrator polls model identity at phase boundaries
+     and records any change as a swap event.
+
+2. **The Fallback Ladder (Tier-Dependent):**
+   - On `$100+` `sub-max` runs, the orchestrator walks this ladder laterally or downward:
+     - **Rung 1:** Same model class, different vendor (isolation preserved).
+     - **Rung 2:** Same vendor, lower model class (recomputes isolation level).
+     - **Rung 3:** Small/fast class (THROUGHPUT roles only; assurance roles never fall here).
+     - **Rung 4:** No capacity anywhere -> Consolidate into Findings Ledger, PARK, report reset window.
+   - On `$20` `sub-pro` runs, there is no headroom to spend probing fallback rungs. The ladder is **COMPRESSED**, and model exhaustion triggers Mode B (consolidate-and-park) immediately.
+   - *Note:* A **SURFACE swap** is not a rung. The CLI and IDE share one quota pool; switching between them does not restore capacity.
+
+3. **UNREVIEWED vs PROVISIONAL Slices:**
+   - **PROVISIONAL Slices:** Work where an audit _completed_, but under a
+     degraded assurance role (same model or L2/L3 isolation). PROVISIONAL slices
+     are re-reviewed when capacity returns or require an explicit Tech-Lead
+     waiver at a gate.
+   - **UNREVIEWED Slices:** Work where the run _stopped before the audit
+     finished_ (Mode B account-wide limit). UNREVIEWED work has received NO
+     verification pass.
+   - **Risk-2 Work Rule:** Auth, payments, data, and infrastructure changes MAY
+     NOT close on a PROVISIONAL or UNREVIEWED approval — the lane PARKs instead.
+
+4. **Three Mandatory End-State Disclosures:**
+   - The FIRST line of the final report explicitly states one of three end
+     states:
+     - **State 1 (Separation Held):**
+       `Model separation held: written by <model-a>, audited by <model-b>.`
+     - **State 2 (Separation Lost):**
+       `MODEL SEPARATION LOST: <writer-model> wrote this work and also audited it. <exhausted-model> hit its usage limit at <phase/step>, so the audit fell back to the same model that produced the work. This audit was not independent.`
+       (Requires audit ran to completion).
+     - **State 3 (Audit Incomplete):**
+       `AUDIT NOT COMPLETED: the run stopped at <phase/step> before the audit finished. <exhausted-model> hit an account-wide usage limit, so no model was available to continue. The work below is UNREVIEWED, not approved. Quota resets <window>.`
+   - **Selection Rule:** State 2 requires an audit _completed_ on the writer's
+     model. If the audit did not complete, State 3 applies — never State 2. An
+     unfinished audit is an absent one.
+   - A full Provenance Table beneath the first line details each phase, model,
+     isolation level, swap reason, and effect on claimed assurance.
+
+---
+
+## 4. The two runtime modes (this determines everything)
 
 The orchestrator behaves completely differently depending on where you invoke
 it, and it decides which mode it is in as the very first thing it does.
@@ -100,12 +193,20 @@ you a plan first, then the execution.
 
 ## 4. Choosing models
 
-Model choices for AI responsibilities (`planner`, `implementer`, `auditor`, `adjudicator`) are configured flexibly across the platform:
+Model choices for AI responsibilities (`planner`, `implementer`, `auditor`,
+`adjudicator`) are configured flexibly across the platform:
 
-- **User Defaults**: Configured per user in **Settings → Orchestrator Defaults** (`/settings` in the web application).
-- **Per-Project Overrides**: Configured per project on the project settings surface under the **Project Models** tab (`/api/projects/[id]/model-routing`).
-- **Precedence Chain**: `Environment Variables (MODEL_*)` → `Project Routing` → `User Routing` → `System Default`.
-- **Environment Variables are Optional**: `MODEL_*` environment variables (`MODEL_PLANNER`, `MODEL_IMPLEMENTER`, `MODEL_AUDITOR`, `MODEL_ADJUDICATOR`) should be left **UNSET** so the UI and database remain the authoritative source of truth. Environment variables remain available as an optional headless override only.
+- **User Defaults**: Configured per user in **Settings → Orchestrator Defaults**
+  (`/settings` in the web application).
+- **Per-Project Overrides**: Configured per project on the project settings
+  surface under the **Project Models** tab (`/api/projects/[id]/model-routing`).
+- **Precedence Chain**: `Environment Variables (MODEL_*)` → `Project Routing` →
+  `User Routing` → `System Default`.
+- **Environment Variables are Optional**: `MODEL_*` environment variables
+  (`MODEL_PLANNER`, `MODEL_IMPLEMENTER`, `MODEL_AUDITOR`, `MODEL_ADJUDICATOR`)
+  should be left **UNSET** so the UI and database remain the authoritative
+  source of truth. Environment variables remain available as an optional
+  headless override only.
 
 ---
 
@@ -133,8 +234,8 @@ The total maps to a crew size:
 | XS   | 0–1   | Developer only                                | 1     | self-check + autoeval               |
 | S    | 2–3   | Developer + Reviewer                          | 1     | reviewer gate                       |
 | M    | 4–5   | Planner + Developer + Reviewer                | 1–2   | plan gate + review gate             |
-| L    | 6–8   | PM-analyst + Planner + Dev ×N + Reviewer + QA | 2–3   | reflexion-hardened plan recommended |
-| XL   | 9–10  | mission-architect + full L crew               | 3+    | reflexion-loop plan gate mandatory  |
+| L    | 6–8   | PM-analyst + Planner + Dev ×N + Reviewer + QA | 2     | reflexion-hardened plan recommended |
+| XL   | 9–10  | mission-architect + full L crew               | 2     | reflexion-loop plan gate mandatory + Tech-Lead confirmation gate (~60 turns) |
 
 Three hard rules the orchestrator follows here: idle personas are never spun up
 (an XS task gets exactly one developer, not a full crew standing around); the
@@ -245,9 +346,7 @@ healthy run _will_ park on it.
 
 ## 8. Parallel lanes: running several tasks at once
 
-For M-sized tasks and above, the team can run 2–3 lanes concurrently, and for
-XL, 3 or more. Each lane is a separate git worktree with a single writer, so
-they never collide.
+For M-sized tasks and above, the team can run 2 lanes concurrently. Each lane is a separate git worktree with a single writer, so they never collide.
 
 The Lane Ledger (Phase 2) is the source of truth. After any detour, the team
 reprints it so you can always see the state of every lane at a glance:
@@ -433,3 +532,13 @@ Before you hand the team a task, confirm:
 If all of those are true, hand it over and let the team size itself. Your job
 from that point is to work the gates and review the diffs — not to write the
 code.
+
+---
+
+## 16. Closing the outer loop
+
+The repository contains skills capable of handling outer-loop concerns—such as `product-strategist`, `competitive-analysis`, `weekly-leadership-report`, and `qa-handover-generator`—but no automated system currently routes external signals back into planning. The intended flow is: external signal -> `product-strategist` or `competitive-analysis` -> spec revision -> `planning-expert` -> `dev-team`. Today, this handoff is **MANUAL**.
+
+No automated pipeline for outer-loop orchestration exists yet. This is candidate future work.
+
+In regulated environments, the outer loop is where policy, governance, audit, and accountability live. This aligns directly with the repository's existing evidence artifacts (e.g., the `.dev-team/` logs, `.loop-out/` outputs, and the Model Provenance Ledger), ensuring every execution decision leaves a clear, auditable trail.

@@ -1,16 +1,24 @@
 ---
 name: dev-team-orchestrator
 description: >
-  The flagship orchestration skill: an agent-agnostic "dev team" you manage as a
-  technical product manager. Sizes the crew to the task, runs multiple task
-  lanes in parallel without collision, interviews the human only at gates, and
-  files friction defects automatically on its own repo.
-cost: ~2500 tokens
+  [DEV-TEAM · FULL · MCP] The flagship orchestration skill: an agent-agnostic
+  "dev team" you manage as a technical product manager. Sizes the crew to the
+  task, runs multiple task lanes in parallel without collision, interviews the
+  human only at gates, and files friction defects automatically on its own repo.
+cost: ~2600 tokens
 modes: [read-only, write, mcp]
 surface: public
+category: Orchestrators
 ---
 
 # Dev Team Orchestrator (The Agentic Crew)
+
+> Tier siblings: dev-team-orchestrator (API keys, dual-model) · dev-team-sub-max
+> ($100 tier) · dev-team-sub-pro ($20 tier). See the tier table in the README.
+>
+> [!NOTE] **Sibling subscription tiers (no API keys required):** For
+> subscription-only accounts, use `dev-team-sub-max` ($100/mo tier, max 2
+> parallel lanes) or `dev-team-sub-pro` ($20/mo tier, single-lane pair).
 
 ## Runtime modes
 

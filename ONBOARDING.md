@@ -3,7 +3,7 @@
 Welcome to our automated engineering workflows! This guide will help you set up
 and use the custom agent skills we've developed.
 
-The "Lead Stack" is a set of modular **agent skills** designed to enhance your day-to-day processes, automate repetitive tasks, and uplevel overall engineering quality. These skills are built to be **Tech-Stack Agnostic** and **Agent-Ambiguous**, meaning they adapt to your project's specific language (C#, Python, JS, etc.) and work with various large language model agents.
+The "Lead Stack" is a set of modular **agent skills** designed to enhance your day-to-day processes, automate repetitive tasks, and uplevel overall engineering quality. These skills are built to be **Tech-Stack Agnostic** and **Agent-Agnostic**, meaning they adapt to your project's specific language (C#, Python, JS, etc.) and work with various large language model agents.
 
 ## 🧠 The Methodology: Four Pillars
 
@@ -46,6 +46,13 @@ not get a `.cursor/` folder. Example:
 
 The installer also merges the **tech-lead-stack** MCP server into
 **`~/.cursor/mcp.json`**.
+
+**Updating an Existing Installation:**
+If you are pulling new updates for the `tech-lead-stack`, you don't need to re-run `install.sh` across your projects. Just update the MCP server bundle by running the following in the `tech-lead-stack` root directory:
+```bash
+pnpm install
+pnpm run mcp:build
+```
 
 The current skills available in the toolbox are:
 

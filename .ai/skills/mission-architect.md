@@ -6,6 +6,12 @@ description: >
 cost: ~1300 tokens
 modes: [read-only, mcp]
 surface: public
+category: Orchestrators
+how:
+  'Strategic extraction from roadmaps, deep codebase audit, and multi-stage
+  planning via `planning-expert`.'
+useCase:
+  'Designing and executing a major architectural change or multi-file feature.'
 ---
 
 # Mission Architect (The Master Engine)

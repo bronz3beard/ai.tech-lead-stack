@@ -10,6 +10,14 @@ description: >
 cost: ~2000 tokens
 modes: [read-only, write, mcp]
 surface: public
+category: Plan & Harden
+how:
+  'Phase 0 stack + domain-boundary + design-input discovery, then a
+  deployability-test + BDD + design-state slicing engine, a persistent Slice
+  Ledger for multi-turn anti-drift, and a fixed Output Contract per task.'
+useCase:
+  'Turning brownfield/greenfield stories and designs into 2-day, dark-releasable
+  slices under Trunk-Based Development.'
 ---
 
 # Vertical Slice Decomposer (The Corridor Cutter)
@@ -108,6 +116,10 @@ verifies the decomposition phase in an IDE/MCP agent.
 - **Contracts evolve incrementally:** add only the columns/fields this slice
   needs (backward-compatible). Subdomain teams version the contract and use
   **contract tests** so each side deploys independently.
+- **Codebase Grounding:** Before finalizing a slice, you MUST use your codebase
+  access (e.g., `grep_search`, `list_dir`) to locate the exact file paths,
+  database models, and shared UI components that will be affected. Your slices
+  must be grounded in the actual repository architecture, not generic guesses.
 
 ## Phase 3: Dark-Release & Mocking Decision (per slice)
 
@@ -134,23 +146,40 @@ structure every time, then add the slice to the Ledger as `emitted`:
 ```md
 ### Task: <imperative title, names the corridor>
 
-**Vertical slice:** As a <actor>, I can <observable behaviour> [happy path].
-**Acceptance criteria (GWT):**
+**Dark release:** Flag required? <yes: `betaName` | no>. Flag owner removes at
+go-live. **Data source:** <Mock (backend-first / MSW fallback) | Real backend>.
+**Definition of Ready:**
 
-- Given … When … Then … **Technical details:**
+- GWT defined
+- <=2 days
+- testable
+- deps resolved. **Definition of Done:**
+- integrated to trunk
+- unit tests pass
+- code reviewed
+- deployable (flag hides incomplete UI)
+- docs updated
+- no known defects. **Vertical slice:** As a <actor>, I can
+  <observable behaviour> [happy path]. **Acceptance criteria (GWT):**
+- Given …
+- When …
+- Then … **Technical details:**
 - Layers touched (UI / API / data) within the team's domain
 - Contract: query/mutation/endpoint name + payload shape (ref existing types)
 - Schema/migration delta (backward-compatible) **Design reference:** <Figma
   frame link / screenshot name> — state covered: <e.g. populated row, empty
   state>. <"none" if no design provided>. **Technical prompt (for the
   developer/agent):**
-- A copy-paste prompt to execute the slice. For mocking, hand off to
-  `/schema-driven-mocking`; for implementation, hand off to `/plan`. **Dark
-  release:** Flag required? <yes: `betaName` | no>. Flag owner removes at
-  go-live. **Data source:** <Mock (backend-first / MSW fallback) | Real
-  backend>. **Definition of Ready:** GWT defined • <=2 days • testable • deps
-  resolved. **Definition of Done:** integrated to trunk • tests pass • reviewed
-  • deployable (flag hides incomplete UI) • docs updated • no known defects.
+- A highly specific, copy-pasteable prompt to execute the slice. Because you
+  have codebase access, you MUST ground this prompt in reality by including:
+  - **Target Files:** The exact file paths in the workspace to edit or create
+    (e.g., `src/app/profile/page.tsx`, `prisma/schema.prisma`).
+  - **Backend Context:** The exact DB models, RLS policies, or GraphQL/REST
+    endpoints to modify, based on existing repository patterns.
+  - **Frontend Context:** The exact shared UI components to reuse and the exact
+    API mutations to wire up.
+  - **Handoff:** For mocking, hand off to `/schema-driven-mocking`; for
+    implementation, hand off to `/plan`.
 ```
 
 - **Deliver** the full set as a `vertical-slices.md` handoff (paste-ready for

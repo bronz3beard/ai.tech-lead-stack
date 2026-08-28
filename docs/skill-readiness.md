@@ -176,7 +176,7 @@ if the skill already had them.
 **File:** `scripts/generate-skill-registry.ts` **Run with:**
 `npm run generate:registry`
 
-This is the most important new piece of infrastructure in this PR. It eliminates
+This is the most important piece of infrastructure for keeping documentation accurate. It eliminates
 the class of problem where the manifest, the README table, and the actual skill
 files disagree with each other.
 

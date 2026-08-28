@@ -6,6 +6,11 @@ description: >
 cost: ~750 tokens
 modes: [read-only, write, mcp]
 surface: public
+category: Ship & Communicate
+how:
+  'Ingests `git log`, groups by semantic commit type, filters noise, and formats
+  to Markdown.'
+useCase: 'Generating clean release notes for stakeholders.'
 ---
 
 # Changelog Generator (Semantic Processor)

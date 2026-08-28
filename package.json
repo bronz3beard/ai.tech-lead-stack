@@ -45,6 +45,22 @@
         "skill": "vertical-slice-decomposer",
         "description": "Decompose stories into vertical slices"
       },
+      "dev-team-sub-max": {
+        "skill": "dev-team-sub-max",
+        "description": "Subscription-tier ($100/mo) dev team orchestrator"
+      },
+      "dev-team-sub-pro": {
+        "skill": "dev-team-sub-pro",
+        "description": "Subscription-tier ($20/mo) dev pair orchestrator"
+      },
+      "reflexion-loop-sub-max": {
+        "skill": "reflexion-loop-sub-max",
+        "description": "$100/mo tier context-isolated loop"
+      },
+      "reflexion-loop-sub-pro": {
+        "skill": "reflexion-loop-sub-pro",
+        "description": "$20/mo tier context-isolated loop"
+      },
       "reflexion-eval": "npm run reflexion:eval"
     }
   },
@@ -62,7 +78,8 @@
     "validate:gherkin": "node scripts/validate-gherkin.mjs",
     "validate:scripts": "bash scripts/validate-scripts.sh",
     "prepare": "husky",
-    "mcp:start": "npx tsx src/mcp-server/index.ts",
+    "mcp:build": "esbuild src/mcp-server/index.ts --bundle --platform=node --packages=external --format=esm --outfile=dist/mcp-server.mjs",
+    "mcp:start": "node dist/mcp-server.mjs",
     "reflexion": "npx tsx scripts/reflexion-loop.ts",
     "dev": "prisma generate && next dev",
     "build": "prisma generate && next build",
@@ -140,6 +157,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "dotenv": "^16.5.0",
+    "esbuild": "^0.25.0",
     "eslint": "^9.16.0",
     "eslint-config-next": "^16.2.3",
     "husky": "^9.1.7",
@@ -156,11 +174,26 @@
     "typescript": "^6.0.2"
   },
   "keywords": [
+    "agentic-dev-team",
+    "ai-developer",
     "agent",
     "tech-lead",
     "automation",
     "rtk",
-    "minimumcd"
+    "minimumcd",
+    "agent-skills",
+    "ai-agents",
+    "mcp",
+    "mcp-server",
+    "cursor",
+    "antigravity",
+    "continue",
+    "claude-skills",
+    "gemini",
+    "agentic-workflows",
+    "trunk-based-development",
+    "code-review",
+    "engineering-management"
   ],
   "author": "bronz3beard",
   "license": "MIT",

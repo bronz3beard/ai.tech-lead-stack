@@ -7,6 +7,11 @@ capabilities: [filesystem_access, shell_access]
 cost: ~550 tokens
 modes: [read-only, mcp]
 surface: public
+category: Ship & Communicate
+how:
+  'Categorizes commits, assess blockers, and generates a rolling report using a
+  professional standup template.'
+useCase: 'Automating your daily update or summarizing work for a sync meeting.'
 ---
 
 # Daily Standup Report

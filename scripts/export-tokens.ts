@@ -15,7 +15,8 @@ import * as fs from 'fs';
 // ─── CLI Args ──────────────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
 const projectFlagIndex = args.indexOf('--project');
-const projectRoot = projectFlagIndex !== -1 ? args[projectFlagIndex + 1] : process.cwd();
+const projectRoot =
+  projectFlagIndex !== -1 ? args[projectFlagIndex + 1] : process.cwd();
 
 if (!projectRoot || !fs.existsSync(projectRoot)) {
   console.error(`❌ Project root not found: "${projectRoot}"`);
@@ -40,7 +41,8 @@ console.log(`📂 Found config: ${tailwindConfigPath}`);
 // ─── Load Tailwind Config ──────────────────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const tailwindConfig = require(tailwindConfigPath);
-const theme = tailwindConfig?.default?.theme?.extend ?? tailwindConfig?.theme?.extend ?? {};
+const theme =
+  tailwindConfig?.default?.theme?.extend ?? tailwindConfig?.theme?.extend ?? {};
 
 // ─── Token Builders ────────────────────────────────────────────────────────────
 
@@ -55,7 +57,10 @@ function buildColorTokens(
     if (typeof value === 'string') {
       tokens[tokenKey] = { value, type: 'color' };
     } else if (typeof value === 'object' && value !== null) {
-      Object.assign(tokens, buildColorTokens(value as Record<string, unknown>, tokenKey));
+      Object.assign(
+        tokens,
+        buildColorTokens(value as Record<string, unknown>, tokenKey)
+      );
     }
   }
   return tokens;
@@ -79,33 +84,49 @@ function buildScaleTokens(
 // ─── Extract Tokens ────────────────────────────────────────────────────────────
 const tokensOutput: Record<string, unknown> = {
   global: {
-    ...(theme.colors ? buildColorTokens(theme.colors as Record<string, unknown>) : {}),
+    ...(theme.colors
+      ? buildColorTokens(theme.colors as Record<string, unknown>)
+      : {}),
     ...(theme.spacing
       ? Object.fromEntries(
-          Object.entries(buildScaleTokens(theme.spacing as Record<string, unknown>, 'spacing')).map(
-            ([k, v]) => [`spacing-${k}`, v]
-          )
+          Object.entries(
+            buildScaleTokens(
+              theme.spacing as Record<string, unknown>,
+              'spacing'
+            )
+          ).map(([k, v]) => [`spacing-${k}`, v])
         )
       : {}),
     ...(theme.fontSize
       ? Object.fromEntries(
-          Object.entries(buildScaleTokens(theme.fontSize as Record<string, unknown>, 'fontSize')).map(
-            ([k, v]) => [`fontSize-${k}`, v]
-          )
+          Object.entries(
+            buildScaleTokens(
+              theme.fontSize as Record<string, unknown>,
+              'fontSize'
+            )
+          ).map(([k, v]) => [`fontSize-${k}`, v])
         )
       : {}),
     ...(theme.fontFamily
       ? Object.fromEntries(
-          Object.entries(theme.fontFamily as Record<string, unknown>).map(([k, v]) => [
-            `fontFamily-${k}`,
-            { value: Array.isArray(v) ? v.join(', ') : v, type: 'fontFamilies' },
-          ])
+          Object.entries(theme.fontFamily as Record<string, unknown>).map(
+            ([k, v]) => [
+              `fontFamily-${k}`,
+              {
+                value: Array.isArray(v) ? v.join(', ') : v,
+                type: 'fontFamilies',
+              },
+            ]
+          )
         )
       : {}),
     ...(theme.borderRadius
       ? Object.fromEntries(
           Object.entries(
-            buildScaleTokens(theme.borderRadius as Record<string, unknown>, 'borderRadius')
+            buildScaleTokens(
+              theme.borderRadius as Record<string, unknown>,
+              'borderRadius'
+            )
           ).map(([k, v]) => [`radius-${k}`, v])
         )
       : {}),
@@ -120,5 +141,9 @@ const outputPath = path.join(projectRoot, 'figma-tokens.json');
 fs.writeFileSync(outputPath, JSON.stringify(tokensOutput, null, 2), 'utf-8');
 
 console.log(`\n✅ Tokens exported to: ${outputPath}`);
-console.log(`   Token count: ${Object.keys(tokensOutput.global as object).length}`);
-console.log(`\n💡 Import figma-tokens.json into Figma via Tokens Studio → Load from file.`);
+console.log(
+  `   Token count: ${Object.keys(tokensOutput.global as object).length}`
+);
+console.log(
+  `\n💡 Import figma-tokens.json into Figma via Tokens Studio → Load from file.`
+);

@@ -6,6 +6,7 @@ description: >
 cost: ~850 tokens
 modes: [read-only, mcp]
 surface: public
+category: Design & UI
 ---
 
 # UI Spec Generator (The Skeleton Engine)

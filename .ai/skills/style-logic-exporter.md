@@ -5,6 +5,12 @@ description: >
 cost: ~550 tokens
 modes: [read-only, mcp]
 surface: public
+category: Design & UI
+how:
+  'Scans style sheets and theme configurations to extract variables, colors, and
+  typography metrics.'
+useCase:
+  'Syncing code-based styling with design systems or external documentation.'
 ---
 
 # Style Logic Exporter (The Design Bridge)
