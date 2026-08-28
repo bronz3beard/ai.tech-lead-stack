@@ -22,7 +22,7 @@ jest.mock('langfuse', () => ({
 }));
 
 // Mock telemetry & prisma to prevent any side effects or network calls
-jest.mock('../../../../lib/prisma', () => ({
+jest.mock('../../../prisma', () => ({
   prisma: {
     user: { findFirst: jest.fn().mockResolvedValue(null) },
     project: { findFirst: jest.fn().mockResolvedValue(null) },
@@ -181,7 +181,16 @@ describe('Reflexion State Confinement', () => {
       );
       expect(clientWrites).toHaveLength(0);
     } finally {
-      fs.rmSync(safeDir, { recursive: true, force: true });
+      try {
+        fs.rmSync(safeDir, {
+          recursive: true,
+          force: true,
+          maxRetries: 3,
+          retryDelay: 50,
+        });
+      } catch {
+        // ignore cleanup errors
+      }
     }
   });
 });

@@ -1,20 +1,28 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 import { FileStateStore } from '../state-store';
 import { ReflexionStateV2 } from '../schema';
 
-const TEST_DIR = path.join(__dirname, '.test-state-store');
-
 describe('FileStateStore', () => {
+  let testDir: string;
+
   beforeEach(() => {
-    if (fs.existsSync(TEST_DIR)) {
-      fs.rmSync(TEST_DIR, { recursive: true, force: true });
-    }
+    testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'test-state-store-'));
   });
 
-  afterAll(() => {
-    if (fs.existsSync(TEST_DIR)) {
-      fs.rmSync(TEST_DIR, { recursive: true, force: true });
+  afterEach(() => {
+    if (testDir && fs.existsSync(testDir)) {
+      try {
+        fs.rmSync(testDir, {
+          recursive: true,
+          force: true,
+          maxRetries: 3,
+          retryDelay: 50,
+        });
+      } catch {
+        // ignore cleanup errors
+      }
     }
   });
 
@@ -50,7 +58,7 @@ describe('FileStateStore', () => {
   };
 
   it('saves state atomically and loads it', async () => {
-    const store = new FileStateStore(TEST_DIR);
+    const store = new FileStateStore(testDir);
     await store.save(dummyState);
 
     const loaded = await store.load('run-123');
@@ -60,17 +68,17 @@ describe('FileStateStore', () => {
     expect(loaded?.phase).toBe('AWAITING_ANSWERS');
 
     // Check files
-    const statePath = path.join(TEST_DIR, 'state.json');
-    const tmpPath = path.join(TEST_DIR, 'state.json.tmp');
+    const statePath = path.join(testDir, 'state.json');
+    const tmpPath = path.join(testDir, 'state.json.tmp');
     expect(fs.existsSync(statePath)).toBe(true);
     expect(fs.existsSync(tmpPath)).toBe(false);
   });
 
   it('migrates v1 output if state.json is missing', async () => {
-    fs.mkdirSync(TEST_DIR, { recursive: true });
-    fs.writeFileSync(path.join(TEST_DIR, 'plan.md'), '## V1 Plan');
+    fs.mkdirSync(testDir, { recursive: true });
+    fs.writeFileSync(path.join(testDir, 'plan.md'), '## V1 Plan');
     fs.writeFileSync(
-      path.join(TEST_DIR, 'critique.json'),
+      path.join(testDir, 'critique.json'),
       JSON.stringify({
         runId: 'v1-run-id',
         brief: 'V1 Brief',
@@ -96,7 +104,7 @@ describe('FileStateStore', () => {
       })
     );
 
-    const store = new FileStateStore(TEST_DIR);
+    const store = new FileStateStore(testDir);
     const loaded = await store.load('any-run-id');
 
     expect(loaded).toBeDefined();
@@ -111,7 +119,7 @@ describe('FileStateStore', () => {
   });
 
   it('returns null if no files exist', async () => {
-    const store = new FileStateStore(TEST_DIR);
+    const store = new FileStateStore(testDir);
     const loaded = await store.load('run-123');
     expect(loaded).toBeNull();
   });
