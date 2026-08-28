@@ -82,7 +82,8 @@
     "start": "next start",
     "lint:next": "eslint src",
     "check-types": "tsc --noEmit --pretty --skipLibCheck",
-    "reflexion:eval": "tsx scripts/reflexion-eval.ts"
+    "reflexion:eval": "tsx scripts/reflexion-eval.ts",
+    "calibrate-skill-costs": "tsx scripts/calibrate-skill-costs.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.68",

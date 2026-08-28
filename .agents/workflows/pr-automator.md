@@ -1,11 +1,8 @@
 ---
-description: PR Automator (with Mandatory UI Verification & Draft Mode)
+description: PR Automator (with Mandatory Dynamic Template Adherence, Commit History Review, Label Matching, & Draft Mode)
 ---
 
 // turbo-all
-
-**CRITICAL: PHASE 0 - SKILL ACQUISITION IS NON-NEGOTIABLE.**
-**YOU MUST CALL THE GET_SKILLS TOOL EVEN IF YOU ALREADY HAVE THE CONTEXT. FAILURE TO DO SO BYPASSES MISSION TELEMETRY.**
 
 **CRITICAL: PHASE 0 - SKILL ACQUISITION IS NON-NEGOTIABLE.**
 **YOU MUST CALL THE GET_SKILLS TOOL EVEN IF YOU ALREADY HAVE THE CONTEXT. FAILURE TO DO SO BYPASSES MISSION TELEMETRY.**
@@ -17,9 +14,17 @@ description: PR Automator (with Mandatory UI Verification & Draft Mode)
    - agent: "<YOUR_AGENT_NAME>"
    - runCodeReview: "<boolean>" Set to `true` if the user provided flags like `--code-review` or explicitly asked for a code review in their command. Defaults to `false`.
 
-2. **Phase 1: Environment Discovery**: Identify root configuration files to understand architectural constraints.
+2. **Phase 1: Environment & Template Discovery**:
+   - Identify base branch (e.g. from prompt `base branch: <name>` or `main`).
+   - Discover host project's PR template (`.github/pull_request_template.md` or variants). Retain its exact headings and sections.
+   - Sync branch to remote if unpushed: `git push -u origin <HEAD_BRANCH>`.
 
-3. Follow its workflow to detect UI changes, capture multi-viewport evidence (Desktop, Tablet, Mobile), upload to GitHub storage, and create a high-context **Draft Pull Request**. If `runCodeReview` is true:
-   - The `.ai/skills/code-review-checklist.md` will be executed first.
-   - Results will be written to `.ai/evidence/pre-commit-review.md` (and deleted after PR creation).
-   - The content will be injected into the PR body via the `{{code-review-checklist-evidence}}` placeholder.
+3. **Phase 2: Review Commit History & Semantic Extraction**:
+   - Run `git log <base>...HEAD --pretty=format:"%h %s"` to review all commits on the branch.
+   - Formulate semantic change lists (`- add:`, `- update:`, `- fix:`, `- refactor:`, `- delete:`) matching the real commit work.
+
+4. **Phase 3: Populate Template, Match Labels, & Create Draft PR**:
+   - Map user-provided inputs (`section` / `module`, `sprint`, testing / release readiness status) into template fields.
+   - If user requests no evidence, activate the **Evidence Skip Fast-Path** immediately.
+   - Match available repository labels (`gh label list`) based on branch, commits, and diff.
+   - Execute `gh pr create --draft` non-interactively with `--body-file` and return the resulting PR URL to the user.
