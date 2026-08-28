@@ -87,13 +87,7 @@ describe('Skill Posture', () => {
   });
 
   describe('(c) Known strictly-advisory skills', () => {
-    const strictlyAdvisory = [
-      'ask',
-      'clean-code',
-      'code-review-checklist',
-      'daily-standup',
-      'weekly-leadership-report',
-    ];
+    const strictlyAdvisory = ['ask', 'daily-standup'];
 
     it('ensures strictly-advisory skills like "ask" are in readOnly and NOT in writeCapable', () => {
       const writeCapableSkills = parsedSkills
@@ -103,8 +97,10 @@ describe('Skill Posture', () => {
         .filter((s) => !s.modes.includes('write'))
         .map((s) => s.name);
 
-      expect(readOnlySkills).toContain('ask');
-      expect(writeCapableSkills).not.toContain('ask');
+      for (const skill of strictlyAdvisory) {
+        expect(readOnlySkills).toContain(skill);
+        expect(writeCapableSkills).not.toContain(skill);
+      }
     });
   });
 

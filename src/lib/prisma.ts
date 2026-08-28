@@ -36,22 +36,46 @@ const loadEnv = () => {
 
 loadEnv();
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
+const globalForPrisma = global as unknown as {
+  prisma?: PrismaClient;
+  pool?: pg.Pool;
+};
 
 const connectionString = `${process.env.DATABASE_URL}`;
-const pool = new pg.Pool({
-  connectionString,
-  ssl: connectionString.includes('rlwy.net')
-    ? { rejectUnauthorized: false }
-    : false,
-});
+export const pool =
+  globalForPrisma.pool ||
+  new pg.Pool({
+    connectionString,
+    ssl: connectionString.includes('rlwy.net')
+      ? { rejectUnauthorized: false }
+      : false,
+  });
 const adapter = new PrismaPg(pool);
 
 export const prisma =
   globalForPrisma.prisma ||
   new PrismaClient({
     adapter,
-    log: process.env.NODE_ENV === 'production' ? [] : ['query'],
+    log:
+      process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'test'
+        ? []
+        : ['query'],
   });
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma;
+  globalForPrisma.pool = pool;
+}
+
+export async function disconnectPrisma(): Promise<void> {
+  try {
+    if (globalForPrisma.prisma) {
+      await globalForPrisma.prisma.$disconnect();
+    }
+    if (globalForPrisma.pool) {
+      await globalForPrisma.pool.end();
+    }
+  } catch {
+    // Ignore teardown errors
+  }
+}
