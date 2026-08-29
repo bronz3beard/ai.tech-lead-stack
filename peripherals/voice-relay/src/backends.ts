@@ -5,22 +5,13 @@ import type { ChildProcess } from 'node:child_process';
 import { execFile, spawn } from 'node:child_process';
 import path from 'node:path';
 import { promisify } from 'node:util';
-import { guardSpoken } from './guard-client.js';
-import { detectTaskClass, validateByTaskClass, type TaskClass } from './spoken-guard.js';
 import { logResponse } from './db/sqlite-logger.js';
-
-export function applyHarness(prompt: string, taskClass: TaskClass): string {
-  switch (taskClass) {
-    case 'sequence':
-      return `${prompt}\n\n[STRICT HARNESS] This is a sequence request. Your 'spoken' field MUST contain ONLY the sequence items. You are FORBIDDEN from including code, 'alternative formats', or conversational padding.`;
-    case 'arithmetic':
-      return `${prompt}\n\n[STRICT HARNESS] This is an arithmetic request. Your 'spoken' field MUST contain ONLY the final answer. DO NOT include steps, code, or explanations.`;
-    case 'definition':
-      return `${prompt}\n\n[STRICT HARNESS] This is a definition request. Your 'spoken' field MUST be a MAXIMUM of 3 sentences. DO NOT include code or conversational padding.`;
-    default:
-      return prompt;
-  }
-}
+import { guardSpoken } from './guard-client.js';
+import {
+  detectTaskClass,
+  validateByTaskClass,
+  type TaskClass,
+} from './spoken-guard.js';
 import type {
   AgentBackend,
   AgentResult,
@@ -29,6 +20,19 @@ import type {
   ProposalResult,
   RunInput,
 } from './types.js';
+
+export function applyHarness(prompt: string, taskClass: TaskClass): string {
+  switch (taskClass) {
+    case 'sequence':
+      return `${prompt}\n\n[STRICT HARNESS] This is a sequence request. Your 'spoken' field MUST contain ONLY the bare sequence items. You are FORBIDDEN from including code, 'alternative formats', "Note:", "Output:", parenthetical options, or conversational padding. DO NOT output "Here is the sequence" or "Done". Just output the items.`;
+    case 'arithmetic':
+      return `${prompt}\n\n[STRICT HARNESS] This is an arithmetic request. Your 'spoken' field MUST contain ONLY the final answer. DO NOT include steps, code, explanations, "Note:", or "Output:".`;
+    case 'definition':
+      return `${prompt}\n\n[STRICT HARNESS] This is a definition request. Your 'spoken' field MUST be a MAXIMUM of 3 sentences. DO NOT include code, conversational padding, "Note:", or "Alternative formats".`;
+    default:
+      return prompt;
+  }
+}
 
 /**
  * Map of active child processes spawned by this backend, keyed by requestId.
@@ -298,7 +302,10 @@ export class LocalOllamaBackend implements AgentBackend {
           },
           messages: [
             { role: 'system', content: system },
-            { role: 'user', content: `Repo: ${input.cwd}\n\n${harnessedPrompt}` },
+            {
+              role: 'user',
+              content: `Repo: ${input.cwd}\n\n${harnessedPrompt}`,
+            },
           ],
         }),
       });
@@ -334,16 +341,21 @@ export class LocalOllamaBackend implements AgentBackend {
         const rawSpoken = spokenText;
         const val = validateByTaskClass(spokenText, input.prompt, taskClass);
         if (!val.ok || val.confidence === 'low') {
-          const guardRes = await guardSpoken(input.prompt, spokenText, text, taskClass);
+          const guardRes = await guardSpoken(
+            input.prompt,
+            spokenText,
+            text,
+            taskClass
+          );
           spokenText = guardRes.repaired_spoken;
         }
-        
+
         logResponse({
           prompt: input.prompt,
           task_class: taskClass,
           raw_markdown: text,
           raw_spoken: rawSpoken,
-          repaired_spoken: spokenText
+          repaired_spoken: spokenText,
         });
       }
 
@@ -670,34 +682,39 @@ export class CliBackend implements AgentBackend {
   async ask(input: RunInput): Promise<AgentResult> {
     const taskClass = detectTaskClass(input.prompt);
     const harnessedPrompt = applyHarness(input.prompt, taskClass);
-    
+
     const result = await this.run(
       this.tool.askArgs(harnessedPrompt, input.cwd),
       input.cwd,
       true,
       input.requestId
     );
-    
+
     if (result.ok && result.text) {
       const rawText = result.text;
       let repairedText = rawText;
       const val = validateByTaskClass(rawText, input.prompt, taskClass);
-      
+
       if (!val.ok || val.confidence === 'low') {
-        const guardRes = await guardSpoken(input.prompt, rawText, rawText, taskClass);
+        const guardRes = await guardSpoken(
+          input.prompt,
+          rawText,
+          rawText,
+          taskClass
+        );
         repairedText = guardRes.repaired_spoken;
         result.text = repairedText;
       }
-      
+
       logResponse({
         prompt: input.prompt,
         task_class: taskClass,
         raw_markdown: rawText,
         raw_spoken: rawText,
-        repaired_spoken: repairedText
+        repaired_spoken: repairedText,
       });
     }
-    
+
     return result;
   }
 

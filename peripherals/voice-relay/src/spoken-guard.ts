@@ -3,8 +3,8 @@
  * @desc L1 — Local deterministic validator & sanitizer for TTS-bound spoken text.
  *
  * This module is the single source of truth for hardening voice-relay outputs against
- * LLM conversational artifacts. It operates purely on deterministic regex evaluation 
- * with zero network overhead. All functions are idempotent and side-effect-free, designed 
+ * LLM conversational artifacts. It operates purely on deterministic regex evaluation
+ * with zero network overhead. All functions are idempotent and side-effect-free, designed
  * to run safely in real-time streaming paths or bulk evaluation harnesses.
  *
  * Capabilities:
@@ -56,12 +56,16 @@ const ORDINAL_RE = /(?:^|\n)\s*\d+\.\s/;
  * Case-insensitive, anchored to start of string (after optional whitespace).
  */
 const PREAMBLE_PATTERNS = [
-  /^\s*(here\s+(is|are)\b)/i,
-  /^\s*(sure[,!.]?\s)/i,
-  /^\s*(certainly[,!.]?\s)/i,
-  /^\s*(great\s+question[,!.]?\s)/i,
-  /^\s*(of\s+course[,!.]?\s)/i,
-  /^\s*(absolutely[,!.]?\s)/i,
+  /^\s*(here('s|\s+(is|are))\s+[^:\n]+[:\n]\s*)/i,
+  /^\s*(here('s|\s+(is|are))\b\s*)/i,
+  /^\s*(sure[,!.]?\s*)/i,
+  /^\s*(certainly[,!.]?\s*)/i,
+  /^\s*(great\s+question[,!.]?\s*)/i,
+  /^\s*(of\s+course[,!.]?\s*)/i,
+  /^\s*(absolutely[,!.]?\s*)/i,
+  /^\s*(note\s*:)/i,
+  /^\s*(output\s*:)/i,
+  /^\s*(alternative\s+formats?\s*:?)/i,
 ];
 /**
  * Fast check for any markdown or list formatting characters.
@@ -84,6 +88,9 @@ const EPILOGUE_PATTERNS = [
   /feel\s+free\b.*$/i,
   /if\s+you\s+(have|need)\s+(any|more)\b.*$/i,
   /don'?t\s+hesitate\b.*$/i,
+  /you\s+(can|may|could)\s+(stop|choose|include|also|find)\b.*$/i,
+  /done[!.]?\s*$/i,
+  /that'?s\s+it[!.]?\s*$/i,
 ];
 
 /**
@@ -91,7 +98,7 @@ const EPILOGUE_PATTERNS = [
  * Intentionally loose — catches common JS/TS/Python patterns.
  */
 const CODE_SYNTAX_RE =
-  /(?:^|\s)(?:function\s|const\s|let\s|var\s|=>|import\s|export\s|class\s|def\s|print\(|console\.log|return\s|if\s*\(|for\s*\(|while\s*\(|for\s+\w+\s+in\s+|range\(|\[\w+\s+for\s+|\{|\})/m;
+  /(?:^|\s)(?:function\s|const\s|let\s|var\s|=>|import\s|export\s|class\s|def\s|print\(|console\.log|return\s|if\s*\(|for\s*\(|while\s*\(|for\s+\w+\s+in\s+|range\(|\[\w+\s+for\s+|\{|\}|```)/m;
 
 /* ------------------------------------------------------------------ */
 /* Task class detection                                                */
@@ -334,15 +341,28 @@ export function hasAscendingRun(text: string): boolean {
 export function sanitizeSpoken(spoken: string): string {
   let s = spoken;
 
-  // Strip preamble phrases
-  for (const pat of PREAMBLE_PATTERNS) {
-    s = s.replace(pat, '');
+  // Strip preamble phrases repeatedly in case they are stacked (e.g. "Sure, here is")
+  let prevS = '';
+  while (s !== prevS) {
+    prevS = s;
+    for (const pat of PREAMBLE_PATTERNS) {
+      s = s.replace(pat, '');
+    }
   }
 
-  // Strip epilogue phrases
-  for (const pat of EPILOGUE_PATTERNS) {
-    s = s.replace(pat, '');
+  // Strip epilogue phrases repeatedly (e.g. "Done! Let me know...")
+  let prevE = '';
+  while (s !== prevE) {
+    prevE = s;
+    for (const pat of EPILOGUE_PATTERNS) {
+      s = s.replace(pat, '');
+    }
   }
+
+  // Strip conversational parenthetical options (e.g. "(or stop at one)")
+  s = s.replace(/\s*\(\s*or\s+[^)]+\)/gi, '');
+
+  s = s.trim();
 
   // Fast pre-check: if no markdown/list chars exist, skip the regex loop
   if (hasMarkdown(s)) {
@@ -363,6 +383,9 @@ export function sanitizeSpoken(spoken: string): string {
 
       // Strip markdown headers
       s = s.replace(/(?:^|\n)\s*#{1,6}\s+/g, '\n');
+
+      // Strip triple-backtick code blocks entirely
+      s = s.replace(/```[\s\S]*?```/g, '');
 
       // Strip backtick code spans
       s = s.replace(/`([^`]+)`/g, '$1');
