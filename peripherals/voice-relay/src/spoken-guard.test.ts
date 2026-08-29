@@ -135,6 +135,43 @@ describe('validateSpoken', () => {
     assert.ok(r.issues.some((i) => i.includes('code syntax')));
   });
 
+  it('rejects conversational meta-talk and epilogues', () => {
+    const cases = [
+      'Here are the definitions you requested:\nApple is a fruit.',
+      'Sure, I can summarize that for you:\nThe sky is blue.',
+      'Apple is a fruit.\nLet me know if you need any other definitions!',
+      'Apple is a fruit.\nDone! Have a great day.',
+    ];
+    for (const text of cases) {
+      const r = validateSpoken(text);
+      assert.strictEqual(r.ok, false, `Expected fail for: "${text}"`);
+    }
+  });
+
+  it('rejects improper markdown wrappers', () => {
+    const cases = [
+      '```text\nA dog is an animal.\n```',
+      '**Important**: The *key* is to __focus__.',
+    ];
+    for (const text of cases) {
+      const r = validateSpoken(text);
+      assert.strictEqual(r.ok, false, `Expected fail for: "${text}"`);
+      assert.ok(r.issues.some((i) => i.includes('markdown')), `Missing markdown issue for: "${text}"`);
+    }
+  });
+
+  it('rejects unwanted list formatting', () => {
+    const cases = [
+      '- Item A\n- Item B\n- Item C',
+      '1. First point\n2. Second point',
+    ];
+    for (const text of cases) {
+      const r = validateSpoken(text);
+      assert.strictEqual(r.ok, false, `Expected fail for: "${text}"`);
+      assert.ok(r.issues.some((i) => i.includes('list formatting')), `Missing list formatting issue for: "${text}"`);
+    }
+  });
+
   it('flags low confidence for verbose but clean text', () => {
     const longText = Array(60).fill('word').join(' ');
     const r = validateSpoken(longText);
@@ -278,6 +315,36 @@ describe('sanitizeSpoken', () => {
   it('handles already-clean text unchanged', () => {
     const clean = 'There are 31 days in August.';
     assert.strictEqual(sanitizeSpoken(clean), clean);
+  });
+
+  it('strips conversational meta-talk (prologue)', () => {
+    const result = sanitizeSpoken('Here are the definitions you requested:\nApple is a fruit.');
+    assert.strictEqual(result, 'Apple is a fruit.');
+  });
+  
+  it('strips conversational meta-talk (epilogue)', () => {
+    const result = sanitizeSpoken('Apple is a fruit.\nDone! Have a great day.');
+    assert.strictEqual(result, 'Apple is a fruit.');
+  });
+
+  it('strips improper markdown wrappers (text block)', () => {
+    const result = sanitizeSpoken('```text\nA dog is an animal.\n```');
+    assert.strictEqual(result, 'A dog is an animal.');
+  });
+
+  it('strips aggressive inline formatting', () => {
+    const result = sanitizeSpoken('**Important**: The *key* is to __focus__.');
+    assert.strictEqual(result, 'Important: The key is to focus.');
+  });
+
+  it('flattens unordered lists', () => {
+    const result = sanitizeSpoken('- Item A\n- Item B\n- Item C');
+    assert.strictEqual(result, 'Item A\nItem B\nItem C');
+  });
+
+  it('flattens ordered lists gracefully', () => {
+    const result = sanitizeSpoken('1. First point\n2. Second point');
+    assert.strictEqual(result, 'First point\nSecond point');
   });
 
   it('strips deeply nested styles', () => {

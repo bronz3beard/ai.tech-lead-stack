@@ -64,6 +64,49 @@ test('Spoken Guard - True Negatives (flags and sanitizes failure modes)', () => 
       expectFlag: true,
       expectSanitized: '7\n6\n5\n4\n3\n2\n1',
     },
+    // --- Conversational Meta-talk & Epilogues ---
+    {
+      raw: 'Here are the definitions you requested:\nApple is a fruit.',
+      expectFlag: true,
+      expectSanitized: 'Apple is a fruit.',
+    },
+    {
+      raw: 'Sure, I can summarize that for you:\nThe sky is blue.',
+      expectFlag: true,
+      expectSanitized: 'The sky is blue.',
+    },
+    {
+      raw: 'Apple is a fruit.\nLet me know if you need any other definitions!',
+      expectFlag: true,
+      expectSanitized: 'Apple is a fruit.',
+    },
+    {
+      raw: 'Apple is a fruit.\nDone! Have a great day.',
+      expectFlag: true,
+      expectSanitized: 'Apple is a fruit.',
+    },
+    // --- Improper Markdown Wrappers ---
+    {
+      raw: '```text\nA dog is an animal.\n```',
+      expectFlag: true,
+      expectSanitized: 'A dog is an animal.',
+    },
+    {
+      raw: '**Important**: The *key* is to __focus__.',
+      expectFlag: true,
+      expectSanitized: 'Important: The key is to focus.',
+    },
+    // --- Unwanted List Formatting ---
+    {
+      raw: '- Item A\n- Item B\n- Item C',
+      expectFlag: true,
+      expectSanitized: 'Item A\nItem B\nItem C',
+    },
+    {
+      raw: '1. First point\n2. Second point',
+      expectFlag: true,
+      expectSanitized: 'First point\nSecond point',
+    },
   ];
 
   for (const tc of failureModes) {
