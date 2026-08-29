@@ -1,9 +1,12 @@
-import { execFile, spawn } from 'node:child_process';
-import fs from 'node:fs';
-import path from 'node:path';
-import { promisify } from 'node:util';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import dotenv from 'dotenv';
+import type { ChildProcess } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
+import path from 'node:path';
+import { promisify } from 'node:util';
+import { guardSpoken } from './guard-client.js';
+import { detectTaskClass, validateByTaskClass } from './spoken-guard.js';
 import type {
   AgentBackend,
   AgentResult,
@@ -12,15 +15,30 @@ import type {
   ProposalResult,
   RunInput,
 } from './types.js';
-import type { ChildProcess } from 'node:child_process';
 
+/**
+ * Map of active child processes spawned by this backend, keyed by requestId.
+ * This allows us to track and terminate long-running processes if a request is cancelled.
+ */
 export const activeProcesses = new Map<string, ChildProcess>();
+
+/**
+ * Set of request IDs that have been explicitly aborted by the client.
+ * Any newly started process for these IDs will be immediately terminated.
+ */
 export const abortedRequests = new Set<string>();
 
+/**
+ * Forcefully terminates a running process and its entire process tree using the process group ID.
+ *
+ * @param requestId The unique identifier for the request whose process should be killed.
+ */
 export function killProcess(requestId: string) {
   const child = activeProcesses.get(requestId);
   if (!child || !child.pid) return;
-  console.log(`[Relay] Cancelling process for reqId: ${requestId} (PID: ${child.pid})`);
+  console.log(
+    `[Relay] Cancelling process for reqId: ${requestId} (PID: ${child.pid})`
+  );
   try {
     // Kill the entire process group
     process.kill(-child.pid, 'SIGTERM');
@@ -38,86 +56,120 @@ export function killProcess(requestId: string) {
   }
 }
 
+/**
+ * Helper to dynamically determine the current directory.
+ * Provides fallback support depending on whether the code is running in a bundled
+ * environment or locally from a specific working directory.
+ *
+ * @returns The absolute path to the src directory of voice-relay.
+ */
 const getDirname = () => {
   if (typeof __dirname !== 'undefined') {
     return __dirname;
   }
   const cwd = process.cwd();
-  return cwd.endsWith('voice-relay') 
-    ? path.join(cwd, 'src') 
+  return cwd.endsWith('voice-relay')
+    ? path.join(cwd, 'src')
     : path.join(cwd, 'peripherals/voice-relay/src');
 };
 
 const pexec = promisify(execFile);
 
-// Helper to spawn a child properly detached so it forms its own process group
+// Load tech-lead-stack root .env for shared keys like GEMINI_API_KEY
+const rootEnvPath = path.resolve(getDirname(), '../../../.env');
+dotenv.config({ path: rootEnvPath, override: false });
+
+/**
+ * Spawns a child process in detached mode so it forms its own process group.
+ * This ensures that when we send a kill signal to the group (e.g. `-pid`), it terminates
+ * the child process and all of its spawned subprocesses, preventing zombie processes.
+ *
+ * @param command The binary or command to run.
+ * @param args The arguments to pass to the command.
+ * @param options Spawn options, including custom `timeout` and `maxBuffer`.
+ * @returns A promise that resolves with stdout and stderr, and exposes the underlying child process.
+ */
 function spawnDetached(command: string, args: string[], options: any) {
   const { timeout, maxBuffer = 1024 * 1024, ...spawnOpts } = options;
   const child = spawn(command, args, { ...spawnOpts, detached: true });
-  const promise = new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
-    let stdout = '';
-    let stderr = '';
-    let timer: NodeJS.Timeout | null = null;
-    
-    if (timeout) {
-      timer = setTimeout(() => {
-        child.kill('SIGTERM');
-        const err = new Error(`Command timed out after ${timeout}ms`);
-        (err as any).code = 'ETIMEDOUT';
-        (err as any).killed = true;
-        reject(err);
-      }, timeout);
-    }
+  const promise = new Promise<{ stdout: string; stderr: string }>(
+    (resolve, reject) => {
+      let stdout = '';
+      let stderr = '';
+      let timer: NodeJS.Timeout | null = null;
 
-    const checkBuffer = () => {
-      if (stdout.length + stderr.length > maxBuffer) {
-        child.kill('SIGTERM');
-        const err = new Error('stdout maxBuffer exceeded');
+      if (timeout) {
+        timer = setTimeout(() => {
+          child.kill('SIGTERM');
+          const err = new Error(`Command timed out after ${timeout}ms`);
+          (err as any).code = 'ETIMEDOUT';
+          (err as any).killed = true;
+          reject(err);
+        }, timeout);
+      }
+
+      const checkBuffer = () => {
+        if (stdout.length + stderr.length > maxBuffer) {
+          child.kill('SIGTERM');
+          const err = new Error('stdout maxBuffer exceeded');
+          if (timer) clearTimeout(timer);
+          reject(err);
+        }
+      };
+
+      child.stdout?.on('data', (chunk) => {
+        stdout += chunk;
+        checkBuffer();
+      });
+      child.stderr?.on('data', (chunk) => {
+        stderr += chunk;
+        checkBuffer();
+      });
+      child.on('error', (err) => {
         if (timer) clearTimeout(timer);
         reject(err);
-      }
-    };
-
-    child.stdout?.on('data', (chunk) => {
-      stdout += chunk;
-      checkBuffer();
-    });
-    child.stderr?.on('data', (chunk) => {
-      stderr += chunk;
-      checkBuffer();
-    });
-    child.on('error', (err) => {
-      if (timer) clearTimeout(timer);
-      reject(err);
-    });
-    child.on('close', (code) => {
-      if (timer) clearTimeout(timer);
-      if (code !== 0) {
-        const err = new Error(`Command failed with code ${code}`);
-        (err as any).stdout = stdout;
-        (err as any).stderr = stderr;
-        (err as any).code = code;
-        reject(err);
-      } else {
-        resolve({ stdout, stderr });
-      }
-    });
-  });
+      });
+      child.on('close', (code) => {
+        if (timer) clearTimeout(timer);
+        if (code !== 0) {
+          const err = new Error(`Command failed with code ${code}`);
+          (err as any).stdout = stdout;
+          (err as any).stderr = stderr;
+          (err as any).code = code;
+          reject(err);
+        } else {
+          resolve({ stdout, stderr });
+        }
+      });
+    }
+  );
   return Object.assign(promise, { child });
 }
 
-const STACK_REPO = process.env.STACK_REPO || path.resolve(getDirname(), '../../../');
+const STACK_REPO =
+  process.env.STACK_REPO || path.resolve(getDirname(), '../../../');
 
-// Load a skill/workflow's markdown as context (MVP stand-in for the tech-lead-stack MCP get_skills call).
-// TODO(gemini): replace with a real get_skills MCP call so methodology stays the single source of truth.
-async function loadSkillContext(skillName?: string, workflowName?: string, cwd?: string): Promise<string> {
+/**
+ * Loads a markdown file representing a specific skill or workflow to use as context for the model.
+ * Currently uses an MCP Stdio connection to `tech-lead-stack` to retrieve the content dynamically.
+ *
+ * @param skillName The name of the specific skill to load (optional).
+ * @param workflowName The name of the specific workflow to load (optional).
+ * @param cwd The target project directory (optional).
+ * @returns The markdown content of the skill/workflow, or an empty string if not found.
+ */
+async function loadSkillContext(
+  skillName?: string,
+  workflowName?: string,
+  cwd?: string
+): Promise<string> {
   const target = skillName || workflowName;
   if (!target) return '';
 
   const transport = new StdioClientTransport({
     command: 'npx',
     args: ['tsx', path.join(STACK_REPO, 'src/mcp-server/index.ts')],
-    env: { ...process.env, REPOS_ROOT: process.env.REPOS_ROOT || '' }
+    env: { ...process.env, REPOS_ROOT: process.env.REPOS_ROOT || '' },
   });
 
   const client = new Client(
@@ -127,7 +179,7 @@ async function loadSkillContext(skillName?: string, workflowName?: string, cwd?:
 
   try {
     await client.connect(transport);
-    
+
     const projectName = cwd ? path.basename(cwd) : undefined;
 
     const result = await client.callTool({
@@ -137,14 +189,18 @@ async function loadSkillContext(skillName?: string, workflowName?: string, cwd?:
         projectName,
         model: 'voice-relay',
         agent: 'voice-relay',
-      }
+      },
     });
 
-    if (result.isError || !Array.isArray(result.content) || result.content.length === 0) {
+    if (
+      result.isError ||
+      !Array.isArray(result.content) ||
+      result.content.length === 0
+    ) {
       return '';
     }
-    
-    const content = result.content[0] as { type: string, text: string };
+
+    const content = result.content[0] as { type: string; text: string };
     if (content.type === 'text') {
       return content.text;
     }
@@ -163,6 +219,10 @@ async function loadSkillContext(skillName?: string, workflowName?: string, cwd?:
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://127.0.0.1:11434';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen3.5:9b';
 
+/**
+ * Backend implementation for interacting with a local Ollama instance.
+ * It is read-only and designed to answer factual or codebase questions using local LLM inference.
+ */
 export class LocalOllamaBackend implements AgentBackend {
   id = 'local';
   label = `Local (Ollama ${OLLAMA_MODEL})`;
@@ -182,20 +242,26 @@ export class LocalOllamaBackend implements AgentBackend {
   }
 
   async ask(input: RunInput): Promise<AgentResult> {
-    const ctx = await loadSkillContext(input.skill?.skill, input.skill?.workflow, input.cwd);
-    const system = 
+    const ctx = await loadSkillContext(
+      input.skill?.skill,
+      input.skill?.workflow,
+      input.cwd
+    );
+    const system =
       'You are a conversational voice assistant answering questions about a codebase. ' +
-      'You MUST provide your response in two formats using XML tags: <spoken> and <markdown>.\n' +
-      '1. Inside <spoken>, provide a ruthlessly brief, conversational response meant to be read by a Text-to-Speech engine. ' +
-      'NEVER use Markdown formatting here. NEVER repeat information (e.g. do not count with numbers and words). ' +
-      '2. Inside <markdown>, provide the full, structured technical response with code blocks and lists for the UI.\n' +
-      '3. Do not propose file edits.\n\n' +
-      'Here is an example of the expected conciseness:\n' +
-      '<example>\n' +
-      'User: How many days are in August?\n' +
-      '<spoken>There are 31 days in August.</spoken>\n' +
-      '<markdown>August always has 31 days.</markdown>\n' +
-      '</example>\n' +
+      'You MUST respond as valid JSON with exactly two fields:\n' +
+      '"spoken": Plain speech for a Text-to-Speech engine. Rules:\n' +
+      '  - NO markdown formatting whatsoever (no *, #, `, _, -, >, []()), no code blocks\n' +
+      '  - NO numbered/ordered lists (never prefix items with "1.", "2.", etc.)\n' +
+      '  - NO bullet points\n' +
+      '  - NO preamble ("Here is...", "Sure...", "Certainly...")\n' +
+      '  - NO epilogue ("Let me know...", "Hope this helps...")\n' +
+      '  - For sequences or enumerations: bare items only, separated by commas or spaces\n' +
+      '  - For code: describe what the code does conversationally, never output raw code\n' +
+      '  - Keep it ruthlessly brief — say only what answers the question\n\n' +
+      '"markdown": Structured response with rich formatting for screen display.\n' +
+      '  - May use headers, lists, code blocks, bold, links\n' +
+      '  - MUST contain the SAME factual information as spoken — nothing added, nothing dropped\n\n' +
       (ctx ? `Follow this methodology when relevant:\n${ctx}\n` : '');
     try {
       const res = await fetch(`${OLLAMA_URL}/api/chat`, {
@@ -205,6 +271,15 @@ export class LocalOllamaBackend implements AgentBackend {
         body: JSON.stringify({
           model: OLLAMA_MODEL,
           stream: false,
+          options: { temperature: 0 },
+          format: {
+            type: 'object',
+            properties: {
+              spoken: { type: 'string' },
+              markdown: { type: 'string' },
+            },
+            required: ['spoken', 'markdown'],
+          },
           messages: [
             { role: 'system', content: system },
             { role: 'user', content: `Repo: ${input.cwd}\n\n${input.prompt}` },
@@ -217,18 +292,35 @@ export class LocalOllamaBackend implements AgentBackend {
         throw new Error(data?.error || `Ollama API returned ${res.status}`);
       }
       const rawContent = data?.message?.content ?? '';
-      
+
       let spokenText = undefined;
       let text = rawContent;
 
-      const spokenMatch = rawContent.match(/<spoken>([\s\S]*?)<\/spoken>/i);
-      const markdownMatch = rawContent.match(/<markdown>([\s\S]*?)<\/markdown>/i);
-
-      if (spokenMatch) {
-        spokenText = spokenMatch[1].trim();
+      try {
+        const parsed = JSON.parse(rawContent);
+        if (parsed.spoken) spokenText = parsed.spoken.trim();
+        if (parsed.markdown) text = parsed.markdown.trim();
+      } catch (e) {
+        // Backward compat fallback to XML parsing
+        const spokenMatch = rawContent.match(/<spoken>([\s\S]*?)<\/spoken>/i);
+        const markdownMatch = rawContent.match(
+          /<markdown>([\s\S]*?)<\/markdown>/i
+        );
+        if (spokenMatch) {
+          spokenText = spokenMatch[1].trim();
+        }
+        if (markdownMatch) {
+          text = markdownMatch[1].trim();
+        }
       }
-      if (markdownMatch) {
-        text = markdownMatch[1].trim();
+
+      if (spokenText) {
+        const taskClass = detectTaskClass(input.prompt);
+        const val = validateByTaskClass(spokenText, input.prompt, taskClass);
+        if (!val.ok || val.confidence === 'low') {
+          const guardRes = await guardSpoken(input.prompt, spokenText, text);
+          spokenText = guardRes.repaired_spoken;
+        }
       }
 
       return { ok: true, text, spokenText, raw: data };
@@ -236,7 +328,11 @@ export class LocalOllamaBackend implements AgentBackend {
       let errStr = e?.message ?? 'ollama request failed';
       if (e?.name === 'TimeoutError' || errStr.includes('aborted')) {
         errStr = 'Local Ollama timed out. Is the model too slow?';
-      } else if (e?.cause?.code === 'ECONNREFUSED' || errStr.includes('ECONNREFUSED') || errStr.includes('fetch failed')) {
+      } else if (
+        e?.cause?.code === 'ECONNREFUSED' ||
+        errStr.includes('ECONNREFUSED') ||
+        errStr.includes('fetch failed')
+      ) {
         errStr = 'Local Ollama is unreachable. Please ensure it is running.';
       }
       return {
@@ -261,6 +357,10 @@ export class LocalOllamaBackend implements AgentBackend {
 }
 
 // ---------------- Generic CLI backend (agy / claude / codex / cursor) ----------------
+
+/**
+ * Configuration structure for defining how to interact with external CLI-based agent tools.
+ */
 interface CliTool {
   bin: string;
   label: string;
@@ -281,17 +381,46 @@ const PLAN_GUARD =
   'PLAN ONLY. Do NOT edit, create, or delete any files or run mutating commands. ' +
   'Produce a concise plan of what you WOULD change and why. Then stop.\n\n';
 
-const TARGET_PROMPT = (cwd: string, prompt: string) => `You are operating on the repository at ${cwd}. Read and write ONLY within it. You MAY read skills from the tech-lead-stack path via the provided symlink/get_skills, but tech-lead-stack is NOT the project and must not be described, analyzed, or modified as the target.\n\n${prompt}`;
+const TARGET_PROMPT = (cwd: string, prompt: string) =>
+  `You are operating on the repository at ${cwd}. Read and write ONLY within it. You MAY read skills from the tech-lead-stack path via the provided symlink/get_skills, but tech-lead-stack is NOT the project and must not be described, analyzed, or modified as the target.\n\n${prompt}`;
 
+/**
+ * A registry of supported CLI tools, providing the specific arguments needed to run them
+ * in different modes (probe auth, plan, accept edits, read-only questions).
+ */
 export const CLI_TOOLS: Record<string, CliTool> = {
   antigravity: {
     bin: 'agy',
     label: 'Antigravity (Ultra, OAuth)',
     authPath: 'subscription-oauth', // free under Ultra; consumer OAuth has daily limits
     authProbeArgs: ['agent'], // 'agy agent' or similar should work to test basic functionality/auth
-    proposeArgs: (p, cwd) => ['-p', TARGET_PROMPT(cwd, p), '--mode', 'plan', '--dangerously-skip-permissions', '--add-dir', cwd, '--max-turns', '12'],
-    applyArgs: (p, cwd) => ['-p', TARGET_PROMPT(cwd, p), '--mode', 'accept-edits', '--dangerously-skip-permissions', '--add-dir', cwd, '--max-turns', '25'],
-    askArgs: (p, cwd) => ['-p', TARGET_PROMPT(cwd, p), '--mode', 'plan', '--dangerously-skip-permissions', '--add-dir', cwd, '--max-turns', '6'],
+    proposeArgs: (p, cwd) => [
+      '-p',
+      TARGET_PROMPT(cwd, p),
+      '--mode',
+      'plan',
+      '--dangerously-skip-permissions',
+      '--add-dir',
+      cwd,
+    ],
+    applyArgs: (p, cwd) => [
+      '-p',
+      TARGET_PROMPT(cwd, p),
+      '--mode',
+      'accept-edits',
+      '--dangerously-skip-permissions',
+      '--add-dir',
+      cwd,
+    ],
+    askArgs: (p, cwd) => [
+      '-p',
+      TARGET_PROMPT(cwd, p),
+      '--mode',
+      'plan',
+      '--dangerously-skip-permissions',
+      '--add-dir',
+      cwd,
+    ],
   },
   claude: {
     bin: 'claude',
@@ -342,9 +471,27 @@ export const CLI_TOOLS: Record<string, CliTool> = {
     label: 'Codex (ChatGPT plan)',
     authPath: 'subscription-chatgpt', // free under ChatGPT plan; reuses saved login
     authProbeArgs: ['whoami'], // 'codex whoami'
-    proposeArgs: (p, cwd) => ['exec', '--sandbox', 'read-only', '--json', TARGET_PROMPT(cwd, PLAN_GUARD + p)],
-    applyArgs: (p, cwd) => ['exec', '--sandbox', 'workspace-write', '--json', TARGET_PROMPT(cwd, p)],
-    askArgs: (p, cwd) => ['exec', '--sandbox', 'read-only', '--json', TARGET_PROMPT(cwd, 'Answer read-only.\n\n' + p)],
+    proposeArgs: (p, cwd) => [
+      'exec',
+      '--sandbox',
+      'read-only',
+      '--json',
+      TARGET_PROMPT(cwd, PLAN_GUARD + p),
+    ],
+    applyArgs: (p, cwd) => [
+      'exec',
+      '--sandbox',
+      'workspace-write',
+      '--json',
+      TARGET_PROMPT(cwd, p),
+    ],
+    askArgs: (p, cwd) => [
+      'exec',
+      '--sandbox',
+      'read-only',
+      '--json',
+      TARGET_PROMPT(cwd, 'Answer read-only.\n\n' + p),
+    ],
   },
   cursor: {
     bin: 'cursor-agent',
@@ -354,10 +501,18 @@ export const CLI_TOOLS: Record<string, CliTool> = {
     authProbeArgs: ['--status'],
     proposeArgs: (p, cwd) => ['-p', TARGET_PROMPT(cwd, PLAN_GUARD + p)],
     applyArgs: (p, cwd) => ['-p', TARGET_PROMPT(cwd, p)],
-    askArgs: (p, cwd) => ['-p', TARGET_PROMPT(cwd, 'Answer read-only, do not edit files.\n\n' + p)],
+    askArgs: (p, cwd) => [
+      '-p',
+      TARGET_PROMPT(cwd, 'Answer read-only, do not edit files.\n\n' + p),
+    ],
   },
 };
 
+/**
+ * A generic backend wrapper that drives external CLI agent tools (like agy, claude, codex, or cursor).
+ * It manages executing the CLI, handling timeouts, buffering I/O, and optionally setting up
+ * read-only git worktrees to prevent destructive changes during planning/read phases.
+ */
 export class CliBackend implements AgentBackend {
   writesSupported = true;
   constructor(
@@ -391,10 +546,15 @@ export class CliBackend implements AgentBackend {
     }
   }
 
-  private async run(args: string[], cwd: string, readonly: boolean = false, requestId?: string): Promise<AgentResult> {
+  private async run(
+    args: string[],
+    cwd: string,
+    readonly: boolean = false,
+    requestId?: string
+  ): Promise<AgentResult> {
     let runCwd = cwd;
     let worktreeDir = '';
-    
+
     if (readonly && this.tool.requiresWorktreeForReadOnly) {
       worktreeDir = path.join(cwd, `.voice-relay-worktree-${Date.now()}`);
       try {
@@ -417,34 +577,36 @@ export class CliBackend implements AgentBackend {
     if (requestId && abortedRequests.has(requestId)) {
       if (worktreeDir) {
         try {
-          await pexec('git', ['worktree', 'remove', '--force', worktreeDir], { cwd });
+          await pexec('git', ['worktree', 'remove', '--force', worktreeDir], {
+            cwd,
+          });
         } catch (e) {}
       }
       return { ok: false, text: '', error: 'Request aborted by client' };
     }
 
     try {
-      const childPromise = spawnDetached(
-        this.tool.bin,
-        args,
-        {
-          cwd: runCwd,
-          timeout: 1000 * 60 * 10,
-          maxBuffer: 1024 * 1024 * 32,
-        }
-      );
-      
+      const childPromise = spawnDetached(this.tool.bin, args, {
+        cwd: runCwd,
+        timeout: 1000 * 60 * 10,
+        maxBuffer: 1024 * 1024 * 32,
+      });
+
       const child = childPromise.child;
       if (requestId) {
         activeProcesses.set(requestId, child);
       }
-      
-      console.log(`[Relay] Child process spawned (PID: ${child.pid}, requestId: ${requestId})`);
-      
+
+      console.log(
+        `[Relay] Child process spawned (PID: ${child.pid}, requestId: ${requestId})`
+      );
+
       const { stdout } = await childPromise;
-      
-      console.log(`[Relay] Child process exited cleanly (PID: ${child.pid}, requestId: ${requestId})`);
-      
+
+      console.log(
+        `[Relay] Child process exited cleanly (PID: ${child.pid}, requestId: ${requestId})`
+      );
+
       resultRaw = stdout;
       resultText = this.tool.parse ? this.tool.parse(stdout) : stdout;
       runOk = true;
@@ -463,12 +625,14 @@ export class CliBackend implements AgentBackend {
 
     if (worktreeDir) {
       try {
-        await pexec('git', ['worktree', 'remove', '--force', worktreeDir], { cwd });
+        await pexec('git', ['worktree', 'remove', '--force', worktreeDir], {
+          cwd,
+        });
       } catch (e) {
         console.error(`Failed to cleanup worktree ${worktreeDir}:`, e);
       }
     }
-    
+
     if (requestId) {
       activeProcesses.delete(requestId);
     }
@@ -480,11 +644,21 @@ export class CliBackend implements AgentBackend {
   }
 
   async ask(input: RunInput): Promise<AgentResult> {
-    return this.run(this.tool.askArgs(input.prompt, input.cwd), input.cwd, true, input.requestId);
+    return this.run(
+      this.tool.askArgs(input.prompt, input.cwd),
+      input.cwd,
+      true,
+      input.requestId
+    );
   }
 
   async propose(input: RunInput): Promise<ProposalResult> {
-    const r = await this.run(this.tool.proposeArgs(input.prompt, input.cwd), input.cwd, true, input.requestId);
+    const r = await this.run(
+      this.tool.proposeArgs(input.prompt, input.cwd),
+      input.cwd,
+      true,
+      input.requestId
+    );
     // summary = first ~2 sentences of the plan, for speaking aloud
     const summary = r.text
       .split(/(?<=[.!?])\s+/)
@@ -495,11 +669,21 @@ export class CliBackend implements AgentBackend {
   }
 
   async apply(input: RunInput): Promise<AgentResult> {
-    return this.run(this.tool.applyArgs(input.prompt, input.cwd), input.cwd, false, input.requestId);
+    return this.run(
+      this.tool.applyArgs(input.prompt, input.cwd),
+      input.cwd,
+      false,
+      input.requestId
+    );
   }
 }
 
-// Build all backends and detect which are usable right now.
+/**
+ * Initializes and returns an array of all available and configured AgentBackends.
+ * It registers the LocalOllamaBackend and dynamically registers all CLI tools defined in CLI_TOOLS.
+ *
+ * @returns A list of initialized backend instances ready to be detected and used.
+ */
 export async function buildBackends(): Promise<AgentBackend[]> {
   const backends: AgentBackend[] = [new LocalOllamaBackend()];
   for (const [id, tool] of Object.entries(CLI_TOOLS))

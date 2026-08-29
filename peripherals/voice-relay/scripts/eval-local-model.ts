@@ -21,6 +21,13 @@ import { Langfuse } from 'langfuse';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { LocalOllamaBackend } from '../src/backends.js';
+import {
+  detectTaskClass,
+  scoreNoCodeLeak,
+  scoreNoListIndexLeak,
+  scoreNoPreamble,
+  validateByTaskClass,
+} from '../src/spoken-guard.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, '../.env') });
@@ -91,6 +98,9 @@ const evalConfig: EvalCase[] = [
   },
   { prompt: 'Write a python hello world script.', check: has('print(') },
   { prompt: 'How many days are in August?', check: has('31') },
+  { prompt: 'Enumerate the primary colors.', check: has('red') },
+  { prompt: 'Tell me a joke.', check: (s) => s.length > 5 },
+  { prompt: 'Implement a binary search function.', check: has('function') },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -113,6 +123,10 @@ const nsToMs = (ns?: number): number | undefined =>
  * backend didn't pre-parse it. Falls back to the raw text if no tag is found.
  */
 function extractSpoken(text: string): string {
+  try {
+    const p = JSON.parse(text);
+    if (p.spoken) return p.spoken.trim();
+  } catch {}
   const m = text.match(/<spoken>([\s\S]*?)<\/spoken>/i);
   return (m ? m[1] : text).trim();
 }
@@ -127,18 +141,18 @@ function concisenessScore(spoken: string): number {
   return Math.max(0, 1.0 - (words - 10) / 30);
 }
 
-/** 1.0 only if BOTH <spoken> and <markdown> blocks are present. */
+/** 1.0 only if BOTH spoken and markdown fields are present in JSON (or XML fallback). */
 function dualOutputScore(raw: string): number {
-  return raw.includes('<spoken>') && raw.includes('<markdown>') ? 1.0 : 0.0;
+  try {
+    const p = JSON.parse(raw);
+    return p.spoken && p.markdown ? 1.0 : 0.0;
+  } catch {
+    return raw.includes('<spoken>') && raw.includes('<markdown>') ? 1.0 : 0.0;
+  }
 }
 
-/**
- * 1.0 if the spoken text is clean for TTS, 0.0 if it contains markdown-ish
- * artifacts a screen reader would mangle: * # ` , "- " bullets, "1." ordered
- * lists, _underscores_, or [text](links).
- */
 function ttsFriendlyScore(spoken: string): number {
-  const bad = /[*#`]|(^|\s)-\s|(^|\s)\d+\.\s|_[^_]+_|\[[^\]]+\]\([^)]+\)/m;
+  const bad = /[*#`]|(^|\s)-\s|\[[^\]]+\]\([^)]+\)/m;
   return bad.test(spoken) ? 0.0 : 1.0;
 }
 
@@ -192,6 +206,10 @@ interface RowResult {
   dual_output: number;
   tts_friendly: number;
   no_repetition: number;
+  no_preamble: number;
+  no_list_leak: number;
+  no_code_leak: number;
+  l1_pass: number;
 }
 
 async function runEvals() {
@@ -256,6 +274,18 @@ async function runEvals() {
         const dualOutput = dualOutputScore(rawContent);
         const ttsFriendly = ttsFriendlyScore(spokenText);
         const noRepetition = noRepetitionScore(spokenText);
+        // L1 Guard-based scores
+        const noPreamble = scoreNoPreamble(spokenText);
+        const noListLeak = scoreNoListIndexLeak(spokenText);
+        const noCodeLeak = scoreNoCodeLeak(spokenText);
+        const taskClass = detectTaskClass(testCase.prompt);
+        const l1Val = validateByTaskClass(
+          spokenText,
+          testCase.prompt,
+          taskClass
+        );
+        const l1Pass = l1Val.ok && l1Val.confidence === 'high' ? 1.0 : 0.0;
+
         const correct = testCase.check
           ? testCase.check(spokenText, rawContent)
             ? 1.0
@@ -293,6 +323,10 @@ async function runEvals() {
           dual_output_score: dualOutput,
           tts_friendly_score: ttsFriendly,
           no_repetition_score: noRepetition,
+          no_preamble_score: noPreamble,
+          no_list_leak_score: noListLeak,
+          no_code_leak_score: noCodeLeak,
+          l1_guard_pass: l1Pass,
         };
         if (!Number.isNaN(correct)) scores.is_correct = correct;
         for (const [name, value] of Object.entries(scores))
@@ -309,6 +343,10 @@ async function runEvals() {
           dual_output: dualOutput,
           tts_friendly: ttsFriendly,
           no_repetition: noRepetition,
+          no_preamble: noPreamble,
+          no_list_leak: noListLeak,
+          no_code_leak: noCodeLeak,
+          l1_pass: l1Pass,
         });
       } catch (err) {
         const wallLatency = Date.now() - startTime;
@@ -329,6 +367,10 @@ async function runEvals() {
           dual_output: 0,
           tts_friendly: 0,
           no_repetition: 0,
+          no_preamble: 0,
+          no_list_leak: 0,
+          no_code_leak: 0,
+          l1_pass: 0,
         });
       }
     }
@@ -370,7 +412,11 @@ function printSummary(rows: RowResult[]) {
   console.log(
     `no-repetition:    ${avg(ok.map((r) => r.no_repetition)).toFixed(2)}`
   );
-  console.log('─────────────────────────');
+  console.log(`no-preamble:      ${rate(ok.map((r) => r.no_preamble))}`);
+  console.log(`no-list-leak:     ${rate(ok.map((r) => r.no_list_leak))}`);
+  console.log(`no-code-leak:     ${rate(ok.map((r) => r.no_code_leak))}`);
+  console.log(`l1-guard-pass:    ${rate(ok.map((r) => r.l1_pass))}`);
+  console.log('-------------------------------');
 }
 
 runEvals().catch(console.error);

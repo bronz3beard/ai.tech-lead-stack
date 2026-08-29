@@ -58,6 +58,31 @@ describe('LocalOllamaBackend', () => {
     assert.strictEqual(raw.total_duration, 5000000000);
   });
 
+  it('parses JSON format natively without XML fallback', async () => {
+    const fakeResponse = {
+      model: 'qwen3:14b',
+      created_at: '2026-08-28T00:00:00Z',
+      message: {
+        role: 'assistant',
+        content: JSON.stringify({ spoken: 'Hello JSON', markdown: 'Hello World JSON' }),
+      },
+      done: true,
+    };
+
+    globalThis.fetch = mock.fn(async () => {
+      return {
+        ok: true,
+        json: async () => fakeResponse,
+      } as Response;
+    });
+
+    const result = await backend.ask({ prompt: 'Test prompt JSON', cwd: '/test/cwd' });
+
+    assert.strictEqual(result.ok, true);
+    assert.strictEqual(result.text, 'Hello World JSON');
+    assert.strictEqual(result.spokenText, 'Hello JSON');
+  });
+
   it('succeeds safely if stats are omitted from Ollama response (fallback path)', async () => {
     const fakeResponse = {
       model: 'qwen3:14b',
