@@ -233,6 +233,10 @@ async function runEvals() {
           requestId: trace.id,
         });
 
+        if (!result.ok) {
+          throw new Error(result.error || 'Backend request failed silently');
+        }
+
         const wallLatency = Date.now() - startTime;
         const raw = (result.raw as OllamaRaw) ?? {};
         const rawContent: string = raw.message?.content ?? result.text ?? '';
