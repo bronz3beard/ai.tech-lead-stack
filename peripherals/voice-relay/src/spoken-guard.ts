@@ -91,7 +91,7 @@ const EPILOGUE_PATTERNS = [
  * Intentionally loose — catches common JS/TS/Python patterns.
  */
 const CODE_SYNTAX_RE =
-  /(?:^|\s)(?:function\s|const\s|let\s|var\s|=>|import\s|export\s|class\s|def\s|print\(|console\.log|return\s|if\s*\(|for\s*\(|while\s*\(|\{|\})/m;
+  /(?:^|\s)(?:function\s|const\s|let\s|var\s|=>|import\s|export\s|class\s|def\s|print\(|console\.log|return\s|if\s*\(|for\s*\(|while\s*\(|for\s+\w+\s+in\s+|range\(|\[\w+\s+for\s+|\{|\})/m;
 
 /* ------------------------------------------------------------------ */
 /* Task class detection                                                */
@@ -243,6 +243,11 @@ export function validateByTaskClass(
           'contains ascending ordinal run (1,2,3…) — likely list index leak'
         );
       }
+      // Stricter word count check for simple sequences
+      const wordCount = spoken.trim().split(/\s+/).length;
+      if (wordCount > 30) {
+        issues.push('sequence spoken text exceeds 30 words (too verbose)');
+      }
       break;
     }
     case 'code': {
@@ -263,7 +268,13 @@ export function validateByTaskClass(
       }
       break;
     }
-    case 'arithmetic':
+    case 'arithmetic': {
+      const wordCount = spoken.trim().split(/\s+/).length;
+      if (wordCount > 25) {
+        issues.push('arithmetic spoken text exceeds 25 words (too verbose)');
+      }
+      break;
+    }
     case 'freeform':
       // Universal rules suffice
       break;

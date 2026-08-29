@@ -59,7 +59,8 @@ export function __clearGuardCache() {
 export async function guardSpoken(
   prompt: string,
   spoken: string,
-  markdown: string
+  markdown: string,
+  taskClass: string = 'freeform'
 ): Promise<GuardResult> {
   // Check cache first
   const cacheKey = hashCacheKey(prompt, spoken);
@@ -68,12 +69,13 @@ export async function guardSpoken(
   }
 
   const systemPrompt =
-    'You are a strict Text-to-Speech (TTS) quality judge. Your job is to evaluate proposed spoken text for cleanliness and repair it if necessary.\n' +
-    '1. "spoken_ok": Is it free of markdown (*, #, _, `, []), ordered list indices (1., 2.), and preamble ("Here is...")?\n' +
-    '2. "markdown_consistent": Does the spoken text contain the same facts as the markdown text (just without the formatting)?\n' +
-    '3. "repaired_spoken": If spoken_ok is false, provide the cleaned, plain-speech version. If true, return the original.\n' +
-    '4. "reason": A very brief explanation of your verdict.\n\n' +
-    'You MUST return valid JSON matching this schema: { "spoken_ok": boolean, "markdown_consistent": boolean, "repaired_spoken": string, "reason": string }';
+    `You are a strict Text-to-Speech (TTS) quality judge. Your job is to evaluate proposed spoken text for cleanliness and repair it if necessary.\n` +
+    `The user asked a '${taskClass}' question.\n\n` +
+    `1. "spoken_ok": Is it free of markdown (*, #, _, \`, []), ordered list indices (1., 2.), and preamble ("Here is...")?\n` +
+    `2. "markdown_consistent": Does the spoken text contain the same facts as the markdown text (just without the formatting)?\n` +
+    `3. "repaired_spoken": You MUST aggressively prune the text. If the text contains extraneous information (like python code, 'alternative formats', tables, or conversational filler), DELETE it. Return ONLY the direct answer. If spoken_ok is false, provide the cleaned, plain-speech version.\n` +
+    `4. "reason": A very brief explanation of your verdict.\n\n` +
+    `You MUST return valid JSON matching this schema: { "spoken_ok": boolean, "markdown_consistent": boolean, "repaired_spoken": string, "reason": string }`;
 
   const userPrompt = `User Prompt: ${prompt}\n\nProposed Markdown:\n${markdown}\n\nProposed Spoken (for TTS):\n${spoken}`;
 
