@@ -56,16 +56,11 @@ const ORDINAL_RE = /(?:^|\n)\s*\d+\.\s/;
  * Case-insensitive, anchored to start of string (after optional whitespace).
  */
 const PREAMBLE_PATTERNS = [
-  /^\s*(here('s|\s+(is|are))\s+[^:\n]+[:\n]\s*)/i,
-  /^\s*(here('s|\s+(is|are))\b\s*)/i,
-  /^\s*(sure[,!.]?\s*)/i,
-  /^\s*(certainly[,!.]?\s*)/i,
-  /^\s*(great\s+question[,!.]?\s*)/i,
-  /^\s*(of\s+course[,!.]?\s*)/i,
-  /^\s*(absolutely[,!.]?\s*)/i,
-  /^\s*(note\s*:)/i,
-  /^\s*(output\s*:)/i,
-  /^\s*(alternative\s+formats?\s*:?)/i,
+  /^\s*(?:here(?:'s|\s+(?:is|are))\b.*?(?:[:\n]|\s$))/i,
+  /^\s*(?:here(?:'s|\s+(?:is|are))\b\s*)/i,
+  /^\s*(?:sure|certainly|absolutely|of\s+course|great\s+question|yes)\b[,!.\s]*/i,
+  /^\s*(?:note|output|alternative\s+formats?)\b\s*:/i,
+  /^\s*(?:the\s+answer\s+is\b.*?(?:[:\n]|\s$))/i,
 ];
 /**
  * Fast check for any markdown or list formatting characters.
@@ -83,14 +78,10 @@ export function hasMarkdown(text: string): boolean {
  * Anchored to the end of the string (before optional whitespace/punctuation).
  */
 const EPILOGUE_PATTERNS = [
-  /let\s+me\s+know\b.*$/i,
-  /hope\s+this\s+helps\b.*$/i,
-  /feel\s+free\b.*$/i,
-  /if\s+you\s+(have|need)\s+(any|more)\b.*$/i,
-  /don'?t\s+hesitate\b.*$/i,
-  /you\s+(can|may|could)\s+(stop|choose|include|also|find)\b.*$/i,
-  /done[!.]?\s*$/i,
-  /that'?s\s+it[!.]?\s*$/i,
+  /(?:let\s+me\s+know|hope\s+this\s+helps|feel\s+free|don'?t\s+hesitate)\b.*$/i,
+  /(?:if\s+you\s+(?:have|need)\s+(?:any|more))\b.*$/i,
+  /(?:you\s+(?:can|may|could)\s+(?:stop|choose|include|also|find))\b.*$/i,
+  /(?:done|that'?s\s+it)[!.\s]*$/i,
 ];
 
 /**
@@ -381,13 +372,17 @@ export function sanitizeSpoken(spoken: string): string {
       // Strip markdown bold/italic markers
       s = s.replace(/\*{1,3}([^*]+)\*{1,3}/g, '$1');
 
-      // Strip markdown headers
-      s = s.replace(/(?:^|\n)\s*#{1,6}\s+/g, '\n');
+      // Strip markdown headers ENTIRELY (drop the whole line, as headers shouldn't be read aloud)
+      s = s.replace(/(?:^|\n)\s*#{1,6}\s+[^\n]+/g, '\n');
 
-      // Strip triple-backtick code blocks entirely
-      s = s.replace(/```[\s\S]*?```/g, '');
+      // Strip triple-backtick code blocks entirely IF they specify a programming language
+      // (preserves content of generic ``` or ```markdown blocks in case the LLM wrapped the answer)
+      s = s.replace(/```(?!markdown\b|md\b)[a-z]*\n?[\s\S]*?```/gi, '');
 
-      // Strip backtick code spans
+      // Strip remaining triple-backtick openings and closings (including tags like ```markdown) without deleting content
+      s = s.replace(/```[a-z]*\n?/gi, '');
+
+      // Strip backtick code spans (inline code)
       s = s.replace(/`([^`]+)`/g, '$1');
 
       // Strip markdown links: [text](url) → text

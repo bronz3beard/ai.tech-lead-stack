@@ -20,14 +20,14 @@ test('Spoken Guard - True Negatives (flags and sanitizes failure modes)', () => 
       expectSanitized: 'JSON\nitem 1\nitem 2',
     },
     {
-      raw: 'Sure, here is the answer: 42. Hope this helps!',
-      expectFlag: true,
-      expectSanitized: '42.',
-    },
-    {
       raw: '```python\ndef foo(): pass\n```',
       expectFlag: true,
       expectSanitized: '',
+    },
+    {
+      raw: 'Sure, here is the answer: 42. Hope this helps!',
+      expectFlag: true,
+      expectSanitized: '42.',
     },
     {
       raw: '6, 5, 4, 3, 2, 1, 0 (or stop at one). You can stop at 0 if you wish to include zero as well.',
@@ -38,6 +38,26 @@ test('Spoken Guard - True Negatives (flags and sanitizes failure modes)', () => 
       raw: "Here's the countdown sequence:\n10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0\nDone! Let me know if you need to count backwards from a different starting number.",
       expectFlag: true,
       expectSanitized: '10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0',
+    },
+    {
+      raw: 'Here is a list:\n- One\n- Two',
+      expectFlag: true,
+      expectSanitized: 'One\nTwo',
+    },
+    {
+      raw: 'Sure, here is the definition: A dog is an animal.',
+      expectFlag: true,
+      expectSanitized: 'A dog is an animal.',
+    },
+    {
+      raw: '# Header\nThis is the text',
+      expectFlag: true,
+      expectSanitized: 'This is the text',
+    },
+    {
+      raw: '```markdown\n12, 11\n```',
+      expectFlag: true,
+      expectSanitized: '12, 11',
     },
   ];
 
@@ -62,6 +82,8 @@ test('Spoken Guard - True Positives (passes clean speech)', () => {
     'The square root of 144 is 12.',
     'A sequence of numbers: two, four, six, eight.',
     'A binary search tree is a data structure where each node has at most two children.',
+    'Ten, nine, eight, seven.',
+    'The result of ten plus ten is twenty.',
   ];
 
   for (const tc of cleanSpeech) {

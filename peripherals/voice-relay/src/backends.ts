@@ -24,7 +24,7 @@ import type {
 export function applyHarness(prompt: string, taskClass: TaskClass): string {
   switch (taskClass) {
     case 'sequence':
-      return `${prompt}\n\n[STRICT HARNESS] This is a sequence request. Your 'spoken' field MUST contain ONLY the bare sequence items. You are FORBIDDEN from including code, 'alternative formats', "Note:", "Output:", parenthetical options, or conversational padding. DO NOT output "Here is the sequence" or "Done". Just output the items.`;
+      return `${prompt}\n\n[STRICT HARNESS] This is a sequence request. Your 'spoken' field MUST contain ONLY the bare sequence items. You are FORBIDDEN from including code, 'alternative formats', "Note:", "Output:", parenthetical options, or conversational padding. DO NOT output "Here is the sequence" or "Done". Just output the items. DO NOT use markdown lists like - or 1. in the 'spoken' field (they are allowed in 'markdown').`;
     case 'arithmetic':
       return `${prompt}\n\n[STRICT HARNESS] This is an arithmetic request. Your 'spoken' field MUST contain ONLY the final answer. DO NOT include steps, code, explanations, "Note:", or "Output:".`;
     case 'definition':
@@ -268,18 +268,18 @@ export class LocalOllamaBackend implements AgentBackend {
     const system =
       'You are a conversational voice assistant answering questions about a codebase. ' +
       'You MUST respond as valid JSON with exactly two fields:\n' +
-      '"spoken": Plain speech for a Text-to-Speech engine. Rules:\n' +
-      '  - NO markdown formatting whatsoever (no *, #, `, _, -, >, []()), no code blocks\n' +
+      '"spoken": This MUST be an aggressively reduced version of the markdown. It must contain ONLY the core values/answer to be spoken.\n' +
+      '  - NO markdown formatting whatsoever (no *, #, `, _, -, >, []()), no code blocks, no language tags like ```markdown\n' +
       '  - NO numbered/ordered lists (never prefix items with "1.", "2.", etc.)\n' +
       '  - NO bullet points\n' +
       '  - NO preamble ("Here is...", "Sure...", "Certainly...")\n' +
       '  - NO epilogue ("Let me know...", "Hope this helps...")\n' +
+      '  - NO headers, visual formatting descriptions, repetitive visual aids (e.g. arrows, line-by-line breakdowns), or extraneous information.\n' +
       '  - For sequences or enumerations: bare items only, separated by commas or spaces\n' +
       '  - For code: describe what the code does conversationally, never output raw code\n' +
       '  - Keep it ruthlessly brief — say only what answers the question\n\n' +
       '"markdown": Structured response with rich formatting for screen display.\n' +
-      '  - May use headers, lists, code blocks, bold, links\n' +
-      '  - MUST contain the SAME factual information as spoken — nothing added, nothing dropped\n\n' +
+      '  - May use headers, lists, code blocks, bold, links\n\n' +
       (ctx ? `Follow this methodology when relevant:\n${ctx}\n` : '');
     const taskClass = detectTaskClass(input.prompt);
     const harnessedPrompt = applyHarness(input.prompt, taskClass);
