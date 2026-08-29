@@ -161,7 +161,7 @@ async function loadSkillContext(skillName?: string, workflowName?: string, cwd?:
 
 // ---------------- Local Ollama backend (read-only, keyless, works today) ----------------
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://127.0.0.1:11434';
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen3:14b';
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen3.5:9b';
 
 export class LocalOllamaBackend implements AgentBackend {
   id = 'local';
@@ -189,7 +189,13 @@ export class LocalOllamaBackend implements AgentBackend {
       '1. Inside <spoken>, provide a ruthlessly brief, conversational response meant to be read by a Text-to-Speech engine. ' +
       'NEVER use Markdown formatting here. NEVER repeat information (e.g. do not count with numbers and words). ' +
       '2. Inside <markdown>, provide the full, structured technical response with code blocks and lists for the UI.\n' +
-      '3. Do not propose file edits.\n' +
+      '3. Do not propose file edits.\n\n' +
+      'Here is an example of the expected conciseness:\n' +
+      '<example>\n' +
+      'User: How many days are in August?\n' +
+      '<spoken>There are 31 days in August.</spoken>\n' +
+      '<markdown>August always has 31 days.</markdown>\n' +
+      '</example>\n' +
       (ctx ? `Follow this methodology when relevant:\n${ctx}\n` : '');
     try {
       const res = await fetch(`${OLLAMA_URL}/api/chat`, {
@@ -207,6 +213,9 @@ export class LocalOllamaBackend implements AgentBackend {
       });
       // Store local Ollama controller if we wanted to abort it, but we use fetch signal natively on client now.
       const data: any = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || `Ollama API returned ${res.status}`);
+      }
       const rawContent = data?.message?.content ?? '';
       
       let spokenText = undefined;

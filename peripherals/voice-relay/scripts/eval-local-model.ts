@@ -90,6 +90,7 @@ const evalConfig: EvalCase[] = [
       [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0].every((n) => raw.includes(String(n))),
   },
   { prompt: 'Write a python hello world script.', check: has('print(') },
+  { prompt: 'How many days are in August?', check: has('31') },
 ];
 
 /* ------------------------------------------------------------------ */
@@ -117,14 +118,13 @@ function extractSpoken(text: string): string {
 }
 
 /**
- * Conciseness of the spoken reply. Kept identical to the original formula so
- * historical Langfuse data stays comparable: <=20 words = 1.0, decaying to
- * 0.0 at 100 words.
+ * Conciseness of the spoken reply. <=10 words = 1.0, decaying to
+ * 0.0 at 40 words.
  */
 function concisenessScore(spoken: string): number {
   const words = wordCount(spoken);
-  if (words <= 20) return 1.0;
-  return Math.max(0, 1.0 - (words - 20) / 80);
+  if (words <= 10) return 1.0;
+  return Math.max(0, 1.0 - (words - 10) / 30);
 }
 
 /** 1.0 only if BOTH <spoken> and <markdown> blocks are present. */
