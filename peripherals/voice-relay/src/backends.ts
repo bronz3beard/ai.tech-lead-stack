@@ -183,8 +183,13 @@ export class LocalOllamaBackend implements AgentBackend {
 
   async ask(input: RunInput): Promise<AgentResult> {
     const ctx = await loadSkillContext(input.skill?.skill, input.skill?.workflow, input.cwd);
-    const system =
-      'You are answering questions about a codebase, read-only. Do not propose file edits. Keep answers extremely concise and direct. Do not write essays or provide unnecessary mathematical breakdowns. Act like a conversational voice assistant.\n' +
+    const system = 
+      'You are a conversational voice assistant answering questions about a codebase. ' +
+      'You MUST provide your response in two formats using XML tags: <spoken> and <markdown>.\n' +
+      '1. Inside <spoken>, provide a ruthlessly brief, conversational response meant to be read by a Text-to-Speech engine. ' +
+      'NEVER use Markdown formatting here. NEVER repeat information (e.g. do not count with numbers and words). ' +
+      '2. Inside <markdown>, provide the full, structured technical response with code blocks and lists for the UI.\n' +
+      '3. Do not propose file edits.\n' +
       (ctx ? `Follow this methodology when relevant:\n${ctx}\n` : '');
     try {
       const res = await fetch(`${OLLAMA_URL}/api/chat`, {
@@ -202,7 +207,22 @@ export class LocalOllamaBackend implements AgentBackend {
       });
       // Store local Ollama controller if we wanted to abort it, but we use fetch signal natively on client now.
       const data: any = await res.json();
-      return { ok: true, text: data?.message?.content ?? '', raw: data };
+      const rawContent = data?.message?.content ?? '';
+      
+      let spokenText = undefined;
+      let text = rawContent;
+
+      const spokenMatch = rawContent.match(/<spoken>([\s\S]*?)<\/spoken>/i);
+      const markdownMatch = rawContent.match(/<markdown>([\s\S]*?)<\/markdown>/i);
+
+      if (spokenMatch) {
+        spokenText = spokenMatch[1].trim();
+      }
+      if (markdownMatch) {
+        text = markdownMatch[1].trim();
+      }
+
+      return { ok: true, text, spokenText, raw: data };
     } catch (e: any) {
       let errStr = e?.message ?? 'ollama request failed';
       if (e?.name === 'TimeoutError' || errStr.includes('aborted')) {
