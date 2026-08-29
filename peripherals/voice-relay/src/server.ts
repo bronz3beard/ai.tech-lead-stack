@@ -149,7 +149,11 @@ app.post('/command', async (req, res, next) => {
     }
 
     // Handle early client disconnections by aborting the underlying process
-    req.on('close', () => {
+    res.on('close', () => {
+      // Node 16+ emits 'close' on req when body is fully consumed. 
+      // To reliably detect a premature client disconnect, we listen on 'res' and check writableEnded.
+      if (res.writableEnded) return;
+
       console.log(
         `[Relay] HTTP connection closed by client (requestId: ${requestId})`
       );

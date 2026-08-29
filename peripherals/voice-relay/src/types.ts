@@ -41,6 +41,7 @@ export interface RunInput {
 export interface AgentResult {
   ok: boolean;
   text: string; // human-readable answer / result summary (spoken back)
+  spokenText?: string; // dedicated clean string for TTS (no markdown, no repetition)
   raw?: unknown; // parsed JSON output if available
   error?: string;
 }

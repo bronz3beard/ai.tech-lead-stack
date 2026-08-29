@@ -50,6 +50,33 @@ async function setupDashboard() {
       metrics: [{ measure: 'value', agg: 'avg' }],
       dimensions: [],
       filters: [{ type: 'string', column: 'name', operator: '=', value: 'is_concise' }],
+    },
+    {
+      name: 'Dual Output Score',
+      description: 'Score from 0.0 to 1.0 (1.0 = provided both <spoken> and <markdown>)',
+      view: 'scores-numeric',
+      chartType: 'NUMBER',
+      metrics: [{ measure: 'value', agg: 'avg' }],
+      dimensions: [],
+      filters: [{ type: 'string', column: 'name', operator: '=', value: 'dual_output_score' }],
+    },
+    {
+      name: 'TTS Friendly Score',
+      description: 'Score from 0.0 to 1.0 (1.0 = no markdown in <spoken>)',
+      view: 'scores-numeric',
+      chartType: 'NUMBER',
+      metrics: [{ measure: 'value', agg: 'avg' }],
+      dimensions: [],
+      filters: [{ type: 'string', column: 'name', operator: '=', value: 'tts_friendly_score' }],
+    },
+    {
+      name: 'Repetition Penalty',
+      description: 'Penalty from 0.0 to 1.0 (0.0 = no repetition, good)',
+      view: 'scores-numeric',
+      chartType: 'NUMBER',
+      metrics: [{ measure: 'value', agg: 'avg' }],
+      dimensions: [],
+      filters: [{ type: 'string', column: 'name', operator: '=', value: 'repetition_penalty' }],
     }
   ];
 
@@ -90,6 +117,9 @@ async function setupDashboard() {
     { type: 'widget', widgetId: createdWidgets[0].id },
     { type: 'widget', widgetId: createdWidgets[1].id },
     { type: 'widget', widgetId: createdWidgets[2].id },
+    { type: 'widget', widgetId: createdWidgets[3].id },
+    { type: 'widget', widgetId: createdWidgets[4].id },
+    { type: 'widget', widgetId: createdWidgets[5].id },
   ];
 
   for (const [i, p] of placements.entries()) {
