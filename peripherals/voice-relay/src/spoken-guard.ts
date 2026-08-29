@@ -82,6 +82,7 @@ const EPILOGUE_PATTERNS = [
   /(?:let\s+me\s+know|hope\s+this\s+helps|feel\s+free|don'?t\s+hesitate)\b.*$/i,
   /(?:if\s+you\s+(?:have|need)\s+(?:any|more))\b.*$/i,
   /(?:you\s+(?:can|may|could)\s+(?:stop|choose|include|also|find))\b.*$/i,
+  /(?:have\s+a\s+(?:great|good|wonderful)\s+day)\b.*$/i,
   /(?:done|that'?s\s+it)[!.\s]*$/i,
   /(?:\*?this\s+sequence\b.*)$/i,
 ];
@@ -379,7 +380,7 @@ export function sanitizeSpoken(spoken: string): string {
 
       // Strip triple-backtick code blocks entirely IF they specify a programming language
       // (preserves content of generic ``` or ```markdown blocks in case the LLM wrapped the answer)
-      s = s.replace(/```(?!markdown\b|md\b)[a-z]*\n?[\s\S]*?```/gi, '');
+      s = s.replace(/```(?!markdown\b|md\b|text\b)[a-z]*\n?[\s\S]*?```/gi, '');
 
       // Strip remaining triple-backtick openings and closings (including tags like ```markdown) without deleting content
       s = s.replace(/```[a-z]*\n?/gi, '');
