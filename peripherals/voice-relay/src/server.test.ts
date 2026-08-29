@@ -1,20 +1,27 @@
 import 'dotenv/config';
-import test, { before } from 'node:test';
+import test, { before, after } from 'node:test';
 import assert from 'node:assert';
 import request from 'supertest';
 import { app, proposals, refreshSkills } from './server.js';
 import crypto from 'node:crypto';
+import http from 'node:http';
 import type { Proposal } from './types.js';
 
 const TOKEN = process.env.RELAY_TOKEN!;
+const server = http.createServer(app);
 
 before(async () => {
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   await refreshSkills();
+});
+
+after(() => {
+  server.close();
 });
 
 test('POST /apply refuses if proposalId is missing or unknown', async () => {
 
-  const res = await request(app)
+  const res = await request(server)
     .post('/apply')
     .set('x-relay-token', TOKEN)
     .send({ approve: true });
@@ -36,7 +43,7 @@ test('POST /apply refuses if approve is false', async () => {
     status: 'proposed'
   });
 
-  const res = await request(app)
+  const res = await request(server)
     .post('/apply')
     .set('x-relay-token', TOKEN)
     .send({ proposalId: id, approve: false });
@@ -59,7 +66,7 @@ test('POST /apply refuses if proposal is not in proposed state', async () => {
     status: 'rejected'
   });
 
-  const res = await request(app)
+  const res = await request(server)
     .post('/apply')
     .set('x-relay-token', TOKEN)
     .send({ proposalId: id, approve: true });
@@ -87,7 +94,7 @@ test('POST /command returns need-project guard when no project is matched', asyn
   __setMockProjects([{ id: 'test-repo', path: '/tmp/test-repo', name: 'test repo', aliases: ['test'] }]);
   __setMockBackends([mockBackend]);
   
-  const res = await request(app)
+  const res = await request(server)
     .post('/command')
     .set('x-relay-token', TOKEN)
     .send({ transcript: 'do something random' });
@@ -100,7 +107,7 @@ test('POST /command returns need-project guard when no project is matched', asyn
 test('POST /command resolves project and defaults to ask skill (writes: false)', async () => {
   __setMockProjects([{ id: 'test-repo', path: '/tmp/test-repo', name: 'test repo', aliases: ['test'] }]);
   
-  const res = await request(app)
+  const res = await request(server)
     .post('/command')
     .set('x-relay-token', TOKEN)
     .send({ transcript: 'test repo how does the auth work' });
@@ -117,7 +124,7 @@ test('POST /command resolves project and defaults to ask skill (writes: false)',
 test('POST /command resolves write skill and generates a proposal', async () => {
   __setMockProjects([{ id: 'test-repo', path: '/tmp/test-repo', name: 'test repo', aliases: ['test'] }]);
   
-  const res = await request(app)
+  const res = await request(server)
     .post('/command')
     .set('x-relay-token', TOKEN)
     .send({ transcript: 'test repo dev team add a rate limiter' });
@@ -138,7 +145,7 @@ test('POST /command with mode=iris bypasses project resolution', async () => {
   __setMockProjects([{ id: 'test-repo', path: '/tmp/test-repo', name: 'test repo', aliases: ['test'] }]);
   __setMockBackends([mockBackend]);
 
-  const res = await request(app)
+  const res = await request(server)
     .post('/command')
     .set('x-relay-token', TOKEN)
     .send({ transcript: 'how many weeks in a year', mode: 'iris' });
