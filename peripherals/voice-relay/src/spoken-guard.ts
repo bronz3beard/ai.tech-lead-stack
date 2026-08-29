@@ -61,6 +61,7 @@ const PREAMBLE_PATTERNS = [
   /^\s*(?:sure|certainly|absolutely|of\s+course|great\s+question|yes)\b[,!.\s]*/i,
   /^\s*(?:note|output|alternative\s+formats?)\b\s*:/i,
   /^\s*(?:the\s+answer\s+is\b.*?(?:[:\n]|\s$))/i,
+  /^\s*(?:\*?this\s+sequence\b.*?(?:[:\n]|\s$|\*))/i,
 ];
 /**
  * Fast check for any markdown or list formatting characters.
@@ -82,6 +83,7 @@ const EPILOGUE_PATTERNS = [
   /(?:if\s+you\s+(?:have|need)\s+(?:any|more))\b.*$/i,
   /(?:you\s+(?:can|may|could)\s+(?:stop|choose|include|also|find))\b.*$/i,
   /(?:done|that'?s\s+it)[!.\s]*$/i,
+  /(?:\*?this\s+sequence\b.*)$/i,
 ];
 
 /**
@@ -401,11 +403,20 @@ export function sanitizeSpoken(spoken: string): string {
 
   // Collapse whitespace
   s = s
+    .replace(/[ \t]+$/gm, '')
     .replace(/\n{2,}/g, '\n')
     .replace(/[ \t]{2,}/g, ' ')
     .trim();
 
-  return s;
+  // Strip preambles and epilogues as a hard guard
+  for (const pat of PREAMBLE_PATTERNS) {
+    s = s.replace(pat, '');
+  }
+  for (const pat of EPILOGUE_PATTERNS) {
+    s = s.replace(pat, '');
+  }
+
+  return s.trim();
 }
 
 /* ------------------------------------------------------------------ */

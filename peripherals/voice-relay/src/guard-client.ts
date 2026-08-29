@@ -89,7 +89,7 @@ export async function guardSpoken(
           source: 'local-ollama',
           spoken_ok: res.spoken_ok ?? true,
           markdown_consistent: res.markdown_consistent ?? true,
-          repaired_spoken: res.repaired_spoken,
+          repaired_spoken: sanitizeSpoken(res.repaired_spoken),
           reason: res.reason ?? 'Local guard passed',
         };
         guardCache.set(cacheKey, result);
@@ -120,7 +120,7 @@ export async function guardSpoken(
           source: 'gemini-cloud',
           spoken_ok: res.spoken_ok ?? true,
           markdown_consistent: res.markdown_consistent ?? true,
-          repaired_spoken: res.repaired_spoken,
+          repaired_spoken: sanitizeSpoken(res.repaired_spoken),
           reason: res.reason ?? 'Gemini guard passed',
         };
         guardCache.set(cacheKey, result);
