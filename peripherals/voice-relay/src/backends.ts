@@ -165,7 +165,7 @@ const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen3:14b';
 
 export class LocalOllamaBackend implements AgentBackend {
   id = 'local';
-  label = 'Local (Ollama qwen3:14b)';
+  label = `Local (Ollama ${OLLAMA_MODEL})`;
   writesSupported = false;
 
   async detect(): Promise<DetectResult> {
@@ -182,9 +182,9 @@ export class LocalOllamaBackend implements AgentBackend {
   }
 
   async ask(input: RunInput): Promise<AgentResult> {
-    const ctx = await loadSkillContext(input.skill.skill, input.skill.workflow, input.cwd);
+    const ctx = await loadSkillContext(input.skill?.skill, input.skill?.workflow, input.cwd);
     const system =
-      'You are answering questions about a codebase, read-only. Do not propose file edits.\n' +
+      'You are answering questions about a codebase, read-only. Do not propose file edits. Keep answers extremely concise and direct. Do not write essays or provide unnecessary mathematical breakdowns. Act like a conversational voice assistant.\n' +
       (ctx ? `Follow this methodology when relevant:\n${ctx}\n` : '');
     try {
       const res = await fetch(`${OLLAMA_URL}/api/chat`, {

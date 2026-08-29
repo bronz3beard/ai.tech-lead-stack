@@ -133,3 +133,18 @@ test('POST /command resolves write skill and generates a proposal', async () => 
   assert.ok(stored);
   assert.strictEqual(stored.status, 'proposed');
 });
+
+test('POST /command with mode=iris bypasses project resolution', async () => {
+  __setMockProjects([{ id: 'test-repo', path: '/tmp/test-repo', name: 'test repo', aliases: ['test'] }]);
+  __setMockBackends([mockBackend]);
+
+  const res = await request(app)
+    .post('/command')
+    .set('x-relay-token', TOKEN)
+    .send({ transcript: 'how many weeks in a year', mode: 'iris' });
+    
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.kind, 'answer');
+  assert.strictEqual(res.body.projectName, 'I.R.I.S');
+  assert.strictEqual(res.body.text, 'mock answer');
+});
