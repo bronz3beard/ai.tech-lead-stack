@@ -6,7 +6,21 @@ import { execFile, spawn } from 'node:child_process';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { guardSpoken } from './guard-client.js';
-import { detectTaskClass, validateByTaskClass } from './spoken-guard.js';
+import { detectTaskClass, validateByTaskClass, type TaskClass } from './spoken-guard.js';
+import { logResponse } from './db/sqlite-logger.js';
+
+export function applyHarness(prompt: string, taskClass: TaskClass): string {
+  switch (taskClass) {
+    case 'sequence':
+      return `${prompt}\n\n[STRICT HARNESS] This is a sequence request. Your 'spoken' field MUST contain ONLY the sequence items. You are FORBIDDEN from including code, 'alternative formats', or conversational padding.`;
+    case 'arithmetic':
+      return `${prompt}\n\n[STRICT HARNESS] This is an arithmetic request. Your 'spoken' field MUST contain ONLY the final answer. DO NOT include steps, code, or explanations.`;
+    case 'definition':
+      return `${prompt}\n\n[STRICT HARNESS] This is a definition request. Your 'spoken' field MUST be a MAXIMUM of 3 sentences. DO NOT include code or conversational padding.`;
+    default:
+      return prompt;
+  }
+}
 import type {
   AgentBackend,
   AgentResult,
@@ -263,6 +277,8 @@ export class LocalOllamaBackend implements AgentBackend {
       '  - May use headers, lists, code blocks, bold, links\n' +
       '  - MUST contain the SAME factual information as spoken — nothing added, nothing dropped\n\n' +
       (ctx ? `Follow this methodology when relevant:\n${ctx}\n` : '');
+    const taskClass = detectTaskClass(input.prompt);
+    const harnessedPrompt = applyHarness(input.prompt, taskClass);
     try {
       const res = await fetch(`${OLLAMA_URL}/api/chat`, {
         method: 'POST',
@@ -282,7 +298,7 @@ export class LocalOllamaBackend implements AgentBackend {
           },
           messages: [
             { role: 'system', content: system },
-            { role: 'user', content: `Repo: ${input.cwd}\n\n${input.prompt}` },
+            { role: 'user', content: `Repo: ${input.cwd}\n\n${harnessedPrompt}` },
           ],
         }),
       });
@@ -315,12 +331,20 @@ export class LocalOllamaBackend implements AgentBackend {
       }
 
       if (spokenText) {
-        const taskClass = detectTaskClass(input.prompt);
+        const rawSpoken = spokenText;
         const val = validateByTaskClass(spokenText, input.prompt, taskClass);
         if (!val.ok || val.confidence === 'low') {
-          const guardRes = await guardSpoken(input.prompt, spokenText, text);
+          const guardRes = await guardSpoken(input.prompt, spokenText, text, taskClass);
           spokenText = guardRes.repaired_spoken;
         }
+        
+        logResponse({
+          prompt: input.prompt,
+          task_class: taskClass,
+          raw_markdown: text,
+          raw_spoken: rawSpoken,
+          repaired_spoken: spokenText
+        });
       }
 
       return { ok: true, text, spokenText, raw: data };
@@ -644,12 +668,37 @@ export class CliBackend implements AgentBackend {
   }
 
   async ask(input: RunInput): Promise<AgentResult> {
-    return this.run(
-      this.tool.askArgs(input.prompt, input.cwd),
+    const taskClass = detectTaskClass(input.prompt);
+    const harnessedPrompt = applyHarness(input.prompt, taskClass);
+    
+    const result = await this.run(
+      this.tool.askArgs(harnessedPrompt, input.cwd),
       input.cwd,
       true,
       input.requestId
     );
+    
+    if (result.ok && result.text) {
+      const rawText = result.text;
+      let repairedText = rawText;
+      const val = validateByTaskClass(rawText, input.prompt, taskClass);
+      
+      if (!val.ok || val.confidence === 'low') {
+        const guardRes = await guardSpoken(input.prompt, rawText, rawText, taskClass);
+        repairedText = guardRes.repaired_spoken;
+        result.text = repairedText;
+      }
+      
+      logResponse({
+        prompt: input.prompt,
+        task_class: taskClass,
+        raw_markdown: rawText,
+        raw_spoken: rawText,
+        repaired_spoken: repairedText
+      });
+    }
+    
+    return result;
   }
 
   async propose(input: RunInput): Promise<ProposalResult> {
