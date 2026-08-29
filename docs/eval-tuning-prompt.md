@@ -7,8 +7,9 @@
 
 ---
 
-**Copy and paste the following prompt into your Agent CLI (e.g., Cursor, Claude,
-Antigravity) at the root of the project:**
+**Copy and paste the following prompt into your Agent CLI**
+
+> (e.g., Cursor, Claude, Antigravity) at the root of the project:
 
 ```text
 /plan Audit and tune the TTS output harness using runtime data from `peripherals/voice-relay/voice_logs.db`.
