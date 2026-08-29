@@ -34,7 +34,7 @@ export interface DetectResult {
 export interface RunInput {
   prompt: string; // the full instruction handed to the agent
   cwd: string; // repo path the agent operates in
-  skill: SkillEntry;
+  skill?: SkillEntry;
   requestId?: string;
 }
 

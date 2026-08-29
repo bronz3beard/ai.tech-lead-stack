@@ -5,9 +5,11 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "test": "tsx --test src/**/*.test.ts",
+    "test": "NODE_ENV=test tsx --test src/**/*.test.ts",
     "dev": "tsx watch src/server.ts",
-    "start": "tsx src/server.ts"
+    "start": "tsx src/server.ts",
+    "eval": "tsx scripts/eval-local-model.ts",
+    "setup:dashboard": "tsx scripts/setup-dashboard.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
