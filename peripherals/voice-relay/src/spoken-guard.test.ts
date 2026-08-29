@@ -240,7 +240,8 @@ describe('sanitizeSpoken', () => {
   it('strips markdown headers', () => {
     const result = sanitizeSpoken('## Section\nSome text');
     assert.ok(!result.includes('#'));
-    assert.ok(result.includes('Section'));
+    assert.ok(!result.includes('Section'));
+    assert.ok(result.includes('Some text'));
   });
 
   it('strips backtick code spans', () => {
