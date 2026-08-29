@@ -59,6 +59,11 @@ test('Spoken Guard - True Negatives (flags and sanitizes failure modes)', () => 
       expectFlag: true,
       expectSanitized: '12, 11',
     },
+    {
+      raw: '*This sequence counts downward from seven to one.*\n\n```markdown\n# Counting Backwards From Seven\n\n- 7  \n- 6  \n- 5  \n- 4  \n- 3  \n- 2  \n- 1  \n\n*This sequence counts downward from seven to one.*\n```',
+      expectFlag: true,
+      expectSanitized: '7\n6\n5\n4\n3\n2\n1',
+    },
   ];
 
   for (const tc of failureModes) {
