@@ -113,9 +113,6 @@ importers:
       pg:
         specifier: ^8.20.0
         version: 8.20.0
-      playwright:
-        specifier: latest
-        version: 1.59.1
       playwright-extra:
         specifier: latest
         version: 4.3.6(playwright-core@1.59.1)(playwright@1.59.1)
@@ -237,6 +234,9 @@ importers:
       markdownlint-cli:
         specifier: ^0.48.0
         version: 0.48.0
+      playwright:
+        specifier: latest
+        version: 1.59.1
       prettier:
         specifier: ^3.8.2
         version: 3.8.3

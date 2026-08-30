@@ -1,0 +1,24 @@
+--- .ai/skills/visual-verifier.md
++++ .ai/skills/visual-verifier.md
+@@ -62,11 +62,12 @@
+      screenshots at the three mandatory resolutions. Save outputs to
+-     `.github/evidence/<feature-branch>/`.
++     `.ai/evidence/<feature-branch>/`.
+-4. **Upload — Git Evidence Branch** (replaces `rtk run github-upload`):
+-   - Check out (or create) the branch `pr/evidence-<project-name>`.
+-   - Copy screenshots into `screenshots/<feature-branch>/`.
+-   - `git add . && git commit -m "docs(evidence): capture for <feature-branch>"`
+-   - `git push origin pr/evidence-<project-name>`
+-   - Construct permanent raw URLs:
+-     `https://raw.githubusercontent.com/<OWNER>/<REPO>/pr/evidence-<project-name>/screenshots/<feature-branch>/<viewport>.png`
+-   - Switch back to the original feature branch.
+-5. **Validation**: Confirm "Smoke Test Passed" once visual parity is confirmed
+-   across all viewports and raw URLs resolve successfully.
++4. **Publish & Verify**:
++   - Handled via `rtk run publish-evidence <manifestPath>` and `rtk run verify-evidence <publishPayloadPath>`.
++   - **Path A (Public Repo)**: Pushes screenshots to `pr/evidence-<project-name>` using Git Data API (no worktree checkouts), constructs permanent raw URLs pinned to a commit SHA, and verifies them anonymously.
++   - **Path B (Private Repo / No Push)**: Skips publishing and leaves images in `.ai/evidence/<feature-branch>/` for local drag-and-drop.
++5. **Validation**:
++   - **Path A**: Confirm "Smoke Test Passed" once visual parity is confirmed across all viewports and raw URLs verify successfully anonymously.
++   - **Path B**: Provide handoff block for local evidence attachment.
++   - **Important**: Evidence images never leave the target repository. `upload-evidence.mjs` is strictly forbidden from this flow.

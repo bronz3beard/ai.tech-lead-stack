@@ -56,6 +56,11 @@ dev_server.log
 .reflexion-out/
 .tmp/*
 
+auth/
+.ai/tmp/
+.ai/evidence/
+.github/.pr_body_temp.md
+
 /README.backup.md
 
 # voice-relay
