@@ -7,8 +7,6 @@ import path from 'path';
 import os from 'os';
 import matter from 'gray-matter';
 
-const execFileAsync = promisify(execFile);
-
 /**
  * @desc Factory that creates agent tools with access to the current skill
  * content from the editor. This avoids the LLM needing to re-send the
@@ -19,6 +17,7 @@ const execFileAsync = promisify(execFile);
  * @returns AI SDK tool definitions for skill analysis, linting, and editing
  */
 export function createAgentTools(currentContent: string) {
+  const execFileAsync = promisify(execFile);
   return {
     lint_and_format: tool({
       description:

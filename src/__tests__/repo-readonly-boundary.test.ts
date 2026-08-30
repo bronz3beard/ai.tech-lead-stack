@@ -168,7 +168,16 @@ describe('Repository Readonly Boundary E2E Sequence', () => {
         stateDir: safeReflexionDir,
       });
     } finally {
-      fs.rmSync(safeReflexionDir, { recursive: true, force: true });
+      try {
+        fs.rmSync(safeReflexionDir, {
+          recursive: true,
+          force: true,
+          maxRetries: 3,
+          retryDelay: 50,
+        });
+      } catch {
+        // ignore cleanup errors
+      }
     }
 
     // Step 4: create_knowledge_item

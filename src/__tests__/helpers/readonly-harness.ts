@@ -68,7 +68,12 @@ export function makeFakeClientRepo(
 
   const cleanup = () => {
     try {
-      fs.rmSync(root, { recursive: true, force: true });
+      fs.rmSync(root, {
+        recursive: true,
+        force: true,
+        maxRetries: 3,
+        retryDelay: 50,
+      });
     } catch {
       // Ignore errors during cleanup
     }
@@ -162,6 +167,48 @@ function extractPath(arg: unknown): string {
   return '';
 }
 
+const realFs = {
+  writeFile: fs.writeFile.bind(fs),
+  writeFileSync: fs.writeFileSync.bind(fs),
+  appendFile: fs.appendFile.bind(fs),
+  appendFileSync: fs.appendFileSync.bind(fs),
+  mkdir: fs.mkdir.bind(fs),
+  mkdirSync: fs.mkdirSync.bind(fs),
+  rm: fs.rm.bind(fs),
+  rmSync: fs.rmSync.bind(fs),
+  rename: fs.rename.bind(fs),
+  renameSync: fs.renameSync.bind(fs),
+  unlink: fs.unlink.bind(fs),
+  unlinkSync: fs.unlinkSync.bind(fs),
+  copyFile: fs.copyFile.bind(fs),
+  copyFileSync: fs.copyFileSync.bind(fs),
+  promises: {
+    writeFile: fs.promises.writeFile.bind(fs.promises),
+    appendFile: fs.promises.appendFile.bind(fs.promises),
+    mkdir: fs.promises.mkdir.bind(fs.promises),
+    rm: fs.promises.rm.bind(fs.promises),
+    rename: fs.promises.rename.bind(fs.promises),
+    unlink: fs.promises.unlink.bind(fs.promises),
+    copyFile: fs.promises.copyFile.bind(fs.promises),
+  },
+};
+
+function cleanRemoveSync(target: string): void {
+  try {
+    if (!fs.existsSync(target)) return;
+    const stat = fs.lstatSync(target);
+    if (stat.isDirectory()) {
+      const entries = fs.readdirSync(target);
+      for (const entry of entries) {
+        cleanRemoveSync(path.join(target, entry));
+      }
+      fs.rmdirSync(target);
+    } else {
+      fs.unlinkSync(target);
+    }
+  } catch {}
+}
+
 /**
  * Spies on fs and fs/promises write methods, recording calls and target absolute paths.
  */
@@ -189,16 +236,9 @@ export function spyOnFsWrites(): {
     'copyFileSync',
   ];
 
-  const realRmSync = fs.rmSync.bind(fs);
-  const realUnlinkSync = fs.unlinkSync.bind(fs);
-  const realReaddirSync = fs.readdirSync.bind(fs);
-  const realStatSync = fs.statSync.bind(fs);
-  const realMkdirSync = fs.mkdirSync.bind(fs);
-  const realWriteFileSync = fs.writeFileSync.bind(fs);
-
   for (const method of fsMethods) {
-    const orig = fs[method] as Function;
-    if (typeof orig === 'function') {
+    const realFn = (realFs as any)[method];
+    if (typeof realFn === 'function') {
       const spy = jest.spyOn(fs, method as any).mockImplementation(function (
         this: unknown,
         ...args: unknown[]
@@ -208,7 +248,11 @@ export function spyOnFsWrites(): {
           path: extractPath(args[0]),
           args,
         });
-        return orig.apply(fs, args);
+        if (method === 'rm' || method === 'rmSync') {
+          cleanRemoveSync(String(args[0] ?? ''));
+          return method === 'rm' ? (cb: any) => cb && cb(null) : undefined;
+        }
+        return realFn(...args);
       });
       spies.push(spy);
     }
@@ -225,52 +269,67 @@ export function spyOnFsWrites(): {
   ];
 
   for (const method of promisesMethods) {
-    const orig = fs.promises[method] as Function;
-    if (typeof orig === 'function') {
-      const spy = jest
-        .spyOn(fs.promises, method as any)
-        .mockImplementation(async function (this: unknown, ...args: unknown[]) {
-          writes.push({
-            method: `fs.promises.${String(method)}`,
-            path: extractPath(args[0]),
-            args,
-          });
-          if (method === 'writeFile') {
-            try {
-              const targetFile = String(args[0] ?? '');
-              realMkdirSync(path.dirname(targetFile), { recursive: true });
-              realWriteFileSync(targetFile, String(args[1] ?? ''), 'utf-8');
-            } catch {}
-          }
-          if (method === 'rm') {
-            const target = String(args[0] ?? '');
-            try {
-              realRmSync(target, { recursive: true, force: true });
-              realRmSync(path.resolve(target), {
-                recursive: true,
-                force: true,
-              });
-            } catch {
-              try {
-                if (realStatSync(target).isDirectory()) {
-                  const files = realReaddirSync(target);
-                  for (const f of files) {
-                    try {
-                      realUnlinkSync(path.join(target, f));
-                    } catch {}
-                  }
-                  realRmSync(target, { recursive: true, force: true });
-                } else {
-                  realUnlinkSync(target);
-                }
-              } catch {}
-            }
-            return Promise.resolve();
-          }
-          return orig.apply(this, args);
+    const spy = jest
+      .spyOn(fs.promises, method as any)
+      .mockImplementation(async function (this: unknown, ...args: unknown[]) {
+        writes.push({
+          method: `fs.promises.${String(method)}`,
+          path: extractPath(args[0]),
+          args,
         });
-      spies.push(spy);
-    }
+        if (method === 'rm') {
+          cleanRemoveSync(String(args[0] ?? ''));
+          return Promise.resolve();
+        }
+        if (method === 'writeFile') {
+          const target = String(args[0] ?? '');
+          const data = args[1] as string | Buffer;
+          const opts = args[2] as fs.WriteFileOptions;
+          try {
+            realFs.mkdirSync(path.dirname(target), { recursive: true });
+            realFs.writeFileSync(target, data, opts);
+          } catch {}
+          return Promise.resolve();
+        }
+        if (method === 'mkdir') {
+          const target = String(args[0] ?? '');
+          const opts = args[1] as fs.MakeDirectoryOptions;
+          try {
+            realFs.mkdirSync(target, { recursive: true, ...opts });
+          } catch {}
+          return Promise.resolve();
+        }
+        if (method === 'unlink') {
+          try {
+            realFs.unlinkSync(String(args[0] ?? ''));
+          } catch {}
+          return Promise.resolve();
+        }
+        if (method === 'appendFile') {
+          try {
+            realFs.appendFileSync(
+              String(args[0] ?? ''),
+              args[1] as any,
+              args[2] as any
+            );
+          } catch {}
+          return Promise.resolve();
+        }
+        if (method === 'copyFile') {
+          try {
+            realFs.copyFileSync(String(args[0] ?? ''), String(args[1] ?? ''));
+          } catch {}
+          return Promise.resolve();
+        }
+        if (method === 'rename') {
+          try {
+            realFs.renameSync(String(args[0] ?? ''), String(args[1] ?? ''));
+          } catch {}
+          return Promise.resolve();
+        }
+        return Promise.resolve();
+      });
+    spies.push(spy);
   }
 
   const restore = () => {
@@ -342,7 +401,11 @@ export function spyOnChildProcess(): {
           return {} as any;
         }
 
-        return orig.apply(this, args);
+        if (method === 'execSync' || method === 'execFileSync') {
+          return 'Mock Output';
+        }
+
+        return { stdout: 'Mock Output', stderr: '', status: 0 } as any;
       };
 
       if (method === 'execFile') {
@@ -364,6 +427,10 @@ export function spyOnChildProcess(): {
       const spy = jest
         .spyOn(child_process, method as any)
         .mockImplementation(mockImpl);
+      if (method === 'execFile') {
+        const customSymbol = Symbol.for('nodejs.util.promisify.custom');
+        (spy as any)[customSymbol] = mockImpl[customSymbol];
+      }
       spies.push(spy);
     }
   }

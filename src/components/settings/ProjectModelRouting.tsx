@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { CheckCircle2, Loader2, Search } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   RESPONSIBILITIES,
   Responsibility,
@@ -89,58 +89,70 @@ export default function ProjectModelRouting() {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [projects, searchQuery]);
 
-  const loadData = useCallback(async () => {
-    try {
-      const [projectsRes, keysRes] = await Promise.all([
-        fetch('/api/projects'),
-        fetch('/api/settings/keys-status'),
-      ]);
-
-      if (keysRes.ok) {
-        setKeysStatus(await keysRes.json());
-      }
-
-      if (projectsRes.ok) {
-        const data = await projectsRes.json();
-        const fetched: Project[] = data.projects ?? [];
-        setProjects(fetched);
-
-        const stateAcc: Record<string, ProjectRoutingState> = {};
-        await Promise.all(
-          fetched.map(async (p) => {
-            try {
-              const res = await fetch(`/api/projects/${p.id}/model-routing`);
-              if (res.ok) {
-                const body = await res.json();
-                stateAcc[p.id] = {
-                  routing: {
-                    planner: body.routing?.planner || '',
-                    implementer: body.routing?.implementer || '',
-                    auditor: body.routing?.auditor || '',
-                    adjudicator: body.routing?.adjudicator || '',
-                  },
-                  effective: body.effective || {},
-                  isSaving: false,
-                  isSaved: false,
-                };
-              }
-            } catch (err) {
-              console.error(`Failed to load routing for project ${p.id}`, err);
-            }
-          })
-        );
-        setFormState(stateAcc);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
+    let ignore = false;
+
+    async function loadData() {
+      try {
+        const [projectsRes, keysRes] = await Promise.all([
+          fetch('/api/projects'),
+          fetch('/api/settings/keys-status'),
+        ]);
+
+        if (!ignore && keysRes.ok) {
+          setKeysStatus(await keysRes.json());
+        }
+
+        if (projectsRes.ok) {
+          const data = await projectsRes.json();
+          const fetched: Project[] = data.projects ?? [];
+          if (!ignore) {
+            setProjects(fetched);
+          }
+
+          const stateAcc: Record<string, ProjectRoutingState> = {};
+          await Promise.all(
+            fetched.map(async (p) => {
+              try {
+                const res = await fetch(`/api/projects/${p.id}/model-routing`);
+                if (res.ok) {
+                  const body = await res.json();
+                  stateAcc[p.id] = {
+                    routing: {
+                      planner: body.routing?.planner || '',
+                      implementer: body.routing?.implementer || '',
+                      auditor: body.routing?.auditor || '',
+                      adjudicator: body.routing?.adjudicator || '',
+                    },
+                    effective: body.effective || {},
+                    isSaving: false,
+                    isSaved: false,
+                  };
+                }
+              } catch (err) {
+                console.error(`Failed to load routing for project ${p.id}`, err);
+              }
+            })
+          );
+          if (!ignore) {
+            setFormState(stateAcc);
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        if (!ignore) {
+          setIsLoading(false);
+        }
+      }
+    }
+
     loadData();
-  }, [loadData]);
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const handleRoleChange = (
     projectId: string,
@@ -206,9 +218,11 @@ export default function ProjectModelRouting() {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || 'Failed to save project routing');
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
-      alert(e.message || 'Failed to save project routing');
+      const msg =
+        e instanceof Error ? e.message : 'Failed to save project routing';
+      alert(msg);
       setFormState((prev) => {
         const pState = prev[projectId];
         if (!pState) return prev;

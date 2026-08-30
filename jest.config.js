@@ -5,7 +5,8 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   testPathIgnorePatterns: [
     '/node_modules/',
-    '<rootDir>/scripts/.*\\.test\\.mjs$'
+    '<rootDir>/scripts/.*\\.test\\.mjs$',
+    '<rootDir>/peripherals/.*\\.test\\.ts$'
   ],
   testMatch: [
     '**/__tests__/**/*.test.[jt]s?(x)',
