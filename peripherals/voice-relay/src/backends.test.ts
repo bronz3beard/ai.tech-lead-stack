@@ -105,7 +105,7 @@ describe('LocalOllamaBackend', () => {
 
     assert.strictEqual(result.ok, true);
     assert.strictEqual(result.text, 'No stats here');
-    assert.strictEqual(result.spokenText, undefined);
+    assert.strictEqual(result.spokenText, 'No stats here');
     
     // Check raw passthrough still works
     assert.deepStrictEqual(result.raw, fakeResponse);
