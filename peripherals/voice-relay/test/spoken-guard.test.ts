@@ -107,6 +107,18 @@ test('Spoken Guard - True Negatives (flags and sanitizes failure modes)', () => 
       expectFlag: true,
       expectSanitized: 'First point\nSecond point',
     },
+    // --- Markdown Table Formatting ---
+    {
+      raw: '| Name | Age |\n| --- | --- |\n| Alice | 30 |',
+      expectFlag: true,
+      expectSanitized: '',
+    },
+    // --- Verbose Countdown with Full Document & Table ---
+    {
+      raw: '# Countdown from 17 to Zero\n\nWe begin at the integer **seventeen** and decrement by one until we reach zero. Below is the complete list of integers in descending order within that range.\n\n```markdown\n- 17\n- 16\n- 15\n- 14\n- 13\n- 12\n- 11\n- 10\n- 9\n- 8\n- 7\n- 6\n- 5\n- 4\n- 3\n- 2\n- 1\n```\n\n### Summary Table\n\n| Start | End (Inclusive) | Total Steps |\n| :---: | :----: | ---: |\n| **17** | **0** | **-9** *(-1)* |\n\n*Count includes both start and end points. To reach zero from 17 is a total count of 18 numbers in the sequence (including 0).',
+      expectFlag: true,
+      expectSanitized: '17\n16\n15\n14\n13\n12\n11\n10\n9\n8\n7\n6\n5\n4\n3\n2\n1',
+    },
   ];
 
   for (const tc of failureModes) {

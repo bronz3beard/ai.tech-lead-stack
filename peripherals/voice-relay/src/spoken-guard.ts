@@ -51,6 +51,12 @@ const BULLET_RE = /(?:^|\n)\s*[-*]\s+\S/;
 /** Ordered-list indices: "1. " "2. " etc. at line start. */
 const ORDINAL_RE = /(?:^|\n)\s*\d+\.\s/;
 
+/** Markdown table rows: lines containing pipe-delimited cells. */
+const TABLE_RE = /(?:^|\n)\s*\|.+\|/;
+
+/** Markdown table separator: lines like | --- | --- | */
+const TABLE_SEPARATOR_RE = /(?:^|\n)\s*\|[\s:]*-{2,}[\s:]*\|/;
+
 /**
  * Common TTS-unfriendly preamble phrases.
  * Case-insensitive, anchored to start of string (after optional whitespace).
@@ -62,16 +68,22 @@ const PREAMBLE_PATTERNS = [
   /^\s*(?:note|output|alternative\s+formats?)\b\s*:/i,
   /^\s*(?:the\s+answer\s+is\b.*?(?:[:\n]|\s$))/i,
   /^\s*(?:\*?this\s+sequence\b.*?(?:[:\n]|\s$|\*))/i,
+  /^\s*(?:we\s+begin\b.*?(?:[.:\n]))/i,
+  /^\s*(?:below\s+is\b.*?(?:[.:\n]))/i,
+  /^\s*(?:the\s+(?:following|complete|full)\b.*?(?:[.:\n]))/i,
+  /^\s*(?:(?:i\s+can|let\s+me)\s+[a-z\s]+?(?:[:\n]|\s$))/i,
 ];
 /**
  * Fast check for any markdown or list formatting characters.
  */
 export function hasMarkdown(text: string): boolean {
   return (
-    /[*#`]|_[^_]+_|\[[^\]]+\]\([^)]+\)/.test(text) ||
+    MARKDOWN_RE.test(text) ||
     BULLET_RE.test(text) ||
     ORDINAL_RE.test(text) ||
-    /(?:^|\n)\s*#{1,6}\s+/.test(text)
+    /(?:^|\n)\s*#{1,6}\s+/.test(text) ||
+    TABLE_RE.test(text) ||
+    TABLE_SEPARATOR_RE.test(text)
   );
 }
 /**
@@ -85,6 +97,7 @@ const EPILOGUE_PATTERNS = [
   /(?:have\s+a\s+(?:great|good|wonderful)\s+day)\b.*$/i,
   /(?:done|that'?s\s+it)[!.\s]*$/i,
   /(?:\*?this\s+sequence\b.*)$/i,
+  /(?:^|\n)\s*\\?\*?\s*(?:count\s+includes|total\s+count|note:?)\b.*$/i,
 ];
 
 /**
@@ -183,6 +196,11 @@ export function validateSpoken(spoken: string): ValidationResult {
     );
   }
 
+  // Markdown tables
+  if (TABLE_RE.test(spoken) || TABLE_SEPARATOR_RE.test(spoken)) {
+    issues.push('contains markdown table formatting');
+  }
+
   // Preamble
   for (const pat of PREAMBLE_PATTERNS) {
     if (pat.test(spoken)) {
@@ -246,8 +264,8 @@ export function validateByTaskClass(
       }
       // Stricter word count check for simple sequences
       const wordCount = spoken.trim().split(/\s+/).length;
-      if (wordCount > 30) {
-        issues.push('sequence spoken text exceeds 30 words (too verbose)');
+      if (wordCount > 25) {
+        issues.push('sequence spoken text exceeds 25 words (too verbose)');
       }
       break;
     }
@@ -358,6 +376,9 @@ export function sanitizeSpoken(spoken: string): string {
 
   s = s.trim();
 
+  // Strip "Summary", "Notes", "Alternative Formats" sections entirely before line-by-line stripping
+  s = s.replace(/(?:^|\n)\s*#{1,6}\s*(?:summary|notes?|alternative\s+formats?)\b[\s\S]*$/gi, '');
+
   // Fast pre-check: if no markdown/list chars exist, skip the regex loop
   if (hasMarkdown(s)) {
     let depth = 0;
@@ -365,6 +386,9 @@ export function sanitizeSpoken(spoken: string): string {
 
     while (depth < MAX_DEPTH) {
       const prev = s;
+
+      // Strip markdown table rows and separators (| cell | cell |)
+      s = s.replace(/^\s*\|.*\|[ \t]*$/gm, '');
 
       // Strip ordered list indices: "1. " "2. " etc.
       s = s.replace(/(?:^|\n)\s*\d+\.\s+/g, '\n');
@@ -401,6 +425,9 @@ export function sanitizeSpoken(spoken: string): string {
       depth++;
     }
   }
+
+  // Strip trailing "Summary" sections if header was already missing
+  s = s.replace(/(?:^|\n)\s*(?:#{1,6}\s+)?summary\b[^\n]*(?:\n[\s\S]*)?$/gi, '');
 
   // Collapse whitespace
   s = s
@@ -446,4 +473,12 @@ export function scoreNoPreamble(spoken: string): number {
  */
 export function scoreNoCodeLeak(spoken: string): number {
   return CODE_SYNTAX_RE.test(spoken) ? 0.0 : 1.0;
+}
+
+/**
+ * Score: does the spoken text leak markdown table formatting?
+ * 1.0 = clean, 0.0 = leaked.
+ */
+export function scoreNoTableLeak(spoken: string): number {
+  return TABLE_RE.test(spoken) || TABLE_SEPARATOR_RE.test(spoken) ? 0.0 : 1.0;
 }
