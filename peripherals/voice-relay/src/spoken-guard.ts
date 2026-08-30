@@ -62,17 +62,20 @@ const TABLE_SEPARATOR_RE = /(?:^|\n)\s*\|[\s:]*-{2,}[\s:]*\|/;
  * Case-insensitive, anchored to start of string (after optional whitespace).
  */
 const PREAMBLE_PATTERNS = [
-  /^\s*(?:here(?:'s|\s+(?:is|are))\b.*?(?:[:\n]|\s$))/i,
+  /^\s*(?:here(?:'s|\s+(?:is|are))\b.*?[.:\n])/i,
   /^\s*(?:here(?:'s|\s+(?:is|are))\b\s*)/i,
   /^\s*(?:sure|certainly|absolutely|of\s+course|great\s+question|yes)\b[,!.\s]*/i,
   /^\s*(?:note|output|alternative\s+formats?)\b\s*:/i,
-  /^\s*(?:the\s+answer\s+is\b.*?(?:[:\n]|\s$))/i,
-  /^\s*(?:\*?this\s+sequence\b.*?(?:[:\n]|\s$|\*))/i,
-  /^\s*(?:we\s+begin\b.*?(?:[.:\n]))/i,
-  /^\s*(?:below\s+is\b.*?(?:[.:\n]))/i,
-  /^\s*(?:the\s+(?:following|complete|full)\b.*?(?:[.:\n]))/i,
-  /^\s*(?:(?:i\s+can|let\s+me)\s+[a-z\s]+?(?:[:\n]|\s$))/i,
+  /^\s*(?:the\s+answer\s+is\b.*?:)/i,
+  /^\s*(?:\*?(?:this|the)\s+(?:sequence|list|response|countdown|series)\b.*?[.:\n])/i,
+  /^\s*this\s+(?:format|structure|layout|representation|design|syntax|approach|version|document)\s+(?:preserves|ensures|allows|provides|is|utilizes|helps|displays|shows|contains)\b.*?[.:\n]/i,
+  /^\s*(?:we\s+begin\b.*?[.:\n])/i,
+  /^\s*(?:below\s+is\b.*?[.:\n])/i,
+  /^\s*(?:the\s+(?:following|complete|full)\b.*?[.:\n])/i,
+  /^\s*(?:(?:i\s+can|let\s+me)\s+[a-z\s]+?[.:\n])/i,
+  /^\s*(?:(?:starting|beginning|counting)\s+(?:at|from|down|backwards?)\b.*?[.:\n])/i,
 ];
+
 /**
  * Fast check for any markdown or list formatting characters.
  */
@@ -83,21 +86,27 @@ export function hasMarkdown(text: string): boolean {
     ORDINAL_RE.test(text) ||
     /(?:^|\n)\s*#{1,6}\s+/.test(text) ||
     TABLE_RE.test(text) ||
-    TABLE_SEPARATOR_RE.test(text)
+    TABLE_SEPARATOR_RE.test(text) ||
+    /(?:^|\n)\s*[-*_]{3,}\s*(?:\n|$)/.test(text) ||
+    /(?:^|\n)\s*>\s*/.test(text) ||
+    /\\([*_`~#\[\]()<>])/.test(text)
   );
 }
+
 /**
  * Common TTS-unfriendly epilogue phrases.
  * Anchored to the end of the string (before optional whitespace/punctuation).
  */
 const EPILOGUE_PATTERNS = [
-  /(?:let\s+me\s+know|hope\s+this\s+helps|feel\s+free|don'?t\s+hesitate)\b.*$/i,
-  /(?:if\s+you\s+(?:have|need)\s+(?:any|more))\b.*$/i,
-  /(?:you\s+(?:can|may|could)\s+(?:stop|choose|include|also|find))\b.*$/i,
-  /(?:have\s+a\s+(?:great|good|wonderful)\s+day)\b.*$/i,
+  /(?:if\s+you(?:'d|\s+would|\s+should|\s+can)?\s+(?:have|need|want|like|wish|prefer|require|decide|desire))\b.*$/i,
+  /(?:(?:let\s+me\s+know|hope\s+this\s+helps|feel\s+free|don'?t\s+hesitate|just\s+let\s+me\s+know|reach\s+out)\b.*)$/i,
+  /(?:you\s+(?:can|may|could|might)\s+(?:stop|choose|include|also|find|continue|extend|proceed))\b.*$/i,
+  /(?:have\s+a\s+(?:great|good|wonderful|nice)\s+(?:day|evening|weekend|time))\b.*$/i,
   /(?:done|that'?s\s+it)[!.\s]*$/i,
   /(?:\*?this\s+sequence\b.*)$/i,
-  /(?:^|\n)\s*\\?\*?\s*(?:count\s+includes|total\s+count|note:?)\b.*$/i,
+  /(?:^|\n)\s*\\?\*?\s*(?:count\s+includes|total\s+count|note:)\b.*$/i,
+  /(?:^|\n)\s*this\s+structure\s+ensures\s+clarity\b.*$/i,
+  /(?:^|\n)\s*regardless\s+of\s+whether\s+the\s+content\s+is\s+processed\b.*$/i,
 ];
 
 /**
@@ -113,12 +122,37 @@ const CODE_SYNTAX_RE =
 
 /**
  * Heuristic classifier that maps a user prompt to a task class.
- *
- * @param prompt - The user's original question / instruction.
- * @returns The detected task class.
+ * Used to apply class-specific validation rules.
  */
 export function detectTaskClass(prompt: string): TaskClass {
-  const p = prompt.toLowerCase().trim();
+  const p = prompt.toLowerCase();
+
+  // Sequence / countdown / listing tasks
+  if (
+    /\b(?:count(?:down|ing)?|backwards?|list\s+the|enumerate|sequence|name\s+the|from\s+\d+\s+to\s+\d+)\b/.test(
+      p
+    )
+  ) {
+    return 'sequence';
+  }
+
+  // Math / arithmetic tasks
+  if (
+    /\b(?:what\s+is\s+\d+|calculate|\d+\s*[\+\-\*\/]\s*\d+|sum\s+of|square\s+root)\b/.test(
+      p
+    )
+  ) {
+    return 'arithmetic';
+  }
+
+  // Definition / factual lookup tasks
+  if (
+    /\b(?:what\s+is\s+(?:a|an|the)|define|explain|who\s+is|how\s+many)\b/.test(
+      p
+    )
+  ) {
+    return 'definition';
+  }
 
   // Code generation
   if (
@@ -132,103 +166,67 @@ export function detectTaskClass(prompt: string): TaskClass {
     return 'code';
   }
 
-  // Sequence / enumeration
-  if (
-    /\bcount\b/.test(p) ||
-    /\blist\b/.test(p) ||
-    /\benumerat/.test(p) ||
-    /\bname\s+the\b/.test(p) ||
-    /\bfirst\s+\d+\b/.test(p) ||
-    /\bbackwards?\b/.test(p)
-  ) {
-    return 'sequence';
-  }
-
-  // Arithmetic / calculation
-  if (
-    /\bcalculat/.test(p) ||
-    /\bcomput/.test(p) ||
-    /\bwhat\s+is\s+\d/.test(p) ||
-    /\bsquare\s+root\b/.test(p) ||
-    /\d\s*[+\-*/]\s*\d/.test(p)
-  ) {
-    return 'arithmetic';
-  }
-
-  // Definition / explanation
-  if (
-    /\bwhat\s+is\s+a\b/.test(p) ||
-    /\bexplain\b/.test(p) ||
-    /\bdefine\b/.test(p) ||
-    /\bdescribe\b/.test(p) ||
-    /\bwhat\s+are\b/.test(p) ||
-    /\bhow\s+many\b/.test(p) ||
-    /\bdifference\s+between\b/.test(p)
-  ) {
-    return 'definition';
-  }
-
   return 'freeform';
 }
 
 /* ------------------------------------------------------------------ */
-/* Universal validation                                                */
+/* Universal validation (L1 Guard)                                     */
 /* ------------------------------------------------------------------ */
 
 /**
- * Validates spoken text against universal TTS-cleanliness rules.
- * These rules apply to ALL responses regardless of task class.
- *
- * @param spoken - The spoken text to validate.
- * @returns Validation result with issues list and confidence level.
+ * Validates that spoken text adheres to universal cleanliness rules.
+ * Fast, deterministic, no LLM required.
  */
-export function validateSpoken(spoken: string): ValidationResult {
+export function validateSpoken(text: string): ValidationResult {
   const issues: string[] = [];
 
-  if (!spoken || spoken.trim().length === 0) {
+  if (!text || text.trim().length === 0) {
     return { ok: false, issues: ['spoken text is empty'], confidence: 'high' };
   }
 
-  // Markdown formatting
-  if (hasMarkdown(spoken)) {
+  const trimmed = text.trim();
+
+  // Hard rule: no markdown / formatting characters
+  if (hasMarkdown(trimmed)) {
     issues.push(
       'contains markdown or list formatting (*, #, `, _, -, 1., or []())'
     );
   }
 
   // Markdown tables
-  if (TABLE_RE.test(spoken) || TABLE_SEPARATOR_RE.test(spoken)) {
+  if (TABLE_RE.test(trimmed) || TABLE_SEPARATOR_RE.test(trimmed)) {
     issues.push('contains markdown table formatting');
   }
 
-  // Preamble
+  // Hard rule: no preambles
   for (const pat of PREAMBLE_PATTERNS) {
-    if (pat.test(spoken)) {
+    if (pat.test(trimmed)) {
       issues.push('contains preamble phrase');
       break;
     }
   }
 
-  // Epilogue
+  // Hard rule: no epilogues
   for (const pat of EPILOGUE_PATTERNS) {
-    if (pat.test(spoken)) {
+    if (pat.test(trimmed)) {
       issues.push('contains epilogue phrase');
       break;
     }
   }
 
-  // Raw code syntax
-  if (CODE_SYNTAX_RE.test(spoken)) {
+  // Hard rule: no raw code syntax
+  if (CODE_SYNTAX_RE.test(trimmed)) {
     issues.push('contains raw code syntax');
   }
 
-  // Succinctness — soft threshold, triggers low confidence not hard fail
-  const wordCount = spoken.trim().split(/\s+/).length;
-  const isOverBudget = wordCount > SUCCINCTNESS_BUDGET;
+  // Soft rule: succinctness budget
+  const wordCount = trimmed.split(/\s+/).filter(Boolean).length;
+  const isSuccinct = wordCount <= SUCCINCTNESS_BUDGET;
 
   const ok = issues.length === 0;
-  const confidence: 'high' | 'low' =
-    ok && !isOverBudget ? 'high' : isOverBudget && ok ? 'low' : 'high';
+
+  // Confidence is low if there are issues OR if it's over word budget
+  const confidence: 'high' | 'low' = ok && isSuccinct ? 'high' : 'low';
 
   return { ok, issues, confidence };
 }
@@ -238,98 +236,106 @@ export function validateSpoken(spoken: string): ValidationResult {
 /* ------------------------------------------------------------------ */
 
 /**
- * Applies task-class-specific validation rules on top of the universal ones.
- *
- * @param spoken - The spoken text to validate.
- * @param prompt - The original user prompt.
- * @param taskClass - The detected (or overridden) task class.
- * @returns Combined validation result.
+ * Validates spoken text with task-class-specific constraints.
  */
 export function validateByTaskClass(
   spoken: string,
   prompt: string,
   taskClass: TaskClass
 ): ValidationResult {
-  // Start with universal validation
+  // Start with universal checks
   const base = validateSpoken(spoken);
   const issues = [...base.issues];
 
+  const wordCount = spoken.split(/\s+/).filter(Boolean).length;
+
   switch (taskClass) {
     case 'sequence': {
-      // Check for ascending ordinal run (the root cause pattern)
-      if (hasAscendingRun(spoken)) {
+      // Sequence tasks must be strictly within word count
+      if (wordCount > 25) {
         issues.push(
-          'contains ascending ordinal run (1,2,3…) — likely list index leak'
+          `sequence exceeds 25 words (was ${wordCount}); likely contains conversational padding`
         );
       }
-      // Stricter word count check for simple sequences
-      const wordCount = spoken.trim().split(/\s+/).length;
-      if (wordCount > 25) {
-        issues.push('sequence spoken text exceeds 25 words (too verbose)');
+      // Check for accidental ascending runs in countdowns
+      const p = prompt.toLowerCase();
+      if (
+        (p.includes('backwards') || p.includes('countdown')) &&
+        hasAscendingRun(spoken)
+      ) {
+        issues.push(
+          'countdown task contains ascending number sequence — likely counted up instead of down'
+        );
       }
       break;
     }
-    case 'code': {
-      // Code tasks: spoken should describe, not contain raw code
-      // (already caught by CODE_SYNTAX_RE in universal, but double-check)
-      if (/[{};]/.test(spoken)) {
-        issues.push('spoken contains code syntax characters ({, }, ;)');
-      }
-      break;
-    }
-    case 'definition': {
-      // Definitions should be brief in spoken form
-      const sentences = spoken
-        .split(/[.!?]+/)
-        .filter((s) => s.trim().length > 0);
-      if (sentences.length > 3) {
-        issues.push('definition spoken text exceeds 3 sentences');
-      }
-      break;
-    }
+
     case 'arithmetic': {
-      const wordCount = spoken.trim().split(/\s+/).length;
-      if (wordCount > 25) {
-        issues.push('arithmetic spoken text exceeds 25 words (too verbose)');
+      // Arithmetic answers should be short (under 15 words)
+      if (wordCount > 15) {
+        issues.push(
+          `arithmetic answer exceeds 15 words (was ${wordCount}); should be direct answer only`
+        );
       }
       break;
     }
+
+    case 'definition': {
+      // Definitions shouldn't exceed ~3 sentences
+      const sentences = spoken.split(/[.!?]+/).filter((s) => s.trim().length > 0);
+      if (sentences.length > 3) {
+        issues.push(
+          `definition has ${sentences.length} sentences; should be at most 3 sentences`
+        );
+      }
+      break;
+    }
+
+    case 'code': {
+      // Code tasks must NEVER contain raw code in spoken text
+      if (CODE_SYNTAX_RE.test(spoken)) {
+        issues.push('code task contains raw code syntax in spoken text');
+      }
+      break;
+    }
+
     case 'freeform':
-      // Universal rules suffice
+    default:
+      // Universal rules are sufficient
       break;
   }
 
   const ok = issues.length === 0;
-  const confidence: 'high' | 'low' =
-    ok && base.confidence === 'high' ? 'high' : 'low';
+  const isSuccinct = wordCount <= SUCCINCTNESS_BUDGET;
+  const confidence: 'high' | 'low' = ok && isSuccinct ? 'high' : 'low';
 
   return { ok, issues, confidence };
 }
 
 /* ------------------------------------------------------------------ */
-/* Ascending run detector                                              */
+/* Sequence Direction Heuristic                                        */
 /* ------------------------------------------------------------------ */
 
 /**
- * Detects an ascending 1,2,3… run in the text, which typically indicates
- * ordered-list indices leaked into spoken text.
- *
- * Looks for 3+ consecutive ascending integers separated by non-digit chars.
- *
- * @param text - The text to scan.
- * @returns True if an ascending run of 3+ is found.
+ * Detects whether spoken text contains an ascending run of 3+ integers.
+ * Used to catch when a model counted UP on a countdown request.
  */
 export function hasAscendingRun(text: string): boolean {
-  const numbers = text.match(/\d+/g);
-  if (!numbers || numbers.length < 3) return false;
+  // Extract all integer tokens
+  const tokens = text.match(/\b\d+\b/g);
+  if (!tokens || tokens.length < 3) {
+    return false;
+  }
 
-  const nums = numbers.map(Number);
+  const numbers = tokens.map(Number);
   let runLength = 1;
 
-  for (let i = 1; i < nums.length; i++) {
-    if (nums[i] === nums[i - 1] + 1) {
+  for (let i = 1; i < numbers.length; i++) {
+    if (numbers[i] === numbers[i - 1] + 1) {
       runLength++;
-      if (runLength >= 3) return true;
+      if (runLength >= 3) {
+        return true;
+      }
     } else {
       runLength = 1;
     }
@@ -339,45 +345,51 @@ export function hasAscendingRun(text: string): boolean {
 }
 
 /* ------------------------------------------------------------------ */
-/* Sanitizer (regex-based cleanup — the always-available fallback)     */
+/* Sanitizer (deterministic repair)                                    */
 /* ------------------------------------------------------------------ */
 
 /**
- * Best-effort regex cleanup of spoken text. Strips markdown formatting,
- * ordinal indices, preamble, epilogue, and code blocks. Used as the
- * last-resort fallback (Tier C) when LLM guards are unavailable.
+ * Deterministically strips markdown, list syntax, preambles, and
+ * epilogues from a text string to produce spoken-safe text.
  *
- * @param spoken - The raw spoken text to clean.
- * @returns Cleaned spoken text safe for TTS.
+ * Guaranteed to be idempotent: `sanitizeSpoken(sanitizeSpoken(x)) === sanitizeSpoken(x)`
  */
-export function sanitizeSpoken(spoken: string): string {
-  let s = spoken;
-
-  // Strip preamble phrases repeatedly in case they are stacked (e.g. "Sure, here is")
-  let prevS = '';
-  while (s !== prevS) {
-    prevS = s;
-    for (const pat of PREAMBLE_PATTERNS) {
-      s = s.replace(pat, '');
-    }
+export function sanitizeSpoken(text: string): string {
+  if (!text) {
+    return '';
   }
 
-  // Strip epilogue phrases repeatedly (e.g. "Done! Let me know...")
-  let prevE = '';
-  while (s !== prevE) {
-    prevE = s;
-    for (const pat of EPILOGUE_PATTERNS) {
-      s = s.replace(pat, '');
-    }
-  }
+  let s = text;
 
-  // Strip conversational parenthetical options (e.g. "(or stop at one)")
+  // Strip horizontal rules
+  s = s.replace(/(?:^|\n)\s*[-*_]{3,}\s*(?:\n|$)/g, '\n');
+
+  // Strip secondary visual representation sections that follow (e.g. "If you prefer a visual...")
+  s = s.replace(
+    /(?:^|\n)\s*(?:if\s+you\s+prefer\b|visual\s+representation\b|for\s+(?:a\s+)?visual\s+display\b)[\s\S]*$/gi,
+    ''
+  );
+
+  // Strip conversational parenthetical options and visual annotations
   s = s.replace(/\s*\(\s*or\s+[^)]+\)/gi, '');
+  s = s.replace(/\s*\([^)]*(?:reached|inclusive|including|step|count)[^)]*\)/gi, '');
 
   s = s.trim();
 
-  // Strip "Summary", "Notes", "Alternative Formats" sections entirely before line-by-line stripping
-  s = s.replace(/(?:^|\n)\s*#{1,6}\s*(?:summary|notes?|alternative\s+formats?)\b[\s\S]*$/gi, '');
+  // Strip "Summary", "Notes" sections entirely before line-by-line stripping
+  s = s.replace(
+    /(?:^|\n)\s*#{1,6}\s*(?:summary|notes?)\b[\s\S]*$/gi,
+    ''
+  );
+
+  // Strip incomplete teaser code blocks with trailing ellipsis (e.g. "10, 9, 8, 7, ...")
+  s = s.replace(/```(?:text|txt|plaintext)?\n?[\s\S]*?(?:\.{3,}|…)\s*```/gi, '');
+
+  // Unwrap text/plain/markdown/general code blocks (preserving the inner answers)
+  s = s.replace(
+    /```(?:text|txt|plaintext|markdown|md)?\n?([\s\S]*?)```/gi,
+    (m, inner) => (CODE_SYNTAX_RE.test(inner) ? '' : inner)
+  );
 
   // Fast pre-check: if no markdown/list chars exist, skip the regex loop
   if (hasMarkdown(s)) {
@@ -386,6 +398,24 @@ export function sanitizeSpoken(spoken: string): string {
 
     while (depth < MAX_DEPTH) {
       const prev = s;
+
+      // Strip programming code blocks entirely
+      s = s.replace(/```[a-z]*\n?[\s\S]*?```/gi, '');
+
+      // Strip markdown/md fence delimiters
+      s = s.replace(/```(?:markdown|md|text|txt)?\n?/gi, '');
+
+      // Strip horizontal rules
+      s = s.replace(/(?:^|\n)\s*[-*_]{3,}\s*(?:\n|$)/g, '\n');
+
+      // Strip blockquotes
+      s = s.replace(/(?:^|\n)\s*>\s*/g, '\n');
+
+      // Unescape markdown
+      s = s.replace(/\\([*_`~#\[\]()<>])/g, '$1');
+
+      // Strip trailing ellipsis sequences like "... " or ", ..."
+      s = s.replace(/(?:,\s*)?(?:\.{3,}|…)/g, '');
 
       // Strip markdown table rows and separators (| cell | cell |)
       s = s.replace(/^\s*\|.*\|[ \t]*$/gm, '');
@@ -402,13 +432,6 @@ export function sanitizeSpoken(spoken: string): string {
       // Strip markdown headers ENTIRELY (drop the whole line, as headers shouldn't be read aloud)
       s = s.replace(/(?:^|\n)\s*#{1,6}\s+[^\n]+/g, '\n');
 
-      // Strip triple-backtick code blocks entirely IF they specify a programming language
-      // (preserves content of generic ``` or ```markdown blocks in case the LLM wrapped the answer)
-      s = s.replace(/```(?!markdown\b|md\b|text\b)[a-z]*\n?[\s\S]*?```/gi, '');
-
-      // Strip remaining triple-backtick openings and closings (including tags like ```markdown) without deleting content
-      s = s.replace(/```[a-z]*\n?/gi, '');
-
       // Strip backtick code spans (inline code)
       s = s.replace(/`([^`]+)`/g, '$1');
 
@@ -417,6 +440,9 @@ export function sanitizeSpoken(spoken: string): string {
 
       // Strip underscored emphasis: _text_ → text
       s = s.replace(/_([^_]+)_/g, '$1');
+
+      // Strip HTML tags
+      s = s.replace(/<[^>]+>/g, ' ');
 
       // If the string didn't change, we've stripped all matching layers
       if (s === prev) {
@@ -427,7 +453,16 @@ export function sanitizeSpoken(spoken: string): string {
   }
 
   // Strip trailing "Summary" sections if header was already missing
-  s = s.replace(/(?:^|\n)\s*(?:#{1,6}\s+)?summary\b[^\n]*(?:\n[\s\S]*)?$/gi, '');
+  s = s.replace(
+    /(?:^|\n)\s*(?:#{1,6}\s+)?summary\b[^\n]*(?:\n[\s\S]*)?$/gi,
+    ''
+  );
+
+  // Strip meta-formatting / screen-reader / markdown explanations
+  s = s.replace(
+    /(?:^|\n)\s*this\s+(?:format|structure|layout|representation|design|syntax|approach|version)\s+(?:preserves|ensures|allows|provides|is|utilizes|helps|displays|shows)\b[^\n]*/gi,
+    ''
+  );
 
   // Collapse whitespace
   s = s
@@ -436,12 +471,19 @@ export function sanitizeSpoken(spoken: string): string {
     .replace(/[ \t]{2,}/g, ' ')
     .trim();
 
-  // Strip preambles and epilogues as a hard guard
-  for (const pat of PREAMBLE_PATTERNS) {
-    s = s.replace(pat, '');
-  }
-  for (const pat of EPILOGUE_PATTERNS) {
-    s = s.replace(pat, '');
+  // Strip preambles and epilogues as a hard guard repeatedly (max 5 passes)
+  let prevFinal = null;
+  let iters = 0;
+  while (s !== prevFinal && iters < 5) {
+    prevFinal = s;
+    iters++;
+    for (const pat of PREAMBLE_PATTERNS) {
+      s = s.replace(pat, '');
+    }
+    for (const pat of EPILOGUE_PATTERNS) {
+      s = s.replace(pat, '');
+    }
+    s = s.trim();
   }
 
   return s.trim();

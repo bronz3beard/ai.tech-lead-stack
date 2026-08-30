@@ -119,6 +119,24 @@ test('Spoken Guard - True Negatives (flags and sanitizes failure modes)', () => 
       expectFlag: true,
       expectSanitized: '17\n16\n15\n14\n13\n12\n11\n10\n9\n8\n7\n6\n5\n4\n3\n2\n1',
     },
+    // --- Verbose Countdown from 10 with Code Block and Epilogue ---
+    {
+      raw: '# Counting Backwards from 10\n\nHere is the sequence counting backwards:\n\n```text\n10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, -1, ...\n```\n\n### Number List (Down to Zero)\n\n- 10\n- 9\n- 8\n- 7\n- 6\n- 5\n- 4\n- 3\n- 2\n- 1\n- 0\n\nIf you\'d like me to continue further into negative numbers, just let me know!',
+      expectFlag: true,
+      expectSanitized: '10\n9\n8\n7\n6\n5\n4\n3\n2\n1\n0',
+    },
+    // --- Verbose Countdown from Nine with Word Items and Continuation Epilogue ---
+    {
+      raw: '# Count Backwards from Nine\n\nThis sequence displays integers decreasing by one starting at nine down to zero:\n\n- **Nine**\n- Eight\n- Seven\n- Six\n- Five\n- Four\n- Three\n- Two\n- One\n- Zero\n\nYou may continue past this point into negative integers.',
+      expectFlag: true,
+      expectSanitized: 'Nine\nEight\nSeven\nSix\nFive\nFour\nThree\nTwo\nOne\nZero',
+    },
+    // --- Verbose Countdown from Nine to Negative Five with Code Block, Blockquotes, and Visual Fluff ---
+    {
+      raw: '# Countdown from Nine\n\nHere is a sequence counting backwards starting at nine using integers until negative five. This format preserves spacing in both Markdown viewers and screen readers by utilizing monospaced text within code fences.\n\n### The Sequence\n```text\n9, 8, 7, 6, 5, 4, 3, 2, 1, 0, -1, -2, -3, -4, -5\n```\n\n---\n\nIf you prefer a visual vertical representation:\n\n> **9**\n> *   ... counting down by one unit per step.\n> \n> **8**  \n> **7**  \n> **6**  \n> **5**  \n> **4**  \n> **3**  \n> **2**  \n> **1**  \n> **0** (Zero reached)\n> \n> Continuing into negative numbers: -1, -2...\n\nThis structure ensures clarity regardless of whether the content is processed visually as Markdown or stripped to plain text for audio reading.',
+      expectFlag: true,
+      expectSanitized: '9, 8, 7, 6, 5, 4, 3, 2, 1, 0, -1, -2, -3, -4, -5',
+    },
   ];
 
   for (const tc of failureModes) {

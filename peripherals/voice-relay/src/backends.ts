@@ -9,6 +9,7 @@ import { logResponse } from './db/sqlite-logger.js';
 import { guardSpoken } from './guard-client.js';
 import {
   detectTaskClass,
+  sanitizeSpoken,
   validateByTaskClass,
   type TaskClass,
 } from './spoken-guard.js';
@@ -24,11 +25,11 @@ import type {
 export function applyHarness(prompt: string, taskClass: TaskClass): string {
   switch (taskClass) {
     case 'sequence':
-      return `${prompt}\n\n[STRICT HARNESS] This is a sequence request. Your 'spoken' field MUST contain ONLY the bare sequence items. You are FORBIDDEN from including code, 'alternative formats', "Note:", "Output:", parenthetical options, or conversational padding. DO NOT output "Here is the sequence" or "Done". Just output the items. DO NOT use markdown lists like - or 1. in the 'spoken' field (they are allowed in 'markdown').`;
+      return `${prompt}\n\n[STRICT HARNESS] This is a sequence request. Output ONLY the sequence items (e.g. 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0). NEVER include duplicate lists, code blocks, tables, conversational padding, preambles, or epilogues (such as "let me know if you want to continue"). If returning JSON, 'spoken' must contain ONLY bare items separated by commas or newlines.`;
     case 'arithmetic':
-      return `${prompt}\n\n[STRICT HARNESS] This is an arithmetic request. Your 'spoken' field MUST contain ONLY the final answer. DO NOT include steps, code, explanations, "Note:", or "Output:".`;
+      return `${prompt}\n\n[STRICT HARNESS] This is an arithmetic request. Output ONLY the final answer. DO NOT include steps, code, explanations, "Note:", or "Output:".`;
     case 'definition':
-      return `${prompt}\n\n[STRICT HARNESS] This is a definition request. Your 'spoken' field MUST be a MAXIMUM of 3 sentences. DO NOT include code, conversational padding, "Note:", or "Alternative formats".`;
+      return `${prompt}\n\n[STRICT HARNESS] This is a definition request. Keep the response to a MAXIMUM of 3 sentences. DO NOT include code, conversational padding, "Note:", or "Alternative formats".`;
     default:
       return prompt;
   }
@@ -337,6 +338,10 @@ export class LocalOllamaBackend implements AgentBackend {
         }
       }
 
+      if (!spokenText && text) {
+        spokenText = text;
+      }
+
       if (spokenText) {
         const rawSpoken = spokenText;
         const val = validateByTaskClass(spokenText, input.prompt, taskClass);
@@ -348,6 +353,8 @@ export class LocalOllamaBackend implements AgentBackend {
             taskClass
           );
           spokenText = guardRes.repaired_spoken;
+        } else {
+          spokenText = sanitizeSpoken(spokenText);
         }
 
         logResponse({
@@ -704,7 +711,12 @@ export class CliBackend implements AgentBackend {
         );
         repairedText = guardRes.repaired_spoken;
         result.text = repairedText;
+      } else {
+        repairedText = sanitizeSpoken(rawText);
+        result.text = repairedText;
       }
+
+      result.spokenText = repairedText;
 
       logResponse({
         prompt: input.prompt,
