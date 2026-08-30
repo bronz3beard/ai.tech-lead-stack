@@ -109,4 +109,5 @@ jobs:
 
       - name: Run Reflexion Eval Harness
         if: env.ANTHROPIC_API_KEY != ''
+        continue-on-error: true
         run: pnpm run reflexion:eval

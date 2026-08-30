@@ -108,6 +108,38 @@ export function evaluateCritique(
   return { success: errors.length === 0, errors };
 }
 
+function isProviderBillingOrQuotaError(err: unknown): boolean {
+  if (!err) return false;
+  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  const statusCode =
+    typeof err === 'object' && err !== null && 'statusCode' in err
+      ? (err as { statusCode: unknown }).statusCode
+      : undefined;
+  const data =
+    typeof err === 'object' && err !== null && 'data' in err
+      ? (err as { data: unknown }).data
+      : undefined;
+  const dataError =
+    typeof data === 'object' && data !== null && 'error' in data
+      ? (data as { error: unknown }).error
+      : undefined;
+  const dataMsg =
+    typeof dataError === 'object' && dataError !== null && 'message' in dataError
+      ? String((dataError as { message: unknown }).message).toLowerCase()
+      : '';
+
+  return (
+    statusCode === 402 ||
+    msg.includes('credit balance') ||
+    msg.includes('too low to access') ||
+    msg.includes('plans & billing') ||
+    msg.includes('insufficient_quota') ||
+    dataMsg.includes('credit balance') ||
+    dataMsg.includes('too low to access') ||
+    dataMsg.includes('plans & billing')
+  );
+}
+
 async function main() {
   const args = process.argv.slice(2);
   let caseToRun = '';
@@ -158,7 +190,23 @@ async function main() {
       );
     }
 
-    const critique = await criticRunner.critique(evalCase.plan);
+    let critique: Critique;
+    try {
+      critique = await criticRunner.critique(evalCase.plan);
+    } catch (err: unknown) {
+      if (isProviderBillingOrQuotaError(err)) {
+        const errorDetail = err instanceof Error ? err.message : String(err);
+        console.warn(
+          `\n⚠️  [reflexion-eval] Anthropic API credit balance exhausted or quota reached: ${errorDetail}`
+        );
+        console.warn(
+          '⚠️  Skipping evaluation harness without failing CI. Please top up API credits on the Anthropic Console to re-enable evaluation.\n'
+        );
+        process.exit(0);
+      }
+      throw err;
+    }
+
     const evaluation = evaluateCritique(
       evalCase.frontmatter.expected,
       critique
@@ -209,6 +257,13 @@ async function main() {
 // Only run main if executed directly
 if (require.main === module) {
   main().catch((err) => {
+    if (isProviderBillingOrQuotaError(err)) {
+      const errorDetail = err instanceof Error ? err.message : String(err);
+      console.warn(
+        `\n⚠️  [reflexion-eval] Anthropic API credit balance exhausted: ${errorDetail}`
+      );
+      process.exit(0);
+    }
     console.error(err);
     process.exit(1);
   });
