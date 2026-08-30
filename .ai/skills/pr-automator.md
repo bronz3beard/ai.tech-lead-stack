@@ -256,67 +256,35 @@ Extract all parameters provided by the user in their prompt:
 
 ---
 
-     **Step D — Capture (only if Step C says "Proceed"):**
-     1. Run `rtk run visual-verifier`. This outputs a structured JSON manifest.
-     2. Process the manifest with `rtk run publish-evidence <manifestPath>`.
-        This uses the Git Data API, avoids worktree checkouts, handles repo
-        visibility (Path A/Path B) and outputs a JSON publish payload.
-     3. Verify the published evidence via
-        `rtk run verify-evidence <publishPayloadPath>`.
-     4. Note: Evidence images never leave the target repository.
+### Step 1: Environment & Base Branch Discovery
 
-- **Metadata:**
-  - Run `rtk run resolve-labels <pr_number>` AFTER PR creation. Labels are fully
-    decoupled from creation, using deterministic diff analysis and full
-    pagination.
-  - Determine appropriate reviewers.
-  - Exclude the PR author from the `## FYI 🙋` section.
-- **Template:** search `.github/`, `.gitlab/`, or root for
-  `PULL_REQUEST_TEMPLATE`.
+1. Identify the base branch (defaults to `main` if not specified).
+2. Ensure the local feature branch is pushed to remote:
 
-2. **Drafting:**
-   - **Strict adherence:** use the discovered template as the mandatory schema.
-   - **Write RAW markdown to the body file** — no surrounding ` ```markdown `
-     fences. Fences end up rendered literally in the PR. The file at
-     `.ai/tmp/pr-body.md` must contain exactly what should appear in the PR
-     description.
-   - **Screenshots section:** Handled by
-     `rtk run pr-body-inject <template> <manifest> <verifyPayload>`. It will
-     idempotently replace the screenshots block with a table of anonymously
-     verified URLs (Path A) or a local drag-and-drop block (Path B) or a pending
-     block.
+   ```bash
+   git push -u origin <HEAD_BRANCH>
+   ```
 
 ---
 
 ### Step 2: Mandatory Commit History & Semantic Extraction
 
-     ```bash
-     gh pr create \
-       --draft \
-       --base "<BASE_BRANCH>" \
-       --head "<HEAD_BRANCH>" \
-       --title "<TITLE>" \
-       --body-file .ai/tmp/pr-body.md \
-       --assignee "<GH_LOGIN>"
-     ```
+1. Review commit history against base branch:
 
-```bash
-git log <BASE_BRANCH>...HEAD --pretty=format:"%h %s"
-```
+   ```bash
+   git log <BASE_BRANCH>...HEAD --pretty=format:"%h %s"
+   ```
 
-     ```bash
-     rm -f .ai/tmp/pr-body.md
-     rm -f .ai/evidence/pre-commit-review.md   # only if runCodeReview was true
-     # Never delete .ai/evidence/<feature-branch>/ entirely since Path B users need to drag and drop from it
-     ```
-
-- **`- add:`** New features, endpoints, components, utilities, or database
-  models.
-- **`- update:`** Modifications, enhancements, or state updates to existing
-  logic.
-- **`- fix:`** Bug fixes, regression resolutions, error handling improvements.
-- **`- refactor:`** Structural refactoring, typing improvements, cleanups.
-- **`- delete:`** Deleted files, deprecated mocks, removed dead code.
+2. Categorize commits into semantic bullets matching the changes made on the
+   branch:
+   - **`- add:`** New features, endpoints, components, utilities, or database
+     models.
+   - **`- update:`** Modifications, enhancements, or state updates to existing
+     logic.
+   - **`- fix:`** Bug fixes, regression resolutions, error handling
+     improvements.
+   - **`- refactor:`** Structural refactoring, typing improvements, cleanups.
+   - **`- delete:`** Deleted files, deprecated mocks, removed dead code.
 
 _Ensure the semantic bullets accurately represent the actual commits made on the
 branch._
