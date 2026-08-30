@@ -9,6 +9,7 @@ import {
   scoreNoListIndexLeak,
   scoreNoPreamble,
   scoreNoCodeLeak,
+  scoreNoTableLeak,
 } from './spoken-guard.js';
 
 /* ------------------------------------------------------------------ */
@@ -170,6 +171,12 @@ describe('validateSpoken', () => {
       assert.strictEqual(r.ok, false, `Expected fail for: "${text}"`);
       assert.ok(r.issues.some((i) => i.includes('list formatting')), `Missing list formatting issue for: "${text}"`);
     }
+  });
+
+  it('rejects markdown tables', () => {
+    const r = validateSpoken('| Name | Age |\n| --- | --- |\n| Alice | 30 |');
+    assert.strictEqual(r.ok, false);
+    assert.ok(r.issues.some((i) => i.includes('table')));
   });
 
   it('flags low confidence for verbose but clean text', () => {
@@ -347,6 +354,18 @@ describe('sanitizeSpoken', () => {
     assert.strictEqual(result, 'First point\nSecond point');
   });
 
+  it('strips markdown tables entirely', () => {
+    const result = sanitizeSpoken('Answer:\n| Name | Age |\n| --- | --- |\n| Alice | 30 |');
+    assert.ok(!result.includes('|'));
+    assert.ok(!result.includes('---'));
+  });
+
+  it('strips verbose countdown with full markdown structure', () => {
+    const raw = '# Countdown from 17 to Zero\n\nWe begin at the integer **seventeen** and decrement by one until we reach zero. Below is the complete list of integers in descending order within that range.\n\n```markdown\n- 17\n- 16\n- 15\n- 14\n- 13\n- 12\n- 11\n- 10\n- 9\n- 8\n- 7\n- 6\n- 5\n- 4\n- 3\n- 2\n- 1\n```\n\n### Summary Table\n\n| Start | End (Inclusive) | Total Steps |\n| :---: | :----: | ---: |\n| **17** | **0** | **-9** *(-1)* |\n\n*Count includes both start and end points. To reach zero from 17 is a total count of 18 numbers in the sequence (including 0).';
+    const result = sanitizeSpoken(raw);
+    assert.strictEqual(result, '17\n16\n15\n14\n13\n12\n11\n10\n9\n8\n7\n6\n5\n4\n3\n2\n1');
+  });
+
   it('strips deeply nested styles', () => {
     const result = sanitizeSpoken('This is **_italic inside bold_** text');
     console.log('DEEPLY NESTED RESULT:', result);
@@ -432,5 +451,15 @@ describe('scoreNoCodeLeak', () => {
 
   it('returns 0.0 for code syntax', () => {
     assert.strictEqual(scoreNoCodeLeak('Use function add(a, b) to sum'), 0.0);
+  });
+});
+
+describe('scoreNoTableLeak', () => {
+  it('returns 1.0 for clean text', () => {
+    assert.strictEqual(scoreNoTableLeak('The answer is 42.'), 1.0);
+  });
+
+  it('returns 0.0 for table content', () => {
+    assert.strictEqual(scoreNoTableLeak('| A | B |\n| --- | --- |'), 0.0);
   });
 });

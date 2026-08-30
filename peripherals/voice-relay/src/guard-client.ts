@@ -71,7 +71,7 @@ export async function guardSpoken(
   const systemPrompt =
     `You are a strict Text-to-Speech (TTS) quality judge. Your job is to evaluate proposed spoken text for cleanliness and repair it if necessary.\n` +
     `The user asked a '${taskClass}' question.\n\n` +
-    `1. "spoken_ok": Is it free of markdown (*, #, _, \`, []), ordered list indices (1., 2.), code fences (\`\`\`), and meta-talk / preambles (e.g. "Sure, here is the answer", "Here is the sequence:", "Note:", "Output:", "Alternative Formats", "Hope this helps!", "The result is:")?\n` +
+    `1. "spoken_ok": Is it free of markdown (*, #, _, \`, [], |), ordered list indices (1., 2.), code fences (\`\`\`), markdown tables (| cell | cell |), and meta-talk / preambles (e.g. "Sure, here is the answer", "Here is the sequence:", "We begin at", "Below is the complete", "Note:", "Output:", "Alternative Formats", "Hope this helps!", "The result is:", "Summary Table")?\n` +
     `2. "markdown_consistent": Does the spoken text contain the core answer from the markdown text? (It is EXPECTED and REQUIRED to omit visual formatting, headers, and visual aids).\n` +
     `3. "repaired_spoken": You MUST aggressively prune the text. If the markdown contains headers (e.g. "# Count Down From 12"), visual aids (e.g. "Visual Countdown", "← Start"), repetitive lists, markdown language tags (like \`\`\`markdown), or conversational filler, YOU MUST OMIT THEM ENTIRELY. The spoken text must be an aggressively reduced version containing ONLY the core answer/values.\n` +
     `4. "reason": A very brief explanation of your verdict.\n\n` +
