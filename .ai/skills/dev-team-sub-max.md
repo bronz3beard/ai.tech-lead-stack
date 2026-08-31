@@ -130,6 +130,10 @@ Evaluate task based on five-signal 0–2 rubric (Surface area, Novelty, Risk,
 Ambiguity, Parallelism). **Scores MUST be printed first before any work
 begins.**
 
+_(Note: The ceiling limits below are generated/derived — see
+`TIER_POLICY['sub-max']` in `src/lib/ai/tier-policy.ts` for the authoritative
+code policy.)_
+
 | Size | Score | Crew                                          | Max Parallel Lanes | Loop Hardening                                                   |
 | ---- | ----- | --------------------------------------------- | ------------------ | ---------------------------------------------------------------- |
 | XS   | 0–1   | Developer only                                | 1                  | self-check + autoeval                                            |
@@ -138,9 +142,10 @@ begins.**
 | L    | 6–8   | PM-analyst + Planner + Dev ×N + Reviewer + QA | 2                  | `reflexion-loop-sub-max` recommended                             |
 | XL   | 9–10  | mission-architect strategy + L crew           | 2                  | `reflexion-loop-sub-max` mandatory + Tech-Lead confirmation gate |
 
-> [!CAUTION] **Sub-Max Sizing Constraints:** Max 2 parallel lanes. XL requires a
-> Tech-Lead confirmation gate in `.dev-team/inbox.md` stating expected turn cost
-> (~60 turns across lanes) before worktree creation.
+> [!CAUTION] **Sub-Max Sizing Constraints:** Max 2 parallel lanes (enforced by
+> `tier-policy.ts`). XL requires a Tech-Lead confirmation gate in
+> `.dev-team/inbox.md` stating expected turn cost (~60 turns across lanes)
+> before worktree creation.
 
 ## Phase 2 — Lane & Quota Ledgers
 

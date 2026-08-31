@@ -63,10 +63,14 @@ sub-agent). Never claim L0 or L1 when overridden by environment variables.
 
 ## Single-Pass Mechanics & Quota Discipline
 
+_(Note: The limits below are generated/derived — see `TIER_POLICY['sub-pro']` in
+`src/lib/ai/tier-policy.ts` for the authoritative code policy.)_
+
 - **Deltas:** 1 critique pass, max 1 revision, pass threshold 7/10, budget 5
   turns (`[turn N/5 | model: <active-model>]`), plan <= 400 words / <= 8 tasks.
 - **Risk-2 Refusal:** Risk signal = 2 (auth/payments/data/infra) -> MUST refuse
-  single-pass hardening and escalate to `reflexion-loop-sub-max`.
+  single-pass hardening and escalate to `reflexion-loop-sub-max` (Enforced by
+  `tier-policy.ts`).
 
 ## Mode B Consolidate-and-Park Protocol (FULL)
 

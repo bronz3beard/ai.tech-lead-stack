@@ -12,6 +12,7 @@ import { Telemetry } from './telemetry.js';
 import { UserResolver } from './user-resolver.js';
 import { decrypt } from '../lib/crypto.js';
 import { prisma } from '../lib/prisma.js';
+import { assessTask, enforceTier, type Tier } from '../lib/ai/tier-policy.js';
 
 /**
  * Handlers manages the execution logic for all MCP tools.
@@ -477,6 +478,30 @@ export class Handlers {
     const stack = args.stack ?? '';
     const mode = args.mode || 'interview';
     const budget = args.budget;
+    const tier = args.tier as Tier | undefined;
+
+    if (tier && tier !== 'byo') {
+      const sizeScore = args.sizeScore ?? 0;
+      const riskSignals = args.riskSignals ?? [];
+      const assessment = assessTask({ sizeScore, riskSignals });
+      const enforcement = enforceTier(tier, assessment);
+
+      if (!enforcement.allowed) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                refused: true,
+                reason: enforcement.reason,
+                escalateTo: enforcement.escalateTo,
+              }, null, 2)
+            }
+          ],
+          isError: false,
+        };
+      }
+    }
 
     try {
       let user = null;

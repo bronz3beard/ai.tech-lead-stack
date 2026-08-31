@@ -20,6 +20,7 @@ import {
   StopReason,
 } from './schema';
 import { validatePlanContract, PlanContractReport } from './plan-contract';
+import { type Tier, deriveLoopParams } from '../tier-policy';
 
 /**
  * The Reflexion loop itself — pure orchestration, no I/O and no SDK imports.
@@ -54,6 +55,7 @@ export interface ReflexionConfig {
   budget?: { maxCostUsd?: number; maxTotalTokens?: number };
   focusPillars?: string[];
   stateStore?: StateStore;
+  tier?: Tier;
 }
 
 export interface ReflexionRound {
@@ -112,7 +114,11 @@ export async function runReflexion(
     existingState?.runId ||
     `run-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   const mode = cfg.mode ?? 'interview';
-  const maxRevisions = cfg.maxRevisions ?? 3;
+  let maxRevisions = cfg.maxRevisions ?? 3;
+  if (cfg.tier && cfg.tier !== 'byo') {
+    const limits = deriveLoopParams(cfg.tier);
+    maxRevisions = Math.min(maxRevisions, limits.maxRevisions);
+  }
   const maxStructuralRepairs = cfg.maxStructuralRepairs ?? 1;
   const passThreshold = cfg.passThreshold ?? 8;
   const stackBlock = stackContextBlock(cfg.stack ?? '');

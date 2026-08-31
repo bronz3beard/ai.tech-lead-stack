@@ -24,6 +24,7 @@ import {
 import { runnerFromEnv } from '../src/lib/ai/reflexion/providers-env';
 import { Answers, ReflexionStateV2 } from '../src/lib/ai/reflexion/schema';
 import { FileStateStore } from '../src/lib/ai/reflexion/state-store';
+import { assessTask, enforceTier, type Tier } from '../src/lib/ai/tier-policy';
 import { formatInterviewMd, parseYamlAnswers } from './reflexion-loop-utils';
 
 const STACK_FILES = [
@@ -135,6 +136,10 @@ async function main(): Promise<number> {
     ? Number(arg('--max-tokens'))
     : undefined;
   const focus = arg('--focus') ? arg('--focus')!.split(',') : undefined;
+  
+  const tier = arg('--tier') as Tier | undefined;
+  const sizeScore = arg('--size-score') ? Number(arg('--size-score')) : 0;
+  const riskSignals = arg('--risk-signals') ? arg('--risk-signals')!.split(',') : [];
 
   // Let --out default to .reflexion-out unless resuming from a specific dir
   let outDir = arg('--out') || '.reflexion-out';
@@ -228,6 +233,9 @@ async function main(): Promise<number> {
             '--out',
             '--resume',
             '--answers',
+            '--tier',
+            '--size-score',
+            '--risk-signals',
           ].includes(flag)
         ) {
           i++; // skip its value
@@ -252,6 +260,18 @@ async function main(): Promise<number> {
         'Usage: reflexion-loop "<brief>" [--file <path>] [--repo .] [--max 3] [--threshold 8] [--out .reflexion-out]'
       );
       return 1;
+    }
+
+    if (tier && tier !== 'byo') {
+      const assessment = assessTask({ sizeScore, riskSignals });
+      const enforcement = enforceTier(tier, assessment);
+      if (!enforcement.allowed) {
+        console.error(`[reflexion] REFUSED by tier policy (${tier}): ${enforcement.reason}`);
+        if (enforcement.escalateTo) {
+          console.error(`[reflexion] -> Escalate to ${enforcement.escalateTo}`);
+        }
+        return 1; // Or another exit code? 1 is fine for error
+      }
     }
 
     result = await runReflexion(

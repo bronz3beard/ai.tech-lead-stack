@@ -266,9 +266,30 @@ const REFLEXION_LOOP_TOOL: Tool = {
         type: 'string',
         description: 'Optional calling agent name, for usage analytics.',
       },
+      sizeScore: {
+        type: 'number',
+        description: '0-10 score for task size',
+      },
+      riskSignals: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Risk signals identified in the brief',
+      },
     },
     required: ['brief'],
   },
+};
+
+const REFLEXION_LOOP_SUB_MAX_TOOL: Tool = {
+  ...REFLEXION_LOOP_TOOL,
+  name: 'reflexion_loop_sub_max',
+  description: '[DEV-TEAM · SUB-MAX] Plan hardening for $100/mo tier.',
+};
+
+const REFLEXION_LOOP_SUB_PRO_TOOL: Tool = {
+  ...REFLEXION_LOOP_TOOL,
+  name: 'reflexion_loop_sub_pro',
+  description: '[DEV-TEAM · SUB-PRO] Plan hardening for $20/mo tier.',
 };
 
 
@@ -313,6 +334,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       READ_KI_TOOL,
       CREATE_KI_TOOL,
       REFLEXION_LOOP_TOOL,
+      REFLEXION_LOOP_SUB_MAX_TOOL,
+      REFLEXION_LOOP_SUB_PRO_TOOL,
       REFLEXION_RESUME_TOOL,
       REFLEXION_STATUS_TOOL,
     ],
@@ -355,6 +378,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   if (name === 'reflexion_loop') {
     return await handlers.handleReflexionLoop(args || {});
+  }
+
+  if (name === 'reflexion_loop_sub_max') {
+    return await handlers.handleReflexionLoop({ ...(args || {}), tier: 'sub-max' });
+  }
+
+  if (name === 'reflexion_loop_sub_pro') {
+    return await handlers.handleReflexionLoop({ ...(args || {}), tier: 'sub-pro' });
   }
 
   if (name === 'reflexion_resume') {

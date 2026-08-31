@@ -106,6 +106,10 @@ sub-agent). Never claim L0 or L1 when overridden by environment variables.
 Evaluate task using 0–2 rubric (Surface area, Novelty, Risk, Ambiguity,
 Parallelism). **Scores MUST be printed first.**
 
+_(Note: The ceiling limits below are generated/derived — see
+`TIER_POLICY['sub-pro']` in `src/lib/ai/tier-policy.ts` for the authoritative
+code policy.)_
+
 | Size   | Score | Execution Model              | Hardening                                     |
 | ------ | ----- | ---------------------------- | --------------------------------------------- |
 | XS     | 0–1   | Single Builder/Checker slice | Self-check                                    |
@@ -116,7 +120,7 @@ Parallelism). **Scores MUST be printed first.**
 > [!CAUTION] **Sub-Pro Tier Refusal Rules:** Score ≥ 6 (L/XL) or Risk signal = 2
 > (auth/payments/data/infra) -> Print scores and REFUSE: _"Exceeds this tier's
 > budget. Decompose with `vertical-slice-decomposer` or escalate to
-> dev-team-sub-max."_ STOP.
+> dev-team-sub-max."_ STOP. (Enforced by `tier-policy.ts`)
 
 ## Phase 2 — Single-Lane & Quota Ledger (COMPRESSED)
 

@@ -110,4 +110,35 @@ describe('Handlers.handleReflexionLoop project model routing', () => {
     const callResult = (runnerFromEnv as jest.Mock).mock.results[0].value;
     expect(callResult.models.creator).toBe('claude-opus-4-6');
   });
+
+  describe('tier enforcement', () => {
+    it('returns a structured refusal payload when tier ceiling is exceeded', async () => {
+      const mockFsService = new FileSystemService('root') as jest.Mocked<FileSystemService>;
+      const mockTelemetry = new Telemetry() as jest.Mocked<Telemetry>;
+      const mockKiService = new KiService() as jest.Mocked<KiService>;
+      const mockAlignmentService = new AlignmentService('root') as jest.Mocked<AlignmentService>;
+
+      const handlers = new Handlers(
+        mockFsService,
+        mockTelemetry,
+        mockAlignmentService,
+        mockKiService
+      );
+
+      // A sub-pro task with a Risk-2 signal
+      const res = await handlers.handleReflexionLoop({
+        brief: 'Implement a new feature',
+        tier: 'sub-pro',
+        sizeScore: 2,
+        riskSignals: ['auth migration']
+      });
+
+      expect(res.isError).toBeFalsy(); // It's a structured response, not a throw
+      
+      const parsedContent = JSON.parse(res.content[0].text);
+      expect(parsedContent.refused).toBe(true);
+      expect(parsedContent.escalateTo).toBe('sub-max');
+      expect(parsedContent.reason).toContain('risk level 2');
+    });
+  });
 });
