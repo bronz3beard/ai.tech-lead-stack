@@ -38,7 +38,13 @@ export interface ReflexionRunner {
   critique(prompt: string, system: string): Promise<Critique>;
   adjudicate(prompt: string, system: string): Promise<string>;
   interview(prompt: string, system: string): Promise<Interview>;
-  getUsage(): { tokens: number; costUsd: number };
+  getUsage(): {
+    tokens: number;
+    costUsd: number;
+    cachedReadTokens?: number;
+    cacheWriteTokens?: number;
+    estimatedCacheSavingsUsd?: number;
+  };
   /** The resolved model ids, for display/telemetry. */
   models: { creator: string; critic: string; adjudicator: string };
   wasDegraded(): boolean;
@@ -83,6 +89,13 @@ export interface ReflexionResult {
   stopReason?: StopReason;
   interview?: Interview;
   criticDegraded: boolean;
+  usage?: { 
+    totalTokens: number;
+    costUsd: number;
+    cachedReadTokens?: number;
+    cacheWriteTokens?: number;
+    estimatedCacheSavingsUsd?: number;
+  };
 }
 
 export type StepEvent =
@@ -163,6 +176,9 @@ export async function runReflexion(
         usage: {
           totalTokens: usage.tokens,
           costUsd: usage.costUsd,
+          cachedReadTokens: usage.cachedReadTokens,
+          cacheWriteTokens: usage.cacheWriteTokens,
+          estimatedCacheSavingsUsd: usage.estimatedCacheSavingsUsd,
           perPhase: [],
         },
         interview: interviewResult,
@@ -301,6 +317,7 @@ export async function runReflexion(
 
         if (interviewResult.questions.length > 0) {
           await saveState('AWAITING_ANSWERS');
+          const usage = runner.getUsage();
           return {
             runId,
             brief: cfg.brief,
@@ -313,6 +330,13 @@ export async function runReflexion(
             idePrompt: '', // Empty while parked
             models: runner.models,
             interview: interviewResult,
+            usage: {
+              totalTokens: usage.tokens,
+              costUsd: usage.costUsd,
+              cachedReadTokens: usage.cachedReadTokens,
+              cacheWriteTokens: usage.cacheWriteTokens,
+              estimatedCacheSavingsUsd: usage.estimatedCacheSavingsUsd,
+            },
             criticDegraded:
               runner.wasDegraded() || !!existingState?.criticDegraded,
           };
@@ -328,6 +352,7 @@ export async function runReflexion(
         );
       }
 
+      const usage = runner.getUsage();
       return {
         runId,
         brief: cfg.brief,
@@ -341,11 +366,19 @@ export async function runReflexion(
         models: runner.models,
         stopReason,
         interview: interviewResult,
+        usage: {
+          totalTokens: usage.tokens,
+          costUsd: usage.costUsd,
+          cachedReadTokens: usage.cachedReadTokens,
+          cacheWriteTokens: usage.cacheWriteTokens,
+          estimatedCacheSavingsUsd: usage.estimatedCacheSavingsUsd,
+        },
         criticDegraded: runner.wasDegraded() || !!existingState?.criticDegraded,
       };
     }
   }
 
+  const usage = runner.getUsage();
   return {
     runId,
     brief: cfg.brief,
@@ -361,6 +394,13 @@ export async function runReflexion(
         : '',
     models: runner.models,
     stopReason,
+    usage: {
+      totalTokens: usage.tokens,
+      costUsd: usage.costUsd,
+      cachedReadTokens: usage.cachedReadTokens,
+      cacheWriteTokens: usage.cacheWriteTokens,
+      estimatedCacheSavingsUsd: usage.estimatedCacheSavingsUsd,
+    },
     criticDegraded: runner.wasDegraded() || !!existingState?.criticDegraded,
   };
 }
@@ -380,6 +420,7 @@ export async function resumeReflexion(
     if (cfg.stateStore) await cfg.stateStore.save(state);
 
     const last = state.critiques[state.critiques.length - 1];
+    const usage = runner.getUsage();
     return {
       runId: state.runId,
       brief: state.brief,
@@ -400,6 +441,13 @@ export async function resumeReflexion(
       ),
       models: runner.models,
       stopReason: 'user-approve',
+      usage: {
+        totalTokens: usage.tokens,
+        costUsd: usage.costUsd,
+        cachedReadTokens: usage.cachedReadTokens,
+        cacheWriteTokens: usage.cacheWriteTokens,
+        estimatedCacheSavingsUsd: usage.estimatedCacheSavingsUsd,
+      },
       criticDegraded: runner.wasDegraded() || !!state.criticDegraded,
     };
   }
@@ -408,6 +456,7 @@ export async function resumeReflexion(
     state.stopReason = 'user-stop';
     state.phase = 'STOPPED(user-stop)';
     if (cfg.stateStore) await cfg.stateStore.save(state);
+    const usage = runner.getUsage();
     return {
       runId: state.runId,
       brief: state.brief,
@@ -420,6 +469,13 @@ export async function resumeReflexion(
       idePrompt: '',
       models: runner.models,
       stopReason: 'user-stop',
+      usage: {
+        totalTokens: usage.tokens,
+        costUsd: usage.costUsd,
+        cachedReadTokens: usage.cachedReadTokens,
+        cacheWriteTokens: usage.cacheWriteTokens,
+        estimatedCacheSavingsUsd: usage.estimatedCacheSavingsUsd,
+      },
       criticDegraded: runner.wasDegraded() || !!state.criticDegraded,
     };
   }
@@ -482,6 +538,7 @@ export async function resumeReflexion(
           state.phase = 'STOPPED(budget-exceeded)';
           state.criticDegraded = runner.wasDegraded() || !!state.criticDegraded;
           if (cfg.stateStore) await cfg.stateStore.save(state);
+          const usage = runner.getUsage();
           return {
             runId: state.runId,
             brief: state.brief,
@@ -494,6 +551,13 @@ export async function resumeReflexion(
             idePrompt: '',
             models: runner.models,
             stopReason: 'budget-exceeded',
+            usage: {
+              totalTokens: usage.tokens,
+              costUsd: usage.costUsd,
+              cachedReadTokens: usage.cachedReadTokens,
+              cacheWriteTokens: usage.cacheWriteTokens,
+              estimatedCacheSavingsUsd: usage.estimatedCacheSavingsUsd,
+            },
             criticDegraded: runner.wasDegraded() || !!state.criticDegraded,
           };
         }
@@ -515,6 +579,7 @@ export async function resumeReflexion(
           state.phase = 'STOPPED(refine-contract-violation)';
           state.criticDegraded = runner.wasDegraded() || !!state.criticDegraded;
           if (cfg.stateStore) await cfg.stateStore.save(state);
+          const usage = runner.getUsage();
           return {
             runId: state.runId,
             brief: state.brief,
@@ -527,6 +592,13 @@ export async function resumeReflexion(
             idePrompt: '',
             models: runner.models,
             stopReason: 'refine-contract-violation',
+            usage: {
+              totalTokens: usage.tokens,
+              costUsd: usage.costUsd,
+              cachedReadTokens: usage.cachedReadTokens,
+              cacheWriteTokens: usage.cacheWriteTokens,
+              estimatedCacheSavingsUsd: usage.estimatedCacheSavingsUsd,
+            },
             criticDegraded: runner.wasDegraded() || !!state.criticDegraded,
           };
         }

@@ -60,6 +60,7 @@ interface ReflexionResult {
   verdict: string;
   idePrompt: string;
   models: { creator: string; critic: string; adjudicator: string };
+  usage?: { estimatedCacheSavingsUsd?: number };
 }
 
 const PASS_THRESHOLD = 8;
@@ -288,6 +289,11 @@ export default function ReflexionClient({ projects }: ReflexionClientProps) {
                 {result.models.creator} drafted · {result.models.critic} graded ·{' '}
                 {result.revisionsUsed} revision(s)
               </p>
+              {result.usage?.estimatedCacheSavingsUsd != null && result.usage.estimatedCacheSavingsUsd > 0 && (
+                <p className="text-muted-foreground text-emerald-600 dark:text-emerald-400">
+                  Cache savings: ${result.usage.estimatedCacheSavingsUsd.toFixed(4)}
+                </p>
+              )}
             </CardContent>
           </Card>
 

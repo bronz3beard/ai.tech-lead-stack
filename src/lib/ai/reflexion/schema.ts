@@ -56,6 +56,9 @@ export type Answers = z.infer<typeof AnswersSchema>;
 export const UsageSnapshotSchema = z.object({
   totalTokens: z.number(),
   costUsd: z.number(),
+  cachedReadTokens: z.number().optional(),
+  cacheWriteTokens: z.number().optional(),
+  estimatedCacheSavingsUsd: z.number().optional(),
   perPhase: z.array(
     z.object({ phase: z.string(), tokens: z.number(), costUsd: z.number() })
   ),

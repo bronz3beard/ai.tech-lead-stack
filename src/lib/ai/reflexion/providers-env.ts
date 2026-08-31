@@ -6,7 +6,7 @@ import {
 } from 'ai';
 
 import { MODELS } from '../../../app/api/chat/constants';
-import { createModel } from '../model-registry';
+import { createModel, providerOf } from '../model-registry';
 import {
   assertDistinctModels,
   buildRoleModel,
@@ -68,7 +68,10 @@ export function buildRunner(
   fallbackCritic?: LanguageModel
 ): ReflexionRunner {
   let accumulatedTokens = 0;
+  let accumulatedCacheReadTokens = 0;
+  let accumulatedCacheWriteTokens = 0;
   let totalCostUsd = 0;
+  let totalCacheSavingsUsd = 0;
   let degraded = false;
 
   const warnedAboutCost = new Set<string>();
@@ -92,12 +95,79 @@ export function buildRunner(
       promptTokens?: number;
       completionTokens?: number;
     } & typeof usage;
-    const inputTokens = usageFallback.promptTokens ?? usage.inputTokens ?? 0;
-    const outputTokens =
-      usageFallback.completionTokens ?? usage.outputTokens ?? 0;
-    const inputCost = (inputTokens / 1_000_000) * pricing.inputUsdPerMTok;
+    
+    const rawInputTokens = usageFallback.promptTokens ?? usage.inputTokens ?? 0;
+    const outputTokens = usageFallback.completionTokens ?? usage.outputTokens ?? 0;
+    
+    const providerMetadata = (usage as any).providerMetadata;
+    const cacheReadTokens = Number(providerMetadata?.anthropic?.cacheReadInputTokens || 0);
+    const cacheWriteTokens = Number(providerMetadata?.anthropic?.cacheCreationInputTokens || 0);
+
+    let inputCost = 0;
+
+    if (cacheReadTokens > 0 || cacheWriteTokens > 0) {
+      const freshInputTokens = Math.max(0, rawInputTokens - cacheReadTokens - cacheWriteTokens);
+      inputCost += (freshInputTokens / 1_000_000) * pricing.inputUsdPerMTok;
+
+      if (cacheReadTokens > 0 && pricing.cachedInputUsdPerMTok !== undefined) {
+        inputCost += (cacheReadTokens / 1_000_000) * pricing.cachedInputUsdPerMTok;
+        accumulatedCacheReadTokens += cacheReadTokens;
+        totalCacheSavingsUsd += (cacheReadTokens / 1_000_000) * (pricing.inputUsdPerMTok - pricing.cachedInputUsdPerMTok);
+      } else if (cacheReadTokens > 0) {
+        inputCost += (cacheReadTokens / 1_000_000) * pricing.inputUsdPerMTok;
+      }
+
+      if (cacheWriteTokens > 0 && pricing.cacheWriteUsdPerMTok !== undefined) {
+        inputCost += (cacheWriteTokens / 1_000_000) * pricing.cacheWriteUsdPerMTok;
+        accumulatedCacheWriteTokens += cacheWriteTokens;
+        totalCacheSavingsUsd += (cacheWriteTokens / 1_000_000) * (pricing.inputUsdPerMTok - pricing.cacheWriteUsdPerMTok);
+      } else if (cacheWriteTokens > 0) {
+        inputCost += (cacheWriteTokens / 1_000_000) * pricing.inputUsdPerMTok;
+      }
+    } else {
+      inputCost = (rawInputTokens / 1_000_000) * pricing.inputUsdPerMTok;
+    }
+
     const outputCost = (outputTokens / 1_000_000) * pricing.outputUsdPerMTok;
     totalCostUsd += inputCost + outputCost;
+  }
+
+  function formatCacheOptions(system: string, promptStr: string, modelId: string) {
+    let family = 'unknown';
+    try {
+      family = providerOf(modelId);
+    } catch {
+      // Ignored for tests
+    }
+    
+    const stackMatch = promptStr.match(/^(PROJECT STACK CONTEXT[\s\S]*?)(?=\n(?:ORIGINAL )?BRIEF:|\nPLAN TO GRADE:)/);
+    const stackBlock = stackMatch ? stackMatch[1] : '';
+    const volatilePrompt = stackMatch ? promptStr.slice(stackMatch[0].length).trimStart() : promptStr;
+
+    if (family === 'anthropic') {
+      return {
+        messages: [
+          {
+            role: 'system',
+            content: [
+              {
+                type: 'text',
+                text: system + (stackBlock ? '\n\n' + stackBlock : ''),
+                providerOptions: { anthropic: { cacheControl: { type: 'ephemeral' } } }
+              }
+            ]
+          },
+          { role: 'user', content: volatilePrompt }
+        ] as any
+      };
+    } else if (family === 'google') {
+      if (!(globalThis as any).__warnedGoogleCache) {
+        console.warn('reflexion: Google prompt caching via cached-content is not natively exposed in this SDK version; falling back gracefully to no caching.');
+        (globalThis as any).__warnedGoogleCache = true;
+      }
+      return { system, prompt: promptStr };
+    }
+    return { system, prompt: promptStr };
   }
 
   return {
@@ -106,32 +176,32 @@ export function buildRunner(
       return degraded;
     },
     async generate(prompt, system) {
+      const opts = formatCacheOptions(system, prompt, models.creator);
       const { text, usage } = await generateText({
         model: creator,
-        system,
-        prompt,
+        ...opts,
       });
       addUsage(usage, models.creator);
       return text.trim();
     },
     async critique(prompt, system) {
       try {
+        const opts = formatCacheOptions(system, prompt, models.critic);
         const { output, usage } = await generateText({
           model: critic,
           output: Output.object({ schema: CritiqueSchema }),
-          system,
-          prompt,
+          ...opts,
         });
         addUsage(usage, models.critic);
         return output;
       } catch (error) {
         if (isHardApiFailure(error) && fallbackCritic) {
           degraded = true;
+          const opts = formatCacheOptions(system, prompt, MODELS.GEMINI_FALLBACK_CRITIC);
           const { output, usage } = await generateText({
             model: fallbackCritic,
             output: Output.object({ schema: CritiqueSchema }),
-            system,
-            prompt,
+            ...opts,
           });
           addUsage(usage, MODELS.GEMINI_FALLBACK_CRITIC);
           return output;
@@ -141,20 +211,20 @@ export function buildRunner(
     },
     async adjudicate(prompt, system) {
       try {
+        const opts = formatCacheOptions(system, prompt, models.adjudicator);
         const { text, usage } = await generateText({
           model: adjudicator,
-          system,
-          prompt,
+          ...opts,
         });
         addUsage(usage, models.adjudicator);
         return text.trim();
       } catch (error) {
         if (isHardApiFailure(error) && fallbackCritic) {
           degraded = true;
+          const opts = formatCacheOptions(system, prompt, MODELS.GEMINI_FALLBACK_CRITIC);
           const { text, usage } = await generateText({
             model: fallbackCritic,
-            system,
-            prompt,
+            ...opts,
           });
           addUsage(usage, MODELS.GEMINI_FALLBACK_CRITIC);
           return text.trim();
@@ -164,22 +234,22 @@ export function buildRunner(
     },
     async interview(prompt, system) {
       try {
+        const opts = formatCacheOptions(system, prompt, models.critic);
         const { output, usage } = await generateText({
           model: critic,
           output: Output.object({ schema: InterviewSchema }),
-          system,
-          prompt,
+          ...opts,
         });
         addUsage(usage, models.critic);
         return { ...output, questions: output.questions.slice(0, 5) };
       } catch (error) {
         if (isHardApiFailure(error) && fallbackCritic) {
           degraded = true;
+          const opts = formatCacheOptions(system, prompt, MODELS.GEMINI_FALLBACK_CRITIC);
           const { output, usage } = await generateText({
             model: fallbackCritic,
             output: Output.object({ schema: InterviewSchema }),
-            system,
-            prompt,
+            ...opts,
           });
           addUsage(usage, MODELS.GEMINI_FALLBACK_CRITIC);
           return { ...output, questions: output.questions.slice(0, 5) };
@@ -191,6 +261,9 @@ export function buildRunner(
       return {
         tokens: accumulatedTokens,
         costUsd: Number(totalCostUsd.toFixed(6)),
+        cachedReadTokens: accumulatedCacheReadTokens,
+        cacheWriteTokens: accumulatedCacheWriteTokens,
+        estimatedCacheSavingsUsd: Number(totalCacheSavingsUsd.toFixed(6)),
       };
     },
   };

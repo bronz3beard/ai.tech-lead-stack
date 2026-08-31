@@ -123,9 +123,10 @@ async function main() {
     'skills'.padStart(7),
     'est'.padStart(8),
     'obs'.padStart(8),
+    'cached'.padStart(8),
     'error'.padStart(8)
   );
-  console.log('-'.repeat(70));
+  console.log('-'.repeat(80));
   for (const p of plans.slice(0, top)) {
     const err = (p as any).errorPct as number;
     console.log(
@@ -133,6 +134,7 @@ async function main() {
       String(p.skills.length).padStart(7),
       String(p.estimated).padStart(8),
       String(p.observed).padStart(8),
+      String((p as any).cached || 0).padStart(8),
       `${(err * 100).toFixed(0)}%`.padStart(8)
     );
   }
