@@ -23,6 +23,7 @@ import { validatePlanContract, PlanContractReport } from './plan-contract';
 import { type Tier, deriveLoopParams } from '../tier-policy';
 import { nextModelUp, shouldEscalate } from '../routing-policy';
 import { pruneStackContext } from '../context-pruning';
+import { providerOf } from '../model-registry';
 
 /**
  * The Reflexion loop itself — pure orchestration, no I/O and no SDK imports.
@@ -143,7 +144,11 @@ export async function runReflexion(
   }
   const maxStructuralRepairs = cfg.maxStructuralRepairs ?? 1;
   const passThreshold = cfg.passThreshold ?? 8;
-  const prunedStack = cfg.maxStackChars ? pruneStackContext(cfg.stack ?? '', cfg.maxStackChars) : (cfg.stack ?? '');
+  const isGooglePlanner = !!runner.models?.creator && (
+    (() => { try { return providerOf(runner.models.creator) === 'google'; } catch { return false; } })()
+  );
+  const preserveForCache = isGooglePlanner && maxRevisions > 0;
+  const prunedStack = cfg.maxStackChars ? pruneStackContext(cfg.stack ?? '', cfg.maxStackChars, preserveForCache) : (cfg.stack ?? '');
   const stackBlock = stackContextBlock(prunedStack);
   const focusBlock = focusPillarsBlock(cfg.focusPillars ?? []);
 
@@ -634,7 +639,15 @@ export async function resumeReflexion(
     if (cfg.stateStore) await cfg.stateStore.save(state);
 
     onStep?.({ phase: 'critique', revision: state.revision });
-    const prunedStack = cfg.maxStackChars ? pruneStackContext(cfg.stack ?? '', cfg.maxStackChars) : (cfg.stack ?? '');
+    
+    // In resume we aren't generating again immediately, but we might do it on the next loop, so preserveForCache if it meets conditions.
+    const isGooglePlanner = !!runner.models?.creator && (
+      (() => { try { return providerOf(runner.models.creator) === 'google'; } catch { return false; } })()
+    );
+    const maxRevs = cfg.maxRevisions ?? 3;
+    const preserveForCache = isGooglePlanner && (maxRevs > 0);
+    const prunedStack = cfg.maxStackChars ? pruneStackContext(cfg.stack ?? '', cfg.maxStackChars, preserveForCache) : (cfg.stack ?? '');
+    
     const stackBlock = stackContextBlock(prunedStack);
     const focusBlock = focusPillarsBlock(cfg.focusPillars ?? []);
     const critiquePrompt =

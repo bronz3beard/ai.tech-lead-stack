@@ -1,4 +1,4 @@
-import { pruneStackContext } from '../ai/context-pruning';
+import { pruneStackContext, GEMINI_CACHE_MIN_TOKENS } from '../ai/context-pruning';
 
 describe('context-pruning', () => {
   it('returns raw if length is within maxChars', () => {
@@ -122,6 +122,27 @@ describe('context-pruning', () => {
         expect(content.startsWith(parts[0])).toBe(true);
         expect(content.endsWith(parts[1])).toBe(true);
       });
+    });
+  });
+
+  describe('preserveForCache (Gemini implicit caching)', () => {
+    it('does not prune below GEMINI_CACHE_MIN_TOKENS when preserveForCache is true', () => {
+      // Create a string that is > GEMINI_CACHE_MIN_TOKENS tokens
+      const rawChars = (GEMINI_CACHE_MIN_TOKENS + 1000) * 4;
+      const raw = 'A'.repeat(rawChars); 
+      
+      // maxChars is 100, which is normally very small
+      const pruned = pruneStackContext(raw, 100, true);
+      
+      // But it should preserve at least GEMINI_CACHE_MIN_TOKENS * 4 chars (minus 1 due to math.floor rounding)
+      expect(pruned.length).toBeGreaterThanOrEqual(GEMINI_CACHE_MIN_TOKENS * 4 - 1);
+    });
+
+    it('prunes normally when preserveForCache is false', () => {
+      const rawChars = (GEMINI_CACHE_MIN_TOKENS + 1000) * 4;
+      const raw = 'A'.repeat(rawChars); 
+      const pruned = pruneStackContext(raw, 100, false);
+      expect(pruned.length).toBeLessThanOrEqual(100);
     });
   });
 });

@@ -4,6 +4,7 @@ import {
   type LanguageModel,
   type LanguageModelUsage,
 } from 'ai';
+import { estimatePrefixTokens, GEMINI_CACHE_MIN_TOKENS } from '../context-pruning';
 
 import { MODELS } from '../../../app/api/chat/constants';
 import { createModel, providerOf } from '../model-registry';
@@ -105,7 +106,14 @@ export function buildRunner(
     const outputTokens = usageFallback.completionTokens ?? usage.outputTokens ?? 0;
     
     const providerMetadata = (usage as any).providerMetadata;
-    const cacheReadTokens = Number(providerMetadata?.anthropic?.cacheReadInputTokens || 0);
+    const anthropicRead = Number(providerMetadata?.anthropic?.cacheReadInputTokens || 0);
+    const googleRead = Number(
+      providerMetadata?.google?.cachedContentTokenCount ??
+      providerMetadata?.google?.cachedInputTokens ??
+      (usage as any).cachedInputTokens ??
+      0
+    );
+    const cacheReadTokens = anthropicRead > 0 ? anthropicRead : googleRead;
     const cacheWriteTokens = Number(providerMetadata?.anthropic?.cacheCreationInputTokens || 0);
 
     let inputCost = 0;
@@ -152,12 +160,23 @@ export function buildRunner(
     if (family === 'anthropic') {
       return {
         system: system + (stackBlock ? '\n\n' + stackBlock : ''),
-        prompt: volatilePrompt
+        prompt: volatilePrompt,
+        experimental_providerMetadata: {
+          anthropic: { cacheControl: { type: 'ephemeral' } }
+        }
       };
     } else if (family === 'google') {
-      if (!(globalThis as any).__warnedGoogleCache) {
-        console.warn('reflexion: Google prompt caching via cached-content is not natively exposed in this SDK version; falling back gracefully to no caching.');
-        (globalThis as any).__warnedGoogleCache = true;
+      const estimate = estimatePrefixTokens(system, stackBlock);
+      if (estimate < GEMINI_CACHE_MIN_TOKENS) {
+        if (!(globalThis as any).__warnedGoogleCacheNoEngage) {
+          console.debug(`reflexion: Gemini implicit caching will not engage — static prefix ~${estimate} tok is below the ${GEMINI_CACHE_MIN_TOKENS} min for ${modelId}.`);
+          (globalThis as any).__warnedGoogleCacheNoEngage = true;
+        }
+      } else {
+        if (!(globalThis as any).__warnedGoogleCacheEngage) {
+          console.debug(`reflexion: Gemini implicit caching is expected to apply and will be measured via usageMetadata. No cachedContent is created.`);
+          (globalThis as any).__warnedGoogleCacheEngage = true;
+        }
       }
       return { system, prompt: promptStr };
     }
