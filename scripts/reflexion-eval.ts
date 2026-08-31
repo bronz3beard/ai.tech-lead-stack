@@ -6,6 +6,7 @@ import path from 'path';
 import { CRITIC_SYSTEM } from '../src/lib/ai/reflexion/prompts';
 import { CritiqueSchema, type Critique } from '../src/lib/ai/reflexion/schema';
 import { validatePlanContract } from '../src/lib/ai/reflexion/plan-contract';
+import { runnerFromEnv } from '../src/lib/ai/reflexion/providers-env';
 
 // This is the critic side of runnerFromEnv, minimally exported to only require ANTHROPIC_API_KEY
 function buildCriticRunner() {
@@ -267,6 +268,47 @@ async function main() {
       );
     }
     console.log(`\nReport written to ${reportPath}`);
+  }
+
+  if (process.env.TEST_SWAP_MATRIX && allSuccess) {
+    console.log('\n--- Running Swap Matrix (DL-007) ---');
+    const dl007 = cases.find(c => c.frontmatter.id === 'DL-007');
+    if (dl007) {
+      // Temporarily override env vars to swap planner and auditor roles
+      const origPlanner = process.env.MODEL_PLANNER;
+      const origAuditor = process.env.MODEL_AUDITOR;
+      
+      process.env.MODEL_PLANNER = 'claude-sonnet-4-6';
+      process.env.MODEL_AUDITOR = 'gemini-3.5-flash';
+
+      try {
+        const swappedRunner = runnerFromEnv();
+        console.log(`Swapped: Planner=${process.env.MODEL_PLANNER}, Auditor=${process.env.MODEL_AUDITOR}`);
+        
+        // Use the runner to critique DL-007
+        const critique = await swappedRunner.critique(dl007.plan, CRITIC_SYSTEM);
+        
+        // Assert it returns a schema-valid Critique (zod parsing is handled by generateObject)
+        if (critique && typeof critique.passed === 'boolean' && typeof critique.score === 'number') {
+           console.log('✅ Swap Matrix Passed: Schema-valid Critique generated across swapped providers.');
+        } else {
+           console.error('❌ Swap Matrix Failed: Invalid critique structure returned.');
+           allSuccess = false;
+        }
+      } catch (err: unknown) {
+        if (isProviderBillingOrQuotaError(err)) {
+          console.warn('⚠️  Swap Matrix skipped due to billing/quota error on swapped provider.');
+        } else {
+          console.error('❌ Swap Matrix Failed:', err);
+          allSuccess = false;
+        }
+      } finally {
+        process.env.MODEL_PLANNER = origPlanner;
+        process.env.MODEL_AUDITOR = origAuditor;
+      }
+    } else {
+      console.warn('⚠️  Swap Matrix skipped: DL-007 fixture not found.');
+    }
   }
 
   process.exit(allSuccess ? 0 : 1);

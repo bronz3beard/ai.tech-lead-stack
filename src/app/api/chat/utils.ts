@@ -1,10 +1,9 @@
 import { skillsService } from '@/lib/skills';
 import { CodeProvider } from '@/lib/skills/providers/base-provider';
-import { createAnthropic } from '@ai-sdk/anthropic';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { createOpenAI } from '@ai-sdk/openai';
 import { User } from '@prisma/client';
 import { jsonSchema, tool } from 'ai';
+import { createModel } from '@/lib/ai/model-registry';
+import { keyFor, slotForModel } from '@/lib/ai/model-resolver';
 import { MODELS } from './constants';
 import { FigmaService } from '@/lib/figma-api';
 import { ClickUpService } from '@/lib/clickup-api';
@@ -272,50 +271,47 @@ export async function initializeModel(
     }
   };
 
-  if (preferredModel === 'claude') {
-    if (!user.claudeApiKey?.trim()) {
-      throw new Error(
-        'Claude is set as the default model, but no Claude API key is saved.'
-      );
+  // Determine the default model ID if none is explicitly provided.
+  let resolvedModelId = modelId;
+  if (!resolvedModelId) {
+    if (preferredModel === 'claude') resolvedModelId = MODELS.CLAUDE;
+    else if (preferredModel === 'openai') resolvedModelId = MODELS.OPENAI;
+    else if (preferredModel === 'jules') resolvedModelId = MODELS.JULES;
+    else resolvedModelId = MODELS.GEMINI;
+  }
+
+  // Use the model-resolver to determine the correct key slot and fetch the key.
+  // We mock a ctx object providing the user row and a decrypt implementation
+  // that wraps our friendly decryptKey error handler.
+  const slot = slotForModel(resolvedModelId);
+  
+  let key: string;
+  try {
+    // We pass our specific decryptKey that provides friendly auth errors
+    key = keyFor(slot, { user, decrypt: (c) => decryptKey(c, slot) });
+  } catch (err: any) {
+    // If it's a specific key rotation request for Gemini/Jules (keyIndex > 0),
+    // we need to handle that via resolveGeminiApiKeys/resolveJulesApiKeys
+    // because keyFor only returns the *preferred* single key for a slot.
+    // We preserve that fallback logic here for keyIndex > 0 only.
+    if (keyIndex > 0) {
+      if (preferredModel === 'jules' || slot === 'jules') {
+        const julesKeys = resolveJulesApiKeys(user, decrypt);
+        key = julesKeys[keyIndex] || julesKeys[0];
+        if (!key) throw new Error('Resolved Jules API key was empty.');
+      } else if (preferredModel === 'gemini' || slot === 'gemini') {
+        const geminiKeys = resolveGeminiApiKeys(user, decrypt);
+        key = geminiKeys[keyIndex] || geminiKeys[0];
+        if (!key) throw new Error('Resolved Gemini API key was empty.');
+      } else {
+        throw err;
+      }
+    } else {
+      throw err;
     }
-    const anthropic = createAnthropic({
-      apiKey: decryptKey(user.claudeApiKey, 'Claude'),
-    });
-    return anthropic(modelId ?? MODELS.CLAUDE);
   }
 
-  if (preferredModel === 'openai') {
-    if (!user.openaiApiKey?.trim()) {
-      throw new Error(
-        'OpenAI is set as the default model, but no OpenAI API key is saved.'
-      );
-    }
-    const openai = createOpenAI({
-      apiKey: decryptKey(user.openaiApiKey, 'OpenAI'),
-    });
-    return openai(modelId ?? MODELS.OPENAI);
-  }
-
-  if (preferredModel === 'jules') {
-    const julesKeys = resolveJulesApiKeys(user, decrypt);
-    const targetKey = julesKeys[keyIndex] || julesKeys[0];
-    if (!targetKey) {
-      throw new Error('Resolved Jules API key was empty.');
-    }
-    const google = createGoogleGenerativeAI({ apiKey: targetKey });
-    return google(modelId ?? MODELS.JULES);
-  }
-
-  // Gemini specific logic with key rotation
-  const geminiKeys = resolveGeminiApiKeys(user, decrypt);
-  const targetKey = geminiKeys[keyIndex] || geminiKeys[0];
-
-  if (!targetKey) {
-    throw new Error('Resolved Gemini API key was empty.');
-  }
-
-  const google = createGoogleGenerativeAI({ apiKey: targetKey });
-  return google(modelId ?? MODELS.GEMINI);
+  return createModel(resolvedModelId, key);
 }
 
 /**

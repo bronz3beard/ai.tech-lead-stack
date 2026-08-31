@@ -11,8 +11,10 @@ import {
   assertDistinctModels,
   buildRoleModel,
   keyFor,
+  toResponsibility,
   type ResolveCtx,
 } from '../model-resolver';
+import { assertCanCritique } from '../model-capabilities';
 import type { ReflexionRunner } from './engine';
 import { PRICE_PER_MTOK } from './pricing';
 import { CritiqueSchema, InterviewSchema } from './schema';
@@ -280,9 +282,9 @@ export function buildRunner(
 export function runnerFromEnv(
   ctx: ResolveCtx = {}
 ): ReflexionRunner {
-  const planner = buildRoleModel('planner', ctx);
-  const auditor = buildRoleModel('auditor', ctx);
-  const adjudicator = buildRoleModel('adjudicator', ctx);
+  const planner = buildRoleModel(toResponsibility('creator'), ctx);
+  let auditor = buildRoleModel(toResponsibility('critic'), ctx);
+  const adjudicator = buildRoleModel(toResponsibility('adjudicator'), ctx);
 
   assertDistinct(planner.id, auditor.id);
 
@@ -299,11 +301,32 @@ export function runnerFromEnv(
     fallbackCritic = undefined;
   }
 
-  return buildRunner(
+  // Capability guard: Ensure the selected auditor supports structured output.
+  let degraded = false;
+  try {
+    assertCanCritique(auditor.id);
+  } catch (err) {
+    if (fallbackCritic) {
+      console.warn(`reflexion: Auditor ${auditor.id} lacks structured output capability. Falling back to degraded critic.`);
+      auditor = { id: MODELS.GEMINI_FALLBACK_CRITIC, model: fallbackCritic };
+      degraded = true;
+    } else {
+      throw err;
+    }
+  }
+
+  const runner = buildRunner(
     planner.model,
     auditor.model,
     adjudicator.model,
     { creator: planner.id, critic: auditor.id, adjudicator: adjudicator.id },
     fallbackCritic
   );
+
+  // If we already fell back during setup due to capabilities, mark the runner as degraded.
+  if (degraded) {
+    runner.wasDegraded = () => true;
+  }
+
+  return runner;
 }

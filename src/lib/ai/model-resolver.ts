@@ -5,8 +5,8 @@
  *
  * Responsibilities (ratified): planner | implementer | auditor | adjudicator.
  *   - planner      → produces the plan/blueprint          (reflexion "creator")
- *   - implementer  → writes the code in the sandbox        (orchestrator/MCP write path)
- *   - auditor      → reviews / critiques, must differ      (reflexion "critic")
+ *   - implementer  → writes the code in the sandbox       (orchestrator/MCP write path)
+ *   - auditor      → reviews / critiques, must differ     (reflexion "critic")
  *   - adjudicator  → final verdict in the reflexion loop
  *
  * Precedence (highest wins):
@@ -34,6 +34,13 @@ export type Responsibility =
   | 'auditor'
   | 'adjudicator';
 export type KeySlot = 'anthropic' | 'gemini' | 'openai' | 'jules';
+
+/** Adapter mapping legacy Reflexion vocabulary to the unified Responsibility taxonomy */
+export function toResponsibility(role: 'creator' | 'critic' | 'adjudicator'): Responsibility {
+  if (role === 'creator') return 'planner';
+  if (role === 'critic') return 'auditor';
+  return role;
+}
 
 export interface ResolveCtx {
   user?: User | null;
@@ -223,7 +230,7 @@ export function keyFor(slot: KeySlot, ctx: ResolveCtx = {}): string {
 }
 
 /** Pick the key slot for a model id: catalog first, else infer from provider family. */
-function slotForModel(id: string): KeySlot {
+export function slotForModel(id: string): KeySlot {
   const entry = catalogEntry(id);
   if (entry) return entry.keySlot;
   const family = providerOf(id); // throws on unknown ids — surfaces bad config early
