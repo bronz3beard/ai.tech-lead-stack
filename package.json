@@ -1,5 +1,5 @@
 {
-  "name": "@bronz3beard/tech-lead-stack",
+  "name": "@zenithfoundry/tech-lead-stack",
   "version": "1.0.0",
   "engines": {
     "node": ">=22.0.0"
@@ -214,5 +214,8 @@
       "npx markdownlint-cli --fix",
       "npx prettier --write"
     ]
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
