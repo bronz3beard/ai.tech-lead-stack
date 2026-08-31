@@ -2,7 +2,7 @@ import type { Project, User } from '@prisma/client';
 
 import { MODELS } from '@/app/api/chat/constants';
 import { createModel } from '@/lib/ai/model-registry';
-import { buildRoleModel, keyFor } from '@/lib/ai/model-resolver';
+import { buildRoleModel, keyFor, slotForModel } from '@/lib/ai/model-resolver';
 import { validateDistinctModels } from '@/lib/ai/orchestrator';
 import { decrypt } from '@/lib/crypto';
 
@@ -52,6 +52,7 @@ export function runnerFromUser(
     auditor.model,
     adjudicator.model,
     { creator: planner.id, critic: auditor.id, adjudicator: adjudicator.id },
-    fallbackCritic
+    fallbackCritic,
+    (id: string) => createModel(id, keyFor(slotForModel(id), ctx))
   );
 }

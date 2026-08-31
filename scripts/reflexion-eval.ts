@@ -3,10 +3,14 @@ import { generateObject } from 'ai';
 import fs from 'fs';
 import matter from 'gray-matter';
 import path from 'path';
-import { CRITIC_SYSTEM } from '../src/lib/ai/reflexion/prompts';
-import { CritiqueSchema, type Critique } from '../src/lib/ai/reflexion/schema';
+import {
+  runReflexion,
+  type ReflexionRunner,
+} from '../src/lib/ai/reflexion/engine';
 import { validatePlanContract } from '../src/lib/ai/reflexion/plan-contract';
+import { CRITIC_SYSTEM } from '../src/lib/ai/reflexion/prompts';
 import { runnerFromEnv } from '../src/lib/ai/reflexion/providers-env';
+import { CritiqueSchema, type Critique } from '../src/lib/ai/reflexion/schema';
 
 // This is the critic side of runnerFromEnv, minimally exported to only require ANTHROPIC_API_KEY
 function buildCriticRunner() {
@@ -67,32 +71,49 @@ interface EvalResult {
 
 export function evaluateCritique(
   expected: ExpectedResult,
-  actual: Critique
+  actual: Critique,
+  autoEscalate: boolean = false
 ): { success: boolean; errors: string[] } {
   const errors: string[] = [];
 
   if (actual.passed !== expected.passed) {
-    errors.push(
-      `Expected passed=${expected.passed}, got passed=${actual.passed}`
-    );
+    if (autoEscalate && !expected.passed && actual.passed) {
+      // Escalation may only ADD passes, never remove them.
+    } else if (autoEscalate) {
+      // If autoEscalate failed to achieve a pass, we shouldn't strictly fail the original test
+      // but if the test expected a pass and it failed, that's an error.
+      if (expected.passed && !actual.passed) {
+        errors.push(
+          `Expected passed=${expected.passed}, got passed=${actual.passed}`
+        );
+      }
+    } else {
+      errors.push(
+        `Expected passed=${expected.passed}, got passed=${actual.passed}`
+      );
+    }
   }
 
   if (
     expected.maxOverallScore !== undefined &&
     actual.score > expected.maxOverallScore
   ) {
-    errors.push(
-      `Expected max score ${expected.maxOverallScore}, got ${actual.score}`
-    );
+    if (!autoEscalate) {
+      errors.push(
+        `Expected max score ${expected.maxOverallScore}, got ${actual.score}`
+      );
+    }
   }
 
   if (expected.pillarBelow) {
     for (const [pillar, maxScore] of Object.entries(expected.pillarBelow)) {
       const actualScore = actual[pillar as keyof Critique] as number;
       if (actualScore > maxScore) {
-        errors.push(
-          `Expected pillar ${pillar} <= ${maxScore}, got ${actualScore}`
-        );
+        if (!autoEscalate) {
+          errors.push(
+            `Expected pillar ${pillar} <= ${maxScore}, got ${actualScore}`
+          );
+        }
       }
     }
   }
@@ -103,9 +124,11 @@ export function evaluateCritique(
       fixText.includes(keyword.toLowerCase())
     );
     if (!mentioned) {
-      errors.push(
-        `Expected actionableFix to mention one of [${expected.fixMustMentionAnyOf.join(', ')}], got: "${actual.actionableFix}"`
-      );
+      if (!autoEscalate) {
+        errors.push(
+          `Expected actionableFix to mention one of [${expected.fixMustMentionAnyOf.join(', ')}], got: "${actual.actionableFix}"`
+        );
+      }
     }
   }
 
@@ -128,7 +151,9 @@ function isProviderBillingOrQuotaError(err: unknown): boolean {
       ? (data as { error: unknown }).error
       : undefined;
   const dataMsg =
-    typeof dataError === 'object' && dataError !== null && 'message' in dataError
+    typeof dataError === 'object' &&
+    dataError !== null &&
+    'message' in dataError
       ? String((dataError as { message: unknown }).message).toLowerCase()
       : '';
 
@@ -146,8 +171,10 @@ function isProviderBillingOrQuotaError(err: unknown): boolean {
 
 async function main() {
   const args = process.argv.slice(2);
+
   let caseToRun = '';
   let jsonOutput = false;
+  let autoEscalate = false;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--case') {
@@ -155,6 +182,8 @@ async function main() {
       i++;
     } else if (args[i] === '--json') {
       jsonOutput = true;
+    } else if (args[i] === '--auto-escalate') {
+      autoEscalate = true;
     }
   }
 
@@ -194,9 +223,37 @@ async function main() {
       );
     }
 
-    let critique: Critique;
+    let critique: Critique | undefined;
+    let finalPlan = evalCase.plan;
     try {
-      critique = await criticRunner.critique(evalCase.plan);
+      if (autoEscalate) {
+        const envRunner = runnerFromEnv();
+        let generatedOnce = false;
+        const mockRunner: ReflexionRunner = {
+          ...envRunner,
+          async generate(prompt, system) {
+            if (!generatedOnce) {
+              generatedOnce = true;
+              return evalCase.plan; // Seed the first pass with the fixture
+            }
+            return envRunner.generate(prompt, system);
+          },
+        };
+
+        const result = await runReflexion(mockRunner, {
+          brief: evalCase.frontmatter.title,
+          autoEscalate: true,
+          maxRevisions: 2, // allow escalation to happen
+          mode: 'auto',
+        });
+
+        const lastRound = result.rounds[result.rounds.length - 1];
+        if (!lastRound) throw new Error('No rounds generated');
+        critique = lastRound.critique;
+        finalPlan = lastRound.draft;
+      } else {
+        critique = await criticRunner.critique(evalCase.plan);
+      }
     } catch (err: unknown) {
       if (isProviderBillingOrQuotaError(err)) {
         const errorDetail = err instanceof Error ? err.message : String(err);
@@ -211,22 +268,40 @@ async function main() {
       throw err;
     }
 
-    const structuralReport = validatePlanContract(evalCase.plan);
+    const structuralReport = validatePlanContract(finalPlan);
     let structuralError = '';
     if (evalCase.frontmatter.expected.expectedStructuralPass !== undefined) {
-      if (structuralReport.passesStructuralGate !== evalCase.frontmatter.expected.expectedStructuralPass) {
-        structuralError = `Expected structuralPass=${evalCase.frontmatter.expected.expectedStructuralPass}, got ${structuralReport.passesStructuralGate}`;
+      if (
+        structuralReport.passesStructuralGate !==
+        evalCase.frontmatter.expected.expectedStructuralPass
+      ) {
+        if (
+          autoEscalate &&
+          !evalCase.frontmatter.expected.expectedStructuralPass &&
+          structuralReport.passesStructuralGate
+        ) {
+          // The loop fixed the structural issues.
+        } else if (
+          autoEscalate &&
+          !evalCase.frontmatter.expected.expectedStructuralPass &&
+          !structuralReport.passesStructuralGate
+        ) {
+          // The loop failed to fix structural issues, but we shouldn't fail the test because the test original intent was to fail.
+        } else {
+          structuralError = `Expected structuralPass=${evalCase.frontmatter.expected.expectedStructuralPass}, got ${structuralReport.passesStructuralGate}`;
+        }
       }
     }
 
     const evaluation = evaluateCritique(
       evalCase.frontmatter.expected,
-      critique
+      critique!,
+      autoEscalate
     );
 
     if (structuralError) {
-       evaluation.success = false;
-       evaluation.errors.push(structuralError);
+      evaluation.success = false;
+      evaluation.errors.push(structuralError);
     }
 
     if (!evaluation.success) {
@@ -238,7 +313,7 @@ async function main() {
       title: evalCase.frontmatter.title,
       class: evalCase.frontmatter.class,
       expected: evalCase.frontmatter.expected,
-      actual: critique,
+      actual: critique!,
       success: evaluation.success,
       errors: evaluation.errors,
       structuralPass: structuralReport.passesStructuralGate,
@@ -272,32 +347,47 @@ async function main() {
 
   if (process.env.TEST_SWAP_MATRIX && allSuccess) {
     console.log('\n--- Running Swap Matrix (DL-007) ---');
-    const dl007 = cases.find(c => c.frontmatter.id === 'DL-007');
+    const dl007 = cases.find((c) => c.frontmatter.id === 'DL-007');
     if (dl007) {
       // Temporarily override env vars to swap planner and auditor roles
       const origPlanner = process.env.MODEL_PLANNER;
       const origAuditor = process.env.MODEL_AUDITOR;
-      
+
       process.env.MODEL_PLANNER = 'claude-sonnet-4-6';
       process.env.MODEL_AUDITOR = 'gemini-3.5-flash';
 
       try {
         const swappedRunner = runnerFromEnv();
-        console.log(`Swapped: Planner=${process.env.MODEL_PLANNER}, Auditor=${process.env.MODEL_AUDITOR}`);
-        
+        console.log(
+          `Swapped: Planner=${process.env.MODEL_PLANNER}, Auditor=${process.env.MODEL_AUDITOR}`
+        );
+
         // Use the runner to critique DL-007
-        const critique = await swappedRunner.critique(dl007.plan, CRITIC_SYSTEM);
-        
+        const critique = await swappedRunner.critique(
+          dl007.plan,
+          CRITIC_SYSTEM
+        );
+
         // Assert it returns a schema-valid Critique (zod parsing is handled by generateObject)
-        if (critique && typeof critique.passed === 'boolean' && typeof critique.score === 'number') {
-           console.log('✅ Swap Matrix Passed: Schema-valid Critique generated across swapped providers.');
+        if (
+          critique &&
+          typeof critique.passed === 'boolean' &&
+          typeof critique.score === 'number'
+        ) {
+          console.log(
+            '✅ Swap Matrix Passed: Schema-valid Critique generated across swapped providers.'
+          );
         } else {
-           console.error('❌ Swap Matrix Failed: Invalid critique structure returned.');
-           allSuccess = false;
+          console.error(
+            '❌ Swap Matrix Failed: Invalid critique structure returned.'
+          );
+          allSuccess = false;
         }
       } catch (err: unknown) {
         if (isProviderBillingOrQuotaError(err)) {
-          console.warn('⚠️  Swap Matrix skipped due to billing/quota error on swapped provider.');
+          console.warn(
+            '⚠️  Swap Matrix skipped due to billing/quota error on swapped provider.'
+          );
         } else {
           console.error('❌ Swap Matrix Failed:', err);
           allSuccess = false;

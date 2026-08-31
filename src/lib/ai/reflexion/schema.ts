@@ -13,10 +13,21 @@ export const LoopParamsSchema = z.object({
   maxCostUsd: z.number().optional(),
   maxTotalTokens: z.number().optional(),
   focus: z.array(z.string()).optional(),
+  autoEscalate: z.boolean().default(false).optional(),
+  maxStackChars: z.number().default(20000).optional(),
 });
 export type LoopParams = z.infer<typeof LoopParamsSchema>;
 
-export const LoopParamsPatchSchema = LoopParamsSchema.partial().strict();
+export const LoopParamsPatchSchema = z.object({
+  passThreshold: z.number().int().min(1).max(10).optional(),
+  maxRevisions: z.number().int().min(0).max(10).optional(),
+  maxStructuralRepairs: z.number().int().min(0).max(5).optional(),
+  maxCostUsd: z.number().positive().optional(),
+  maxTotalTokens: z.number().int().positive().optional(),
+  focus: z.array(z.string()).optional(),
+  autoEscalate: z.boolean().optional(),
+  maxStackChars: z.number().int().positive().optional(),
+}).strict();
 export type LoopParamsPatch = z.infer<typeof LoopParamsPatchSchema>;
 
 export const StopReasonSchema = z.enum([

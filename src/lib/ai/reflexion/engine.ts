@@ -21,6 +21,8 @@ import {
 } from './schema';
 import { validatePlanContract, PlanContractReport } from './plan-contract';
 import { type Tier, deriveLoopParams } from '../tier-policy';
+import { nextModelUp, shouldEscalate } from '../routing-policy';
+import { pruneStackContext } from '../context-pruning';
 
 /**
  * The Reflexion loop itself — pure orchestration, no I/O and no SDK imports.
@@ -48,6 +50,7 @@ export interface ReflexionRunner {
   /** The resolved model ids, for display/telemetry. */
   models: { creator: string; critic: string; adjudicator: string };
   wasDegraded(): boolean;
+  escalatePlanner?(newModelId: string): void;
 }
 
 export interface ReflexionConfig {
@@ -62,6 +65,8 @@ export interface ReflexionConfig {
   focusPillars?: string[];
   stateStore?: StateStore;
   tier?: Tier;
+  autoEscalate?: boolean;
+  maxStackChars?: number;
 }
 
 export interface ReflexionRound {
@@ -105,7 +110,8 @@ export type StepEvent =
   | { phase: 'scored'; revision: number; critique: Critique }
   | { phase: 'adjudicate' }
   | { phase: 'interview'; interview: Interview }
-  | { phase: 'resume'; recommendation: string };
+  | { phase: 'resume'; recommendation: string }
+  | { phase: 'escalate'; from: string; to: string };
 
 function checkBudget(runner: ReflexionRunner, cfg: ReflexionConfig): boolean {
   if (!cfg.budget) return true;
@@ -131,10 +137,14 @@ export async function runReflexion(
   if (cfg.tier && cfg.tier !== 'byo') {
     const limits = deriveLoopParams(cfg.tier);
     maxRevisions = Math.min(maxRevisions, limits.maxRevisions);
+    if (limits.autoEscalate !== undefined) {
+      cfg.autoEscalate = limits.autoEscalate;
+    }
   }
   const maxStructuralRepairs = cfg.maxStructuralRepairs ?? 1;
   const passThreshold = cfg.passThreshold ?? 8;
-  const stackBlock = stackContextBlock(cfg.stack ?? '');
+  const prunedStack = cfg.maxStackChars ? pruneStackContext(cfg.stack ?? '', cfg.maxStackChars) : (cfg.stack ?? '');
+  const stackBlock = stackContextBlock(prunedStack);
   const focusBlock = focusPillarsBlock(cfg.focusPillars ?? []);
 
   let structuralRepairsUsed = 0;
@@ -268,6 +278,15 @@ export async function runReflexion(
       // Router: pass OR cap -> stop. Otherwise loop carrying the single fix.
       if (crit.passed || score >= passThreshold) break;
       if (revision >= maxRevisions) break;
+
+      if (cfg.autoEscalate && shouldEscalate(scores, passThreshold)) {
+        const currentId = runner.models.creator;
+        const nextId = nextModelUp(currentId);
+        if (nextId && runner.escalatePlanner) {
+          onStep?.({ phase: 'escalate', from: currentId, to: nextId });
+          runner.escalatePlanner(nextId);
+        }
+      }
     }
   }
 
@@ -615,7 +634,8 @@ export async function resumeReflexion(
     if (cfg.stateStore) await cfg.stateStore.save(state);
 
     onStep?.({ phase: 'critique', revision: state.revision });
-    const stackBlock = stackContextBlock(cfg.stack ?? '');
+    const prunedStack = cfg.maxStackChars ? pruneStackContext(cfg.stack ?? '', cfg.maxStackChars) : (cfg.stack ?? '');
+    const stackBlock = stackContextBlock(prunedStack);
     const focusBlock = focusPillarsBlock(cfg.focusPillars ?? []);
     const critiquePrompt =
       `${stackBlock}\nORIGINAL BRIEF:\n${cfg.brief}\n\n` +

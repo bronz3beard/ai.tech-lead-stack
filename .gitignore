@@ -65,3 +65,6 @@ auth/
 
 # voice-relay
 peripherals/voice-relay/node_modules
+
+# defect library evaluation output
+defect-library/report.json

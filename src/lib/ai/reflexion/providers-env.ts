@@ -11,6 +11,7 @@ import {
   assertDistinctModels,
   buildRoleModel,
   keyFor,
+  slotForModel,
   toResponsibility,
   type ResolveCtx,
 } from '../model-resolver';
@@ -67,8 +68,10 @@ export function buildRunner(
   critic: LanguageModel,
   adjudicator: LanguageModel,
   models: ReflexionRunner['models'],
-  fallbackCritic?: LanguageModel
+  fallbackCritic?: LanguageModel,
+  createModelFn?: (id: string) => LanguageModel
 ): ReflexionRunner {
+  let currentCreator = creator;
   let accumulatedTokens = 0;
   let accumulatedCacheReadTokens = 0;
   let accumulatedCacheWriteTokens = 0;
@@ -148,19 +151,8 @@ export function buildRunner(
 
     if (family === 'anthropic') {
       return {
-        messages: [
-          {
-            role: 'system',
-            content: [
-              {
-                type: 'text',
-                text: system + (stackBlock ? '\n\n' + stackBlock : ''),
-                providerOptions: { anthropic: { cacheControl: { type: 'ephemeral' } } }
-              }
-            ]
-          },
-          { role: 'user', content: volatilePrompt }
-        ] as any
+        system: system + (stackBlock ? '\n\n' + stackBlock : ''),
+        prompt: volatilePrompt
       };
     } else if (family === 'google') {
       if (!(globalThis as any).__warnedGoogleCache) {
@@ -180,7 +172,7 @@ export function buildRunner(
     async generate(prompt, system) {
       const opts = formatCacheOptions(system, prompt, models.creator);
       const { text, usage } = await generateText({
-        model: creator,
+        model: currentCreator,
         ...opts,
       });
       addUsage(usage, models.creator);
@@ -268,6 +260,14 @@ export function buildRunner(
         estimatedCacheSavingsUsd: Number(totalCacheSavingsUsd.toFixed(6)),
       };
     },
+    escalatePlanner(newModelId: string) {
+      if (!createModelFn) {
+        throw new Error('escalatePlanner requires createModelFn to be provided to buildRunner');
+      }
+      assertDistinct(newModelId, models.critic);
+      currentCreator = createModelFn(newModelId);
+      models.creator = newModelId;
+    },
   };
 }
 
@@ -320,7 +320,8 @@ export function runnerFromEnv(
     auditor.model,
     adjudicator.model,
     { creator: planner.id, critic: auditor.id, adjudicator: adjudicator.id },
-    fallbackCritic
+    fallbackCritic,
+    (id: string) => createModel(id, keyFor(slotForModel(id), ctx))
   );
 
   // If we already fell back during setup due to capabilities, mark the runner as degraded.

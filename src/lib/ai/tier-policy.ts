@@ -103,10 +103,11 @@ export function enforceTier(tier: Tier, assessment: TaskAssessment): TierEnforce
   return { allowed: true };
 }
 
-export function deriveLoopParams(tier: Tier): { maxRevisions: number; maxLanes: number } {
+export function deriveLoopParams(tier: Tier): { maxRevisions: number; maxLanes: number; autoEscalate: boolean } {
   const policy = TIER_POLICY[tier];
   return {
     maxRevisions: policy.maxCritiquePasses,
     maxLanes: policy.maxLanes,
+    autoEscalate: tier === 'sub-max',
   };
 }
