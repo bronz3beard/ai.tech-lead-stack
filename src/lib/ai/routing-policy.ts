@@ -6,7 +6,7 @@ import { catalogEntry, providerOf } from './model-registry';
  */
 const LADDERS: Record<string, string[]> = {
   'anthropic': ['claude-haiku-4-5', 'claude-sonnet-4-6', 'claude-opus-4-6'],
-  'gemini': ['gemini-3.5-flash', 'gemini-3.1-pro-preview', 'gemini-3.1-pro'],
+  'gemini': ['gemini-3.6-flash', 'gemini-3.1-pro-preview', 'gemini-3.1-pro'],
   'jules': ['gemini-3.1-pro'],
   'openai': ['gpt-5.4'],
 };

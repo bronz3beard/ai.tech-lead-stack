@@ -21,7 +21,7 @@ describe('ProfileForm Component', () => {
             name: 'Jane Doe',
             image: null,
             modelRouting: {
-              planner: 'gemini-3.5-flash',
+              planner: 'gemini-3.6-flash',
             },
           }),
         });

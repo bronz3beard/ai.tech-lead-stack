@@ -64,7 +64,7 @@ describe('/api/projects/[id]/model-routing API Route', () => {
 
     const params = Promise.resolve({ id: 'proj-1' });
     const req = {
-      json: async () => ({ planner: 'gemini-3.5-flash' }),
+      json: async () => ({ planner: 'gemini-3.6-flash' }),
     } as unknown as Request;
 
     const res = await PUT(req, { params });
@@ -125,23 +125,23 @@ describe('/api/projects/[id]/model-routing API Route', () => {
 
     const params = Promise.resolve({ id: 'proj-1' });
     const putReq = {
-      json: async () => ({ planner: 'gemini-3.5-flash' }),
+      json: async () => ({ planner: 'gemini-3.6-flash' }),
     } as unknown as Request;
 
     const putRes = await PUT(putReq, { params });
     const putBody = await putRes.json();
 
     expect(putRes.status).toBe(200);
-    expect(putBody.routing).toEqual({ planner: 'gemini-3.5-flash' });
+    expect(putBody.routing).toEqual({ planner: 'gemini-3.6-flash' });
 
     const getReq = {} as Request;
     const getRes = await GET(getReq, { params });
     const getBody = await getRes.json();
 
     expect(getRes.status).toBe(200);
-    expect(getBody.routing).toEqual({ planner: 'gemini-3.5-flash' });
+    expect(getBody.routing).toEqual({ planner: 'gemini-3.6-flash' });
     expect(getBody.effective.planner).toEqual({
-      model: 'gemini-3.5-flash',
+      model: 'gemini-3.6-flash',
       source: 'project',
     });
   });

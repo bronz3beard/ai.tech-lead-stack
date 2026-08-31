@@ -60,7 +60,7 @@ describe('/api/settings/profile API Route', () => {
         requirementsModel: null,
         auditModel: null,
         settings: {
-          modelRouting: { planner: 'gemini-3.5-flash' },
+          modelRouting: { planner: 'gemini-3.6-flash' },
           otherSetting: true,
         },
       });
@@ -69,7 +69,7 @@ describe('/api/settings/profile API Route', () => {
       const body = await res.json();
 
       expect(res.status).toBe(200);
-      expect(body.modelRouting).toEqual({ planner: 'gemini-3.5-flash' });
+      expect(body.modelRouting).toEqual({ planner: 'gemini-3.6-flash' });
       expect(body.email).toBe('dev@example.com');
     });
   });
@@ -79,7 +79,7 @@ describe('/api/settings/profile API Route', () => {
       (getServerSession as jest.Mock).mockResolvedValueOnce(null);
 
       const req = {
-        json: async () => ({ modelRouting: { planner: 'gemini-3.5-flash' } }),
+        json: async () => ({ modelRouting: { planner: 'gemini-3.6-flash' } }),
       } as unknown as Request;
 
       const res = await PUT(req);
@@ -120,7 +120,7 @@ describe('/api/settings/profile API Route', () => {
 
       const req = {
         json: async () => ({
-          modelRouting: { planner: 'gemini-3.5-flash' },
+          modelRouting: { planner: 'gemini-3.6-flash' },
         }),
       } as unknown as Request;
 
@@ -130,14 +130,14 @@ describe('/api/settings/profile API Route', () => {
       expect(putRes.status).toBe(200);
       expect(putBody.modelRouting).toEqual({
         auditor: 'claude-haiku-4-5',
-        planner: 'gemini-3.5-flash',
+        planner: 'gemini-3.6-flash',
       });
 
       const getRes = await GET();
       const getBody = await getRes.json();
       expect(getBody.modelRouting).toEqual({
         auditor: 'claude-haiku-4-5',
-        planner: 'gemini-3.5-flash',
+        planner: 'gemini-3.6-flash',
       });
     });
 

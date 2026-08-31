@@ -3,7 +3,7 @@ import { buildRunner } from '../providers-env';
 
 jest.mock('../pricing', () => ({
   PRICE_PER_MTOK: {
-    'gemini-3.5-flash': { inputUsdPerMTok: 1.0, outputUsdPerMTok: 2.0 },
+    'gemini-3.6-flash': { inputUsdPerMTok: 1.0, outputUsdPerMTok: 2.0 },
     'claude-sonnet-4-6': { inputUsdPerMTok: 3.0, outputUsdPerMTok: 4.0 },
     'gemini-3.1-pro-preview': { inputUsdPerMTok: 5.0, outputUsdPerMTok: 6.0 },
   },
@@ -68,7 +68,7 @@ describe('providers v2', () => {
   });
 
   it('buildRunner computes correct costUsd using deterministic fixture rates', async () => {
-    // mock generate with gemini-3.5-flash (creator): 1,000 prompt (1.0/M), 2,000 completion (2.0/M) = $0.001 + $0.004 = $0.005
+    // mock generate with gemini-3.6-flash (creator): 1,000 prompt (1.0/M), 2,000 completion (2.0/M) = $0.001 + $0.004 = $0.005
     (aiModule.generateText as jest.Mock)
       .mockResolvedValueOnce({
         text: 'text',
@@ -90,7 +90,7 @@ describe('providers v2', () => {
 
     const mockModel = {} as aiModule.LanguageModel;
     const runner = buildRunner(mockModel, mockModel, mockModel, {
-      creator: 'gemini-3.5-flash',
+      creator: 'gemini-3.6-flash',
       critic: 'claude-sonnet-4-6',
       adjudicator: 'claude-sonnet-4-6',
     });
@@ -105,7 +105,7 @@ describe('providers v2', () => {
 
   it('401 on Claude falls back to gemini-3.1-pro-preview', async () => {
     const mockCreator = {
-      id: 'gemini-3.5-flash',
+      id: 'gemini-3.6-flash',
     } as unknown as aiModule.LanguageModel;
     const mockCritic = {
       id: 'claude-sonnet-4-6',
@@ -133,7 +133,7 @@ describe('providers v2', () => {
       mockCritic,
       mockCritic,
       {
-        creator: 'gemini-3.5-flash',
+        creator: 'gemini-3.6-flash',
         critic: 'claude-sonnet-4-6',
         adjudicator: 'claude-sonnet-4-6',
       },
@@ -164,7 +164,7 @@ describe('providers v2', () => {
 
   it('successful passed=false critique does not trigger fallback and wasDegraded remains false', async () => {
     const mockCreator = {
-      id: 'gemini-3.5-flash',
+      id: 'gemini-3.6-flash',
     } as unknown as aiModule.LanguageModel;
     const mockCritic = {
       id: 'claude-sonnet-4-6',
@@ -183,7 +183,7 @@ describe('providers v2', () => {
       mockCritic,
       mockCritic,
       {
-        creator: 'gemini-3.5-flash',
+        creator: 'gemini-3.6-flash',
         critic: 'claude-sonnet-4-6',
         adjudicator: 'claude-sonnet-4-6',
       },

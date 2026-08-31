@@ -108,8 +108,8 @@ export const MODEL_CATALOG: ModelCatalogEntry[] = [
   },
   // Google (Gemini)
   {
-    id: 'gemini-3.5-flash',
-    label: 'Gemini 3.5 Flash',
+    id: 'gemini-3.6-flash',
+    label: 'Gemini 3.6 Flash',
     family: 'google',
     keySlot: 'gemini',
   },

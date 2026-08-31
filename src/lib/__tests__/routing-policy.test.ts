@@ -14,7 +14,7 @@ describe('routing-policy', () => {
     });
 
     it('returns the next model in the gemini ladder', () => {
-      expect(nextModelUp('gemini-3.5-flash')).toBe('gemini-3.1-pro-preview');
+      expect(nextModelUp('gemini-3.6-flash')).toBe('gemini-3.1-pro-preview');
       expect(nextModelUp('gemini-3.1-pro-preview')).toBe('gemini-3.1-pro');
     });
 

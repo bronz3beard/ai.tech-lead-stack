@@ -422,7 +422,7 @@ async function main() {
       const origAuditor = process.env.MODEL_AUDITOR;
 
       process.env.MODEL_PLANNER = 'claude-sonnet-4-6';
-      process.env.MODEL_AUDITOR = 'gemini-3.5-flash';
+      process.env.MODEL_AUDITOR = 'gemini-3.6-flash';
 
       try {
         const swappedRunner = runnerFromEnv();

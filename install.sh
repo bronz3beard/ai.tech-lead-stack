@@ -466,7 +466,7 @@ cat <<'EOF'
 
       "env": {
         "MODEL_PLANNER":     "claude-opus-4-6",
-        "MODEL_IMPLEMENTER": "gemini-3.5-flash",
+        "MODEL_IMPLEMENTER": "gemini-3.6-flash",
         "MODEL_AUDITOR":     "claude-sonnet-4-6",
         "MODEL_ADJUDICATOR": "claude-sonnet-4-6",
         "ANTHROPIC_API_KEY": "sk-ant-…",

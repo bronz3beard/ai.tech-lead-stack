@@ -22,7 +22,7 @@ describe('runnerFromUser end-to-end model routing precedence', () => {
       id: 'user-1',
       settings: {
         modelRouting: {
-          planner: 'gemini-3.5-flash',
+          planner: 'gemini-3.6-flash',
           auditor: 'claude-haiku-4-5',
         },
       },

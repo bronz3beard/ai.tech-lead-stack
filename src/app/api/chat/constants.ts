@@ -56,7 +56,7 @@ export const MAX_ANALYTICAL_STEPS = 100;
  * Model identifiers.
  */
 export const MODELS = {
-  GEMINI: 'gemini-3.5-flash',
+  GEMINI: 'gemini-3.6-flash',
   FALLBACK_GEMINI: 'gemini-2.5-flash',
   GEMINI_FALLBACK_CRITIC: 'gemini-3.1-pro-preview',
   CLAUDE: 'claude-sonnet-4-6',

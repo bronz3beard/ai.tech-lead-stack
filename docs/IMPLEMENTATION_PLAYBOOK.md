@@ -85,7 +85,7 @@ implements".
 ```
 Add src/lib/ai/model-registry.ts exactly as provided in this package. Then write
 src/lib/ai/__tests__/model-registry.test.ts covering: providerOf() returns
-'anthropic' for 'claude-opus-4-6', 'google' for 'gemini-3.5-flash' and the Jules
+'anthropic' for 'claude-opus-4-6', 'google' for 'gemini-3.6-flash' and the Jules
 id 'gemini-3.1-pro', 'openai' for 'gpt-5.4'; providerOf() throws on an unknown id;
 createModel() throws when the key is empty. Do NOT use the '@/' path alias in
 model-registry.ts — it is imported by tsx CLI scripts. Run the existing test suite
@@ -137,7 +137,7 @@ the missing-model fallback.
 # PHASE B — Model-agnostic, per-responsibility routing (the feature)
 
 > Goal: a dev sets, per project, which model plays each responsibility — e.g.
-> Project A → planner=`claude-opus-4-6`, implementer=`gemini-3.5-flash`,
+> Project A → planner=`claude-opus-4-6`, implementer=`gemini-3.6-flash`,
 > auditor=`claude-sonnet-4-6` — via project env vars, with the web app able to
 > view/override those defaults.
 
@@ -270,7 +270,7 @@ vars.
   {
     "modelRouting": {
       "planner": "claude-opus-4-6",
-      "implementer": "gemini-3.5-flash",
+      "implementer": "gemini-3.6-flash",
       "auditor": "claude-sonnet-4-6",
       "adjudicator": "claude-sonnet-4-6",
     },

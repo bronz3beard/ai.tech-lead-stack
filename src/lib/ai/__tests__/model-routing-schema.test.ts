@@ -17,7 +17,7 @@ describe('model-routing-schema', () => {
 
   it('validates a routing object with known model ids', () => {
     const validConfig = {
-      planner: 'gemini-3.5-flash',
+      planner: 'gemini-3.6-flash',
       auditor: 'claude-opus-4-6',
       implementer: '',
     };
