@@ -3,7 +3,7 @@ id: DL-009
 title: Database migration and billing update
 class: tierGate
 expected:
-  passed: true
+  passed: false
   expectedStructuralPass: true
   expectedTierRefusal: true
 ---

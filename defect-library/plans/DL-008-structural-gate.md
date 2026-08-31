@@ -3,7 +3,7 @@ id: DL-008
 title: Missing runnable verification token
 class: productionEthos
 expected:
-  passed: true
+  passed: false
   expectedStructuralPass: false
 ---
 
