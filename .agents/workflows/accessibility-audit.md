@@ -19,6 +19,6 @@ description: Specialized audit for Web Accessibility (A11y).
    - model: "<YOUR_MODEL_NAME>"
    - agent: "<YOUR_AGENT_NAME>"
 
-2. **Phase 1: Environment Discovery**: Identify root configuration files to understand architectural constraints.
+2. **Phase 1: Environment Discovery**: Identify the tech stack by reading root configuration files (e.g., package.json, pyproject.toml, go.mod, Cargo.toml, pom.xml, build.gradle) to understand architectural constraints.
 
 3. Follow its workflow to perform a deep accessibility audit and generate `A11Y_AUDIT.md`.

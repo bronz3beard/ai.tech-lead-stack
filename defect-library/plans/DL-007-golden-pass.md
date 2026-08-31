@@ -20,15 +20,12 @@ formatting consistently across the app.
 
 ## Atomic Task List
 
-1. Create currency utility and tests.
-   - Add `formatCurrency` in `src/lib/currency.ts` using the built-in
-     `Intl.NumberFormat` API (Modern Web Guidance). Add unit tests in
-     `src/lib/__tests__/currency.test.ts` to cover standard, zero, and negative
-     values.
-   - Why <100 LOC: It's a single function wrapping a native API and its
-     corresponding tests.
-   - Verification: Run `npx jest src/lib/__tests__/currency.test.ts` to prove
-     all cases pass.
+1. Create currency utility and tests. Add `formatCurrency` in
+   `src/lib/currency.ts` using the built-in `Intl.NumberFormat` API (Modern Web
+   Guidance). Add unit tests in `src/lib/__tests__/currency.test.ts` to cover
+   standard, zero, and negative values. Why <100 LOC: It's a single function
+   wrapping a native API and its corresponding tests. Verification: Run
+   `npx jest src/lib/__tests__/currency.test.ts` to prove all cases pass.
 
 ## Risks & Verification
 

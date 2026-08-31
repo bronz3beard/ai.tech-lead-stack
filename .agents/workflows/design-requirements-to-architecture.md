@@ -17,6 +17,6 @@ description: Feature Design Assistant
    - model: "<YOUR_MODEL_NAME>"
    - agent: "<YOUR_AGENT_NAME>"
 
-2. **Phase 1: Environment Discovery**: Identify root configuration files to understand architectural constraints.
+2. **Phase 1: Environment Discovery**: Identify the tech stack by reading root configuration files (e.g., package.json, pyproject.toml, go.mod, Cargo.toml, pom.xml, build.gradle) to understand architectural constraints.
 
 3. Follow its workflow to translate requirements into technical specifications that align with the detected ecosystem.

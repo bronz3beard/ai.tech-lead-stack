@@ -17,6 +17,6 @@ description: Daily Standup Report
    - model: "<YOUR_MODEL_NAME>"
    - agent: "<YOUR_AGENT_NAME>"
 
-2. **Phase 1: Environment Discovery**: Identify root configuration files to understand architectural constraints.
+2. **Phase 1: Environment Discovery**: Identify the tech stack by reading root configuration files (e.g., package.json, pyproject.toml, go.mod, Cargo.toml, pom.xml, build.gradle) to understand architectural constraints.
 
 3. Follow its workflow to generate a rolling 2-day standup report from git activity.

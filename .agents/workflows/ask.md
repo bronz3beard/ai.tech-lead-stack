@@ -30,6 +30,6 @@ description: A Q&A workflow to chat with the Agent about the codebase.
    - model: "<YOUR_MODEL_NAME>"
    - agent: "<YOUR_AGENT_NAME>"
 
-2. **Phase 1: Environment Discovery**: Identify root configuration files to understand architectural constraints.
+2. **Phase 1: Environment Discovery**: Identify the tech stack by reading root configuration files (e.g., package.json, pyproject.toml, go.mod, Cargo.toml, pom.xml, build.gradle) to understand architectural constraints.
 
 3. Follow its workflow to provide architectural insights and manually implementable snippets. **CRITICAL: This workflow is strictly READ-ONLY. The agent is forbidden from updating or altering code in any way.**
