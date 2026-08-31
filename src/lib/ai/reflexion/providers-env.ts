@@ -18,6 +18,7 @@ import {
 } from '../model-resolver';
 import { assertCanCritique } from '../model-capabilities';
 import type { ReflexionRunner } from './engine';
+import { nextModelUp } from '../routing-policy';
 import { PRICE_PER_MTOK } from './pricing';
 import { CritiqueSchema, InterviewSchema } from './schema';
 
@@ -70,7 +71,9 @@ export function buildRunner(
   adjudicator: LanguageModel,
   models: ReflexionRunner['models'],
   fallbackCritic?: LanguageModel,
-  createModelFn?: (id: string) => LanguageModel
+  createModelFn?: (id: string) => LanguageModel,
+  fallbackPlanner?: LanguageModel,
+  fallbackPlannerId?: string
 ): ReflexionRunner {
   let currentCreator = creator;
   let accumulatedTokens = 0;
@@ -189,13 +192,29 @@ export function buildRunner(
       return degraded;
     },
     async generate(prompt, system) {
-      const opts = formatCacheOptions(system, prompt, models.creator);
-      const { text, usage } = await generateText({
-        model: currentCreator,
-        ...opts,
-      });
-      addUsage(usage, models.creator);
-      return text.trim();
+      try {
+        const opts = formatCacheOptions(system, prompt, models.creator);
+        const { text, usage } = await generateText({
+          model: currentCreator,
+          ...opts,
+        });
+        addUsage(usage, models.creator);
+        return text.trim();
+      } catch (error) {
+        if (isHardApiFailure(error) && fallbackPlanner && fallbackPlannerId) {
+          degraded = true;
+          currentCreator = fallbackPlanner;
+          models.creator = fallbackPlannerId;
+          const opts = formatCacheOptions(system, prompt, models.creator);
+          const { text, usage } = await generateText({
+            model: currentCreator,
+            ...opts,
+          });
+          addUsage(usage, models.creator);
+          return text.trim();
+        }
+        throw error;
+      }
     },
     async critique(prompt, system) {
       try {
@@ -210,13 +229,28 @@ export function buildRunner(
       } catch (error) {
         if (isHardApiFailure(error) && fallbackCritic) {
           degraded = true;
-          const opts = formatCacheOptions(system, prompt, MODELS.GEMINI_FALLBACK_CRITIC);
+          let safeCriticModel = fallbackCritic;
+          let safeCriticId: string = MODELS.GEMINI_FALLBACK_CRITIC;
+          
+          try {
+            assertDistinctModels(models.creator, safeCriticId, 'creator', 'critic');
+          } catch {
+            const nextId = nextModelUp(safeCriticId);
+            if (nextId && createModelFn) {
+              safeCriticId = nextId;
+              safeCriticModel = createModelFn(nextId);
+            } else {
+              throw new Error(`Cannot fallback critic: ${safeCriticId} collides with planner ${models.creator} and no distinct alternative found.`);
+            }
+          }
+
+          const opts = formatCacheOptions(system, prompt, safeCriticId);
           const { output, usage } = await generateText({
-            model: fallbackCritic,
+            model: safeCriticModel,
             output: Output.object({ schema: CritiqueSchema }),
             ...opts,
           });
-          addUsage(usage, MODELS.GEMINI_FALLBACK_CRITIC);
+          addUsage(usage, safeCriticId);
           return output;
         }
         throw error;
@@ -234,12 +268,27 @@ export function buildRunner(
       } catch (error) {
         if (isHardApiFailure(error) && fallbackCritic) {
           degraded = true;
-          const opts = formatCacheOptions(system, prompt, MODELS.GEMINI_FALLBACK_CRITIC);
+          let safeCriticModel = fallbackCritic;
+          let safeCriticId: string = MODELS.GEMINI_FALLBACK_CRITIC;
+          
+          try {
+            assertDistinctModels(models.creator, safeCriticId, 'creator', 'critic');
+          } catch {
+            const nextId = nextModelUp(safeCriticId);
+            if (nextId && createModelFn) {
+              safeCriticId = nextId;
+              safeCriticModel = createModelFn(nextId);
+            } else {
+              throw new Error(`Cannot fallback critic: ${safeCriticId} collides with planner ${models.creator} and no distinct alternative found.`);
+            }
+          }
+
+          const opts = formatCacheOptions(system, prompt, safeCriticId);
           const { text, usage } = await generateText({
-            model: fallbackCritic,
+            model: safeCriticModel,
             ...opts,
           });
-          addUsage(usage, MODELS.GEMINI_FALLBACK_CRITIC);
+          addUsage(usage, safeCriticId);
           return text.trim();
         }
         throw error;
@@ -258,13 +307,28 @@ export function buildRunner(
       } catch (error) {
         if (isHardApiFailure(error) && fallbackCritic) {
           degraded = true;
-          const opts = formatCacheOptions(system, prompt, MODELS.GEMINI_FALLBACK_CRITIC);
+          let safeCriticModel = fallbackCritic;
+          let safeCriticId: string = MODELS.GEMINI_FALLBACK_CRITIC;
+          
+          try {
+            assertDistinctModels(models.creator, safeCriticId, 'creator', 'critic');
+          } catch {
+            const nextId = nextModelUp(safeCriticId);
+            if (nextId && createModelFn) {
+              safeCriticId = nextId;
+              safeCriticModel = createModelFn(nextId);
+            } else {
+              throw new Error(`Cannot fallback critic: ${safeCriticId} collides with planner ${models.creator} and no distinct alternative found.`);
+            }
+          }
+
+          const opts = formatCacheOptions(system, prompt, safeCriticId);
           const { output, usage } = await generateText({
-            model: fallbackCritic,
+            model: safeCriticModel,
             output: Output.object({ schema: InterviewSchema }),
             ...opts,
           });
-          addUsage(usage, MODELS.GEMINI_FALLBACK_CRITIC);
+          addUsage(usage, safeCriticId);
           return { ...output, questions: output.questions.slice(0, 5) };
         }
         throw error;
@@ -334,13 +398,36 @@ export function runnerFromEnv(
     }
   }
 
+  const plannerSlot = slotForModel(planner.id);
+  let fallbackPlanner: LanguageModel | undefined;
+  let fallbackPlannerId: string | undefined;
+  const candidatePlanners = [
+    { id: 'claude-haiku-4-5', slot: 'anthropic' as const },
+    { id: 'gemini-3.6-flash', slot: 'gemini' as const },
+    { id: 'gpt-5.4', slot: 'openai' as const }
+  ];
+
+  for (const { id, slot } of candidatePlanners) {
+    if (slot === plannerSlot) continue;
+    try {
+      assertDistinct(id, auditor.id);
+      fallbackPlanner = createModel(id, keyFor(slot, ctx));
+      fallbackPlannerId = id;
+      break;
+    } catch {
+      continue;
+    }
+  }
+
   const runner = buildRunner(
     planner.model,
     auditor.model,
     adjudicator.model,
     { creator: planner.id, critic: auditor.id, adjudicator: adjudicator.id },
     fallbackCritic,
-    (id: string) => createModel(id, keyFor(slotForModel(id), ctx))
+    (id: string) => createModel(id, keyFor(slotForModel(id), ctx)),
+    fallbackPlanner,
+    fallbackPlannerId
   );
 
   // If we already fell back during setup due to capabilities, mark the runner as degraded.

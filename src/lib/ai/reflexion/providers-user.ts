@@ -47,12 +47,35 @@ export function runnerFromUser(
     fallbackCritic = undefined;
   }
 
+  const plannerSlot = slotForModel(planner.id);
+  let fallbackPlanner: LanguageModel | undefined;
+  let fallbackPlannerId: string | undefined;
+  const candidatePlanners = [
+    { id: 'claude-haiku-4-5', slot: 'anthropic' as const },
+    { id: 'gemini-3.6-flash', slot: 'gemini' as const },
+    { id: 'gpt-5.4', slot: 'openai' as const }
+  ];
+
+  for (const { id, slot } of candidatePlanners) {
+    if (slot === plannerSlot) continue;
+    try {
+      validateDistinctModels(id, auditor.id);
+      fallbackPlanner = createModel(id, keyFor(slot, ctx));
+      fallbackPlannerId = id;
+      break;
+    } catch {
+      continue;
+    }
+  }
+
   return buildRunner(
     planner.model,
     auditor.model,
     adjudicator.model,
     { creator: planner.id, critic: auditor.id, adjudicator: adjudicator.id },
     fallbackCritic,
-    (id: string) => createModel(id, keyFor(slotForModel(id), ctx))
+    (id: string) => createModel(id, keyFor(slotForModel(id), ctx)),
+    fallbackPlanner,
+    fallbackPlannerId
   );
 }
