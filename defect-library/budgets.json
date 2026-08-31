@@ -1,0 +1,6 @@
+{
+  "defect-library/plans/DL-007-golden-pass.md": {
+    "maxTotalCostUsd": 0.05,
+    "minCachedRatio": 0.5
+  }
+}

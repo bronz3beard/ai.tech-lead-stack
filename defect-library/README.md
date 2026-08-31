@@ -303,6 +303,23 @@ become so strict that no plan can pass, which is just as useless as a critic
 that passes everything. A healthy critic should find nothing to criticise in a
 plan this simple and well-formed.
 
+### DL-008 — Missing runnable verification token (Structural Gate)
+
+This plan appears extremely confident about its testing: "Verification: I
+executed the automated test suite locally and everything works perfectly." The
+LLM critic is easily fooled by this confident assertion and passes the plan.
+However, the deterministic structural gate checks for a concrete runnable token
+(e.g., `npm`, `jest`, `curl`). This test proves that the deterministic layer
+operates independently of the LLM and successfully catches missing evidence.
+
+### DL-009 — Tier Gate Refusal
+
+This plan outlines a database migration modifying billing attributes (Risk-2).
+While structurally sound and potentially passable by the critic, it should be
+outright rejected by the `-sub-pro` tier's policy engine which limits users to
+Risk-1. This test ensures the deterministic tier enforcement effectively acts as
+a backstop.
+
 ---
 
 ## 7. The evaluation harness: `reflexion-eval.ts`
@@ -348,6 +365,21 @@ You can get machine-readable output for scripting:
 ```bash
 rtk run reflexion-eval --json
 ```
+
+### Multi-dimensional EDD Harness
+
+In addition to evaluating LLM responses (the "critic"), the evaluation harness
+operates across several other dimensions, triggered by environment variables:
+
+- **Tier Enforcement Checks**: Asserts deterministic refusal for tier-limited
+  boundaries (e.g. `sub-pro` tier blocking `Risk-2` actions).
+- **Convergence Checks (`RUN_CONVERGENCE_EVAL=1`)**: Invokes a live
+  `runReflexion` loop multiple times on a seed brief to ensure the planner
+  actually converges on a passable solution rather than looping to maximum
+  attempts silently.
+- **Cost Regression (`RUN_COST_EVAL=1`)**: Validates the historical and expected
+  aggregate plan token consumption against predefined budgets located in
+  `defect-library/budgets.json`.
 
 ---
 
