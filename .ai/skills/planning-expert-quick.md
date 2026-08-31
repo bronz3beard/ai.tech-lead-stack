@@ -8,7 +8,7 @@ description: >
   ceiling hands off to `pr-automator` and escalates multi-batch sequencing to
   `planning-expert`. Use for common, lightweight tasks (1-2 files) where
   velocity is the priority.
-cost: ~750 tokens
+cost: ~2300 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Plan & Harden

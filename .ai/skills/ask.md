@@ -7,7 +7,7 @@ description: >
   files, runs mutating commands, or implements changes itself. Use for "how does
   this work?", "where should this change go?", or "how would I change this?"
   questions about a codebase, in read-only chat or inside an IDE/MCP agent.
-cost: ~700 tokens
+cost: ~3050 tokens
 modes: [read-only, mcp]
 surface: public
 category: Discover & Define

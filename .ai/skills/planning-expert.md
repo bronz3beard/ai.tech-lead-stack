@@ -10,7 +10,7 @@ description: >
   `pr-automator`. Use for complex or heavy tasks, architectural refactors,
   multi-file features, or whenever a plan will touch more than ~15 files and
   must be split into stacked PRs under Trunk-Based Development.
-cost: ~1200 tokens
+cost: ~5900 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Plan & Harden

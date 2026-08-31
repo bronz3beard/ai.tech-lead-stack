@@ -8,7 +8,7 @@ description:
   reviews git commit history, strictly maps changes to the project's PR
   template, automatically applies repository labels, pushes the branch to remote
   if unpushed, and creates the draft PR via the gh CLI.
-cost: ~1800 tokens
+cost: ~6650 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Ship & Communicate
