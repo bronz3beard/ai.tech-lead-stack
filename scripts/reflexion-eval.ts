@@ -29,7 +29,7 @@ function buildCriticRunner() {
   
   // Default models
   const criticModelClaude = process.env.REFLEXION_CRITIC_MODEL || 'claude-3-5-sonnet-20240620';
-  const criticModelGemini = 'gemini-1.5-pro-latest';
+  const criticModelGemini = 'gemini-3.1-pro-preview';
 
   return {
     async critique(plan: string): Promise<Critique> {
