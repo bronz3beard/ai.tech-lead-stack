@@ -4,6 +4,7 @@ title: Golden pass
 class: none
 expected:
   passed: true
+  expectedStructuralPass: true
 ---
 
 ## Phase 0 - Stack Diagnosis

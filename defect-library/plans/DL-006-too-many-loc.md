@@ -5,8 +5,15 @@ class: atomicBatches
 expected:
   passed: false
   maxOverallScore: 6
-  pillarBelow: { atomicBatches: 6 }
-  fixMustMentionAnyOf: ['split', 'atomic', 'size', 'loc', 'large']
+  pillarBelow:
+    atomicBatches: 6
+  fixMustMentionAnyOf:
+    - split
+    - atomic
+    - size
+    - loc
+    - large
+  expectedStructuralPass: true
 ---
 
 ## Phase 0 - Stack Diagnosis

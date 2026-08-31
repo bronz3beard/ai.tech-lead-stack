@@ -5,8 +5,15 @@ class: gstackDiagnosis
 expected:
   passed: false
   maxOverallScore: 6
-  pillarBelow: { gstackDiagnosis: 6 }
-  fixMustMentionAnyOf: ['stack', 'project', 'repo', 'context', 'diagnosis']
+  pillarBelow:
+    gstackDiagnosis: 6
+  fixMustMentionAnyOf:
+    - stack
+    - project
+    - repo
+    - context
+    - diagnosis
+  expectedStructuralPass: false
 ---
 
 ## Phase 0 - Stack Diagnosis

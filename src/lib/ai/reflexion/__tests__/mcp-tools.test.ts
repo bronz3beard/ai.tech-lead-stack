@@ -23,7 +23,7 @@ jest.mock('../state-store', () => {
     FileStateStore: jest.fn().mockImplementation(() => ({
       load: jest.fn().mockResolvedValue({
         brief: 'test brief',
-        params: { maxRevisions: 3, passThreshold: 8 },
+        params: { maxRevisions: 3, maxStructuralRepairs: 1, passThreshold: 8 },
         runId: 'mcp-run',
       }),
       save: jest.fn().mockResolvedValue(undefined),

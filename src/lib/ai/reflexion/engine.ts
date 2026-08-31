@@ -19,6 +19,7 @@ import {
   StateStore,
   StopReason,
 } from './schema';
+import { validatePlanContract, PlanContractReport } from './plan-contract';
 
 /**
  * The Reflexion loop itself — pure orchestration, no I/O and no SDK imports.
@@ -47,6 +48,7 @@ export interface ReflexionConfig {
   /** Phase-0 stack context (concatenated config files). May be empty. */
   stack?: string;
   maxRevisions?: number;
+  maxStructuralRepairs?: number;
   passThreshold?: number;
   mode?: 'auto' | 'interview';
   budget?: { maxCostUsd?: number; maxTotalTokens?: number };
@@ -83,6 +85,7 @@ export interface ReflexionResult {
 
 export type StepEvent =
   | { phase: 'generate'; revision: number }
+  | { phase: 'structural-gate'; revision: number; report: PlanContractReport }
   | { phase: 'critique'; revision: number }
   | { phase: 'scored'; revision: number; critique: Critique }
   | { phase: 'adjudicate' }
@@ -110,9 +113,12 @@ export async function runReflexion(
     `run-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   const mode = cfg.mode ?? 'interview';
   const maxRevisions = cfg.maxRevisions ?? 3;
+  const maxStructuralRepairs = cfg.maxStructuralRepairs ?? 1;
   const passThreshold = cfg.passThreshold ?? 8;
   const stackBlock = stackContextBlock(cfg.stack ?? '');
   const focusBlock = focusPillarsBlock(cfg.focusPillars ?? []);
+
+  let structuralRepairsUsed = 0;
 
   const rounds: ReflexionRound[] = existingState
     ? existingState.critiques.map((c, i) => ({
@@ -147,7 +153,7 @@ export async function runReflexion(
         plan: draft,
         critiques: rounds.map((r) => r.critique),
         revision: rounds.length - 1,
-        params: { passThreshold, maxRevisions, focus: cfg.focusPillars },
+        params: { passThreshold, maxRevisions, maxStructuralRepairs, focus: cfg.focusPillars },
         usage: {
           totalTokens: usage.tokens,
           costUsd: usage.costUsd,
@@ -190,11 +196,39 @@ export async function runReflexion(
         break;
       }
 
+      const report = validatePlanContract(draft);
+      onStep?.({ phase: 'structural-gate', revision, report });
+
+      if (!report.passesStructuralGate && structuralRepairsUsed < maxStructuralRepairs) {
+        structuralRepairsUsed++;
+        const fatal = report.violations.find((v) => v.severity === 'fatal');
+        const synthCrit: Critique = {
+          gstackDiagnosis: 0,
+          atomicBatches: 0,
+          productionEthos: 0,
+          modernWeb: 0,
+          score: 0,
+          passed: false,
+          actionableFix: `STRUCTURAL ERROR in ${fatal?.locus}: ${fatal?.message}`,
+        };
+        last = synthCrit;
+        score = 0;
+        fix = synthCrit.actionableFix;
+        rounds.push({ revision, draft, critique: synthCrit });
+        scores.push(0);
+        continue;
+      }
+
       onStep?.({ phase: 'critique', revision });
       await saveState('CRITIQUING');
-      const critiquePrompt =
+      let critiquePrompt =
         `${stackBlock}\nORIGINAL BRIEF:\n${cfg.brief}\n\n` +
         `PLAN TO GRADE:\n---\n${draft}\n---${focusBlock}`;
+
+      if (!report.passesStructuralGate) {
+        critiquePrompt += `\n\nSTRUCTURAL REPORT: The following fatal structural violations were found. Ensure your critique penalises the relevant pillar severely.\n${JSON.stringify(report.violations.filter(v => v.severity === 'fatal'), null, 2)}`;
+      }
+
       const crit = await runner.critique(
         critiquePrompt,
         CRITIC_SYSTEM + focusBlock
@@ -415,6 +449,7 @@ export async function resumeReflexion(
     const validPatch = LoopParamsPatchSchema.parse(patch);
     cfg.passThreshold = validPatch.passThreshold ?? cfg.passThreshold;
     cfg.maxRevisions = validPatch.maxRevisions ?? cfg.maxRevisions;
+    cfg.maxStructuralRepairs = validPatch.maxStructuralRepairs ?? cfg.maxStructuralRepairs;
     cfg.focusPillars = validPatch.focus ?? cfg.focusPillars;
     if (validPatch.maxCostUsd || validPatch.maxTotalTokens) {
       cfg.budget = {

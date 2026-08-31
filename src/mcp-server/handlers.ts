@@ -525,7 +525,7 @@ export class Handlers {
         plan: '',
         critiques: [],
         revision: 0,
-        params: { passThreshold, maxRevisions, focus: [] },
+        params: { passThreshold, maxRevisions, maxStructuralRepairs: 1, focus: [] },
         usage: { totalTokens: 0, costUsd: 0, perPhase: [] },
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),

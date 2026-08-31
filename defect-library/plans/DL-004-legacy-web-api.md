@@ -5,8 +5,14 @@ class: modernWeb
 expected:
   passed: false
   maxOverallScore: 6
-  pillarBelow: { modernWeb: 6 }
-  fixMustMentionAnyOf: ['modern', 'api', 'legacy', 'workaround']
+  pillarBelow:
+    modernWeb: 6
+  fixMustMentionAnyOf:
+    - modern
+    - api
+    - legacy
+    - workaround
+  expectedStructuralPass: false
 ---
 
 ## Phase 0 - Stack Diagnosis

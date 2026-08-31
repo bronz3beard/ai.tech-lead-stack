@@ -5,6 +5,7 @@ import matter from 'gray-matter';
 import path from 'path';
 import { CRITIC_SYSTEM } from '../src/lib/ai/reflexion/prompts';
 import { CritiqueSchema, type Critique } from '../src/lib/ai/reflexion/schema';
+import { validatePlanContract } from '../src/lib/ai/reflexion/plan-contract';
 
 // This is the critic side of runnerFromEnv, minimally exported to only require ANTHROPIC_API_KEY
 function buildCriticRunner() {
@@ -36,6 +37,7 @@ interface ExpectedResult {
   maxOverallScore?: number;
   pillarBelow?: Record<string, number>;
   fixMustMentionAnyOf?: string[];
+  expectedStructuralPass?: boolean;
 }
 
 interface FrontMatter {
@@ -59,6 +61,7 @@ interface EvalResult {
   actual: Critique;
   success: boolean;
   errors: string[];
+  structuralPass: boolean;
 }
 
 export function evaluateCritique(
@@ -207,10 +210,23 @@ async function main() {
       throw err;
     }
 
+    const structuralReport = validatePlanContract(evalCase.plan);
+    let structuralError = '';
+    if (evalCase.frontmatter.expected.expectedStructuralPass !== undefined) {
+      if (structuralReport.passesStructuralGate !== evalCase.frontmatter.expected.expectedStructuralPass) {
+        structuralError = `Expected structuralPass=${evalCase.frontmatter.expected.expectedStructuralPass}, got ${structuralReport.passesStructuralGate}`;
+      }
+    }
+
     const evaluation = evaluateCritique(
       evalCase.frontmatter.expected,
       critique
     );
+
+    if (structuralError) {
+       evaluation.success = false;
+       evaluation.errors.push(structuralError);
+    }
 
     if (!evaluation.success) {
       allSuccess = false;
@@ -224,6 +240,7 @@ async function main() {
       actual: critique,
       success: evaluation.success,
       errors: evaluation.errors,
+      structuralPass: structuralReport.passesStructuralGate,
     });
   }
 
@@ -239,13 +256,14 @@ async function main() {
     console.log(JSON.stringify(results, null, 2));
   } else {
     console.log('\n--- Evaluation Summary ---\n');
-    console.log('| ID | Title | Class | Passed Eval? | Errors |');
-    console.log('|---|---|---|---|---|');
+    console.log('| ID | Title | Class | Structural | Passed Eval? | Errors |');
+    console.log('|---|---|---|---|---|---|');
     for (const result of results) {
       const status = result.success ? '✅ PASS' : '❌ FAIL';
+      const structStr = result.structuralPass ? '✅' : '❌';
       const errStr = result.errors.length > 0 ? result.errors.join('; ') : '-';
       console.log(
-        `| ${result.id} | ${result.title} | ${result.class} | ${status} | ${errStr} |`
+        `| ${result.id} | ${result.title} | ${result.class} | ${structStr} | ${status} | ${errStr} |`
       );
     }
     console.log(`\nReport written to ${reportPath}`);

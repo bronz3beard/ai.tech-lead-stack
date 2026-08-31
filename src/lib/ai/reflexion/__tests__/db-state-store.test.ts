@@ -34,7 +34,7 @@ describe('DbStateStore', () => {
     revision: 1,
     params: {
       passThreshold: 8,
-      maxRevisions: 3,
+      maxRevisions: 3, maxStructuralRepairs: 1,
     },
     usage: {
       totalTokens: 100,

@@ -9,6 +9,7 @@ import { z } from 'zod';
 export const LoopParamsSchema = z.object({
   passThreshold: z.number().default(8),
   maxRevisions: z.number().default(3),
+  maxStructuralRepairs: z.number().default(1),
   maxCostUsd: z.number().optional(),
   maxTotalTokens: z.number().optional(),
   focus: z.array(z.string()).optional(),

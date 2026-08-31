@@ -5,8 +5,14 @@ class: productionEthos
 expected:
   passed: false
   maxOverallScore: 6
-  pillarBelow: { productionEthos: 6 }
-  fixMustMentionAnyOf: ['evidence', 'verification', 'test', 'prove']
+  pillarBelow:
+    productionEthos: 6
+  fixMustMentionAnyOf:
+    - evidence
+    - verification
+    - test
+    - prove
+  expectedStructuralPass: false
 ---
 
 ## Phase 0 - Stack Diagnosis

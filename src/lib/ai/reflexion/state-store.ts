@@ -79,7 +79,7 @@ export class FileStateStore implements StateStore {
           revision: critiqueObj.revisionsUsed || rounds.length,
           params: {
             passThreshold: 8,
-            maxRevisions: 3,
+            maxRevisions: 3, maxStructuralRepairs: 1,
           },
           usage: {
             totalTokens: 0,
