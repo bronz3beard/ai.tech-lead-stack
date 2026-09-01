@@ -21,6 +21,7 @@ describe('runnerFromUser end-to-end model routing precedence', () => {
     const mockUser: User = {
       id: 'user-1',
       settings: {
+        tier: 'sub-pro',
         modelRouting: {
           planner: 'gemini-3.6-flash',
           auditor: 'claude-haiku-4-5',

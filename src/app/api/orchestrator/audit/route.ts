@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getOrchestratorModels, validateDistinctModels } from '@/lib/ai/orchestrator';
+import { providerOf } from '@/lib/ai/model-registry';
+import type { Tier } from '@/lib/ai/tier-policy';
 import { getProjectAccessFilter } from '@/lib/access';
 
 export async function POST(req: Request) {
@@ -17,12 +19,12 @@ export async function POST(req: Request) {
     if (session.user.id) {
       userConfig = await prisma.user.findUnique({
         where: { id: session.user.id },
-        select: { requirementsModel: true, auditModel: true }
+        select: { requirementsModel: true, auditModel: true, settings: true }
       });
     }
 
     const body = await req.json();
-    const { branchName, creatorModelUsed, projectId } = body;
+    const { branchName, creatorModelUsed, projectId, tier: requestTier } = body;
 
     if (!branchName || !creatorModelUsed || !projectId) {
       return NextResponse.json(
@@ -49,8 +51,9 @@ export async function POST(req: Request) {
     const { creatorModel, auditorModel } = getOrchestratorModels(userConfig);
 
     try {
+      const tier = (requestTier || (userConfig?.settings as any)?.tier || 'byo') as Tier;
       // Enforce model distinction rule
-      validateDistinctModels(creatorModelUsed, auditorModel);
+      validateDistinctModels(creatorModelUsed, auditorModel, tier);
     } catch (validationError: any) {
       return NextResponse.json(
         { error: validationError.message },
@@ -104,7 +107,10 @@ export async function POST(req: Request) {
           inputs: {
             branch_name: branchName,
             creator_model: creatorModel,
+            creator_provider: providerOf(creatorModel),
             auditor_model: auditorModel,
+            auditor_provider: providerOf(auditorModel),
+            tier: (requestTier || (userConfig?.settings as any)?.tier || 'byo'),
             reviewer_login: triggererLogin || '', // Pass the login for PR assignment
           },
         }),

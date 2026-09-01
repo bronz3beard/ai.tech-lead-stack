@@ -10,6 +10,7 @@ export const TierPolicySchema = z.object({
   maxLanes: z.number().int().positive(),
   maxCritiquePasses: z.number().int().positive(),
   escalateTo: z.enum(['byo', 'sub-max', 'sub-pro']).nullable(),
+  isolation: z.enum(['distinct-model', 'distinct-vendor']),
 });
 
 export type TierPolicy = z.infer<typeof TierPolicySchema>;
@@ -21,6 +22,7 @@ export const TIER_POLICY: Record<Tier, TierPolicy> = Object.freeze({
     maxLanes: 1,
     maxCritiquePasses: 1,
     escalateTo: 'sub-max',
+    isolation: 'distinct-model',
   }),
   'sub-max': Object.freeze({
     maxTaskSize: 'XL',
@@ -28,6 +30,7 @@ export const TIER_POLICY: Record<Tier, TierPolicy> = Object.freeze({
     maxLanes: 2,
     maxCritiquePasses: 3,
     escalateTo: 'byo',
+    isolation: 'distinct-vendor',
   }),
   byo: Object.freeze({
     maxTaskSize: 'XL',
@@ -35,6 +38,7 @@ export const TIER_POLICY: Record<Tier, TierPolicy> = Object.freeze({
     maxLanes: 99,
     maxCritiquePasses: 99,
     escalateTo: null,
+    isolation: 'distinct-vendor',
   }),
 });
 

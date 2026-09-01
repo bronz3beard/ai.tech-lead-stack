@@ -4,6 +4,7 @@ import { MODELS } from '../constants';
 import { createModel } from '@/lib/ai/model-registry';
 import { buildRoleModel, keyFor, slotForModel } from '@/lib/ai/model-resolver';
 import { validateDistinctModels } from '@/lib/ai/orchestrator';
+import type { Tier } from '@/lib/ai/tier-policy';
 import { decrypt } from '@/lib/crypto';
 
 import type { LanguageModel } from 'ai';
@@ -34,7 +35,8 @@ export function runnerFromUser(
   const auditor = buildRoleModel('auditor', ctx);
   const adjudicator = buildRoleModel('adjudicator', ctx);
 
-  validateDistinctModels(planner.id, auditor.id);
+  const tier = ((user.settings as any)?.tier as Tier) || 'byo';
+  validateDistinctModels(planner.id, auditor.id, tier);
 
   // Best-effort fixed fallback critic (see providers-env for rationale).
   let fallbackCritic: LanguageModel | undefined;
@@ -59,7 +61,7 @@ export function runnerFromUser(
   for (const { id, slot } of candidatePlanners) {
     if (slot === plannerSlot) continue;
     try {
-      validateDistinctModels(id, auditor.id);
+      validateDistinctModels(id, auditor.id, tier);
       fallbackPlanner = createModel(id, keyFor(slot, ctx));
       fallbackPlannerId = id;
       break;
