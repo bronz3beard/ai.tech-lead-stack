@@ -6,7 +6,7 @@ import {
 } from 'ai';
 import { estimatePrefixTokens, GEMINI_CACHE_MIN_TOKENS } from '../context-pruning';
 
-import { MODELS } from '../../../app/api/chat/constants';
+import { MODELS } from '../constants';
 import { createModel, providerOf } from '../model-registry';
 import {
   assertDistinctModels,

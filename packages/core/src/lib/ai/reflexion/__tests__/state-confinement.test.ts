@@ -108,7 +108,7 @@ describe('Reflexion State Confinement', () => {
     }
 
     // 1.3 Invoke MCP handlers handleReflexionStatus and handleReflexionResume
-    const repoRoot = path.resolve(__dirname, '../../../../..');
+    const repoRoot = path.resolve(__dirname, '../../../../../../..');
     const fsService = new FileSystemService(repoRoot, fakeRepo.root);
     const telemetry = new Telemetry();
     jest

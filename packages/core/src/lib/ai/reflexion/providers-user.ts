@@ -5,7 +5,7 @@ import { createModel } from '@/lib/ai/model-registry';
 import { buildRoleModel, keyFor, slotForModel } from '@/lib/ai/model-resolver';
 import { validateDistinctModels } from '@/lib/ai/orchestrator';
 import type { Tier } from '@/lib/ai/tier-policy';
-import { decrypt } from '@/lib/crypto';
+import { decrypt } from '../../crypto';
 
 import type { LanguageModel } from 'ai';
 

@@ -19,7 +19,7 @@ jest.mock('langfuse', () => ({
 }));
 
 describe('KiService & create_knowledge_item Readonly Confinement', () => {
-  const repoRoot = path.resolve(__dirname, '../../../..');
+  const repoRoot = path.resolve(__dirname, '../../../../../..');
   let fakeHomeDir: string;
   let fakeClientRepo: { root: string; cleanup: () => void };
   let homeDirSpy: jest.SpyInstance;

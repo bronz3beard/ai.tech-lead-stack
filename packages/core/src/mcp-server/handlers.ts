@@ -7,10 +7,10 @@ import { FileStateStore } from '../lib/ai/reflexion/state-store.js';
 import { KiService } from '../lib/ki/ki-service.js';
 import { AlignmentService } from '../lib/skills/alignment-service.js';
 import { FileSystemService } from '../lib/skills/fs-service.js';
-import { isSkillTrace } from '../lib/trace-utils.js';
+import { isSkillTrace } from '../lib/trace-utils';
 import { Telemetry } from './telemetry.js';
 import { UserResolver } from './user-resolver.js';
-import { decrypt } from '../lib/crypto.js';
+import { decrypt } from '../lib/crypto';
 import { prisma } from '../lib/prisma.js';
 import { assessTask, enforceTier, type Tier } from '../lib/ai/tier-policy.js';
 
@@ -378,7 +378,7 @@ export class Handlers {
         if (e.phase === 'interview') teamRole = 'interviewer';
 
         // Call telemetryService directly because this.telemetry is ITelemetry (no recordEvent exposed)
-        import('../lib/telemetry-service.js')
+        import('../lib/telemetry-service')
           .then((m) =>
             m.telemetryService.recordEvent({
               skillName: 'reflexion-loop',
@@ -580,7 +580,7 @@ export class Handlers {
           if (e.phase === 'interview') teamRole = 'interviewer';
 
           // Call telemetryService directly because this.telemetry is ITelemetry (no recordEvent exposed)
-          import('../lib/telemetry-service.js')
+          import('../lib/telemetry-service')
             .then((m) =>
               m.telemetryService.recordEvent({
                 skillName: 'reflexion-loop',

@@ -17,7 +17,7 @@ jest.mock('langfuse', () => ({
 }));
 
 describe('MCP Server - skills-readonly', () => {
-  const repoRoot = path.resolve(__dirname, '../../..');
+  const repoRoot = path.resolve(__dirname, '../../../../..');
   let fakeClientRepo: { root: string; cleanup: () => void };
   let fsSpy: { writes: any[]; restore: () => void };
 

@@ -1,0 +1,58 @@
+{
+  "name": "@zenithfoundry/tech-lead-stack",
+  "version": "1.0.0",
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./ai/*": "./src/lib/ai/*.ts",
+    "./skills": "./src/lib/skills/index.ts",
+    "./skills/*": "./src/lib/skills/*.ts",
+    "./ki/*": "./src/lib/ki/*.ts",
+    "./db": "./src/lib/prisma.ts"
+  },
+  "scripts": {
+    "mcp:build": "esbuild src/mcp-server/index.ts --bundle --platform=node --packages=external --format=esm --outfile=dist/mcp-server.mjs",
+    "mcp:start": "node dist/mcp-server.mjs",
+    "reflexion": "tsx scripts/reflexion-loop.ts",
+    "reflexion:eval": "tsx scripts/reflexion-eval.ts",
+    "generate:registry": "tsx scripts/generate-skill-registry.ts",
+    "calibrate-skill-costs": "tsx scripts/calibrate-skill-costs.ts",
+    "db:generate": "prisma generate",
+    "check-types": "tsc --noEmit --skipLibCheck",
+    "test": "jest",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.68",
+    "@ai-sdk/google": "^3.0.61",
+    "@ai-sdk/openai": "^3.0.52",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@prisma/adapter-pg": "^7.7.0",
+    "@prisma/client": "^7.7.0",
+    "adm-zip": "^0.5.17",
+    "ai": "^6.0.157",
+    "autoevals": "latest",
+    "dotenv": "^16.5.0",
+    "e2b": "^2.29.1",
+    "gray-matter": "^4.0.3",
+    "js-yaml": "^5.2.1",
+    "langfuse-core": "^3.38.20",
+    "langfuse-node": "^3.38.20",
+    "p-map": "^7.0.4",
+    "pg": "^8.20.0",
+    "prisma": "^7.7.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@types/pg": "^8.20.0",
+    "esbuild": "^0.25.0",
+    "jest": "^30.3.0",
+    "ts-jest": "^29.4.9",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.2"
+  }
+}

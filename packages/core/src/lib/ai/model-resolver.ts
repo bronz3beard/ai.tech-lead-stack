@@ -25,7 +25,7 @@
 import type { Project, User } from '@prisma/client';
 import type { LanguageModel } from 'ai';
 
-import { MODELS } from '../../app/api/chat/constants';
+import { MODELS } from './constants';
 import { catalogEntry, createModel, providerOf } from './model-registry';
 
 export type Responsibility =
