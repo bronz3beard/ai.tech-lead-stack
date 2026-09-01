@@ -18,7 +18,7 @@ const eslintConfig = [
         {
           patterns: [
             {
-              group: ['@/app/*', '@/components/*', 'next', 'next/*', 'react', 'react-dom'],
+              group: ['@/app/*', '@/components/*', 'next', 'next/*', 'next-auth', 'next-auth/*', 'react', 'react-dom'],
               message: 'The core (mcp-server, lib/ai) must remain dashboard-free and cannot import Next.js/React code.',
             },
           ],
