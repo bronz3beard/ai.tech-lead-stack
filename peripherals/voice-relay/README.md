@@ -5,6 +5,13 @@ accepts spoken transcripts, parses them into a project and skill/workflow, and
 drives a headless CLI agent (Antigravity `agy`, Claude Code `claude`, Codex
 `codex`, `cursor-agent`, or local Ollama).
 
+## Intended Use
+This software runs locally and drives third-party AI tools and models that **you** install and
+authenticate. You are responsible for complying with the terms of any tool, model, or subscription
+you connect to it. It is designed for single-user, local use with your own accounts; it does not
+proxy or share third-party credentials between users. Provided "as is" under the MIT License,
+without warranty of any kind.
+
 ## Features
 
 - **Agent-Agnostic & Keyless:** Rides your existing CLI tool subscription
