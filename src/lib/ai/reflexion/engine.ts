@@ -205,7 +205,7 @@ export async function runReflexion(
     }
   };
 
-  const startRevision = existingState ? existingState.revision + 1 : 0;
+  const startRevision = existingState ? existingState.critiques.length : 0;
 
   if (
     phase === 'INIT' ||

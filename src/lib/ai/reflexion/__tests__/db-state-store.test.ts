@@ -6,7 +6,8 @@ jest.mock('../../../prisma', () => ({
   prisma: {
     reflexionRun: {
       findUnique: jest.fn(),
-      upsert: jest.fn(),
+      create: jest.fn(),
+      updateMany: jest.fn(),
     },
   },
 }));
@@ -75,21 +76,40 @@ describe('DbStateStore', () => {
     spy.mockRestore();
   });
 
-  it('saves state mapping phase to status correctly', async () => {
+  it('saves state using create when version is undefined', async () => {
     await store.save(dummyState);
-    expect(prisma.reflexionRun.upsert).toHaveBeenCalledWith(
+    expect(prisma.reflexionRun.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 'run-db-123' },
-        create: expect.objectContaining({
+        data: expect.objectContaining({
           status: 'AWAITING_INTERVIEW',
           latestScore: 9,
           revision: 1,
+          version: 0,
           costUsd: 0.1,
-        }),
-        update: expect.objectContaining({
-          status: 'AWAITING_INTERVIEW',
         }),
       })
     );
+  });
+
+  it('saves state using updateMany when version is defined and throws on stale version', async () => {
+    (dummyState as any)._dbVersion = 1;
+    (prisma.reflexionRun.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
+    
+    await store.save(dummyState);
+    
+    expect(prisma.reflexionRun.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'run-db-123', version: 1 },
+        data: expect.objectContaining({
+          version: 2,
+        }),
+      })
+    );
+    
+    expect((dummyState as any)._dbVersion).toBe(2);
+
+    // Now test concurrent modification (count = 0)
+    (prisma.reflexionRun.updateMany as jest.Mock).mockResolvedValue({ count: 0 });
+    await expect(store.save(dummyState)).rejects.toThrow('ReflexionRun run-db-123 modified concurrently');
   });
 });

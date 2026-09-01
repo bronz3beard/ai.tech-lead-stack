@@ -9,7 +9,9 @@ export class DbStateStore implements StateStore {
     if (!run || !run.stateJson) return null;
 
     try {
-      return ReflexionStateV2Schema.parse(run.stateJson);
+      const parsed = ReflexionStateV2Schema.parse(run.stateJson);
+      (parsed as any)._dbVersion = run.version;
+      return parsed;
     } catch (err) {
       console.error(`[DbStateStore] Failed to parse stateJson for runId ${runId}:`, err);
       return null;
@@ -28,25 +30,42 @@ export class DbStateStore implements StateStore {
     else if (state.stopReason === 'max-revisions') status = 'REVISION_CAP';
     else if (state.stopReason) status = 'STOPPED';
 
-    await prisma.reflexionRun.upsert({
-      where: { id: state.runId },
-      create: {
-        id: state.runId,
-        brief: state.brief,
-        status: status,
-        stateJson: state as any,
-        latestScore: latestScore,
-        revision: state.revision,
-        costUsd: state.usage.costUsd,
-      },
-      update: {
-        brief: state.brief,
-        status: status,
-        stateJson: state as any,
-        latestScore: latestScore,
-        revision: state.revision,
-        costUsd: state.usage.costUsd,
+    const currentVersion = (state as any)._dbVersion;
+
+    if (currentVersion === undefined) {
+      // First save: create the record
+      await prisma.reflexionRun.create({
+        data: {
+          id: state.runId,
+          brief: state.brief,
+          status: status,
+          stateJson: state as any,
+          latestScore: latestScore,
+          revision: state.revision,
+          version: 0,
+          costUsd: state.usage.costUsd,
+        }
+      });
+      (state as any)._dbVersion = 0;
+    } else {
+      // Subsequent saves: optimistic update
+      const { count } = await prisma.reflexionRun.updateMany({
+        where: { id: state.runId, version: currentVersion },
+        data: {
+          brief: state.brief,
+          status: status,
+          stateJson: state as any,
+          latestScore: latestScore,
+          revision: state.revision,
+          version: currentVersion + 1,
+          costUsd: state.usage.costUsd,
+        }
+      });
+      
+      if (count === 0) {
+        throw new Error(`ReflexionRun ${state.runId} modified concurrently`);
       }
-    });
+      (state as any)._dbVersion = currentVersion + 1;
+    }
   }
 }
