@@ -1,6 +1,6 @@
 import type { Project, User } from '@prisma/client';
 
-import { MODELS } from '@/app/api/chat/constants';
+import { MODELS } from '../constants';
 import { createModel } from '@/lib/ai/model-registry';
 import { buildRoleModel, keyFor, slotForModel } from '@/lib/ai/model-resolver';
 import { validateDistinctModels } from '@/lib/ai/orchestrator';

@@ -1,4 +1,4 @@
-import { MODELS } from '@/app/api/chat/constants';
+import { MODELS } from '../constants';
 
 /**
  * Operator-maintained rates per 1M tokens.

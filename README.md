@@ -174,6 +174,15 @@ routing).
   `User.settings.modelRouting` → `System Default`. Environment variables remain
   available as an optional headless override only.
 
+### 🔌 Consuming the MCP server
+
+The MCP server logic is built as a standalone artifact that can be consumed by other tools (e.g., SLM Gate's `mcp-gate` via the `DOWNSTREAM_MCP` env var, or the voice-relay via `STACK_REPO`). 
+To build it, run:
+```bash
+pnpm run mcp:build
+```
+This will bundle the core logic (`src/mcp-server` and `src/lib/ai`) into `dist/mcp-server.mjs`.
+
 ## Antigravity Setup
 
 ### Step 1: Clone the Repository
