@@ -176,12 +176,16 @@ routing).
 
 ### 🔌 Consuming the MCP server
 
-The MCP server logic is built as a standalone artifact that can be consumed by other tools (e.g., SLM Gate's `mcp-gate` via the `DOWNSTREAM_MCP` env var, or the voice-relay via `STACK_REPO`). 
-To build it, run:
+The MCP server logic is built as a standalone artifact that can be consumed by
+other tools (e.g., SLM Gate's `mcp-gate` via the `DOWNSTREAM_MCP` env var, or
+the voice-relay via `STACK_REPO`). To build it, run:
+
 ```bash
 pnpm run mcp:build
 ```
-This will bundle the core logic (`src/mcp-server` and `src/lib/ai`) into `dist/mcp-server.mjs`.
+
+This will bundle the core logic (`src/mcp-server` and `src/lib/ai`) into
+`dist/mcp-server.mjs`.
 
 ## Antigravity Setup
 
@@ -608,6 +612,7 @@ Automation for PRs, changelogs, and team updates.
 | Skill                        | Description                                                                                                                                      | Modes                 | Est. Context Footprint |
 | :--------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------- | :--------------------- |
 | **`agent-optimizer`**        | Precision tool for Token-Efficiency, Context Density Management, and Noise Reduction. Enforces the RTK (Rust Token Killer) methodology.          | read-only, write, mcp | ~550 tokens            |
+| **`Dummy Skill`**            | A dummy skill for testing                                                                                                                        | read-only, mcp        | ~0 tokens              |
 | **`knowledge-manager`**      | Manage project-specific knowledge items to maintain persistent context and architectural memory.                                                 | read-only, write, mcp | ~450 tokens            |
 | **`mission-control`**        | High-integrity pre-flight diagnostic to verify environment, tools, and skill dependencies.                                                       | read-only, write, mcp | ~650 tokens            |
 | **`operational-boundaries`** | Global behavioral guardrails to prevent agent deviation and context hijacking.                                                                   | read-only, mcp        | ~400 tokens            |
