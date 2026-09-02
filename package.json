@@ -78,7 +78,7 @@
     "validate:gherkin": "node scripts/validate-gherkin.mjs",
     "validate:scripts": "bash scripts/validate-scripts.sh",
     "prepare": "husky",
-    "mcp:build": "pnpm --filter @zenithfoundry/tech-lead-stack run mcp:build && mkdir -p dist && cp packages/core/dist/mcp-server.mjs dist/mcp-server.mjs",
+    "mcp:build": "pnpm --filter @zenithfoundry/tech-lead-stack run mcp:build && mkdir -p dist && printf \"import '../packages/core/dist/mcp-server.mjs';\\n\" > dist/mcp-server.mjs",
     "mcp:start": "node dist/mcp-server.mjs",
     "reflexion": "pnpm --filter @zenithfoundry/tech-lead-stack run reflexion",
     "build": "pnpm -r build",
@@ -94,6 +94,7 @@
     "@types/react-syntax-highlighter": "^15.5.13",
     "adm-zip": "^0.5.17",
     "autoevals": "latest",
+    "dotenv": "^16.5.0",
     "p-map": "^7.0.4",
     "playwright-extra": "latest",
     "postcss": "^8.5.9",
@@ -101,8 +102,7 @@
     "rechart": "^0.0.1",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.2",
-    "tw-animate-css": "^1.4.0",
-    "dotenv": "^16.5.0"
+    "tw-animate-css": "^1.4.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",
