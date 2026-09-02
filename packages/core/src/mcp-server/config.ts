@@ -1,6 +1,7 @@
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import { findRepoRoot } from '../lib/skills/repo-root.js';
 
 /**
  * Robust environment configuration for the MCP server.
@@ -11,8 +12,9 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '../../');
+const repoRoot = findRepoRoot(__dirname);
 
 dotenv.config({ path: path.join(repoRoot, '.env'), quiet: true });
 
 export { repoRoot };
+

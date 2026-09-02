@@ -1,12 +1,13 @@
-import { FileSystemService } from "./fs-service";
-import * as path from "path";
+import { FileSystemService } from "./fs-service.js";
+import { findRepoRoot } from "./repo-root.js";
 
-// Find repo root (one level up from src)
-const repoRoot = path.resolve(/*turbopackIgnore: true*/ __dirname, "../../../");
+const repoRoot = findRepoRoot();
 
 /**
  * Shared instance of FileSystemService for use throughout the application.
  */
 export const skillsService = new FileSystemService(repoRoot);
 
-export * from "./fs-service";
+export * from "./fs-service.js";
+export * from "./repo-root.js";
+

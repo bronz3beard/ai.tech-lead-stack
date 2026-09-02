@@ -1,6 +1,8 @@
+import * as fsSync from 'fs';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { CodeProvider } from './providers/base-provider';
+import { findRepoRoot } from './repo-root.js';
 
 /**
  * FileSystemService handles all directory traversal and skill file discovery logic.
@@ -17,12 +19,25 @@ export class FileSystemService implements CodeProvider {
   private clientProjectRoot: string | null;
 
   constructor(repoRoot: string, clientProjectRoot: string | null = null) {
-    this.repoSkillsDir = path.join(repoRoot, '.ai', 'skills');
-    this.repoWorkflowsDir = path.join(repoRoot, '.agents', 'workflows');
-    this.repoPmSkillsDir = path.join(repoRoot, '.ai', 'pm-skills');
-    this.repoPmWorkflowsDir = path.join(repoRoot, '.agents', 'pm-workflows');
-    this.repoHrSkillsDir = path.join(repoRoot, '.ai', 'hr-skills');
-    this.repoHrWorkflowsDir = path.join(repoRoot, '.agents', 'hr-workflows');
+    let resolvedRoot = repoRoot;
+    // Self-healing: if the provided repoRoot does not contain .ai/skills, resolve via findRepoRoot
+    if (!fsSync.existsSync(path.join(resolvedRoot, '.ai', 'skills'))) {
+      const discoveredRoot = findRepoRoot(resolvedRoot);
+      if (fsSync.existsSync(path.join(discoveredRoot, '.ai', 'skills'))) {
+        resolvedRoot = discoveredRoot;
+      } else {
+        console.error(
+          `[FileSystemService] Warning: Skills directory not found in ${path.join(resolvedRoot, '.ai', 'skills')} or fallback ${path.join(discoveredRoot, '.ai', 'skills')}`
+        );
+      }
+    }
+
+    this.repoSkillsDir = path.join(resolvedRoot, '.ai', 'skills');
+    this.repoWorkflowsDir = path.join(resolvedRoot, '.agents', 'workflows');
+    this.repoPmSkillsDir = path.join(resolvedRoot, '.ai', 'pm-skills');
+    this.repoPmWorkflowsDir = path.join(resolvedRoot, '.agents', 'pm-workflows');
+    this.repoHrSkillsDir = path.join(resolvedRoot, '.ai', 'hr-skills');
+    this.repoHrWorkflowsDir = path.join(resolvedRoot, '.agents', 'hr-workflows');
     this.clientProjectRoot = clientProjectRoot;
   }
 
