@@ -1,5 +1,5 @@
 {
-  "name": "@zenithfoundry/tech-lead-stack",
+  "name": "tech-lead-stack-workspace",
   "version": "1.0.0",
   "engines": {
     "node": ">=22.0.0"
@@ -65,11 +65,11 @@
     }
   },
   "scripts": {
-    "generate:registry": "tsx scripts/generate-skill-registry.ts",
+    "generate:registry": "pnpm --filter @zenithfoundry/tech-lead-stack run generate:registry",
     "test": "pnpm -r test",
     "test:gherkin": "node --test scripts/__tests__/validate-gherkin.test.mjs",
     "setup-browsers": "npx playwright install chromium",
-    "postinstall": "[ -f prisma/schema.prisma ] && prisma generate || true",
+    "postinstall": "pnpm --filter @zenithfoundry/tech-lead-stack run db:generate",
     "format": "npx prettier --write \".ai/skills/*.md\" \"scripts/*.{js,mjs}\" \"README.md\"",
     "format:check": "npx prettier --check \".ai/skills/*.md\" \"scripts/*.{js,mjs}\" \"README.md\"",
     "lint": "npx markdownlint-cli \".ai/skills/*.md\"",
@@ -80,11 +80,11 @@
     "prepare": "husky",
     "mcp:build": "pnpm --filter @zenithfoundry/tech-lead-stack run mcp:build && mkdir -p dist && cp packages/core/dist/mcp-server.mjs dist/mcp-server.mjs",
     "mcp:start": "node dist/mcp-server.mjs",
-    "reflexion": "npx tsx scripts/reflexion-loop.ts",
+    "reflexion": "pnpm --filter @zenithfoundry/tech-lead-stack run reflexion",
     "build": "pnpm -r build",
     "check-types": "pnpm -r check-types",
-    "reflexion:eval": "tsx scripts/reflexion-eval.ts",
-    "calibrate-skill-costs": "tsx scripts/calibrate-skill-costs.ts",
+    "reflexion:eval": "pnpm --filter @zenithfoundry/tech-lead-stack run reflexion:eval",
+    "calibrate-skill-costs": "pnpm --filter @zenithfoundry/tech-lead-stack run calibrate-skill-costs",
     "db:generate": "pnpm --filter @zenithfoundry/tech-lead-stack run db:generate"
   },
   "dependencies": {
@@ -176,5 +176,15 @@
     "access": "public"
   },
   "private": true,
-  "packageManager": "pnpm@10.13.1"
+  "packageManager": "pnpm@10.13.1",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/engines",
+      "autoevals",
+      "esbuild",
+      "prisma",
+      "sharp",
+      "unrs-resolver"
+    ]
+  }
 }
