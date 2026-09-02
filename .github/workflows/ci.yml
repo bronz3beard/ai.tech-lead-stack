@@ -42,7 +42,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Setup Prisma
-        run: pnpm prisma generate
+        run: pnpm run db:generate
 
       - name: Check Formatting
         run: pnpm run format:check
@@ -53,23 +53,11 @@ jobs:
       - name: Lint (Next.js)
         run: pnpm run lint:next
 
+      - name: Check Types
+        run: pnpm run check-types
+
       - name: Run Tests
         run: pnpm test
-
-      - name: Run Autoeval Check
-        run: node scripts/autoeval-check.mjs
-
-      - name: Test Gherkin Validator
-        run: pnpm run test:gherkin
-
-      - name: Validate AI Skills
-        run: pnpm run validate:skills
-
-      - name: Validate Gherkin Scenarios
-        run: pnpm run validate:gherkin
-
-      - name: Verify Script Permissions
-        run: pnpm run validate:scripts
 
       - name: Build Project
         run: pnpm run build

@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@zenithfoundry/tech-lead-stack/db';
 import { z } from 'zod';
-import { encrypt } from '@/lib/crypto';
+import { encrypt } from '@zenithfoundry/tech-lead-stack/crypto';
 
 const SaveApiKeySchema = z.object({
   provider: z.enum(['claude', 'openai', 'gemini', 'jules', 'e2b']),

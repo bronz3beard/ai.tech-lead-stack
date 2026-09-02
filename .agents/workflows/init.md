@@ -1,6 +1,8 @@
 ---
 name: init
 description: Master Setup
+modes:
+  - write
 ---
 
 // turbo-all

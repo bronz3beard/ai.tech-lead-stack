@@ -1,6 +1,8 @@
 ---
 name: feature-orchestrator
 description: Three-Phase Feature Engine (Research -> Plan -> Implement)
+modes:
+  - write
 ---
 
 // turbo-all

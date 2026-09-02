@@ -1,6 +1,8 @@
 ---
 name: pm-action-item-mapper
 description: Meeting Note Technical Action-Item Mapper
+modes:
+  - write
 ---
 
 // turbo

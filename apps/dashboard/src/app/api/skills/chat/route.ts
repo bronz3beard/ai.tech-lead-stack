@@ -1,7 +1,7 @@
-import { createAgentTools } from '@/lib/ai/agent-tools';
+import { createAgentTools } from '@zenithfoundry/tech-lead-stack/ai/agent-tools';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-import { telemetryService } from '@/lib/telemetry-service';
+import { prisma } from '@zenithfoundry/tech-lead-stack/db';
+import { telemetryService } from '@zenithfoundry/tech-lead-stack/telemetry-service';
 import type { ModelMessage } from 'ai';
 import {
   createUIMessageStream,

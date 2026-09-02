@@ -1,18 +1,17 @@
 import type { NextConfig } from 'next';
 
+import path from 'path';
+
 const nextConfig: NextConfig = {
   experimental: {
     useCache: true,
   },
+  transpilePackages: ['@zenithfoundry/tech-lead-stack'],
   /**
-   * Pins Turbopack's workspace root to this project directory.
-   * Without this, Next.js 16 Turbopack detects ~/package.json as the root
-   * (due to a ghost lockfile at the home dir level), which causes the
-   * @tailwindcss/postcss resolver to walk up and fail to find `tailwindcss`
-   * in the project's own node_modules.
+   * Pins Turbopack's workspace root to the monorepo root.
    */
   turbopack: {
-    root: __dirname,
+    root: path.resolve(__dirname, '../../'),
   },
   images: {
     remotePatterns: [

@@ -1,6 +1,32 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`Skill Posture (b) Partition into writeCapable and readOnly sets snapshots the writeCapable set to a committed list 1`] = `
+exports[`Skill Posture read-only skills snapshots the read-only set to a committed list 1`] = `
+[
+  "Dummy Skill",
+  "ask",
+  "daily-standup",
+  "mission-architect",
+  "operational-boundaries",
+  "pm-action-item-mapper",
+  "pm-backlog-auditor",
+  "pm-context-summarizer",
+  "pm-effort-estimator",
+  "pm-newsletter-generator",
+  "pm-progress-translator",
+  "pm-release-note-drafter",
+  "pm-risk-detector",
+  "pm-story-augmenter",
+  "pm-task-specifier",
+  "regression-bug-fix",
+  "security-audit",
+  "solutioning-facilitator",
+  "style-logic-exporter",
+  "ui-spec-generator",
+  "verification-auditor",
+]
+`;
+
+exports[`Skill Posture write-capable skills snapshots the write-capable set to a committed list 1`] = `
 [
   "accessibility-auditor",
   "agent-optimizer",

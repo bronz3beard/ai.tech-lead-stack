@@ -1,6 +1,11 @@
 ---
 name: reflexion-loop
-description: "[LOOP · DUAL-MODEL · API KEYS] ✨ Special feature — run the two-model self-correcting plan loop (Gemini drafts, Claude grades). Requires GEMINI_API_KEY + ANTHROPIC_API_KEY."
+description: >-
+  [LOOP · DUAL-MODEL · API KEYS] ✨ Special feature — run the two-model
+  self-correcting plan loop (Gemini drafts, Claude grades). Requires
+  GEMINI_API_KEY + ANTHROPIC_API_KEY.
+modes:
+  - write
 ---
 
 // turbo

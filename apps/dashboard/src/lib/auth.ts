@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { AuthOptions, DefaultSession } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GithubProvider, { GithubProfile } from 'next-auth/providers/github';
-import { prisma } from './prisma';
+import { prisma } from '@zenithfoundry/tech-lead-stack/db';
 
 declare module 'next-auth' {
   interface Session extends DefaultSession {

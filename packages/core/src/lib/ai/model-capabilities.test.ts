@@ -1,5 +1,5 @@
 import { assertCanCritique, getModelCapabilities } from '../ai/model-capabilities';
-import { MODELS } from '@/app/api/chat/constants';
+const MODELS = { CLAUDE: 'claude-3-5-sonnet-20241022', GEMINI: 'gemini-1.5-pro', OPENAI: 'gpt-5.6-terra' };
 
 describe('model-capabilities', () => {
   it('correctly identifies capable models', () => {

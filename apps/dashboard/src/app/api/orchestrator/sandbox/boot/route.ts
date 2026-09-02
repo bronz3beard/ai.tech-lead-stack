@@ -1,6 +1,6 @@
 import { authOptions } from '@/lib/auth';
-import { decrypt } from '@/lib/crypto';
-import { prisma } from '@/lib/prisma';
+import { decrypt } from '@zenithfoundry/tech-lead-stack/crypto';
+import { prisma } from '@zenithfoundry/tech-lead-stack/db';
 import AdmZip from 'adm-zip';
 import { Sandbox } from 'e2b';
 import { getServerSession } from 'next-auth';

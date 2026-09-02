@@ -1,6 +1,10 @@
 ---
 name: competitive-analysis
-description: Port of the blog's /competitive-analysis - compare this stack against external sources and queue accepted ideas.
+description: >-
+  Port of the blog's /competitive-analysis - compare this stack against external
+  sources and queue accepted ideas.
+modes:
+  - write
 ---
 
 // turbo

@@ -1,5 +1,5 @@
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@zenithfoundry/tech-lead-stack/db';
 import { getServerSession } from 'next-auth';
 import { getProjectAccessFilter } from '@/lib/access';
 import { Suspense } from 'react';

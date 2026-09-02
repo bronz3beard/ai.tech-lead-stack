@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@zenithfoundry/tech-lead-stack/db';
 
 export interface GitHubClientConfig {
   owner: string;

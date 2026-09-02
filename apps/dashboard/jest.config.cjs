@@ -14,6 +14,11 @@ module.exports = {
   ],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^@zenithfoundry/tech-lead-stack/db$': '<rootDir>/../../packages/core/src/lib/prisma.ts',
+    '^@zenithfoundry/tech-lead-stack/crypto$': '<rootDir>/../../packages/core/src/lib/crypto.ts',
+    '^@zenithfoundry/tech-lead-stack/telemetry-service$': '<rootDir>/../../packages/core/src/lib/telemetry-service.ts',
+    '^@zenithfoundry/tech-lead-stack/trace-utils$': '<rootDir>/../../packages/core/src/lib/trace-utils.ts',
+    '^@zenithfoundry/tech-lead-stack/(.*)$': '<rootDir>/../../packages/core/src/lib/$1',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
   transform: {

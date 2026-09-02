@@ -1,6 +1,6 @@
-import { getOrchestratorModels } from '@/lib/ai/orchestrator';
+import { getOrchestratorModels } from '@zenithfoundry/tech-lead-stack/ai/orchestrator';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@zenithfoundry/tech-lead-stack/db';
 import {
   createUIMessageStream,
   createUIMessageStreamResponse,

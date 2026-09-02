@@ -1,8 +1,8 @@
-import { langfuseLabel } from '../langfuse-labels';
+import { langfuseLabel } from './langfuse-labels';
 
 describe('langfuseLabel', () => {
   it('returns trimmed string for non-empty input', () => {
-    expect(langfuseLabel('  gpt-4o  ')).toBe('gpt-4o');
+    expect(langfuseLabel('  gpt-5.6-terra  ')).toBe('gpt-5.6-terra');
   });
 
   it('returns unknown for undefined, empty, or whitespace', () => {

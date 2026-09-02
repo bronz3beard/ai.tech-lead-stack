@@ -1,6 +1,8 @@
 ---
 name: vertical-slice
 description: Decompose user stories into ClickUp-ready vertical slices
+modes:
+  - write
 ---
 
 // turbo-all

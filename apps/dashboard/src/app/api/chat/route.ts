@@ -1,7 +1,7 @@
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-import { skillsService } from '@/lib/skills';
-import { GitHubCodeProvider } from '@/lib/skills/providers/github-provider';
+import { prisma } from '@zenithfoundry/tech-lead-stack/db';
+import { skillsService } from '@zenithfoundry/tech-lead-stack/skills';
+import { GitHubCodeProvider } from '@zenithfoundry/tech-lead-stack/skills/providers/github-provider';
 import { canAccessWorkflow } from '@/lib/workflow-roles';
 import { Role } from '@prisma/client';
 import {
@@ -15,8 +15,8 @@ import {
 } from 'ai';
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
-import { Telemetry } from '@/mcp-server/telemetry';
-import { telemetryService } from '@/lib/telemetry-service';
+import { Telemetry } from '@zenithfoundry/tech-lead-stack/mcp-server/telemetry';
+import { telemetryService } from '@zenithfoundry/tech-lead-stack/telemetry-service';
 import {
   CHAT_GUARD_INSTRUCTION,
   MAX_ANALYTICAL_STEPS,
@@ -31,7 +31,7 @@ import {
   isQuotaError,
   readWorkflow,
 } from './utils';
-import { CodeProvider } from '@/lib/skills/providers/base-provider';
+import { CodeProvider } from '@zenithfoundry/tech-lead-stack/skills/providers/base-provider';
 
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
@@ -361,7 +361,7 @@ export async function POST(req: Request) {
           });
 
           // Initialize Chat Tools with resolved provider
-          const { decrypt } = await import('@/lib/crypto');
+          const { decrypt } = await import('@zenithfoundry/tech-lead-stack/crypto');
           const projectSettings = project.settings as any;
           const integrations: { figmaApiKey?: string; clickupToken?: string } = {};
 

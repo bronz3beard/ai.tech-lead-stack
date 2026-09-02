@@ -1,6 +1,8 @@
 ---
 name: hr-intake-specifier
 description: Requisition Intake Brief Specifier
+modes:
+  - write
 ---
 
 // turbo

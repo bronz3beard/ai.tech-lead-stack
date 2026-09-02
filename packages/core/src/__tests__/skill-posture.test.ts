@@ -5,9 +5,8 @@ import { Handlers } from '../mcp-server/handlers';
 import { FileSystemService } from '../lib/skills/fs-service';
 
 describe('Skill Posture', () => {
-  const repoRoot = path.resolve(__dirname, '../..');
-  const skillsDir = path.join(repoRoot, '.ai', 'skills');
-  const pmSkillsDir = path.join(repoRoot, '.ai', 'pm-skills');
+  const SKILLS_DIR = path.join(process.cwd(), '../../.ai', 'skills');
+  const PM_SKILLS_DIR = path.join(process.cwd(), '../../.ai', 'pm-skills');
 
   function getSkillFiles(dir: string): string[] {
     if (!fs.existsSync(dir)) return [];
@@ -18,8 +17,8 @@ describe('Skill Posture', () => {
   }
 
   const allSkillPaths = [
-    ...getSkillFiles(skillsDir),
-    ...getSkillFiles(pmSkillsDir),
+    ...getSkillFiles(SKILLS_DIR),
+    ...getSkillFiles(PM_SKILLS_DIR),
   ];
 
   interface SkillData {
@@ -38,8 +37,11 @@ describe('Skill Posture', () => {
     return { name, filePath, modes };
   });
 
-  describe('(a) Frontmatter modes declaration', () => {
-    it('ensures every skill in .ai/skills and .ai/pm-skills declares a non-empty modes array', () => {
+  const writeCapableSkills = parsedSkills.filter(s => s.modes.includes('write'));
+  const readOnlySkills = parsedSkills.filter(s => !s.modes.includes('write'));
+
+  describe('Frontmatter modes declaration', () => {
+    it('ensures every skill declares a non-empty modes array', () => {
       expect(parsedSkills.length).toBeGreaterThan(0);
       for (const skill of parsedSkills) {
         expect(Array.isArray(skill.modes)).toBe(true);
@@ -48,58 +50,27 @@ describe('Skill Posture', () => {
     });
   });
 
-  describe('(b) Partition into writeCapable and readOnly sets', () => {
-    const writeCapable = new Set<string>();
-    const readOnly = new Set<string>();
-
-    beforeAll(() => {
-      for (const skill of parsedSkills) {
-        if (skill.modes.includes('write')) {
-          writeCapable.add(skill.name);
-        } else {
-          readOnly.add(skill.name);
-        }
-      }
-    });
-
-    it('asserts writeCapable and readOnly sets are disjoint', () => {
-      for (const skillName of writeCapable) {
-        expect(readOnly.has(skillName)).toBe(false);
-      }
-      for (const skillName of readOnly) {
-        expect(writeCapable.has(skillName)).toBe(false);
-      }
-    });
-
-    it('asserts writeCapable and readOnly sets cover all skills', () => {
-      const union = new Set<string>([...writeCapable, ...readOnly]);
-      expect(union.size).toEqual(parsedSkills.length);
-
-      for (const skill of parsedSkills) {
-        expect(union.has(skill.name)).toBe(true);
-      }
-    });
-
-    it('snapshots the writeCapable set to a committed list', () => {
-      const sortedWriteCapable = Array.from(writeCapable).sort();
+  describe('write-capable skills', () => {
+    it('snapshots the write-capable set to a committed list', () => {
+      const sortedWriteCapable = writeCapableSkills.map(s => s.name).sort();
       expect(sortedWriteCapable).toMatchSnapshot();
     });
   });
 
-  describe('(c) Known strictly-advisory skills', () => {
-    const strictlyAdvisory = ['ask', 'daily-standup'];
+  describe('read-only skills', () => {
+    it('snapshots the read-only set to a committed list', () => {
+      const sortedReadOnly = readOnlySkills.map(s => s.name).sort();
+      expect(sortedReadOnly).toMatchSnapshot();
+    });
 
-    it('ensures strictly-advisory skills like "ask" are in readOnly and NOT in writeCapable', () => {
-      const writeCapableSkills = parsedSkills
-        .filter((s) => s.modes.includes('write'))
-        .map((s) => s.name);
-      const readOnlySkills = parsedSkills
-        .filter((s) => !s.modes.includes('write'))
-        .map((s) => s.name);
+    it('ensures strictly-advisory skills like "ask" are in read-only and NOT in write-capable', () => {
+      const strictlyAdvisory = ['ask', 'daily-standup'];
+      const writeNames = writeCapableSkills.map(s => s.name);
+      const readNames = readOnlySkills.map(s => s.name);
 
       for (const skill of strictlyAdvisory) {
-        expect(readOnlySkills).toContain(skill);
-        expect(writeCapableSkills).not.toContain(skill);
+        expect(readNames).toContain(skill);
+        expect(writeNames).not.toContain(skill);
       }
     });
   });
@@ -109,7 +80,7 @@ describe('Skill Posture', () => {
     let fsService: FileSystemService;
 
     beforeEach(() => {
-      fsService = new FileSystemService(repoRoot);
+      fsService = new FileSystemService(path.resolve(process.cwd(), '../..'));
       const dummyTelemetry = {
         withAnalytics: async (
           _s: string,

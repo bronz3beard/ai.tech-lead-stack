@@ -1,5 +1,9 @@
 ---
-description: Generate a QA handover + universal smoke-test criteria document and deliver it to ClickUp
+description: >-
+  Generate a QA handover + universal smoke-test criteria document and deliver it
+  to ClickUp
+modes:
+  - write
 ---
 
 // turbo-all

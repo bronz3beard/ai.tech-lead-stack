@@ -1,6 +1,10 @@
 ---
 name: plan-quick
-description: Ultra-lean strategic planning. Optimized for speed, token efficiency, and rapid MVC delivery.
+description: >-
+  Ultra-lean strategic planning. Optimized for speed, token efficiency, and
+  rapid MVC delivery.
+modes:
+  - write
 ---
 
 // turbo-all

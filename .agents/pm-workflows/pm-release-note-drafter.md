@@ -1,6 +1,8 @@
 ---
 name: pm-release-note-drafter
 description: Automated Feature Release Note Drafter
+modes:
+  - write
 ---
 
 // turbo

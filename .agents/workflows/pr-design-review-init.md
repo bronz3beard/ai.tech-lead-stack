@@ -1,6 +1,8 @@
 ---
 name: pr-design-review-init
 description: Start an AI-powered design review from an existing GitHub PR URL.
+modes:
+  - write
 ---
 
 # 🛠 PR Design Review Initiation (Developer Start)

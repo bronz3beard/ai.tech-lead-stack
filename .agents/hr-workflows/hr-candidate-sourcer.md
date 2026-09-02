@@ -1,6 +1,8 @@
 ---
 name: hr-candidate-sourcer
 description: Passive Candidate Sourcer
+modes:
+  - write
 ---
 
 // turbo

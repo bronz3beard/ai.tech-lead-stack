@@ -1,9 +1,9 @@
-import { skillsService } from '@/lib/skills';
-import { CodeProvider } from '@/lib/skills/providers/base-provider';
+import { skillsService } from '@zenithfoundry/tech-lead-stack/skills';
+import { CodeProvider } from '@zenithfoundry/tech-lead-stack/skills/providers/base-provider';
 import { User } from '@prisma/client';
 import { jsonSchema, tool } from 'ai';
-import { createModel } from '@/lib/ai/model-registry';
-import { keyFor, slotForModel } from '@/lib/ai/model-resolver';
+import { createModel } from '@zenithfoundry/tech-lead-stack/ai/model-registry';
+import { keyFor, slotForModel } from '@zenithfoundry/tech-lead-stack/ai/model-resolver';
 import { MODELS } from './constants';
 import { FigmaService } from '@/lib/figma-api';
 import { ClickUpService } from '@/lib/clickup-api';
@@ -258,7 +258,7 @@ export async function initializeModel(
   keyIndex = 0
 ) {
   const preferredModel = user.preferredModel ?? 'gemini';
-  const { decrypt } = await import('@/lib/crypto');
+  const { decrypt } = await import('@zenithfoundry/tech-lead-stack/crypto');
 
   const decryptKey = (key: string, name: string) => {
     try {

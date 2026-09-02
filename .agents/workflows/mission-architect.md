@@ -1,6 +1,8 @@
 ---
 name: mission-architect
 description: Master Feature Orchestration
+modes:
+  - write
 ---
 
 // turbo-all

@@ -1,7 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -14,12 +14,12 @@
 /coverage
 
 # next.js
-/.next/
-/out/
+.next
+out
 
 # production
-/build
-/dist
+build
+dist
 
 # misc
 .DS_Store
@@ -58,7 +58,7 @@ dev_server.log
 .reflexion-out/
 .tmp/*
 
-auth/
+/auth/
 .ai/tmp/
 .ai/evidence/
 .github/.pr_body_temp.md
@@ -71,3 +71,5 @@ peripherals/voice-relay/node_modules
 # defect library evaluation output
 defect-library/report.json
 
+
+packages/*/dist/

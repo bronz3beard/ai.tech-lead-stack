@@ -286,7 +286,7 @@ describe('isQuotaError', () => {
 //
 // Error guarded: tools.0.custom.input_schema.type: Field required
 // ---------------------------------------------------------------------------
-jest.mock('@/lib/skills', () => ({
+jest.mock('@zenithfoundry/tech-lead-stack/skills', () => ({
   skillsService: {
     getDynamicSkills: jest.fn().mockResolvedValue(new Map()),
     readSkill: jest.fn().mockResolvedValue(null),

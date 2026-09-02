@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-import { getOrchestratorModels } from '@/lib/ai/orchestrator';
+import { prisma } from '@zenithfoundry/tech-lead-stack/db';
+import { getOrchestratorModels } from '@zenithfoundry/tech-lead-stack/ai/orchestrator';
 import { getProjectAccessFilter } from '@/lib/access';
 
 export async function POST(req: Request) {

@@ -11,7 +11,7 @@ import {
 import { Tooltip } from '@/components/ui/tooltip';
 import { useMemo, useState } from 'react';
 import { TraceData } from './DashboardContent';
-import { isSkillTrace, normalizeSkillName } from '@/lib/trace-utils';
+import { isSkillTrace, normalizeSkillName } from '@zenithfoundry/tech-lead-stack/trace-utils';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const FALLBACK_TOKEN_COST: Record<string, number> = {

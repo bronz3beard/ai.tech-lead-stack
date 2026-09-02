@@ -1,5 +1,5 @@
-import { evaluateCritique } from '../../../scripts/reflexion-eval';
-import type { Critique } from '../ai/reflexion/schema';
+import { evaluateCritique } from '../../scripts/reflexion-eval';
+import type { Critique } from './ai/reflexion/schema';
 
 describe('reflexion-eval logic', () => {
   const baseCritique: Critique = {

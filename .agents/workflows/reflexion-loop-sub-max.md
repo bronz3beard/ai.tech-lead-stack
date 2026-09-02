@@ -1,6 +1,11 @@
 ---
 name: reflexion-loop-sub-max
-description: "[LOOP · SUB-MAX · NO API KEYS · CROSS-MODEL VERIFY] $100/mo tier context-isolated plan hardening loop with multi-vendor cross-model verification."
+description: >-
+  [LOOP · SUB-MAX · NO API KEYS · CROSS-MODEL VERIFY] $100/mo tier
+  context-isolated plan hardening loop with multi-vendor cross-model
+  verification.
+modes:
+  - write
 ---
 
 // turbo

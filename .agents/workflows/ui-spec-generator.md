@@ -1,6 +1,8 @@
 ---
 name: ui-spec-generator
 description: AI-Powered UI Spec Generator
+modes:
+  - write
 ---
 
 # 🚀 AI-Powered UI Spec Generator

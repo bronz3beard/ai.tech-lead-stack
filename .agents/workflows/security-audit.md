@@ -1,6 +1,8 @@
 ---
 name: security-audit
 description: Security Audit
+modes:
+  - write
 ---
 
 // turbo-all

@@ -11,7 +11,7 @@ jest.mock('next/server', () => {
 
 import { GET, PUT } from '../route';
 import { getServerSession } from 'next-auth';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@zenithfoundry/tech-lead-stack/db';
 
 jest.mock('next-auth', () => ({
   __esModule: true,
@@ -21,7 +21,7 @@ jest.mock('next-auth', () => ({
 jest.mock('@/lib/auth', () => ({
   authOptions: {},
 }));
-jest.mock('@/lib/prisma', () => ({
+jest.mock('@zenithfoundry/tech-lead-stack/db', () => ({
   prisma: {
     user: {
       findUnique: jest.fn(),

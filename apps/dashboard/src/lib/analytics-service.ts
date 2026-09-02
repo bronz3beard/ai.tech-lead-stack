@@ -1,7 +1,7 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@zenithfoundry/tech-lead-stack/db';
 import { normalizeActorTelemetry } from './actor-telemetry';
 import { fetchAllPages } from './langfuse-api';
-import { normalizeProjectName, normalizeSkillName } from './trace-utils';
+import { normalizeProjectName, normalizeSkillName } from '@zenithfoundry/tech-lead-stack/trace-utils';
 
 export interface TraceData {
   id: string;

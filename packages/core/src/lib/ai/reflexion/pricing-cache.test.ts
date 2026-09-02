@@ -1,5 +1,5 @@
-import { buildRunner } from '../ai/reflexion/providers-env';
-import { MODELS } from '../../app/api/chat/constants';
+import { buildRunner } from './providers-env';
+const MODELS = { CLAUDE: 'claude-sonnet-4-6', GEMINI: 'gemini-3.6-flash', OPENAI: 'gpt-5.4' };
 import type { LanguageModel } from 'ai';
 
 // Mock the 'ai' module so we can intercept generateText

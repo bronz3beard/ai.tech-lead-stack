@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-import { getOrchestratorModels, validateDistinctModels } from '@/lib/ai/orchestrator';
-import { providerOf } from '@/lib/ai/model-registry';
-import type { Tier } from '@/lib/ai/tier-policy';
+import { prisma } from '@zenithfoundry/tech-lead-stack/db';
+import { getOrchestratorModels, validateDistinctModels } from '@zenithfoundry/tech-lead-stack/ai/orchestrator';
+import { providerOf } from '@zenithfoundry/tech-lead-stack/ai/model-registry';
+import type { Tier } from '@zenithfoundry/tech-lead-stack/ai/tier-policy';
 import { getProjectAccessFilter } from '@/lib/access';
 
 export async function POST(req: Request) {

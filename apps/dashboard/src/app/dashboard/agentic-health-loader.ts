@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@zenithfoundry/tech-lead-stack/db';
 import { getProjectAccessFilter } from '@/lib/access';
 import {
   autonomousWorkRatio,

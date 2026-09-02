@@ -1,4 +1,4 @@
-import { isSkillTrace, isActiveSkill } from '../trace-utils';
+import { isSkillTrace, isActiveSkill } from './trace-utils';
 
 describe('isSkillTrace', () => {
   it("should return true when name is 'skill' or 'skill.md'", () => {

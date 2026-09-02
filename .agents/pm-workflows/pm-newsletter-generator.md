@@ -1,6 +1,8 @@
 ---
 name: pm-newsletter-generator
 description: Commit-to-Newsletter Content Summarizer
+modes:
+  - write
 ---
 
 // turbo

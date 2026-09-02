@@ -1,6 +1,6 @@
 import { authOptions } from '@/lib/auth';
 import { ReviewSession, ReviewSessionMetadata } from '@/lib/design-review-types';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@zenithfoundry/tech-lead-stack/db';
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 

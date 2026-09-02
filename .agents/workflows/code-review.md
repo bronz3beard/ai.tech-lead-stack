@@ -1,6 +1,8 @@
 ---
 name: code-review
 description: Pre-PR Quality Gatekeeper Code Review
+modes:
+  - write
 ---
 
 // turbo-all

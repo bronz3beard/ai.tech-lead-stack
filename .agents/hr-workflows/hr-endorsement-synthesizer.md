@@ -1,6 +1,8 @@
 ---
 name: hr-endorsement-synthesizer
 description: Evidence-Traceable Endorsement Synthesizer
+modes:
+  - write
 ---
 
 // turbo

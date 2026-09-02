@@ -2,7 +2,7 @@
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ProfileForm from '../ProfileForm';
-import { getModelOptions } from '@/lib/ai/model-routing-schema';
+import { getModelOptions } from '@zenithfoundry/tech-lead-stack/ai/model-routing-schema';
 
 global.fetch = jest.fn() as jest.Mock;
 

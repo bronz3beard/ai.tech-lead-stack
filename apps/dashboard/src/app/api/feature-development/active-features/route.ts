@@ -1,6 +1,6 @@
 import { authOptions } from '@/lib/auth';
 import { createGitHubClient } from '@/lib/github/client';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@zenithfoundry/tech-lead-stack/db';
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 

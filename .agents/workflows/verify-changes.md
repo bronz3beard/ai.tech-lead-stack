@@ -1,6 +1,8 @@
 ---
 name: verify-changes
 description: Visual Smoke Test
+modes:
+  - write
 ---
 
 // turbo-all

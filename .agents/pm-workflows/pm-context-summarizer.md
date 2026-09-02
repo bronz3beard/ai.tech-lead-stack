@@ -1,6 +1,8 @@
 ---
 name: pm-context-summarizer
 description: Pre-Meeting Development Context Summarizer
+modes:
+  - write
 ---
 
 // turbo

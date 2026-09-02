@@ -1,6 +1,8 @@
 ---
 name: hr-interview-auditor
 description: Structured Interview Evaluator
+modes:
+  - write
 ---
 
 // turbo

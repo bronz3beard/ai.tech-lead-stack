@@ -1,6 +1,10 @@
 ---
 name: dev-team
-description: '[DEV-TEAM · FULL · MCP] The flagship orchestration workflow for an agentic dev team'
+description: >-
+  [DEV-TEAM · FULL · MCP] The flagship orchestration workflow for an agentic dev
+  team
+modes:
+  - write
 ---
 
 // turbo-all

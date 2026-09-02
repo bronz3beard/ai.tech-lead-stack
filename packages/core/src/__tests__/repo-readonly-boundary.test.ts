@@ -68,7 +68,7 @@ function createStubRunner(): ReflexionRunner {
 }
 
 describe('Repository Readonly Boundary E2E Sequence', () => {
-  const repoRoot = path.resolve(__dirname, '../..');
+  const repoRoot = path.resolve(process.cwd(), '../..');
   let fakeClientRepo: { root: string; cleanup: () => void };
   let fakeHomeDir: string;
   let homeDirSpy: jest.SpyInstance;
@@ -124,7 +124,7 @@ describe('Repository Readonly Boundary E2E Sequence', () => {
     const getSkillRes = await handlers.handleGetSkill('get_skill', {
       skillName: 'ask',
       projectName: 'fake-client-app',
-      model: 'gpt-4o',
+      model: 'gpt-5.6-terra',
       agent: 'test-agent',
     });
     expect(getSkillRes.isError).toBe(false);

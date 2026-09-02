@@ -1,6 +1,8 @@
 ---
 name: pm-effort-estimator
 description: Historical Complexity & Effort Estimator
+modes:
+  - write
 ---
 
 // turbo

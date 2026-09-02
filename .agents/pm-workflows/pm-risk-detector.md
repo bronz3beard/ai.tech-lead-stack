@@ -1,6 +1,8 @@
 ---
 name: pm-risk-detector
 description: Code-Based Milestone Risk Detector
+modes:
+  - write
 ---
 
 // turbo

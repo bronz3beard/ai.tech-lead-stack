@@ -1,5 +1,5 @@
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@zenithfoundry/tech-lead-stack/db';
 import AdmZip from 'adm-zip';
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
@@ -181,7 +181,7 @@ export async function GET(req: Request) {
     // Inject decrypted .env from project settings if available
     const projectSettings = project.settings as any;
     if (projectSettings?.encryptedEnvVars) {
-      const { decrypt } = await import('@/lib/crypto');
+      const { decrypt } = await import('@zenithfoundry/tech-lead-stack/crypto');
       try {
         const envContent = decrypt(projectSettings.encryptedEnvVars);
         fileSystemTree['.env'] = {

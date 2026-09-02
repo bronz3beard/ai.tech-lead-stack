@@ -1,6 +1,8 @@
 ---
 name: clean-code-audit
 description: Clean Code Audit
+modes:
+  - write
 ---
 
 // turbo

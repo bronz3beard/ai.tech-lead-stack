@@ -1,6 +1,11 @@
 ---
 name: dev-team-sub-max
-description: '[DEV-TEAM · SUB-MAX · NO API KEYS · CROSS-MODEL VERIFY] Subscription-tier ($100/mo) dev team orchestrator workflow (up to 2 lanes, reflexion-loop-sub-max, cross-model verify, visual fidelity gate)'
+description: >-
+  [DEV-TEAM · SUB-MAX · NO API KEYS · CROSS-MODEL VERIFY] Subscription-tier
+  ($100/mo) dev team orchestrator workflow (up to 2 lanes,
+  reflexion-loop-sub-max, cross-model verify, visual fidelity gate)
+modes:
+  - write
 ---
 
 // turbo-all

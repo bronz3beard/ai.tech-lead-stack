@@ -1,6 +1,8 @@
 ---
 name: pm-task-specifier
 description: Auto-Draft Technical Task Specifier
+modes:
+  - write
 ---
 
 // turbo

@@ -1,4 +1,4 @@
-import { encrypt, decrypt } from '../crypto';
+import { encrypt, decrypt } from './crypto';
 
 describe('crypto', () => {
   const originalEnv = process.env;

@@ -1,10 +1,10 @@
 import { getProjectAccessFilter } from '@/lib/access';
-import { DbStateStore } from '@/lib/ai/reflexion/db-state-store';
-import { runReflexion } from '@/lib/ai/reflexion/engine';
-import { runnerFromUser } from '@/lib/ai/reflexion/providers-user';
+import { DbStateStore } from '@zenithfoundry/tech-lead-stack/ai/reflexion/db-state-store';
+import { runReflexion } from '@zenithfoundry/tech-lead-stack/ai/reflexion/engine';
+import { runnerFromUser } from '@zenithfoundry/tech-lead-stack/ai/reflexion/providers-user';
 import { authOptions } from '@/lib/auth';
 import { createGitHubClient } from '@/lib/github/client';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@zenithfoundry/tech-lead-stack/db';
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 
@@ -120,7 +120,7 @@ export async function POST(req: Request) {
         if (e.phase === 'adjudicate') teamRole = 'adjudicator';
         if (e.phase === 'interview') teamRole = 'interviewer';
 
-        import('@/lib/telemetry-service')
+        import('@zenithfoundry/tech-lead-stack/telemetry-service')
           .then((m) =>
             m.telemetryService.recordEvent({
               skillName: 'reflexion-loop',

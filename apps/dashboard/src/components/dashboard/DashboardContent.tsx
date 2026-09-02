@@ -8,7 +8,7 @@ import { ProjectSelector } from '@/components/dashboard/ProjectSelector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, LineChart } from '@/components/ui/chart';
-import { isSkillTrace, normalizeProjectName } from '@/lib/trace-utils';
+import { isSkillTrace, normalizeProjectName } from '@zenithfoundry/tech-lead-stack/trace-utils';
 import { SlidersHorizontal, User, Globe } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';

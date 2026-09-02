@@ -11,7 +11,11 @@
     "./skills": "./src/lib/skills/index.ts",
     "./skills/*": "./src/lib/skills/*.ts",
     "./ki/*": "./src/lib/ki/*.ts",
-    "./db": "./src/lib/prisma.ts"
+    "./db": "./src/lib/prisma.ts",
+    "./crypto": "./src/lib/crypto.ts",
+    "./telemetry-service": "./src/lib/telemetry-service.ts",
+    "./trace-utils": "./src/lib/trace-utils.ts",
+    "./mcp-server/*": "./src/mcp-server/*.ts"
   },
   "scripts": {
     "mcp:build": "esbuild src/mcp-server/index.ts --bundle --platform=node --packages=external --format=esm --outfile=dist/mcp-server.mjs",
@@ -33,7 +37,7 @@
     "@prisma/adapter-pg": "^7.7.0",
     "@prisma/client": "^7.7.0",
     "adm-zip": "^0.5.17",
-    "ai": "^6.0.157",
+    "ai": "^6.0.168",
     "autoevals": "latest",
     "dotenv": "^16.5.0",
     "e2b": "^2.29.1",
@@ -41,6 +45,7 @@
     "js-yaml": "^5.2.1",
     "langfuse-core": "^3.38.20",
     "langfuse-node": "^3.38.20",
+    "octokit": "^5.0.5",
     "p-map": "^7.0.4",
     "pg": "^8.20.0",
     "prisma": "^7.7.0",

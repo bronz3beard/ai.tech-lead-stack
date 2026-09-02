@@ -10,8 +10,8 @@ import { Sandbox } from 'e2b';
 
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-import { decrypt } from '@/lib/crypto';
+import { prisma } from '@zenithfoundry/tech-lead-stack/db';
+import { decrypt } from '@zenithfoundry/tech-lead-stack/crypto';
 
 async function getApiKey(): Promise<string> {
   const session = await getServerSession(authOptions);

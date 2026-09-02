@@ -1,6 +1,8 @@
 ---
 name: style-logic-exporter
 description: Export Tailwind v3.4 design tokens to Figma (Tokens Studio format)
+modes:
+  - write
 ---
 
 # 🎨 Figma Token Exporter

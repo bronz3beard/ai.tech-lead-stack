@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-import { resumeReflexion } from '@/lib/ai/reflexion/engine';
-import { runnerFromUser } from '@/lib/ai/reflexion/providers-user';
-import { DbStateStore } from '@/lib/ai/reflexion/db-state-store';
-import { AnswersSchema } from '@/lib/ai/reflexion/schema';
+import { prisma } from '@zenithfoundry/tech-lead-stack/db';
+import { resumeReflexion } from '@zenithfoundry/tech-lead-stack/ai/reflexion/engine';
+import { runnerFromUser } from '@zenithfoundry/tech-lead-stack/ai/reflexion/providers-user';
+import { DbStateStore } from '@zenithfoundry/tech-lead-stack/ai/reflexion/db-state-store';
+import { AnswersSchema } from '@zenithfoundry/tech-lead-stack/ai/reflexion/schema';
 
 export const maxDuration = 300;
 
@@ -80,7 +80,7 @@ export async function POST(req: Request) {
 
 
 
-        import('@/lib/telemetry-service').then((m) => m.telemetryService.recordEvent({
+        import('@zenithfoundry/tech-lead-stack/telemetry-service').then((m) => m.telemetryService.recordEvent({
            skillName: 'reflexion-loop',
            duration: 0,
            status: 'SUCCESS',

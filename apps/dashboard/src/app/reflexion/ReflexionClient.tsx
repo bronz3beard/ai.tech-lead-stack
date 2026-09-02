@@ -22,7 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { ProjectSelect, type Project } from '@/components/ProjectSelect';
 import { Label } from '@/components/ui/label';
 
-// Mirrors ReflexionResult from '@/lib/ai/reflexion/engine'.
+// Mirrors ReflexionResult from '@zenithfoundry/tech-lead-stack/ai/reflexion/engine'.
 interface Critique {
   gstackDiagnosis: number;
   atomicBatches: number;

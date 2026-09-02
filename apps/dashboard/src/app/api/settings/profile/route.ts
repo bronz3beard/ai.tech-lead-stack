@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@zenithfoundry/tech-lead-stack/db';
 import { z } from 'zod';
-import { ModelRoutingSchema } from '@/lib/ai/model-routing-schema';
+import { ModelRoutingSchema } from '@zenithfoundry/tech-lead-stack/ai/model-routing-schema';
 
 import { Prisma } from '@prisma/client';
 

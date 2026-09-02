@@ -1,6 +1,8 @@
 ---
 name: weekly-leadership-report
 description: Weekly Leadership Status Report (Team-Wide)
+modes:
+  - write
 ---
 
 // turbo-all

@@ -1,0 +1,62 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`Workflow Posture read-only workflows snapshots the read-only set to a committed list 1`] = `
+[
+  "ask",
+]
+`;
+
+exports[`Workflow Posture write-capable workflows snapshots the write-capable set to a committed list 1`] = `
+[
+  "accessibility-audit",
+  "audit-tech-debt",
+  "changelog",
+  "clean-code-audit",
+  "code-review",
+  "competitive-analysis",
+  "design-requirements-to-architecture",
+  "design-system-review",
+  "dev-team",
+  "dev-team-sub-max",
+  "dev-team-sub-pro",
+  "feature-orchestrator",
+  "hr-ad-distributor",
+  "hr-candidate-sourcer",
+  "hr-endorsement-synthesizer",
+  "hr-intake-specifier",
+  "hr-interview-auditor",
+  "hr-jd-drafter",
+  "hr-pipeline-translator",
+  "init",
+  "mission-architect",
+  "onboard-dev",
+  "plan",
+  "plan-quick",
+  "pm-action-item-mapper",
+  "pm-backlog-auditor",
+  "pm-context-summarizer",
+  "pm-design-system-auditor",
+  "pm-effort-estimator",
+  "pm-newsletter-generator",
+  "pm-progress-translator",
+  "pm-release-note-drafter",
+  "pm-risk-detector",
+  "pm-story-augmenter",
+  "pm-task-specifier",
+  "pr-automator",
+  "pr-design-review-init",
+  "qa-handover",
+  "reflexion-loop",
+  "reflexion-loop-sub-max",
+  "reflexion-loop-sub-pro",
+  "regression-bug-fix",
+  "security-audit",
+  "standup-daily-summary",
+  "strategy-target-evaluation",
+  "style-logic-exporter",
+  "ui-spec-generator",
+  "verify-changes",
+  "vertical-slice",
+  "weekly-leadership-report",
+]
+`;

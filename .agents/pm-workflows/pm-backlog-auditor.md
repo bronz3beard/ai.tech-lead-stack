@@ -1,6 +1,8 @@
 ---
 name: pm-backlog-auditor
 description: Backlog Sufficiency & Logic Auditor
+modes:
+  - write
 ---
 
 // turbo

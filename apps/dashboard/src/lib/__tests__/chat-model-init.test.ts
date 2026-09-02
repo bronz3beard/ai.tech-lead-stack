@@ -1,21 +1,21 @@
 import { initializeModel } from '@/app/api/chat/utils';
-import { createModel } from '@/lib/ai/model-registry';
-import { keyFor } from '@/lib/ai/model-resolver';
+import { createModel } from '@zenithfoundry/tech-lead-stack/ai/model-registry';
+import { keyFor } from '@zenithfoundry/tech-lead-stack/ai/model-resolver';
 import { MODELS } from '@/app/api/chat/constants';
 import { User } from '@prisma/client';
 
-jest.mock('@/lib/ai/model-registry', () => ({
+jest.mock('@zenithfoundry/tech-lead-stack/ai/model-registry', () => ({
   createModel: jest.fn().mockReturnValue('mock-model'),
-  providerOf: jest.requireActual('@/lib/ai/model-registry').providerOf,
-  catalogEntry: jest.requireActual('@/lib/ai/model-registry').catalogEntry,
+  providerOf: jest.requireActual('@zenithfoundry/tech-lead-stack/ai/model-registry').providerOf,
+  catalogEntry: jest.requireActual('@zenithfoundry/tech-lead-stack/ai/model-registry').catalogEntry,
 }));
 
-jest.mock('@/lib/ai/model-resolver', () => ({
+jest.mock('@zenithfoundry/tech-lead-stack/ai/model-resolver', () => ({
   keyFor: jest.fn(),
-  slotForModel: jest.requireActual('@/lib/ai/model-resolver').slotForModel,
+  slotForModel: jest.requireActual('@zenithfoundry/tech-lead-stack/ai/model-resolver').slotForModel,
 }));
 
-jest.mock('@/lib/crypto', () => ({
+jest.mock('@zenithfoundry/tech-lead-stack/crypto', () => ({
   decrypt: jest.fn((c) => c), // pass-through for test
 }));
 

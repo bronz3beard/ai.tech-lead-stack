@@ -1,5 +1,5 @@
 import { normalizeActorTelemetry } from '../actor-telemetry';
-import { normalizeProjectName, normalizeSkillName } from '../trace-utils';
+import { normalizeProjectName, normalizeSkillName } from '@zenithfoundry/tech-lead-stack/trace-utils';
 
 describe('Analytics Normalization', () => {
   describe('normalizeProjectName', () => {

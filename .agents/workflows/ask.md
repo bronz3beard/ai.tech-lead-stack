@@ -1,6 +1,8 @@
 ---
 name: ask
 description: A Q&A workflow to chat with the Agent about the codebase.
+modes:
+  - read-only
 ---
 
 // turbo

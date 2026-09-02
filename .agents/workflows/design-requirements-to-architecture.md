@@ -1,6 +1,8 @@
 ---
 name: design-requirements-to-architecture
 description: Feature Design Assistant
+modes:
+  - write
 ---
 
 // turbo-all

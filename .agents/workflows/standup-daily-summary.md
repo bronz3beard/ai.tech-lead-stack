@@ -1,6 +1,8 @@
 ---
 name: standup-daily-summary
 description: Daily Standup Report
+modes:
+  - write
 ---
 
 // turbo-all

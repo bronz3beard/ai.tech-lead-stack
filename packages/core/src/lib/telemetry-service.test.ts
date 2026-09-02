@@ -2,10 +2,10 @@ import {
   telemetryService,
   TelemetryService,
   withAnalytics,
-} from '../telemetry-service';
-import { prisma } from '../prisma';
+} from './telemetry-service';
+import { prisma } from './prisma';
 
-jest.mock('../prisma', () => ({
+jest.mock('./prisma', () => ({
   prisma: {
     user: {
       findUnique: jest.fn(),

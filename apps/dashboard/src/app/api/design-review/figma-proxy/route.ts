@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
-import { decrypt } from '@/lib/crypto';
+import { prisma } from '@zenithfoundry/tech-lead-stack/db';
+import { decrypt } from '@zenithfoundry/tech-lead-stack/crypto';
 import { FigmaService } from '@/lib/figma-api';
 
 /**

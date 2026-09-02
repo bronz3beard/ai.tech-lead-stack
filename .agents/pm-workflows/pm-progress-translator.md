@@ -1,6 +1,8 @@
 ---
 name: pm-progress-translator
 description: Client-Facing Technical Progress Translator
+modes:
+  - write
 ---
 
 // turbo

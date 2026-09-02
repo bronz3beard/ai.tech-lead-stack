@@ -1,6 +1,8 @@
 ---
 name: plan
 description: Implementation & Bug Planning
+modes:
+  - write
 ---
 
 // turbo-all

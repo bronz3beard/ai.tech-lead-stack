@@ -1,12 +1,15 @@
 import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
-import { validatePlanContract } from '../ai/reflexion/plan-contract';
+import { validatePlanContract } from './plan-contract';
 
 describe('plan-contract validation', () => {
   const getPlanBody = (filename: string) => {
     const filePath = path.join(
       __dirname,
+      '..',
+      '..',
+      '..',
       '..',
       '..',
       '..',

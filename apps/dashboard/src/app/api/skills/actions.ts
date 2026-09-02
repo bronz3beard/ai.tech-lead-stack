@@ -1,7 +1,7 @@
 'use server';
 
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@zenithfoundry/tech-lead-stack/db';
 import { execFile } from 'child_process';
 import fs from 'fs/promises';
 import matter from 'gray-matter';

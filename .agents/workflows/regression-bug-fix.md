@@ -1,6 +1,8 @@
 ---
 name: regression-bug-fix
 description: Unified Feedback & Regression Fix
+modes:
+  - write
 ---
 
 // turbo-all

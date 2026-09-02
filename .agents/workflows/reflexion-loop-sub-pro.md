@@ -1,6 +1,10 @@
 ---
 name: reflexion-loop-sub-pro
-description: "[LOOP · SUB-PRO · NO API KEYS · CROSS-MODEL VERIFY] $20/mo tier context-isolated loop with single-pass cross-model plan check."
+description: >-
+  [LOOP · SUB-PRO · NO API KEYS · CROSS-MODEL VERIFY] $20/mo tier
+  context-isolated loop with single-pass cross-model plan check.
+modes:
+  - write
 ---
 
 // turbo

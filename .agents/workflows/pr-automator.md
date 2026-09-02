@@ -1,5 +1,9 @@
 ---
-description: PR Automator (with Mandatory Dynamic Template Adherence, Commit History Review, Label Matching, & Draft Mode)
+description: >-
+  PR Automator (with Mandatory Dynamic Template Adherence, Commit History
+  Review, Label Matching, & Draft Mode)
+modes:
+  - write
 ---
 
 // turbo-all

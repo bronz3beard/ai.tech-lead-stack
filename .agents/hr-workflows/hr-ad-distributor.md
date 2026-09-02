@@ -1,6 +1,8 @@
 ---
 name: hr-ad-distributor
 description: Multi-Channel Job Ad Distributor
+modes:
+  - write
 ---
 
 // turbo

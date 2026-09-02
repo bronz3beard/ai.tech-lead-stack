@@ -1,0 +1,44 @@
+{
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0",
+    "moduleResolution": "bundler",
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@zenithfoundry/tech-lead-stack": ["../../packages/core/src/index.ts"],
+      "@zenithfoundry/tech-lead-stack/ai/*": ["../../packages/core/src/lib/ai/*"],
+      "@zenithfoundry/tech-lead-stack/skills": ["../../packages/core/src/lib/skills/index.ts"],
+      "@zenithfoundry/tech-lead-stack/skills/*": ["../../packages/core/src/lib/skills/*"],
+      "@zenithfoundry/tech-lead-stack/ki/*": ["../../packages/core/src/lib/ki/*"],
+      "@zenithfoundry/tech-lead-stack/db": ["../../packages/core/src/lib/prisma.ts"],
+      "@zenithfoundry/tech-lead-stack/crypto": ["../../packages/core/src/lib/crypto.ts"],
+      "@zenithfoundry/tech-lead-stack/telemetry-service": ["../../packages/core/src/lib/telemetry-service.ts"],
+      "@zenithfoundry/tech-lead-stack/trace-utils": ["../../packages/core/src/lib/trace-utils.ts"],
+      "@zenithfoundry/tech-lead-stack/mcp-server/*": ["../../packages/core/src/mcp-server/*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}

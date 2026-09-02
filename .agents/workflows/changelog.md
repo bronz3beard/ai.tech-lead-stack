@@ -1,6 +1,8 @@
 ---
 name: changelog
 description: Generate Changelog
+modes:
+  - write
 ---
 
 // turbo-all

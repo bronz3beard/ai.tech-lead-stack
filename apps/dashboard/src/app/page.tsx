@@ -4,11 +4,11 @@ import { StepAnalyticsTable } from '@/components/dashboard/StepAnalyticsTable';
 import { ProjectSelect, type Project } from '@/components/ProjectSelect';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, LineChart } from '@/components/ui/chart';
-import { isSkillTrace, isActiveSkill, normalizeSkillName } from '@/lib/trace-utils';
+import { isSkillTrace, isActiveSkill, normalizeSkillName } from '@zenithfoundry/tech-lead-stack/trace-utils';
 import { getAnalytics } from '@/lib/analytics-service';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@zenithfoundry/tech-lead-stack/db';
 
 export const revalidate = 60; // cached for 60 seconds
 

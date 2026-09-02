@@ -1,6 +1,8 @@
 ---
 name: hr-pipeline-translator
 description: Client-Facing Pipeline Status Translator
+modes:
+  - write
 ---
 
 // turbo

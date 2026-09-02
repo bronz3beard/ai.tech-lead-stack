@@ -11,7 +11,7 @@ const eslintConfig = [
     },
   },
   {
-    files: ['src/mcp-server/**/*.{ts,tsx}', 'src/lib/ai/**/*.{ts,tsx}'],
+    files: ['packages/core/src/mcp-server/**/*.{ts,tsx}', 'packages/core/src/lib/ai/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-imports': [
         'error',

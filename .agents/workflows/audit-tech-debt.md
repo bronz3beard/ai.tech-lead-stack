@@ -1,6 +1,8 @@
 ---
 name: audit-tech-debt
 description: Technical Debt Audit
+modes:
+  - write
 ---
 
 // turbo-all

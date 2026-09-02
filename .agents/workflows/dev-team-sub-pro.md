@@ -1,6 +1,11 @@
 ---
 name: dev-team-sub-pro
-description: '[DEV-TEAM · SUB-PRO · NO API KEYS · CROSS-MODEL VERIFY] Subscription-tier ($20/mo) dev pair orchestrator workflow (1 lane, no worktrees, builder/checker, cross-model verify, tier ceiling)'
+description: >-
+  [DEV-TEAM · SUB-PRO · NO API KEYS · CROSS-MODEL VERIFY] Subscription-tier
+  ($20/mo) dev pair orchestrator workflow (1 lane, no worktrees,
+  builder/checker, cross-model verify, tier ceiling)
+modes:
+  - write
 ---
 
 // turbo-all

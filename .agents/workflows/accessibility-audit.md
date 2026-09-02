@@ -1,5 +1,7 @@
 ---
 description: Specialized audit for Web Accessibility (A11y).
+modes:
+  - write
 ---
 
 // turbo-all

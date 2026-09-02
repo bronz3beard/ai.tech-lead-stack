@@ -1,6 +1,10 @@
 ---
 name: design-system-review
-description: AI-augmented design review with a 2-iteration guard, sequential memory, and KI persistence.
+description: >-
+  AI-augmented design review with a 2-iteration guard, sequential memory, and KI
+  persistence.
+modes:
+  - write
 ---
 
 // turbo-all

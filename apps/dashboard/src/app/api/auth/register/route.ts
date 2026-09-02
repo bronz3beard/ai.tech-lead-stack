@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@zenithfoundry/tech-lead-stack/db';
 import bcrypt from 'bcryptjs';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';

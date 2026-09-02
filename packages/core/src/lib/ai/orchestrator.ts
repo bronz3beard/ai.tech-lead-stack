@@ -1,6 +1,6 @@
 import { User } from '@prisma/client';
 
-import { resolveModelId } from '@/lib/ai/model-resolver';
+import { resolveModelId } from './model-resolver';
 import { providerOf } from './model-registry';
 import { TIER_POLICY, type Tier } from './tier-policy';
 

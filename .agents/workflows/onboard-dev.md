@@ -1,6 +1,8 @@
 ---
 name: onboard-dev
 description: Codebase Onboarding Intelligence
+modes:
+  - write
 ---
 
 // turbo-all

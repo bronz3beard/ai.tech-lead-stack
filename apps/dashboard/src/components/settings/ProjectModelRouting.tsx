@@ -17,7 +17,7 @@ import {
   RESPONSIBILITIES,
   Responsibility,
   getModelOptions,
-} from '@/lib/ai/model-routing-schema';
+} from '@zenithfoundry/tech-lead-stack/ai/model-routing-schema';
 
 interface Project {
   id: string;

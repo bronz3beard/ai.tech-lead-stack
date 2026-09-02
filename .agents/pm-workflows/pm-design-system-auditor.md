@@ -1,6 +1,8 @@
 ---
 name: pm-design-system-auditor
 description: Design System Implementation Auditor
+modes:
+  - write
 ---
 
 // turbo

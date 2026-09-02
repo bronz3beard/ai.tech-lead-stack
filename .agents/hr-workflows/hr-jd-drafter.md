@@ -1,6 +1,8 @@
 ---
 name: hr-jd-drafter
 description: Inclusive Job Description Drafter
+modes:
+  - write
 ---
 
 // turbo

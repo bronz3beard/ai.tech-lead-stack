@@ -1,6 +1,8 @@
 ---
 name: pm-story-augmenter
 description: Technical User Story Detail Augmenter
+modes:
+  - write
 ---
 
 // turbo

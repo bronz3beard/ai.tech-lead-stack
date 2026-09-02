@@ -1,4 +1,4 @@
-import { normalizeProjectName } from '../trace-utils';
+import { normalizeProjectName } from './trace-utils';
 
 describe('normalizeProjectName', () => {
   it('should lowercase and trim project names', () => {
