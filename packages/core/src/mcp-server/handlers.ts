@@ -134,6 +134,30 @@ export class Handlers {
         }
       }
 
+      let fileContent = rawContent;
+      const graph = await this.fsService.loadGraph();
+      if (graph && graph.nodes) {
+        const node = graph.nodes.find((n: any) => n.id === safeSkillName);
+        if (node) {
+          const requires = graph.edges
+            ? graph.edges.filter((e: any) => e.from === safeSkillName && e.type === 'requires').map((e: any) => e.to)
+            : [];
+          const suggests = graph.edges
+            ? graph.edges.filter((e: any) => e.from === safeSkillName && e.type === 'suggests').map((e: any) => e.to)
+            : [];
+          const consumes = graph.artifactFlow
+            ? graph.artifactFlow.filter((f: any) => f.consumedBy?.includes(node.phase)).map((f: any) => f.type)
+            : [];
+          const emits = graph.artifactFlow
+            ? graph.artifactFlow.filter((f: any) => f.emittedBy?.includes(node.phase)).map((f: any) => f.type)
+            : [];
+          const targets = node.targets || [];
+          
+          const footer = `\n\n---\n[GRAPH] phase=${node.phase || 'none'} kind=${node.kind || 'none'} domain=${node.domain || 'none'}\nrequires=[${requires.join(',')}] suggests=[${suggests.join(',')}]\nconsumes=[${consumes.join(',')}] emits=[${emits.join(',')}] targets=[${targets.join(',')}]`;
+          fileContent += footer;
+        }
+      }
+
       const shouldSkipAnalytics = isSkillTrace(undefined, safeSkillName);
 
       let skillCost = 'unknown';
@@ -163,20 +187,20 @@ export class Handlers {
         }
       }
 
-      const fileContent = shouldSkipAnalytics
-        ? rawContent
+      const trackedContent = shouldSkipAnalytics
+        ? fileContent
         : await this.telemetry.withAnalytics(
             safeSkillName,
             actualProjectName,
             model,
             agent,
             skillCost,
-            async () => rawContent,
+            async () => fileContent,
             overrides
           );
 
       return {
-        content: [{ type: 'text', text: fileContent }],
+        content: [{ type: 'text', text: trackedContent }],
         isError: false,
       };
     }
@@ -463,6 +487,57 @@ export class Handlers {
     } catch (e: any) {
       return { isError: true, content: [{ type: 'text', text: e.message }] };
     }
+  }
+
+  async handlePlanPipeline(args: Record<string, unknown>) {
+    const intent = args.intent as string;
+    if (!intent) {
+      return { content: [{ type: 'text', text: 'Error: "intent" is required.' }], isError: true };
+    }
+    const targets = args.targets as string[] | undefined;
+    const domain = args.domain as string | undefined;
+
+    const graph = await this.fsService.loadGraph();
+    if (!graph || !graph.nodes) {
+      return { content: [{ type: 'text', text: 'Error: graph not found.' }], isError: true };
+    }
+
+    const phases = ['intent', 'specify', 'plan', 'build', 'review', 'deploy'];
+    const chain: string[] = [];
+
+    for (const phase of phases) {
+      const candidates = graph.nodes.filter((n: any) => {
+        if (n.phase !== phase) return false;
+        if (domain && n.domain && n.domain !== domain) return false;
+        if (targets && targets.length > 0 && n.targets && n.targets.length > 0) {
+          if (!targets.some((t: string) => n.targets.includes(t))) return false;
+        }
+        return true;
+      });
+
+      if (candidates.length > 0) {
+        const skills = candidates.map((c: any) => c.id).join(', ');
+        const flow = graph.artifactFlow?.find((f: any) => f.emittedBy?.includes(phase));
+        const emitted = flow ? flow.type : 'none';
+        chain.push(`Phase ${phase}: [${skills}] -> emits [${emitted}]`);
+      }
+    }
+
+    const resultText = chain.join('\n');
+    const trackedContent = await this.telemetry.withAnalytics(
+      'plan_pipeline',
+      undefined,
+      undefined,
+      undefined,
+      'unknown',
+      async () => resultText,
+      {}
+    );
+
+    return {
+      content: [{ type: 'text', text: trackedContent }],
+      isError: false,
+    };
   }
 
   async handleReflexionLoop(args: Record<string, any>) {

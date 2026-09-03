@@ -237,6 +237,20 @@ const CREATE_KI_TOOL: Tool = {
   },
 };
 
+const PLAN_PIPELINE_TOOL: Tool = {
+  name: 'plan_pipeline',
+  description: 'Returns the ordered phase->skill chain for a task.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      intent: { type: 'string', description: 'The task intent' },
+      targets: { type: 'array', items: { type: 'string' }, description: 'Target platforms or environments' },
+      domain: { type: 'string', description: 'Domain context' },
+    },
+    required: ['intent'],
+  },
+};
+
 const REFLEXION_LOOP_TOOL: Tool = {
   name: 'reflexion_loop',
   description:
@@ -333,6 +347,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       LIST_KI_TOOL,
       READ_KI_TOOL,
       CREATE_KI_TOOL,
+      PLAN_PIPELINE_TOOL,
       REFLEXION_LOOP_TOOL,
       REFLEXION_LOOP_SUB_MAX_TOOL,
       REFLEXION_LOOP_SUB_PRO_TOOL,
@@ -374,6 +389,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   if (name === 'create_knowledge_item') {
     return await handlers.handleCreateKnowledgeItem(args || {});
+  }
+
+  if (name === 'plan_pipeline') {
+    return await handlers.handlePlanPipeline(args || {});
   }
 
   if (name === 'reflexion_loop') {
