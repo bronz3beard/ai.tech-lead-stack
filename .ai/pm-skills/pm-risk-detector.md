@@ -5,6 +5,18 @@ description:
   Focuses on "Architectural Drift" and "God Object" detection.
 cost: ~650 tokens
 modes: [read-only, mcp]
+surface: public
+phase: review
+kind: skill
+domain: product
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [diff]
+emits: [review-report]
+suggests: [pr-automator, qa-handover-generator]
 ---
 
 # PM Risk Detector (The Warning Signal)

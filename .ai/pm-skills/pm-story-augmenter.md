@@ -5,6 +5,18 @@ description:
   gap between product vision and technical feasibility.
 cost: ~650 tokens
 modes: [read-only, mcp]
+surface: public
+phase: specify
+kind: skill
+domain: product
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [intent-brief]
+emits: [spec]
+suggests: [planning-expert, vertical-slice-decomposer]
 ---
 
 # PM Story Augmenter (The Precision Scraper)

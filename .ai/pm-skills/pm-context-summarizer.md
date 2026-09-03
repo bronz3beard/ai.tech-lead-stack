@@ -5,6 +5,18 @@ description:
   Extracts business value from developer commit logs.
 cost: ~550 tokens
 modes: [read-only, mcp]
+surface: public
+phase: build
+kind: skill
+domain: product
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [plan]
+emits: [diff]
+suggests: [code-review-checklist, pr-automator]
 ---
 
 # PM Context Summarizer (The Briefing Engine)

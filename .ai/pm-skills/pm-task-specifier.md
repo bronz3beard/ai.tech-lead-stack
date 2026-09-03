@@ -5,6 +5,18 @@ description:
   models, API contracts, and schema integrity.
 cost: ~750 tokens
 modes: [read-only, mcp]
+surface: public
+phase: specify
+kind: skill
+domain: product
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [intent-brief]
+emits: [spec]
+suggests: [planning-expert, vertical-slice-decomposer]
 ---
 
 # PM Task Specifier (The Blueprint Drafter)
