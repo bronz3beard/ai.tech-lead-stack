@@ -4,6 +4,19 @@ description:
   Source passive candidates and enrich the pipeline with match-scored prospects.
   Bridges the gap between the JD requirement set and the live talent market.
 cost: ~800 tokens
+modes: [read-only, mcp]
+surface: public
+phase: build
+kind: skill
+domain: hiring
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [plan]
+emits: [diff]
+suggests: [code-review-checklist, pr-automator]
 ---
 
 # HR Candidate Sourcer (The Precision Scout)

@@ -5,6 +5,19 @@ description:
   shortlist of the top 3-5 applicants. Focuses on source fidelity, ranking
   integrity, and a Gemini-driven synthesis pass.
 cost: ~950 tokens
+modes: [read-only, mcp]
+surface: public
+phase: build
+kind: skill
+domain: hiring
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [plan]
+emits: [diff]
+suggests: [code-review-checklist, pr-automator, hr-interview-auditor]
 ---
 
 # HR Endorsement Synthesizer (The Synthesis Engine)

@@ -5,6 +5,18 @@ description:
   internal ATS. Focuses on cross-channel listing parity and verified live
   postings.
 cost: ~700 tokens
+modes: [read-only, mcp]
+surface: public
+phase: deploy
+kind: skill
+domain: hiring
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [review-report]
+emits: [release]
 ---
 
 # HR Ad Distributor (The Channel Publisher)

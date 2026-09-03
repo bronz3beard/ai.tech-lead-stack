@@ -4,6 +4,19 @@ description:
   Evaluate applicants against the requisition scorecard with evidence-backed
   ratings. Focuses on rubric coverage, evidence capture, and bias control.
 cost: ~700 tokens
+modes: [read-only, mcp]
+surface: public
+phase: review
+kind: skill
+domain: hiring
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [diff]
+emits: [review-report]
+suggests: [pr-automator, qa-handover-generator, hr-endorsement-synthesizer]
 ---
 
 # HR Interview Auditor (The Signal Auditor)

@@ -5,6 +5,19 @@ description:
   market-ready Job Description. Focuses on requirement fidelity and inclusive,
   compliant language.
 cost: ~700 tokens
+modes: [read-only, mcp]
+surface: public
+phase: specify
+kind: skill
+domain: hiring
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [intent-brief]
+emits: [spec]
+suggests: [planning-expert, vertical-slice-decomposer]
 ---
 
 # HR JD Drafter (The Role Narrator)

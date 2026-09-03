@@ -4,6 +4,18 @@ description:
   Translate recruitment pipeline activity into clear client status updates.
   Bridges the gap between ATS movement and stakeholder-facing value.
 cost: ~600 tokens
+modes: [read-only, mcp]
+surface: public
+phase: deploy
+kind: skill
+domain: hiring
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [review-report]
+emits: [release]
 ---
 
 # HR Pipeline Translator (The Status Bridge)

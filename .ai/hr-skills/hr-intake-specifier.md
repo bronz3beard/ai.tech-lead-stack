@@ -4,6 +4,19 @@ description:
   Draft high-fidelity requisition intake briefs from new-client kickoff calls.
   Focuses on requirement completeness, role viability, and account context.
 cost: ~800 tokens
+modes: [read-only, mcp]
+surface: public
+phase: specify
+kind: skill
+domain: hiring
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [intent-brief]
+emits: [spec]
+suggests: [planning-expert, vertical-slice-decomposer]
 ---
 
 # HR Intake Specifier (The Requirements Architect)
