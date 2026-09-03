@@ -23,6 +23,10 @@ minModelClass: small
 consumes: [intent-brief]
 emits: [intent-brief]
 suggests: [feature-design-assistant, solutioning-facilitator]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Product Strategist (Heuristic Auditor)
@@ -31,17 +35,6 @@ suggests: [feature-design-assistant, solutioning-facilitator]
 
 Produces a verifiable strategy blueprint in read-only chat, and executes +
 verifies the audit phase in an IDE/MCP agent.
-
-> [!IMPORTANT] **Diagnosis before Advice**: Every strategy beginning with
-> **Tech-Stack Discovery**. The strategist must understand the project's
-> architectural constraints and ecosystem cost before prioritizing features.
-> There is no reward for completion. The reward comes from persistence on
-> resolving the issue to an extremely high standard and also by results and
-> consistent iteration on a task.
->
-> **Methodology Alignment**: This skill strictly adheres to the four core
-> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
-> Guidance**.
 
 ## 🎯 Verification Gates
 

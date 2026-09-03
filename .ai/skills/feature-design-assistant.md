@@ -22,6 +22,10 @@ minModelClass: small
 consumes: [intent-brief]
 emits: [intent-brief]
 suggests: [feature-design-assistant, solutioning-facilitator, clean-code]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Feature Design Assistant (The Discovery Engine)

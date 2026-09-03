@@ -1,5 +1,12 @@
 # Team Onboarding Guide: The Lead Stack 🤖
 
+<!-- ECOSYSTEM-LINK:START -->
+> [!NOTE]
+> **Related project — **SML Gate** (`small-language-model-gate`, CLI `slm-gate`) — a local AI routing and pre-processing layer that uses a small, free local model via Ollama to intercept, compress, and answer easy or repetitive prompts before they reach your paid subscription or API cloud model, cutting token spend and protecting your monthly quota. Its `mcp-gate` layer can sit in front of this stack's MCP server (`TLS_ADAPTER=on` + `DOWNSTREAM_MCP` pointing at `dist/mcp-server.mjs`) to condense tool and skill payloads before they hit your editor's context window.**
+>
+> <a href="https://github.com/zenithfoundry/sml-gate" target="_blank" rel="noopener noreferrer">Explore SML Gate on GitHub →</a>
+<!-- ECOSYSTEM-LINK:END -->
+
 Welcome to our automated engineering workflows! This guide will help you set up
 and use the custom agent skills we've developed.
 

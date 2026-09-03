@@ -22,6 +22,10 @@ minModelClass: small
 consumes: [diff]
 emits: [review-report]
 suggests: [pr-automator, qa-handover-generator]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Pre-Commit QA Checklist (The Fast Review)

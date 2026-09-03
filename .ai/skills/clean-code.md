@@ -23,6 +23,10 @@ minModelClass: small
 consumes: [plan]
 emits: [diff]
 suggests: [code-review-checklist, pr-automator, planning-expert]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Clean Code & SOLID Auditor

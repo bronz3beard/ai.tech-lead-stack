@@ -29,6 +29,10 @@ consumes: [review-report]
 emits: [release]
 requires: [visual-verifier]
 suggests: [ask]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # PR Automator

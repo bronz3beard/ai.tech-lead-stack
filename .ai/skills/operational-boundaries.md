@@ -15,6 +15,8 @@ ownership:
 targets: [local, api, subscription]
 minModelClass: small
 suggests: [visual-verifier]
+policies:
+  - user-sovereignty
 ---
 
 # Operational Boundaries: Focus & Integrity Guardrails

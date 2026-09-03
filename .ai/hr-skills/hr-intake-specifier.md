@@ -17,6 +17,8 @@ minModelClass: small
 consumes: [intent-brief]
 emits: [spec]
 suggests: [planning-expert, vertical-slice-decomposer]
+policies:
+  - user-sovereignty
 ---
 
 # HR Intake Specifier (The Requirements Architect)

@@ -17,6 +17,8 @@ minModelClass: small
 consumes: [diff]
 emits: [review-report]
 suggests: [pr-automator, qa-handover-generator, hr-endorsement-synthesizer]
+policies:
+  - user-sovereignty
 ---
 
 # HR Interview Auditor (The Signal Auditor)

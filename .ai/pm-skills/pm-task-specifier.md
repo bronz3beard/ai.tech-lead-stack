@@ -17,6 +17,9 @@ minModelClass: small
 consumes: [intent-brief]
 emits: [spec]
 suggests: [planning-expert, vertical-slice-decomposer]
+policies:
+  - user-sovereignty
+  - diagnosis-first
 ---
 
 # PM Task Specifier (The Blueprint Drafter)

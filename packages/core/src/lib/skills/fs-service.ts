@@ -19,6 +19,8 @@ export class FileSystemService implements CodeProvider {
   /** Root of the caller's project (not the tech-lead-stack repo itself). Null when cwd IS the tech-lead-stack. */
   private clientProjectRoot: string | null;
   private repoRoot: string;
+  private repoPoliciesDir: string;
+  private policyCache: Map<string, string> = new Map();
   private graph: unknown = null;
 
   constructor(repoRoot: string, clientProjectRoot: string | null = null) {
@@ -50,6 +52,7 @@ export class FileSystemService implements CodeProvider {
       '.agents',
       'hr-workflows'
     );
+    this.repoPoliciesDir = path.join(resolvedRoot, '.ai', 'policies');
     this.clientProjectRoot = clientProjectRoot;
   }
 
@@ -283,6 +286,56 @@ export class FileSystemService implements CodeProvider {
       }
     }
     return null;
+  }
+
+  /**
+   * Reads a specific policy file content. Uses a cache.
+   */
+  async readPolicy(name: string): Promise<string | null> {
+    if (this.policyCache.has(name)) {
+      return this.policyCache.get(name)!;
+    }
+
+    const searchDirs = [];
+    if (this.clientProjectRoot) {
+      searchDirs.push(path.join(this.clientProjectRoot, '.ai', 'policies'));
+    }
+    searchDirs.push(this.repoPoliciesDir);
+
+    for (const dir of searchDirs) {
+      const fullPath = path.join(/*turbopackIgnore: true*/ dir, `${name}.md`);
+      try {
+        const content = await fs.readFile(fullPath, 'utf-8');
+        this.policyCache.set(name, content);
+        return content;
+      } catch {
+        // Continue to fallback
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Given an array of policy names (from skill frontmatter), resolves and concatenates their contents.
+   */
+  async resolvePolicies(policyNames: string[] | undefined): Promise<string> {
+    if (!policyNames || !Array.isArray(policyNames) || policyNames.length === 0) {
+      return '';
+    }
+
+    const uniquePolicies = [...new Set(policyNames)];
+    const contents: string[] = [];
+    
+    for (const name of uniquePolicies) {
+      const text = await this.readPolicy(name);
+      if (text) {
+        contents.push(text.trim());
+      } else {
+        console.error(`[FileSystemService] Warning: Policy '${name}' not found.`);
+      }
+    }
+
+    return contents.join('\n\n');
   }
 
   /**

@@ -21,6 +21,10 @@ ownership:
 targets: [api, subscription]
 minModelClass: large
 suggests: [planning-expert, regression-bug-fix, verification-auditor]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Mission Architect (The Master Engine)
@@ -29,14 +33,6 @@ suggests: [planning-expert, regression-bug-fix, verification-auditor]
 
 Produces a verifiable mission blueprint in read-only chat, and executes +
 verifies the strategic phase in an IDE/MCP agent.
-
-> [!IMPORTANT] **User Sovereignty & Persistence**: The reward comes from
-> persistence on resolving the issue to an extremely high standard. We advise;
-> the User Tech-Lead decides.
->
-> **Methodology Alignment**: This skill strictly adheres to the four core
-> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
-> Guidance**.
 
 ## 🎯 Master Orchestration Pipeline
 

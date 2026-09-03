@@ -17,6 +17,9 @@ minModelClass: small
 consumes: [diff]
 emits: [review-report]
 suggests: [pr-automator, qa-handover-generator]
+policies:
+  - user-sovereignty
+  - diagnosis-first
 ---
 
 # PM Risk Detector (The Warning Signal)

@@ -18,6 +18,8 @@ minModelClass: small
 consumes: [plan]
 emits: [diff]
 suggests: [code-review-checklist, pr-automator, hr-interview-auditor]
+policies:
+  - user-sovereignty
 ---
 
 # HR Endorsement Synthesizer (The Synthesis Engine)

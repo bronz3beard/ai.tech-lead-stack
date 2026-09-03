@@ -17,6 +17,8 @@ minModelClass: small
 consumes: [plan]
 emits: [diff]
 suggests: [code-review-checklist, pr-automator]
+policies:
+  - user-sovereignty
 ---
 
 # HR Candidate Sourcer (The Precision Scout)

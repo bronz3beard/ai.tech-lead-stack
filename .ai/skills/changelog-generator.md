@@ -21,6 +21,10 @@ targets: [local, api, subscription]
 minModelClass: small
 consumes: [review-report]
 emits: [release]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Changelog Generator (Semantic Processor)

@@ -32,6 +32,10 @@ suggests:
     vertical-slice-decomposer,
     visual-verifier,
   ]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Dev Team Orchestrator (The Agentic Crew)

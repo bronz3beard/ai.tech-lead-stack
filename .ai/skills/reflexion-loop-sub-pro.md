@@ -26,6 +26,10 @@ consumes: [spec]
 emits: [plan]
 suggests:
   [clean-code, regression-bug-fix, reflexion-loop-sub-max, reflexion-loop]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Reflexion Loop ($20/mo Tier - No API Keys)

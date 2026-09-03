@@ -32,6 +32,10 @@ suggests:
     reflexion-loop-sub-pro,
     vertical-slice-decomposer,
   ]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Reflexion Loop (Special Feature)

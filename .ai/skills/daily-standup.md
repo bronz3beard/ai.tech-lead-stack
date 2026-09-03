@@ -22,6 +22,8 @@ targets: [local, api, subscription]
 minModelClass: small
 consumes: [review-report]
 emits: [release]
+policies:
+  - user-sovereignty
 ---
 
 # Daily Standup Report

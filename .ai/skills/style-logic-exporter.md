@@ -19,6 +19,10 @@ ownership:
   approve: human
 targets: [local, api, subscription]
 minModelClass: small
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Style Logic Exporter (The Design Bridge)

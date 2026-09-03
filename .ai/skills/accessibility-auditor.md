@@ -23,6 +23,10 @@ minModelClass: small
 consumes: [diff]
 emits: [review-report]
 suggests: [pr-automator, qa-handover-generator, mission-architect]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Accessibility Auditor (The Inclusive Designer)
@@ -31,14 +35,6 @@ suggests: [pr-automator, qa-handover-generator, mission-architect]
 
 Produces a verifiable accessibility blueprint in read-only chat, and executes +
 verifies the audit phase in an IDE/MCP agent.
-
-> [!TIP] **Methodology Alignment**: This skill follows the **G-Stack Ethos** and
-> **Modern Web Guidance** of "Diagnosis before Advice." We prioritize deep
-> analysis before proposing remediation.
->
-> **Methodology Alignment**: This skill strictly adheres to the four core
-> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
-> Guidance**.
 
 ## 🎯 Strategic Workflow
 

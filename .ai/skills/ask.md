@@ -26,6 +26,10 @@ minModelClass: small
 consumes: [intent-brief]
 emits: [intent-brief]
 suggests: [feature-design-assistant, solutioning-facilitator]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Codebase Consultant (The Advisor)

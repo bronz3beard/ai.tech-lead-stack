@@ -27,6 +27,10 @@ suggests:
     planning-expert,
     vertical-slice-decomposer,
   ]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Competitive Analysis (Self-Improvement Flywheel)

@@ -17,6 +17,9 @@ minModelClass: small
 consumes: [plan]
 emits: [diff]
 suggests: [code-review-checklist, pr-automator]
+policies:
+  - user-sovereignty
+  - diagnosis-first
 ---
 
 # PM Context Summarizer (The Briefing Engine)

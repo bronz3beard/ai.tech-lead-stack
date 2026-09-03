@@ -16,6 +16,9 @@ targets: [local, api, subscription]
 minModelClass: small
 consumes: [review-report]
 emits: [release]
+policies:
+  - user-sovereignty
+  - diagnosis-first
 ---
 
 # PM Progress Translator (The Value Bridge)

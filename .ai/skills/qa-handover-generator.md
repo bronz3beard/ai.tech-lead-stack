@@ -29,6 +29,10 @@ targets: [local, api, subscription]
 minModelClass: small
 consumes: [review-report]
 emits: [release]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # QA Handover Generator
@@ -44,18 +48,6 @@ comes from a handover accurate enough that a QA engineer — or an agent ingesti
 it — can derive correct acceptance criteria without re-reading the source.
 Persist until the architecture split and the single-source-of-truth per pattern
 are stated correctly and render correctly in ClickUp.
-
-> [!IMPORTANT] **Diagnosis before Advice**: Every handover begins with
-> **Architecture Discovery**. Identify how the feature actually manages state
-> (server-driven vs client/in-memory, which hook/query owns the source of truth,
-> where filtering executes) BEFORE writing any smoke-test criteria. A handover
-> built from assumption instead of the real code is a failed handover.
->
-> **Methodology Alignment**: This skill strictly adheres to the four core
-> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
-> Guidance**.
-
-<!-- -->
 
 > [!CAUTION] **ClickUp formatting is NOT hand-rolled.** All ClickUp output MUST
 > be produced via the shared module `scripts/clickup-format.ts` (headings, bold,

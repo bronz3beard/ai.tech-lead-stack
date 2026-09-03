@@ -16,6 +16,10 @@ ownership:
   approve: human
 targets: [api, subscription]
 minModelClass: large
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Mission Control (Pre-Flight Check)

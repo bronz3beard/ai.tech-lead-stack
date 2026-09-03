@@ -17,6 +17,8 @@ targets: [local, api, subscription]
 minModelClass: small
 consumes: [review-report]
 emits: [release]
+policies:
+  - user-sovereignty
 ---
 
 # HR Ad Distributor (The Channel Publisher)

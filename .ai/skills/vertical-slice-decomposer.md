@@ -36,6 +36,10 @@ suggests:
     style-logic-exporter,
     ui-spec-generator,
   ]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Vertical Slice Decomposer (The Corridor Cutter)

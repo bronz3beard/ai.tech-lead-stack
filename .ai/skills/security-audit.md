@@ -23,6 +23,10 @@ minModelClass: small
 consumes: [diff]
 emits: [review-report]
 suggests: [pr-automator, qa-handover-generator]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Universal Agent Security Audit
@@ -31,14 +35,6 @@ suggests: [pr-automator, qa-handover-generator]
 
 Produces a verifiable security blueprint in read-only chat, and executes +
 verifies the audit phase in an IDE/MCP agent.
-
-> [!IMPORTANT] **Diagnosis before Advice**: Every audit begins with **Tech-Stack
-> Discovery**. The auditor must understand the project's native exfiltration
-> sinks and secret storage patterns.
->
-> **Methodology Alignment**: This skill strictly adheres to the four core
-> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
-> Guidance**.
 
 ## 🎯 Verification Gates
 

@@ -36,6 +36,10 @@ suggests:
     planning-expert,
     vertical-slice-decomposer,
   ]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Planning Expert (The G-Stack Runner)

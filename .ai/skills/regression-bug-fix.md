@@ -24,6 +24,10 @@ consumes: [plan]
 emits: [diff]
 requires: [code-review-checklist]
 suggests: [code-review-checklist, pr-automator, mission-architect]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Regression & Feedback Fix (The Remedy Engine)
@@ -32,14 +36,6 @@ suggests: [code-review-checklist, pr-automator, mission-architect]
 
 Produces a verifiable regression blueprint in read-only chat, and executes +
 verifies the fix phase in an IDE/MCP agent.
-
-> [!IMPORTANT] **Diagnosis before Advice**: Every fix begins with **Tech-Stack
-> Discovery**. Deep research into the original requirement is the ONLY way to
-> prevent regression of the fix.
->
-> **Methodology Alignment**: This skill strictly adheres to the four core
-> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
-> Guidance**.
 
 ## 🎯 Unified Remediation Loop
 

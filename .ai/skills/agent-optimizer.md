@@ -16,6 +16,8 @@ ownership:
 targets: [local, api, subscription]
 minModelClass: small
 suggests: [mission-architect]
+policies:
+  - user-sovereignty
 ---
 
 # Agent Optimizer (The Noise Filter)

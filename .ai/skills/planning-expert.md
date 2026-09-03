@@ -39,6 +39,10 @@ suggests:
     feature-orchestrator,
     vertical-slice-decomposer,
   ]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Planning Expert (The Sovereign Zenith)

@@ -15,6 +15,8 @@ ownership:
   approve: human
 targets: [local, api, subscription]
 minModelClass: small
+policies:
+  - user-sovereignty
 ---
 
 # Knowledge Manager

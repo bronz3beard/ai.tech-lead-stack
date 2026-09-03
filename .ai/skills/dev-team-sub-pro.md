@@ -32,6 +32,10 @@ suggests:
     reflexion-loop,
     vertical-slice-decomposer,
   ]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Dev Team Orchestrator — Sub-Pro Tier ($20/mo)

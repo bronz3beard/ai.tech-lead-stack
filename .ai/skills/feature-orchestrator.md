@@ -40,6 +40,10 @@ suggests:
     vertical-slice-decomposer,
     visual-verifier,
   ]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Feature Orchestrator (The Three-Phase Engine)

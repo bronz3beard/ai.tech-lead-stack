@@ -20,6 +20,10 @@ ownership:
 targets: [local, api, subscription]
 minModelClass: small
 suggests: [clean-code]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Technical Debt Auditor (Health Scanner)
@@ -28,14 +32,6 @@ suggests: [clean-code]
 
 Produces a verifiable technical debt blueprint in read-only chat, and executes +
 verifies the audit phase in an IDE/MCP agent.
-
-> [!IMPORTANT] **Diagnosis before Advice**: Every audit begins with **Tech-Stack
-> Discovery**. The auditor must understand the project's native maintenance
-> standards before identifying debt.
->
-> **Methodology Alignment**: This skill strictly adheres to the four core
-> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
-> Guidance**.
 
 ## 🎯 Verification Gates
 

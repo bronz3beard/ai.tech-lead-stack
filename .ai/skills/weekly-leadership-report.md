@@ -18,6 +18,8 @@ minModelClass: small
 consumes: [review-report]
 emits: [release]
 suggests: [ask]
+policies:
+  - user-sovereignty
 ---
 
 # Weekly Leadership Report

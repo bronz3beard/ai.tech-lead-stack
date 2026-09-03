@@ -20,6 +20,10 @@ consumes: [diff]
 emits: [review-report]
 requires: [accessibility-auditor, style-logic-exporter]
 suggests: [pr-automator, qa-handover-generator, visual-verifier]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Design System Review (Iteration Guard)

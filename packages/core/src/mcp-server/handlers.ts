@@ -158,6 +158,14 @@ export class Handlers {
         }
       }
 
+      const parsed = matter(rawContent);
+      if (Array.isArray(parsed.data?.policies)) {
+        const policyText = await this.fsService.resolvePolicies(parsed.data.policies);
+        if (policyText) {
+          fileContent += `\n\n---\n## Injected policies\n${policyText}`;
+        }
+      }
+
       const shouldSkipAnalytics = isSkillTrace(undefined, safeSkillName);
 
       let skillCost = 'unknown';

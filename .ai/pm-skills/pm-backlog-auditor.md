@@ -14,6 +14,9 @@ ownership:
   approve: human
 targets: [local, api, subscription]
 minModelClass: small
+policies:
+  - user-sovereignty
+  - diagnosis-first
 ---
 
 # PM Backlog Auditor (The Logic Gate)

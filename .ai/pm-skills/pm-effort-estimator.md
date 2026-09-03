@@ -17,6 +17,9 @@ minModelClass: small
 consumes: [spec]
 emits: [plan]
 suggests: [clean-code, regression-bug-fix]
+policies:
+  - user-sovereignty
+  - diagnosis-first
 ---
 
 # PM Effort Estimator (The Historical Oracle)

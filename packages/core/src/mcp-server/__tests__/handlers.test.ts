@@ -180,6 +180,31 @@ describe('Handlers.handleReflexionLoop project model routing', () => {
       expect(text).toContain('targets=[api]');
     });
 
+    it('appends injected policies when present in frontmatter', async () => {
+      const mockFsService = new FileSystemService('root') as jest.Mocked<FileSystemService>;
+      const mockTelemetry = new Telemetry() as jest.Mocked<Telemetry>;
+      const mockKiService = new KiService() as jest.Mocked<KiService>;
+      const mockAlignmentService = new AlignmentService('root') as jest.Mocked<AlignmentService>;
+
+      mockFsService.readSkill.mockResolvedValue({
+        content: '---\npolicies: [four-pillars]\n---\nSkill content',
+        path: '/test.md'
+      });
+      mockFsService.loadGraph.mockResolvedValue({ nodes: [] });
+      mockFsService.resolvePolicies.mockResolvedValue('> **Methodology Alignment**: test pillars');
+
+      mockTelemetry.withAnalytics.mockImplementation(async (a, b, c, d, e, cb) => cb());
+
+      const handlers = new Handlers(mockFsService, mockTelemetry, mockAlignmentService, mockKiService);
+      const res = await handlers.handleGetSkill('get_test_skill', { skillName: 'test-skill' });
+      
+      expect(res.isError).toBeFalsy();
+      const text = res.content[0].text;
+      expect(text).toContain('## Injected policies');
+      expect(text).toContain('> **Methodology Alignment**: test pillars');
+      expect(mockFsService.resolvePolicies).toHaveBeenCalledWith(['four-pillars']);
+    });
+
     it('returns ordered phases from plan_pipeline', async () => {
       const mockFsService = new FileSystemService('root') as jest.Mocked<FileSystemService>;
       const mockTelemetry = new Telemetry() as jest.Mocked<Telemetry>;
