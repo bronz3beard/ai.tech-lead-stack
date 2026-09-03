@@ -17,6 +17,23 @@ how:
 useCase:
   'Multi-lane parallel feature orchestration on a high-tier ($100/mo)
   subscription without API keys'
+kind: orchestrator
+domain: eng
+spans: [intent, specify, plan, build, maintain, review, deploy]
+ownership:
+  drive: human-ai
+  approve: human
+targets: [api, subscription]
+minModelClass: large
+suggests:
+  [
+    dev-team-orchestrator,
+    dev-team-sub-pro,
+    mission-architect,
+    reflexion-loop-sub-max,
+    reflexion-loop,
+    visual-verifier,
+  ]
 ---
 
 # Dev Team Orchestrator — Sub-Max Tier ($100/mo)

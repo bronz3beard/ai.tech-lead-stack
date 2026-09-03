@@ -12,6 +12,17 @@ how:
   'Static analysis via `grep`, visual scrutiny of CSS, and read-only runtime DOM
   inspection.'
 useCase: 'Ensuring WCAG 2.1 compliance and multi-viewport accessibility.'
+phase: review
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [diff]
+emits: [review-report]
+suggests: [pr-automator, qa-handover-generator, mission-architect]
 ---
 
 # Accessibility Auditor (The Inclusive Designer)

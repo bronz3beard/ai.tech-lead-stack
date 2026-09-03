@@ -7,6 +7,17 @@ description: >
 cost: ~1500 tokens
 modes: [read-only, mcp]
 surface: internal
+phase: review
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [diff]
+emits: [review-report]
+suggests: [pr-automator, qa-handover-generator, clean-code, security-audit]
 ---
 
 # Verification Auditor (The Master Auditor)

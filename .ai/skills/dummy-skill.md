@@ -4,6 +4,13 @@ description: A dummy skill for testing
 cost: ~0 tokens
 modes: [read-only, mcp]
 surface: internal
+kind: skill
+domain: shared
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
 ---
 
 # Dummy Skill

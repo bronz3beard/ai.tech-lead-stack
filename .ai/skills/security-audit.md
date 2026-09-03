@@ -12,6 +12,17 @@ how:
   `eval()`).'
 useCase:
   'Running on agent-generated scripts to ensure no backdoors are introduced.'
+phase: review
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [diff]
+emits: [review-report]
+suggests: [pr-automator, qa-handover-generator]
 ---
 
 # Universal Agent Security Audit

@@ -18,6 +18,24 @@ how:
 useCase:
   'Turning brownfield/greenfield stories and designs into 2-day, dark-releasable
   slices under Trunk-Based Development.'
+phase: plan
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [spec]
+emits: [plan]
+suggests:
+  [
+    clean-code,
+    regression-bug-fix,
+    operational-boundaries,
+    style-logic-exporter,
+    ui-spec-generator,
+  ]
 ---
 
 # Vertical Slice Decomposer (The Corridor Cutter)

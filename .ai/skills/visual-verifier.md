@@ -11,6 +11,15 @@ how:
   'Runs local app via Playwright and captures Desktop/Mobile screenshots for the
   PR body.'
 useCase: 'Proving that a CSS fix works as intended across different viewports.'
+phase: polish
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+suggests: [design-system-review]
 ---
 
 # Visual Verifier

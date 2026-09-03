@@ -6,6 +6,15 @@ internal: true
 cost: ~400 tokens
 modes: [read-only, mcp]
 surface: internal
+phase: maintain
+kind: policy
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+suggests: [visual-verifier]
 ---
 
 # Operational Boundaries: Focus & Integrity Guardrails

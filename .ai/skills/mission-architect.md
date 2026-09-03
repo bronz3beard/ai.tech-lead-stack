@@ -12,6 +12,15 @@ how:
   planning via `planning-expert`.'
 useCase:
   'Designing and executing a major architectural change or multi-file feature.'
+kind: orchestrator
+domain: eng
+spans: [intent, specify, plan, build, maintain, review, deploy]
+ownership:
+  drive: human-ai
+  approve: human
+targets: [api, subscription]
+minModelClass: large
+suggests: [planning-expert, regression-bug-fix, verification-auditor]
 ---
 
 # Mission Architect (The Master Engine)

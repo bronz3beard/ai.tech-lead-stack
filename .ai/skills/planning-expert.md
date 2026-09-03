@@ -20,6 +20,25 @@ how:
 useCase:
   'Breaking down complex Jira tickets or architectural refactors into
   test-driven steps.'
+phase: plan
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [spec]
+emits: [plan]
+requires: [pr-automator]
+suggests:
+  [
+    clean-code,
+    regression-bug-fix,
+    ask,
+    feature-orchestrator,
+    vertical-slice-decomposer,
+  ]
 ---
 
 # Planning Expert (The Sovereign Zenith)

@@ -12,6 +12,18 @@ how:
   verifies the fix against regressions.'
 useCase:
   'Fixing "Login button misaligned" or "API returning 500" after a QA pass.'
+phase: build
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [plan]
+emits: [diff]
+requires: [code-review-checklist]
+suggests: [code-review-checklist, pr-automator, mission-architect]
 ---
 
 # Regression & Feedback Fix (The Remedy Engine)

@@ -16,6 +16,22 @@ how:
 useCase:
   'Frugal single-lane feature orchestration on a standard ($20/mo) subscription
   without API keys'
+kind: orchestrator
+domain: eng
+spans: [intent, specify, plan, build, maintain, review, deploy]
+ownership:
+  drive: human-ai
+  approve: human
+targets: [api, subscription]
+minModelClass: large
+suggests:
+  [
+    dev-team-orchestrator,
+    dev-team-sub-max,
+    reflexion-loop-sub-pro,
+    reflexion-loop,
+    vertical-slice-decomposer,
+  ]
 ---
 
 # Dev Team Orchestrator — Sub-Pro Tier ($20/mo)

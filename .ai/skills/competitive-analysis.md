@@ -9,6 +9,24 @@ cost: ~850 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Discover & Define
+phase: intent
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [intent-brief]
+emits: [intent-brief]
+requires: [reflexion-loop]
+suggests:
+  [
+    feature-design-assistant,
+    solutioning-facilitator,
+    planning-expert,
+    vertical-slice-decomposer,
+  ]
 ---
 
 # Competitive Analysis (Self-Improvement Flywheel)

@@ -7,6 +7,17 @@ cost: ~1200 tokens
 modes: [read-only, write]
 surface: public
 category: Ship & Communicate
+phase: deploy
+kind: report
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [review-report]
+emits: [release]
+suggests: [ask]
 ---
 
 # Weekly Leadership Report

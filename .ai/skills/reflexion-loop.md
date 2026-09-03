@@ -13,6 +13,25 @@ cost: ~1000 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Plan & Harden
+phase: plan
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [spec]
+emits: [plan]
+suggests:
+  [
+    clean-code,
+    regression-bug-fix,
+    planning-expert,
+    reflexion-loop-sub-max,
+    reflexion-loop-sub-pro,
+    vertical-slice-decomposer,
+  ]
 ---
 
 # Reflexion Loop (Special Feature)

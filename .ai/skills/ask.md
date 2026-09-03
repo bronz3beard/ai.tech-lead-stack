@@ -15,6 +15,17 @@ how:
   'Diagnostic research via Phase 0 discovery, followed by high-density technical
   advice and snippets.'
 useCase: 'Q&A about the codebase or "How would I change this?" queries.'
+phase: intent
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [intent-brief]
+emits: [intent-brief]
+suggests: [feature-design-assistant, solutioning-facilitator]
 ---
 
 # Codebase Consultant (The Advisor)

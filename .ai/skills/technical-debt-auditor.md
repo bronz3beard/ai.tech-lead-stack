@@ -11,6 +11,15 @@ how:
   'Metrics-driven analysis combined with G-Stack methodology to prioritize
   refactoring tasks.'
 useCase: 'Routine codebase maintenance and pre-refactoring audits.'
+phase: maintain
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+suggests: [clean-code]
 ---
 
 # Technical Debt Auditor (Health Scanner)

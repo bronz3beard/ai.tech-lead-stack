@@ -11,6 +11,17 @@ how:
   'Discovers existing patterns and generates technical specs before the first
   line of code is written.'
 useCase: 'High-level ideation for a new service or module.'
+phase: intent
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [intent-brief]
+emits: [intent-brief]
+suggests: [feature-design-assistant, solutioning-facilitator, clean-code]
 ---
 
 # Feature Design Assistant (The Discovery Engine)

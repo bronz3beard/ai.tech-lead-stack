@@ -7,6 +7,17 @@ cost: ~850 tokens
 modes: [read-only, mcp]
 surface: public
 category: Design & UI
+phase: specify
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [intent-brief]
+emits: [spec]
+suggests: [planning-expert, vertical-slice-decomposer]
 ---
 
 # UI Spec Generator (The Skeleton Engine)

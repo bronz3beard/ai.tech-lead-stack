@@ -11,6 +11,17 @@ how:
   'Analyzes local diffs against 4 gates (Spec, SOLID, A11y, Evidence), ensuring
   zero `any` types and compliance.'
 useCase: 'Rapid local verification before running `rtk run create-pr`.'
+phase: review
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [diff]
+emits: [review-report]
+suggests: [pr-automator, qa-handover-generator]
 ---
 
 # Pre-Commit QA Checklist (The Fast Review)

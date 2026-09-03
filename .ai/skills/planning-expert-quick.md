@@ -17,6 +17,25 @@ how:
   execution cycle.'
 useCase:
   'Common, less complex, lite-weight tasks where velocity is the priority.'
+phase: plan
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [spec]
+emits: [plan]
+requires: [pr-automator]
+suggests:
+  [
+    clean-code,
+    regression-bug-fix,
+    ask,
+    planning-expert,
+    vertical-slice-decomposer,
+  ]
 ---
 
 # Planning Expert (The G-Stack Runner)

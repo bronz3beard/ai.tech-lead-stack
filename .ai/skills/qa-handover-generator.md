@@ -19,6 +19,16 @@ how:
 useCase:
   'Generating high-fidelity QA handovers and smoke test checklists for
   developers and automated testing agents.'
+phase: deploy
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [review-report]
+emits: [release]
 ---
 
 # QA Handover Generator

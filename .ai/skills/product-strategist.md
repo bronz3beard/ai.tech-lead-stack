@@ -12,6 +12,17 @@ how:
   'Scans metrics and positioning to ensure current implementation work maps to
   high-ROI customer goals.'
 useCase: 'Auditing a proposed feature list against the core product vision.'
+phase: intent
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [intent-brief]
+emits: [intent-brief]
+suggests: [feature-design-assistant, solutioning-facilitator]
 ---
 
 # Product Strategist (Heuristic Auditor)

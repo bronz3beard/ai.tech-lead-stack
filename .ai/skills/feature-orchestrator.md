@@ -18,6 +18,28 @@ how:
 useCase:
   'Use from the feature-discovery chat to drive a single-feature change
   end-to-end in the sandbox app.'
+kind: orchestrator
+domain: eng
+spans: [intent, specify, plan, build, maintain, review, deploy]
+ownership:
+  drive: human-ai
+  approve: human
+targets: [api, subscription]
+minModelClass: large
+requires: [feature-design-assistant]
+suggests:
+  [
+    code-review-checklist,
+    design-system-review,
+    mission-architect,
+    operational-boundaries,
+    planning-expert,
+    regression-bug-fix,
+    ui-spec-generator,
+    verification-auditor,
+    vertical-slice-decomposer,
+    visual-verifier,
+  ]
 ---
 
 # Feature Orchestrator (The Three-Phase Engine)

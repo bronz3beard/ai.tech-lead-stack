@@ -9,6 +9,29 @@ cost: ~2600 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Orchestrators
+kind: orchestrator
+domain: eng
+spans: [intent, specify, plan, build, maintain, review, deploy]
+ownership:
+  drive: human-ai
+  approve: human
+targets: [api, subscription]
+minModelClass: large
+requires: [design-system-review, reflexion-loop]
+suggests:
+  [
+    accessibility-auditor,
+    ask,
+    code-review-checklist,
+    dev-team-sub-max,
+    dev-team-sub-pro,
+    feature-design-assistant,
+    mission-architect,
+    planning-expert,
+    verification-auditor,
+    vertical-slice-decomposer,
+    visual-verifier,
+  ]
 ---
 
 # Dev Team Orchestrator (The Agentic Crew)

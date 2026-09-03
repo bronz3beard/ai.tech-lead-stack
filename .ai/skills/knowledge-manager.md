@@ -7,6 +7,14 @@ cost: ~450 tokens
 modes: [read-only, write, mcp]
 surface: internal
 internal: true
+phase: maintain
+kind: policy
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
 ---
 
 # Knowledge Manager

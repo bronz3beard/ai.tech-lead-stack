@@ -12,6 +12,17 @@ how:
   colocation of code.'
 useCase:
   'Checking a new feature branch before merging to prevent technical debt.'
+phase: build
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [plan]
+emits: [diff]
+suggests: [code-review-checklist, pr-automator, planning-expert]
 ---
 
 # Clean Code & SOLID Auditor

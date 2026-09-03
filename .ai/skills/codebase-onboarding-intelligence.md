@@ -7,6 +7,14 @@ cost: ~1100 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Discover & Define
+phase: maintain
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
 ---
 
 # Codebase Onboarding Intelligence (The Master Discovery)
