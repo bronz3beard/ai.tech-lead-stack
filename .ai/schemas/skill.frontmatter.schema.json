@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Skill Frontmatter",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "cost": {
+      "type": "string",
+      "pattern": "^~[0-9]+\\s+tokens$"
+    },
+    "modes": {
+      "type": "array",
+      "items": {
+        "enum": ["read-only", "write", "mcp"]
+      },
+      "contains": {
+        "const": "read-only"
+      }
+    },
+    "surface": {
+      "type": "string",
+      "enum": ["public", "internal"]
+    },
+    "category": {
+      "type": "string"
+    },
+    "how": {
+      "type": "string"
+    },
+    "useCase": {
+      "type": "string"
+    },
+    "phase": {
+      "type": "string",
+      "enum": [
+        "intent",
+        "specify",
+        "plan",
+        "build",
+        "maintain",
+        "review",
+        "scale",
+        "deploy",
+        "polish"
+      ]
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["skill", "orchestrator", "policy", "report"],
+      "default": "skill"
+    },
+    "domain": {
+      "type": "string",
+      "enum": ["eng", "product", "hiring", "shared"]
+    },
+    "spans": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "intent",
+          "specify",
+          "plan",
+          "build",
+          "maintain",
+          "review",
+          "scale",
+          "deploy",
+          "polish"
+        ]
+      }
+    },
+    "ownership": {
+      "type": "object",
+      "properties": {
+        "drive": {
+          "type": "string",
+          "enum": ["human", "ai", "human-ai"]
+        },
+        "approve": {
+          "type": "string",
+          "enum": ["human", "ai", "none"]
+        },
+        "escalate": {
+          "type": "string",
+          "enum": ["human", "ai", "none"]
+        }
+      },
+      "required": ["drive", "approve"],
+      "additionalProperties": false
+    },
+    "targets": {
+      "type": "array",
+      "items": {
+        "enum": ["local", "subscription", "api"]
+      },
+      "default": ["local", "subscription", "api"]
+    },
+    "minModelClass": {
+      "type": "string",
+      "enum": ["small", "mid", "large"],
+      "default": "mid"
+    },
+    "consumes": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "intent-brief",
+          "spec",
+          "plan",
+          "slice-set",
+          "diff",
+          "evidence",
+          "review-report",
+          "qa-handover",
+          "changelog",
+          "release",
+          "design-tokens",
+          "screenshot-set",
+          "kb-item"
+        ]
+      }
+    },
+    "emits": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "intent-brief",
+          "spec",
+          "plan",
+          "slice-set",
+          "diff",
+          "evidence",
+          "review-report",
+          "qa-handover",
+          "changelog",
+          "release",
+          "design-tokens",
+          "screenshot-set",
+          "kb-item"
+        ]
+      }
+    },
+    "requires": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "suggests": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": ["name", "description", "cost", "modes", "surface"]
+}

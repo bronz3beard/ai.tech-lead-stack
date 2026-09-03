@@ -4,10 +4,44 @@ import matter from 'gray-matter';
 import { z } from 'zod';
 import * as prettier from 'prettier';
 
-const skillsDir = path.join(process.cwd(), '.ai/skills');
-const workflowsDir = path.join(process.cwd(), '.agents/workflows');
-const manifestFile = path.join(process.cwd(), '.ai/cursor-skills.manifest');
-const readmeFile = path.join(process.cwd(), 'README.md');
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootDir = path.resolve(__dirname, '../../../');
+
+const skillsDir = path.join(rootDir, '.ai/skills');
+const workflowsDir = path.join(rootDir, '.agents/workflows');
+const manifestFile = path.join(rootDir, '.ai/cursor-skills.manifest');
+const readmeFile = path.join(rootDir, 'README.md');
+
+const artifactTypeEnum = z.enum([
+  'intent-brief',
+  'spec',
+  'plan',
+  'slice-set',
+  'diff',
+  'evidence',
+  'review-report',
+  'qa-handover',
+  'changelog',
+  'release',
+  'design-tokens',
+  'screenshot-set',
+  'kb-item'
+]);
+
+const phaseEnum = z.enum([
+  'intent',
+  'specify',
+  'plan',
+  'build',
+  'maintain',
+  'review',
+  'scale',
+  'deploy',
+  'polish'
+]);
 
 const frontmatterSchema = z.object({
   name: z.string(),
@@ -18,6 +52,21 @@ const frontmatterSchema = z.object({
   category: z.string().optional(),
   how: z.string().optional(),
   useCase: z.string().optional(),
+  phase: phaseEnum.optional(),
+  kind: z.enum(['skill', 'orchestrator', 'policy', 'report']).optional(),
+  domain: z.enum(['eng', 'product', 'hiring', 'shared']).optional(),
+  spans: z.array(phaseEnum).optional(),
+  ownership: z.object({
+    drive: z.enum(['human', 'ai', 'human-ai']),
+    approve: z.enum(['human', 'ai', 'none']),
+    escalate: z.enum(['human', 'ai', 'none']).optional(),
+  }).optional(),
+  targets: z.array(z.enum(['local', 'subscription', 'api'])).optional(),
+  minModelClass: z.enum(['small', 'mid', 'large']).optional(),
+  consumes: z.array(artifactTypeEnum).optional(),
+  emits: z.array(artifactTypeEnum).optional(),
+  requires: z.array(z.string()).optional(),
+  suggests: z.array(z.string()).optional(),
 });
 
 type Skill = z.infer<typeof frontmatterSchema>;
