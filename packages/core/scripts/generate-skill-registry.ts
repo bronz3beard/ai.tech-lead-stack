@@ -14,6 +14,7 @@ const skillsDir = path.join(rootDir, '.ai/skills');
 const workflowsDir = path.join(rootDir, '.agents/workflows');
 const manifestFile = path.join(rootDir, '.ai/cursor-skills.manifest');
 const readmeFile = path.join(rootDir, 'README.md');
+const graphFile = path.join(rootDir, '.ai/skills.graph.json');
 
 const artifactTypeEnum = z.enum([
   'intent-brief',
@@ -114,6 +115,142 @@ function generateManifest(skills: Skill[]): string {
 
   return manifest;
 }
+
+function buildGraph(skills: Skill[]) {
+  const nodes = skills.map((s) => ({
+    name: s.name,
+    phase: s.phase,
+    kind: s.kind || 'skill',
+    domain: s.domain,
+    ownership: s.ownership,
+    targets: s.targets,
+    minModelClass: s.minModelClass,
+    consumes: s.consumes || [],
+    emits: s.emits || [],
+    surface: s.surface,
+    cost: s.cost,
+  }));
+
+  const edges: { from: string; to: string; type: 'requires' | 'suggests' }[] =
+    [];
+  const skillNames = new Set(skills.map((s) => s.name));
+
+  for (const s of skills) {
+    if (s.requires) {
+      for (const req of s.requires) {
+        edges.push({ from: s.name, to: req, type: 'requires' });
+      }
+    }
+    if (s.suggests) {
+      for (const sug of s.suggests) {
+        edges.push({ from: s.name, to: sug, type: 'suggests' });
+      }
+    }
+  }
+
+  const artifactFlowMap = new Map<
+    string,
+    { emittedBy: Set<string>; consumedBy: Set<string> }
+  >();
+  for (const t of artifactTypeEnum.options) {
+    artifactFlowMap.set(t, { emittedBy: new Set(), consumedBy: new Set() });
+  }
+
+  for (const s of skills) {
+    const phases =
+      s.kind === 'orchestrator' ? s.spans || [] : s.phase ? [s.phase] : [];
+    for (const p of phases) {
+      if (s.emits) {
+        for (const e of s.emits) {
+          if (!artifactFlowMap.has(e))
+            artifactFlowMap.set(e, {
+              emittedBy: new Set(),
+              consumedBy: new Set(),
+            });
+          artifactFlowMap.get(e)!.emittedBy.add(p);
+        }
+      }
+      if (s.consumes) {
+        for (const c of s.consumes) {
+          if (!artifactFlowMap.has(c))
+            artifactFlowMap.set(c, {
+              emittedBy: new Set(),
+              consumedBy: new Set(),
+            });
+          artifactFlowMap.get(c)!.consumedBy.add(p);
+        }
+      }
+    }
+  }
+
+  const artifactFlow = Array.from(artifactFlowMap.entries())
+    .map(([type, flow]) => ({
+      type,
+      emittedBy: Array.from(flow.emittedBy).sort(),
+      consumedBy: Array.from(flow.consumedBy).sort(),
+    }))
+    .filter((f) => f.emittedBy.length > 0 || f.consumedBy.length > 0);
+
+  let hasErrors = false;
+  for (const s of skills) {
+    const kind = s.kind || 'skill';
+    if (kind !== 'orchestrator' && !s.phase) {
+      console.error(
+        `Skill ${s.name} is not an orchestrator but lacks a 'phase'.`
+      );
+      hasErrors = true;
+    }
+    if (kind === 'orchestrator' && (!s.spans || s.spans.length === 0)) {
+      console.error(`Skill ${s.name} is an orchestrator but lacks 'spans'.`);
+      hasErrors = true;
+    }
+    if (s.requires) {
+      for (const req of s.requires) {
+        if (!skillNames.has(req)) {
+          console.error(
+            `Skill ${s.name} requires '${req}', which does not exist.`
+          );
+          hasErrors = true;
+        }
+      }
+    }
+    if (s.suggests) {
+      for (const sug of s.suggests) {
+        if (!skillNames.has(sug)) {
+          console.error(
+            `Skill ${s.name} suggests '${sug}', which does not exist.`
+          );
+          hasErrors = true;
+        }
+      }
+    }
+    if (s.consumes) {
+      for (const c of s.consumes) {
+        const flow = artifactFlowMap.get(c);
+        if (!flow || flow.emittedBy.size === 0) {
+          console.error(
+            `Skill ${s.name} consumes '${c}', but it is emitted by NO skill/phase upstream.`
+          );
+          hasErrors = true;
+        }
+      }
+    }
+  }
+
+  if (hasErrors) {
+    console.error('Graph validation failed.');
+    process.exit(1);
+  }
+
+  return {
+    version: '1.0',
+    generatedAt: new Date().toISOString(),
+    nodes,
+    edges,
+    artifactFlow,
+  };
+}
+
 
 // Extract the original table rows from README.md to preserve Description, How it works, Use Case text
 // For simplicity and since we overwrote the file with a placeholder, I'll hardcode the known original rows
@@ -372,6 +509,9 @@ async function main() {
 
   const skills = parseSkills();
 
+  const graphObj = buildGraph(skills);
+  const newGraphJson = JSON.stringify(graphObj, null, 2) + '\n';
+
   const newManifest = generateManifest(skills);
   const newTable = generateReadmeTable(skills);
 
@@ -387,21 +527,54 @@ async function main() {
     if (outputDest) {
       fs.writeFileSync(`${outputDest}/manifest.tmp`, newManifest);
       fs.writeFileSync(`${outputDest}/readme.tmp`, newReadme);
+      fs.writeFileSync(`${outputDest}/skills.graph.json.tmp`, newGraphJson);
     } else {
       const currentManifest = fs.readFileSync(manifestFile, 'utf8');
       if (currentManifest !== newManifest) {
         console.error('Manifest is out of date.');
         process.exit(1);
       }
+      const currentReadme = fs.readFileSync(readmeFile, 'utf8');
       if (currentReadme !== newReadme) {
         console.error('README skills table is out of date.');
         process.exit(1);
       }
+      
+      let currentGraph = '';
+      try {
+        currentGraph = fs.readFileSync(graphFile, 'utf8');
+      } catch (e) {
+        // file doesn't exist
+      }
+      
+      let isGraphDifferent = false;
+      if (!currentGraph) {
+        isGraphDifferent = true;
+      } else {
+        try {
+          const parsedCurrent = JSON.parse(currentGraph);
+          const parsedNew = JSON.parse(newGraphJson);
+          parsedCurrent.generatedAt = "";
+          parsedNew.generatedAt = "";
+          if (JSON.stringify(parsedCurrent) !== JSON.stringify(parsedNew)) {
+            isGraphDifferent = true;
+          }
+        } catch (e) {
+          isGraphDifferent = true;
+        }
+      }
+
+      if (isGraphDifferent) {
+        console.error('Skill graph is out of date. Run npm run generate:registry to update.');
+        process.exit(1);
+      }
+      
       console.log('Registry check passed.');
     }
   } else {
     fs.writeFileSync(manifestFile, newManifest);
     fs.writeFileSync(readmeFile, newReadme);
+    fs.writeFileSync(graphFile, newGraphJson);
     console.log('Generated skill registry successfully.');
   }
 }

@@ -50,6 +50,9 @@ jobs:
       - name: Lint (Skills)
         run: pnpm run lint
 
+      - name: Check Skill Graph Drift
+        run: pnpm run generate:registry --check
+
       - name: Lint (Next.js)
         run: pnpm run lint:next
 

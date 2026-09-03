@@ -1,0 +1,1487 @@
+{
+  "version": "1.0",
+  "generatedAt": "2026-09-03T18:17:11.054Z",
+  "nodes": [
+    {
+      "name": "accessibility-auditor",
+      "phase": "review",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [
+        "diff"
+      ],
+      "emits": [
+        "review-report"
+      ],
+      "surface": "public",
+      "cost": "~650 tokens"
+    },
+    {
+      "name": "agent-optimizer",
+      "phase": "maintain",
+      "kind": "policy",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [],
+      "emits": [],
+      "surface": "internal",
+      "cost": "~550 tokens"
+    },
+    {
+      "name": "ask",
+      "phase": "intent",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [
+        "intent-brief"
+      ],
+      "emits": [
+        "intent-brief"
+      ],
+      "surface": "public",
+      "cost": "~3050 tokens"
+    },
+    {
+      "name": "changelog-generator",
+      "phase": "deploy",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [
+        "review-report"
+      ],
+      "emits": [
+        "release"
+      ],
+      "surface": "public",
+      "cost": "~750 tokens"
+    },
+    {
+      "name": "clean-code",
+      "phase": "build",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [
+        "plan"
+      ],
+      "emits": [
+        "diff"
+      ],
+      "surface": "public",
+      "cost": "~950 tokens"
+    },
+    {
+      "name": "code-review-checklist",
+      "phase": "review",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [
+        "diff"
+      ],
+      "emits": [
+        "review-report"
+      ],
+      "surface": "public",
+      "cost": "~650 tokens"
+    },
+    {
+      "name": "codebase-onboarding-intelligence",
+      "phase": "maintain",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [],
+      "emits": [],
+      "surface": "public",
+      "cost": "~1100 tokens"
+    },
+    {
+      "name": "competitive-analysis",
+      "phase": "intent",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [
+        "intent-brief"
+      ],
+      "emits": [
+        "intent-brief"
+      ],
+      "surface": "public",
+      "cost": "~850 tokens"
+    },
+    {
+      "name": "daily-standup",
+      "phase": "deploy",
+      "kind": "report",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [
+        "review-report"
+      ],
+      "emits": [
+        "release"
+      ],
+      "surface": "public",
+      "cost": "~550 tokens"
+    },
+    {
+      "name": "design-system-review",
+      "phase": "review",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [
+        "diff"
+      ],
+      "emits": [
+        "review-report"
+      ],
+      "surface": "public",
+      "cost": "~1400 tokens"
+    },
+    {
+      "name": "dev-team-orchestrator",
+      "kind": "orchestrator",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "large",
+      "consumes": [],
+      "emits": [],
+      "surface": "public",
+      "cost": "~2600 tokens"
+    },
+    {
+      "name": "dev-team-sub-max",
+      "kind": "orchestrator",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "large",
+      "consumes": [],
+      "emits": [],
+      "surface": "public",
+      "cost": "~3100 tokens"
+    },
+    {
+      "name": "dev-team-sub-pro",
+      "kind": "orchestrator",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "large",
+      "consumes": [],
+      "emits": [],
+      "surface": "public",
+      "cost": "~2500 tokens"
+    },
+    {
+      "name": "Dummy Skill",
+      "phase": "build",
+      "kind": "skill",
+      "domain": "shared",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [],
+      "emits": [],
+      "surface": "internal",
+      "cost": "~50 tokens"
+    },
+    {
+      "name": "feature-design-assistant",
+      "phase": "intent",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [
+        "intent-brief"
+      ],
+      "emits": [
+        "intent-brief"
+      ],
+      "surface": "public",
+      "cost": "~800 tokens"
+    },
+    {
+      "name": "feature-orchestrator",
+      "kind": "orchestrator",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "large",
+      "consumes": [],
+      "emits": [],
+      "surface": "public",
+      "cost": "~1400 tokens"
+    },
+    {
+      "name": "knowledge-manager",
+      "phase": "maintain",
+      "kind": "policy",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [],
+      "emits": [],
+      "surface": "internal",
+      "cost": "~450 tokens"
+    },
+    {
+      "name": "mission-architect",
+      "kind": "orchestrator",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "large",
+      "consumes": [],
+      "emits": [],
+      "surface": "public",
+      "cost": "~1300 tokens"
+    },
+    {
+      "name": "mission-control",
+      "kind": "orchestrator",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "large",
+      "consumes": [],
+      "emits": [],
+      "surface": "internal",
+      "cost": "~650 tokens"
+    },
+    {
+      "name": "operational-boundaries",
+      "phase": "maintain",
+      "kind": "policy",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [],
+      "emits": [],
+      "surface": "internal",
+      "cost": "~400 tokens"
+    },
+    {
+      "name": "planning-expert",
+      "phase": "plan",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [
+        "spec"
+      ],
+      "emits": [
+        "plan"
+      ],
+      "surface": "public",
+      "cost": "~5900 tokens"
+    },
+    {
+      "name": "planning-expert-quick",
+      "phase": "plan",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [
+        "spec"
+      ],
+      "emits": [
+        "plan"
+      ],
+      "surface": "public",
+      "cost": "~2300 tokens"
+    },
+    {
+      "name": "pr-automator",
+      "phase": "deploy",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [
+        "review-report"
+      ],
+      "emits": [
+        "release"
+      ],
+      "surface": "public",
+      "cost": "~6650 tokens"
+    },
+    {
+      "name": "product-strategist",
+      "phase": "intent",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [
+        "intent-brief"
+      ],
+      "emits": [
+        "intent-brief"
+      ],
+      "surface": "public",
+      "cost": "~850 tokens"
+    },
+    {
+      "name": "qa-handover-generator",
+      "phase": "deploy",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [
+        "review-report"
+      ],
+      "emits": [
+        "release"
+      ],
+      "surface": "public",
+      "cost": "~950 tokens"
+    },
+    {
+      "name": "reflexion-loop",
+      "phase": "plan",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [
+        "spec"
+      ],
+      "emits": [
+        "plan"
+      ],
+      "surface": "public",
+      "cost": "~1000 tokens"
+    },
+    {
+      "name": "reflexion-loop-sub-max",
+      "phase": "plan",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [
+        "spec"
+      ],
+      "emits": [
+        "plan"
+      ],
+      "surface": "public",
+      "cost": "~1400 tokens"
+    },
+    {
+      "name": "reflexion-loop-sub-pro",
+      "phase": "plan",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [
+        "spec"
+      ],
+      "emits": [
+        "plan"
+      ],
+      "surface": "public",
+      "cost": "~1300 tokens"
+    },
+    {
+      "name": "regression-bug-fix",
+      "phase": "build",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [
+        "plan"
+      ],
+      "emits": [
+        "diff"
+      ],
+      "surface": "public",
+      "cost": "~1350 tokens"
+    },
+    {
+      "name": "security-audit",
+      "phase": "review",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [
+        "diff"
+      ],
+      "emits": [
+        "review-report"
+      ],
+      "surface": "public",
+      "cost": "~550 tokens"
+    },
+    {
+      "name": "solutioning-facilitator",
+      "phase": "specify",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [
+        "intent-brief"
+      ],
+      "emits": [
+        "spec"
+      ],
+      "surface": "public",
+      "cost": "~800 tokens"
+    },
+    {
+      "name": "style-logic-exporter",
+      "phase": "polish",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [],
+      "emits": [],
+      "surface": "public",
+      "cost": "~550 tokens"
+    },
+    {
+      "name": "technical-debt-auditor",
+      "phase": "maintain",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [],
+      "emits": [],
+      "surface": "public",
+      "cost": "~850 tokens"
+    },
+    {
+      "name": "ui-spec-generator",
+      "phase": "specify",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [
+        "intent-brief"
+      ],
+      "emits": [
+        "spec"
+      ],
+      "surface": "public",
+      "cost": "~850 tokens"
+    },
+    {
+      "name": "verification-auditor",
+      "phase": "review",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [
+        "diff"
+      ],
+      "emits": [
+        "review-report"
+      ],
+      "surface": "internal",
+      "cost": "~1500 tokens"
+    },
+    {
+      "name": "vertical-slice-decomposer",
+      "phase": "plan",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [
+        "spec"
+      ],
+      "emits": [
+        "plan"
+      ],
+      "surface": "public",
+      "cost": "~2000 tokens"
+    },
+    {
+      "name": "visual-verifier",
+      "phase": "polish",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [],
+      "emits": [],
+      "surface": "public",
+      "cost": "~450 tokens"
+    },
+    {
+      "name": "weekly-leadership-report",
+      "phase": "deploy",
+      "kind": "report",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [
+        "review-report"
+      ],
+      "emits": [
+        "release"
+      ],
+      "surface": "public",
+      "cost": "~1200 tokens"
+    }
+  ],
+  "edges": [
+    {
+      "from": "accessibility-auditor",
+      "to": "pr-automator",
+      "type": "suggests"
+    },
+    {
+      "from": "accessibility-auditor",
+      "to": "qa-handover-generator",
+      "type": "suggests"
+    },
+    {
+      "from": "accessibility-auditor",
+      "to": "mission-architect",
+      "type": "suggests"
+    },
+    {
+      "from": "agent-optimizer",
+      "to": "mission-architect",
+      "type": "suggests"
+    },
+    {
+      "from": "ask",
+      "to": "feature-design-assistant",
+      "type": "suggests"
+    },
+    {
+      "from": "ask",
+      "to": "solutioning-facilitator",
+      "type": "suggests"
+    },
+    {
+      "from": "clean-code",
+      "to": "code-review-checklist",
+      "type": "suggests"
+    },
+    {
+      "from": "clean-code",
+      "to": "pr-automator",
+      "type": "suggests"
+    },
+    {
+      "from": "clean-code",
+      "to": "planning-expert",
+      "type": "suggests"
+    },
+    {
+      "from": "code-review-checklist",
+      "to": "pr-automator",
+      "type": "suggests"
+    },
+    {
+      "from": "code-review-checklist",
+      "to": "qa-handover-generator",
+      "type": "suggests"
+    },
+    {
+      "from": "competitive-analysis",
+      "to": "reflexion-loop",
+      "type": "requires"
+    },
+    {
+      "from": "competitive-analysis",
+      "to": "feature-design-assistant",
+      "type": "suggests"
+    },
+    {
+      "from": "competitive-analysis",
+      "to": "solutioning-facilitator",
+      "type": "suggests"
+    },
+    {
+      "from": "competitive-analysis",
+      "to": "planning-expert",
+      "type": "suggests"
+    },
+    {
+      "from": "competitive-analysis",
+      "to": "vertical-slice-decomposer",
+      "type": "suggests"
+    },
+    {
+      "from": "design-system-review",
+      "to": "accessibility-auditor",
+      "type": "requires"
+    },
+    {
+      "from": "design-system-review",
+      "to": "style-logic-exporter",
+      "type": "requires"
+    },
+    {
+      "from": "design-system-review",
+      "to": "pr-automator",
+      "type": "suggests"
+    },
+    {
+      "from": "design-system-review",
+      "to": "qa-handover-generator",
+      "type": "suggests"
+    },
+    {
+      "from": "design-system-review",
+      "to": "visual-verifier",
+      "type": "suggests"
+    },
+    {
+      "from": "dev-team-orchestrator",
+      "to": "design-system-review",
+      "type": "requires"
+    },
+    {
+      "from": "dev-team-orchestrator",
+      "to": "reflexion-loop",
+      "type": "requires"
+    },
+    {
+      "from": "dev-team-orchestrator",
+      "to": "accessibility-auditor",
+      "type": "suggests"
+    },
+    {
+      "from": "dev-team-orchestrator",
+      "to": "ask",
+      "type": "suggests"
+    },
+    {
+      "from": "dev-team-orchestrator",
+      "to": "code-review-checklist",
+      "type": "suggests"
+    },
+    {
+      "from": "dev-team-orchestrator",
+      "to": "dev-team-sub-max",
+      "type": "suggests"
+    },
+    {
+      "from": "dev-team-orchestrator",
+      "to": "dev-team-sub-pro",
+      "type": "suggests"
+    },
+    {
+      "from": "dev-team-orchestrator",
+      "to": "feature-design-assistant",
+      "type": "suggests"
+    },
+    {
+      "from": "dev-team-orchestrator",
+      "to": "mission-architect",
+      "type": "suggests"
+    },
+    {
+      "from": "dev-team-orchestrator",
+      "to": "planning-expert",
+      "type": "suggests"
+    },
+    {
+      "from": "dev-team-orchestrator",
+      "to": "verification-auditor",
+      "type": "suggests"
+    },
+    {
+      "from": "dev-team-orchestrator",
+      "to": "vertical-slice-decomposer",
+      "type": "suggests"
+    },
+    {
+      "from": "dev-team-orchestrator",
+      "to": "visual-verifier",
+      "type": "suggests"
+    },
+    {
+      "from": "dev-team-sub-max",
+      "to": "dev-team-orchestrator",
+      "type": "suggests"
+    },
+    {
+      "from": "dev-team-sub-max",
+      "to": "dev-team-sub-pro",
+      "type": "suggests"
+    },
+    {
+      "from": "dev-team-sub-max",
+      "to": "mission-architect",
+      "type": "suggests"
+    },
+    {
+      "from": "dev-team-sub-max",
+      "to": "reflexion-loop-sub-max",
+      "type": "suggests"
+    },
+    {
+      "from": "dev-team-sub-max",
+      "to": "reflexion-loop",
+      "type": "suggests"
+    },
+    {
+      "from": "dev-team-sub-max",
+      "to": "visual-verifier",
+      "type": "suggests"
+    },
+    {
+      "from": "dev-team-sub-pro",
+      "to": "dev-team-orchestrator",
+      "type": "suggests"
+    },
+    {
+      "from": "dev-team-sub-pro",
+      "to": "dev-team-sub-max",
+      "type": "suggests"
+    },
+    {
+      "from": "dev-team-sub-pro",
+      "to": "reflexion-loop-sub-pro",
+      "type": "suggests"
+    },
+    {
+      "from": "dev-team-sub-pro",
+      "to": "reflexion-loop",
+      "type": "suggests"
+    },
+    {
+      "from": "dev-team-sub-pro",
+      "to": "vertical-slice-decomposer",
+      "type": "suggests"
+    },
+    {
+      "from": "feature-design-assistant",
+      "to": "feature-design-assistant",
+      "type": "suggests"
+    },
+    {
+      "from": "feature-design-assistant",
+      "to": "solutioning-facilitator",
+      "type": "suggests"
+    },
+    {
+      "from": "feature-design-assistant",
+      "to": "clean-code",
+      "type": "suggests"
+    },
+    {
+      "from": "feature-orchestrator",
+      "to": "feature-design-assistant",
+      "type": "requires"
+    },
+    {
+      "from": "feature-orchestrator",
+      "to": "code-review-checklist",
+      "type": "suggests"
+    },
+    {
+      "from": "feature-orchestrator",
+      "to": "design-system-review",
+      "type": "suggests"
+    },
+    {
+      "from": "feature-orchestrator",
+      "to": "mission-architect",
+      "type": "suggests"
+    },
+    {
+      "from": "feature-orchestrator",
+      "to": "operational-boundaries",
+      "type": "suggests"
+    },
+    {
+      "from": "feature-orchestrator",
+      "to": "planning-expert",
+      "type": "suggests"
+    },
+    {
+      "from": "feature-orchestrator",
+      "to": "regression-bug-fix",
+      "type": "suggests"
+    },
+    {
+      "from": "feature-orchestrator",
+      "to": "ui-spec-generator",
+      "type": "suggests"
+    },
+    {
+      "from": "feature-orchestrator",
+      "to": "verification-auditor",
+      "type": "suggests"
+    },
+    {
+      "from": "feature-orchestrator",
+      "to": "vertical-slice-decomposer",
+      "type": "suggests"
+    },
+    {
+      "from": "feature-orchestrator",
+      "to": "visual-verifier",
+      "type": "suggests"
+    },
+    {
+      "from": "mission-architect",
+      "to": "planning-expert",
+      "type": "suggests"
+    },
+    {
+      "from": "mission-architect",
+      "to": "regression-bug-fix",
+      "type": "suggests"
+    },
+    {
+      "from": "mission-architect",
+      "to": "verification-auditor",
+      "type": "suggests"
+    },
+    {
+      "from": "operational-boundaries",
+      "to": "visual-verifier",
+      "type": "suggests"
+    },
+    {
+      "from": "planning-expert",
+      "to": "pr-automator",
+      "type": "requires"
+    },
+    {
+      "from": "planning-expert",
+      "to": "clean-code",
+      "type": "suggests"
+    },
+    {
+      "from": "planning-expert",
+      "to": "regression-bug-fix",
+      "type": "suggests"
+    },
+    {
+      "from": "planning-expert",
+      "to": "ask",
+      "type": "suggests"
+    },
+    {
+      "from": "planning-expert",
+      "to": "feature-orchestrator",
+      "type": "suggests"
+    },
+    {
+      "from": "planning-expert",
+      "to": "vertical-slice-decomposer",
+      "type": "suggests"
+    },
+    {
+      "from": "planning-expert-quick",
+      "to": "pr-automator",
+      "type": "requires"
+    },
+    {
+      "from": "planning-expert-quick",
+      "to": "clean-code",
+      "type": "suggests"
+    },
+    {
+      "from": "planning-expert-quick",
+      "to": "regression-bug-fix",
+      "type": "suggests"
+    },
+    {
+      "from": "planning-expert-quick",
+      "to": "ask",
+      "type": "suggests"
+    },
+    {
+      "from": "planning-expert-quick",
+      "to": "planning-expert",
+      "type": "suggests"
+    },
+    {
+      "from": "planning-expert-quick",
+      "to": "vertical-slice-decomposer",
+      "type": "suggests"
+    },
+    {
+      "from": "pr-automator",
+      "to": "visual-verifier",
+      "type": "requires"
+    },
+    {
+      "from": "pr-automator",
+      "to": "ask",
+      "type": "suggests"
+    },
+    {
+      "from": "product-strategist",
+      "to": "feature-design-assistant",
+      "type": "suggests"
+    },
+    {
+      "from": "product-strategist",
+      "to": "solutioning-facilitator",
+      "type": "suggests"
+    },
+    {
+      "from": "reflexion-loop",
+      "to": "clean-code",
+      "type": "suggests"
+    },
+    {
+      "from": "reflexion-loop",
+      "to": "regression-bug-fix",
+      "type": "suggests"
+    },
+    {
+      "from": "reflexion-loop",
+      "to": "planning-expert",
+      "type": "suggests"
+    },
+    {
+      "from": "reflexion-loop",
+      "to": "reflexion-loop-sub-max",
+      "type": "suggests"
+    },
+    {
+      "from": "reflexion-loop",
+      "to": "reflexion-loop-sub-pro",
+      "type": "suggests"
+    },
+    {
+      "from": "reflexion-loop",
+      "to": "vertical-slice-decomposer",
+      "type": "suggests"
+    },
+    {
+      "from": "reflexion-loop-sub-max",
+      "to": "clean-code",
+      "type": "suggests"
+    },
+    {
+      "from": "reflexion-loop-sub-max",
+      "to": "regression-bug-fix",
+      "type": "suggests"
+    },
+    {
+      "from": "reflexion-loop-sub-max",
+      "to": "reflexion-loop-sub-pro",
+      "type": "suggests"
+    },
+    {
+      "from": "reflexion-loop-sub-max",
+      "to": "reflexion-loop",
+      "type": "suggests"
+    },
+    {
+      "from": "reflexion-loop-sub-pro",
+      "to": "clean-code",
+      "type": "suggests"
+    },
+    {
+      "from": "reflexion-loop-sub-pro",
+      "to": "regression-bug-fix",
+      "type": "suggests"
+    },
+    {
+      "from": "reflexion-loop-sub-pro",
+      "to": "reflexion-loop-sub-max",
+      "type": "suggests"
+    },
+    {
+      "from": "reflexion-loop-sub-pro",
+      "to": "reflexion-loop",
+      "type": "suggests"
+    },
+    {
+      "from": "regression-bug-fix",
+      "to": "code-review-checklist",
+      "type": "requires"
+    },
+    {
+      "from": "regression-bug-fix",
+      "to": "code-review-checklist",
+      "type": "suggests"
+    },
+    {
+      "from": "regression-bug-fix",
+      "to": "pr-automator",
+      "type": "suggests"
+    },
+    {
+      "from": "regression-bug-fix",
+      "to": "mission-architect",
+      "type": "suggests"
+    },
+    {
+      "from": "security-audit",
+      "to": "pr-automator",
+      "type": "suggests"
+    },
+    {
+      "from": "security-audit",
+      "to": "qa-handover-generator",
+      "type": "suggests"
+    },
+    {
+      "from": "solutioning-facilitator",
+      "to": "planning-expert",
+      "type": "suggests"
+    },
+    {
+      "from": "solutioning-facilitator",
+      "to": "vertical-slice-decomposer",
+      "type": "suggests"
+    },
+    {
+      "from": "solutioning-facilitator",
+      "to": "ask",
+      "type": "suggests"
+    },
+    {
+      "from": "technical-debt-auditor",
+      "to": "clean-code",
+      "type": "suggests"
+    },
+    {
+      "from": "ui-spec-generator",
+      "to": "planning-expert",
+      "type": "suggests"
+    },
+    {
+      "from": "ui-spec-generator",
+      "to": "vertical-slice-decomposer",
+      "type": "suggests"
+    },
+    {
+      "from": "verification-auditor",
+      "to": "pr-automator",
+      "type": "suggests"
+    },
+    {
+      "from": "verification-auditor",
+      "to": "qa-handover-generator",
+      "type": "suggests"
+    },
+    {
+      "from": "verification-auditor",
+      "to": "clean-code",
+      "type": "suggests"
+    },
+    {
+      "from": "verification-auditor",
+      "to": "security-audit",
+      "type": "suggests"
+    },
+    {
+      "from": "vertical-slice-decomposer",
+      "to": "clean-code",
+      "type": "suggests"
+    },
+    {
+      "from": "vertical-slice-decomposer",
+      "to": "regression-bug-fix",
+      "type": "suggests"
+    },
+    {
+      "from": "vertical-slice-decomposer",
+      "to": "operational-boundaries",
+      "type": "suggests"
+    },
+    {
+      "from": "vertical-slice-decomposer",
+      "to": "style-logic-exporter",
+      "type": "suggests"
+    },
+    {
+      "from": "vertical-slice-decomposer",
+      "to": "ui-spec-generator",
+      "type": "suggests"
+    },
+    {
+      "from": "visual-verifier",
+      "to": "design-system-review",
+      "type": "suggests"
+    },
+    {
+      "from": "weekly-leadership-report",
+      "to": "ask",
+      "type": "suggests"
+    }
+  ],
+  "artifactFlow": [
+    {
+      "type": "intent-brief",
+      "emittedBy": [
+        "intent"
+      ],
+      "consumedBy": [
+        "intent",
+        "specify"
+      ]
+    },
+    {
+      "type": "spec",
+      "emittedBy": [
+        "specify"
+      ],
+      "consumedBy": [
+        "plan"
+      ]
+    },
+    {
+      "type": "plan",
+      "emittedBy": [
+        "plan"
+      ],
+      "consumedBy": [
+        "build"
+      ]
+    },
+    {
+      "type": "diff",
+      "emittedBy": [
+        "build"
+      ],
+      "consumedBy": [
+        "review"
+      ]
+    },
+    {
+      "type": "review-report",
+      "emittedBy": [
+        "review"
+      ],
+      "consumedBy": [
+        "deploy"
+      ]
+    },
+    {
+      "type": "release",
+      "emittedBy": [
+        "deploy"
+      ],
+      "consumedBy": []
+    }
+  ]
+}
