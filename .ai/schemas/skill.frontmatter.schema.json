@@ -158,5 +158,9 @@
       }
     }
   },
-  "required": ["name", "description", "cost", "modes", "surface"]
+  "required": ["name", "description", "cost", "modes", "surface", "kind"],
+  "anyOf": [
+    { "required": ["phase"] },
+    { "required": ["spans"] }
+  ]
 }

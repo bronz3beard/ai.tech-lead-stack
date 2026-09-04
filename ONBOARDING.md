@@ -100,6 +100,40 @@ Refer to the skill name in your prompt or use the slash menu in supported IDEs.
 
 ---
 
+## 🔄 Lifecycle Model & Pipelines
+
+The agent toolbox is organized around a strict **9-Phase Lifecycle**:
+1. **Intent**: Strategic alignment, market analysis, and product requirements.
+2. **Specify**: Design system, architecture, and technical specifications.
+3. **Plan**: Decomposition, vertical slicing, and execution planning.
+4. **Build**: Implementation, refactoring, and feature development.
+5. **Review**: Quality assurance, code review, accessibility, and security.
+6. **Deploy**: Release notes, changelogs, and environment preparation.
+7. **Scale**: Performance budgets, capacity planning, and optimization.
+8. **Polish**: Design tokens extraction and final UI refinements.
+9. **Maintain**: Technical debt auditing, onboarding, and repo intelligence.
+
+### Ownership Axis & Artifact Contracts
+Each skill operates under strict **artifact contracts** (`consumes` and `emits`). A skill cannot run unless its required upstream artifacts (e.g., `intent-brief`, `plan`, `diff`) have been generated.
+Skills also declare their **ownership axis**:
+- **Drive**: Who drives the execution (`human`, `ai`, or `human-ai`).
+- **Approve**: Who approves the final output (`human`, `ai`, or `none`).
+
+### The `plan_pipeline` Tool
+You can use the `plan_pipeline` MCP tool to automatically construct a valid chain of skills from your intent to your goal. The tool will read the skill graph and propose a pipeline that satisfies all artifact constraints.
+
+**Example**:
+```json
+{
+  "goalPhase": "build",
+  "startPhase": "intent",
+  "context": "We need to build a new authentication flow starting from a basic product requirement."
+}
+```
+The tool will return an orchestrated path (e.g., `feature-design-assistant` [Intent] -> `solutioning-facilitator` [Specify] -> `planning-expert` [Plan] -> `clean-code` [Build]) ensuring all `consumes`/`emits` contracts are met.
+
+---
+
 ## 📝 Workflow 1: Implementation & Bug Planning
 
 ### The Goal

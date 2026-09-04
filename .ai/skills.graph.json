@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "generatedAt": "2026-09-04T00:11:06.360Z",
+  "generatedAt": "2026-09-04T01:34:26.707Z",
   "nodes": [
     {
       "name": "accessibility-auditor",
@@ -69,6 +69,30 @@
       ],
       "surface": "public",
       "cost": "~3050 tokens"
+    },
+    {
+      "name": "capacity-planner",
+      "phase": "scale",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [
+        "release"
+      ],
+      "emits": [
+        "review-report"
+      ],
+      "surface": "public",
+      "cost": "~750 tokens"
     },
     {
       "name": "changelog-generator",
@@ -1502,7 +1526,8 @@
     {
       "type": "review-report",
       "emittedBy": [
-        "review"
+        "review",
+        "scale"
       ],
       "consumedBy": [
         "deploy"
@@ -1513,7 +1538,9 @@
       "emittedBy": [
         "deploy"
       ],
-      "consumedBy": []
+      "consumedBy": [
+        "scale"
+      ]
     }
   ]
 }

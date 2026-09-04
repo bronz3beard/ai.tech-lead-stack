@@ -54,7 +54,7 @@ const frontmatterSchema = z.object({
   how: z.string().optional(),
   useCase: z.string().optional(),
   phase: phaseEnum.optional(),
-  kind: z.enum(['skill', 'orchestrator', 'policy', 'report']).optional(),
+  kind: z.enum(['skill', 'orchestrator', 'policy', 'report']),
   domain: z.enum(['eng', 'product', 'hiring', 'shared']).optional(),
   spans: z.array(phaseEnum).optional(),
   ownership: z.object({
@@ -358,31 +358,28 @@ const originalRows: Record<string, string[]> = {
   ],
 };
 
-const CATEGORY_ORDER = [
-  'Orchestrators',
-  'Discover & Define',
-  'Plan & Harden',
-  'Build & Fix',
-  'Review & Verify',
-  'Design & UI',
-  'Ship & Communicate',
+const PHASE_ORDER = [
+  'intent',
+  'specify',
+  'plan',
+  'build',
+  'review',
+  'deploy',
+  'scale',
+  'polish',
+  'maintain'
 ];
 
-const CATEGORY_DESCRIPTIONS: Record<string, string> = {
-  Orchestrators:
-    'High-level directors that coordinate other skills and drive multi-step workflows.',
-  'Discover & Define':
-    'Exploratory agents for codebase onboarding, requirement gathering, and technical design.',
-  'Plan & Harden':
-    'Strategic planners that break down work into atomic steps and vertical slices.',
-  'Build & Fix':
-    'Implementation engines for fixing bugs and addressing feedback.',
-  'Review & Verify':
-    'Quality gatekeepers for code standards, accessibility, and security.',
-  'Design & UI':
-    'Visual agents focused on UI specs, styling logic, and layout verification.',
-  'Ship & Communicate': 'Automation for PRs, changelogs, and team updates.',
-  Uncategorised: 'Skills that have not yet been assigned a category.',
+const PHASE_DESCRIPTIONS: Record<string, string> = {
+  intent: 'Strategic alignment, market analysis, and product requirements.',
+  specify: 'Design system, architecture, and technical specifications.',
+  plan: 'Decomposition, vertical slicing, and execution planning.',
+  build: 'Implementation, refactoring, and feature development.',
+  review: 'Quality assurance, code review, accessibility, and security.',
+  deploy: 'Release notes, changelogs, and environment preparation.',
+  scale: 'Performance budgets, capacity planning, and optimization.',
+  polish: 'Design tokens extraction and final UI refinements.',
+  maintain: 'Technical debt auditing, onboarding, and repo intelligence.',
 };
 
 function generateReadmeTable(skills: Skill[]): string {
@@ -394,30 +391,39 @@ function generateReadmeTable(skills: Skill[]): string {
   const uncategorized: Skill[] = [];
 
   for (const s of publicSkills) {
-    if (s.category && CATEGORY_ORDER.includes(s.category)) {
-      if (!categorized.has(s.category)) {
-        categorized.set(s.category, []);
+    if (s.kind === 'orchestrator') {
+      if (!categorized.has('Orchestrators')) categorized.set('Orchestrators', []);
+      categorized.get('Orchestrators')!.push(s);
+    } else if (s.kind === 'policy') {
+      if (!categorized.has('Policies')) categorized.set('Policies', []);
+      categorized.get('Policies')!.push(s);
+    } else if (s.kind === 'report') {
+      if (!categorized.has('Reports')) categorized.set('Reports', []);
+      categorized.get('Reports')!.push(s);
+    } else if (s.phase && PHASE_ORDER.includes(s.phase)) {
+      if (!categorized.has(s.phase)) {
+        categorized.set(s.phase, []);
       }
-      categorized.get(s.category)!.push(s);
+      categorized.get(s.phase)!.push(s);
     } else {
       uncategorized.push(s);
-      if (s.category) {
+      if (s.phase) {
         console.error(
           'ERROR: Skill ' +
             s.name +
-            " has unrecognised category '" +
-            s.category +
+            " has unrecognised phase '" +
+            s.phase +
             "'"
         );
       } else {
-        console.error('ERROR: Skill ' + s.name + ' has no category');
+        console.error('ERROR: Skill ' + s.name + ' has no phase');
       }
     }
   }
 
   if (uncategorized.length > 0) {
     console.error(
-      'ERROR: Uncategorised skills found. All public skills must be categorised.'
+      'ERROR: Uncategorised skills found. All public skills must have a valid phase or be an orchestrator/policy/report.'
     );
     process.exit(1);
   }
@@ -438,9 +444,10 @@ function generateReadmeTable(skills: Skill[]): string {
 
   const renderCategory = (title: string, catSkills: Skill[]) => {
     if (catSkills.length === 0) return '';
-    let res = `### ${title}\n\n`;
-    if (CATEGORY_DESCRIPTIONS[title]) {
-      res += `${CATEGORY_DESCRIPTIONS[title]}\n\n`;
+    const capitalizedTitle = title.charAt(0).toUpperCase() + title.slice(1);
+    let res = `### ${capitalizedTitle}\n\n`;
+    if (PHASE_DESCRIPTIONS[title]) {
+      res += `${PHASE_DESCRIPTIONS[title]}\n\n`;
     }
     res += `| Skill | Description | How it works | Use Case | Modes | Est. Context Footprint |\n`;
     res += `| :--- | :--- | :--- | :--- | :--- | :--- |\n`;
@@ -451,9 +458,19 @@ function generateReadmeTable(skills: Skill[]): string {
     return res;
   };
 
-  for (const cat of CATEGORY_ORDER) {
-    const catSkills = categorized.get(cat) || [];
-    table += renderCategory(cat, catSkills);
+  for (const phase of PHASE_ORDER) {
+    const phaseSkills = categorized.get(phase) || [];
+    table += renderCategory(phase, phaseSkills);
+  }
+  
+  if (categorized.has('Orchestrators')) {
+    table += renderCategory('Orchestrators', categorized.get('Orchestrators')!);
+  }
+  if (categorized.has('Policies')) {
+    table += renderCategory('Policies', categorized.get('Policies')!);
+  }
+  if (categorized.has('Reports')) {
+    table += renderCategory('Reports', categorized.get('Reports')!);
   }
 
   // We no longer render the Uncategorised section because the build fails above if any exist.
