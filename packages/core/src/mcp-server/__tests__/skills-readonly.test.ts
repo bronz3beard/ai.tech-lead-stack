@@ -12,9 +12,6 @@ import { AlignmentService } from '../../lib/skills/alignment-service';
 import { KiService } from '../../lib/ki/ki-service';
 
 // Mock langfuse to prevent ESM dynamic import issues in Jest
-jest.mock('langfuse', () => ({
-  Langfuse: jest.fn().mockImplementation(() => ({})),
-}));
 
 describe('MCP Server - skills-readonly', () => {
   const repoRoot = path.resolve(__dirname, '../../../../..');

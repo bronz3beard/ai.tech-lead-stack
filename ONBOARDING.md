@@ -138,7 +138,8 @@ Refer to the skill name in your prompt or use the slash menu in supported IDEs.
 
 ## 🔄 Lifecycle Model & Pipelines
 
-The agent toolbox is organized around a strict **9-Phase Lifecycle** (see [ADR 0002: 9-Phase Lifecycle Paradigm](docs/decisions/0002-lifecycle-paradigm.md)):
+The agent toolbox is organized around a strict **9-Phase Lifecycle** (see
+[ADR 0002: 9-Phase Lifecycle Paradigm](docs/decisions/0002-lifecycle-paradigm.md)):
 
 1. **Intent**: Strategic alignment, market analysis, and product requirements.
 2. **Specify**: Design system, architecture, and technical specifications.
@@ -150,24 +151,47 @@ The agent toolbox is organized around a strict **9-Phase Lifecycle** (see [ADR 0
 8. **Polish**: Design tokens extraction and final UI refinements.
 9. **Maintain**: Technical debt auditing, onboarding, and repo intelligence.
 
-> [!TIP] **The "Nine-in-Metadata" Rule**: A skill's lifecycle phase lives strictly in its markdown frontmatter and the compiled `skills.graph.json`, never in its directory structure.
+> [!TIP] **The "Nine-in-Metadata" Rule**: A skill's lifecycle phase lives
+> strictly in its markdown frontmatter and the compiled `skills.graph.json`,
+> never in its directory structure.
 
 ### Skill Orchestration & Axes
 
 Skills are classified along **kind**, **domain**, and **ownership** axes:
+
 - **Drive**: Who drives the execution (`human`, `ai`, or `human-ai`).
 - **Approve**: Who approves the final output (`human`, `ai`, or `none`).
 - Orchestrator skills use `spans` to execute and monitor sub-agents.
 
 ### Artifact Contracts & Knowledge Items (KIs)
 
-Each skill operates under strictly typed **artifact contracts** (`consumes` and `emits`). These properties map directly to **Knowledge Item (KI) slugs**. A skill cannot run unless its required upstream artifacts (e.g., `intent-brief`, `plan`, `diff`) have been generated and stored as KIs.
+Each skill declares strictly typed **artifact contracts** (`consumes` and
+`emits`), expressed as artifact _types_ (e.g. `intent-brief`, `spec`,
+`slice-set`, `plan`, `diff`). An input of the required type can be satisfied two
+ways:
+
+1. **From an upstream Knowledge Item (KI)** — a previous phase produced and
+   stored it (the chained path), or
+2. **Directly from you** — paste a user story (satisfies `spec` /
+   `intent-brief`) or a technical vertical slice (satisfies `slice-set`) when
+   you run a skill on its own.
+
+When you supply input directly, the runtime materializes it as a KI of that type
+marked **human-approved** (you provided it, so it counts as your sign-off). So
+`plan`, the reflexion `loop`, and `dev-team` can each be run standalone with
+pasted input. The approval **hooks** still block only the case they exist for:
+an AI silently handing an _unapproved, AI-generated_ artifact to the next AI
+step.
 
 ### Dynamic Policies & Execution Targets
 
-Operational rules are dynamically injected via `.ai/policies` to ensure that agent interactions are consistently aligned with the project's methodologies.
+Operational rules are dynamically injected via `.ai/policies` to ensure that
+agent interactions are consistently aligned with the project's methodologies.
 
-Tasks are executed against specific targets depending on capabilities and tier (see [ADR 0003: Agent Execution Targets](docs/decisions/0003-execution-targets.md)):
+Tasks are executed against specific targets depending on capabilities and tier
+(see
+[ADR 0003: Agent Execution Targets](docs/decisions/0003-execution-targets.md)):
+
 - **`local`**: Offline execution.
 - **`sub-pro`**: Baseline subscription ($20/mo).
 - **`sub-max`**: Advanced subscription ($100/mo).

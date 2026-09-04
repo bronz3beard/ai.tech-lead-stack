@@ -1,4 +1,5 @@
-import { Langfuse } from 'langfuse';
+import crypto from 'node:crypto';
+import { langfuseSink } from './langfuse-sink';
 import { langfuseLabel } from './langfuse-labels';
 import { prisma } from './prisma';
 import { normalizeProjectName, normalizeSkillName } from './trace-utils';
@@ -28,7 +29,6 @@ export interface TelemetryMetadata {
 
 export class TelemetryService {
   private static instance: TelemetryService;
-  private langfuse: Langfuse | null = null;
   private isConfigured = false;
   private publicKey: string | undefined = '';
   private secretKey: string | undefined = '';
@@ -46,7 +46,7 @@ export class TelemetryService {
   private configure(): boolean {
     // Only skip re-initialization if the Langfuse client is already instantiated.
     // Do NOT gate on isConfigured alone — env vars may arrive after the first configure() call.
-    if (this.langfuse) return true;
+    if (this.isConfigured) return true;
 
     this.publicKey = process.env.LANGFUSE_PUBLIC_KEY;
     this.secretKey = process.env.LANGFUSE_SECRET_KEY;
@@ -60,11 +60,6 @@ export class TelemetryService {
       this.secretKey !== 'placeholder'
     ) {
       try {
-        this.langfuse = new Langfuse({
-          publicKey: this.publicKey,
-          secretKey: this.secretKey,
-          baseUrl: this.baseUrl,
-        });
         this.isConfigured = true;
         const projectShort = this.publicKey.split('-')[1] || 'unknown';
         console.error(
@@ -72,7 +67,7 @@ export class TelemetryService {
         );
         return true;
       } catch (err) {
-        console.error('[Telemetry] Failed to initialize Langfuse client:', err);
+        console.error('[Telemetry] Failed to initialize telemetry config:', err);
         return false;
       }
     }
@@ -168,43 +163,8 @@ export class TelemetryService {
       llmCall: params.metadata?.llmCall !== undefined ? params.metadata.llmCall : true,
     };
 
-    // 1. Log to Langfuse (Async)
-    let langfuseTraceId: string | null = null;
-    if (this.isConfigured && this.langfuse) {
-      try {
-        const trace = this.langfuse.trace({
-          name: `skill:${normalizedSkill}`,
-          userId: params.userEmail,
-          metadata: {
-            ...finalMetadata,
-            projectName: normalizedProject,
-            model: resolvedModel,
-            agent: resolvedAgent,
-          },
-          tags: [normalizedProject, resolvedModel, normalizedSkill],
-        });
-
-        langfuseTraceId = trace.id;
-
-        trace.generation({
-          name:
-            params.status === 'ERROR'
-              ? `error:${normalizedSkill}`
-              : `generation:${normalizedSkill}`,
-          model: resolvedModel,
-          statusMessage: params.error,
-          usage: {
-            promptTokens,
-            completionTokens,
-          },
-          metadata: finalMetadata,
-        });
-
-        this.langfuse.flushAsync().catch(() => {});
-      } catch (err) {
-        console.error('[Telemetry] Langfuse logging failed:', err);
-      }
-    }
+    // 1. Generate Langfuse Trace ID (for deterministic association)
+    const langfuseTraceId = crypto.randomUUID();
 
     // 2. Log to Postgres
     try {
@@ -274,31 +234,63 @@ export class TelemetryService {
         JSON.stringify(eventData, null, 2)
       );
 
-      const event = await prisma.analyticsEvent.create({
-        data: eventData,
-      });
+      // Make the Postgres write resilient with a retry
+      let event: any;
+      let lastError: any;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          event = await prisma.analyticsEvent.create({
+            data: eventData,
+          });
+          break; // Success
+        } catch (err) {
+          lastError = err;
+          console.warn(`[Telemetry] Postgres create attempt ${attempt} failed: ${String(err)}`);
+          if (attempt < 3) {
+            await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 100)); // exponential backoff
+          }
+        }
+      }
+
+      if (!event) {
+        throw lastError || new Error('Failed to create AnalyticsEvent after retries');
+      }
 
       console.error(
         `[Telemetry] Successfully recorded event to DB: ${normalizedSkill} (ID: ${event.id}, Status: ${params.status})`
       );
 
-      // Async enrichment: Fetch actual usage from Langfuse if possible
-      if (langfuseTraceId) {
-        console.error(
-          `[Telemetry] Triggering async enrichment for trace ${langfuseTraceId}...`
-        );
-        this.enrichEvent(event.id, langfuseTraceId).catch((err) => {
-          console.error('[Telemetry] Enrichment failed:', err);
+      // Async enqueue to Langfuse sink
+      try {
+        langfuseSink.enqueue({
+          traceId: langfuseTraceId,
+          skillName: normalizedSkill,
+          projectName: normalizedProject,
+          model: resolvedModel,
+          agent: resolvedAgent,
+          duration: params.duration,
+          status: params.status,
+          error: params.error,
+          promptTokens,
+          completionTokens,
+          totalCost: totalCost,
+          userEmail: params.userEmail,
+          metadata: finalMetadata,
+          loopPhase: params.loopPhase,
+          actorType: params.actorType,
+          autonomy: params.autonomy,
+          loopRunId: params.loopRunId,
+          teamRole: params.teamRole,
         });
+      } catch (sinkErr) {
+        console.error('[Telemetry] Failed to enqueue to langfuse sink:', sinkErr);
       }
-
       return event;
     } catch (dbError: any) {
       console.error(
         '[Telemetry] CRITICAL: Failed to log to Postgres:',
         dbError
       );
-      // Log more details if it's a Prisma error
       if (dbError.code) {
         console.error(`[Telemetry] Prisma Error Code: ${dbError.code}`);
       }
@@ -306,68 +298,6 @@ export class TelemetryService {
     }
   }
 
-  /**
-   * Fetches supplemental data from Langfuse API and updates the Postgres record.
-   * Falling back to previous estimation if Langfuse provides empty counts.
-   */
-  private async enrichEvent(eventId: string, traceId: string) {
-    if (!this.isConfigured || !this.publicKey || !this.secretKey) return;
-
-    try {
-      // Small delay to allow Langfuse processing (though most usage is sent in generation)
-      await new Promise((r) => setTimeout(r, 2000));
-
-      const authHeader = `Basic ${Buffer.from(`${this.publicKey}:${this.secretKey}`).toString('base64')}`;
-      const response = await fetch(
-        `${this.baseUrl}/api/public/traces/${traceId}`,
-        {
-          headers: { Authorization: authHeader },
-        }
-      );
-
-      if (!response.ok) return;
-
-      const traceDetails = await response.json();
-
-      // Attempt to extract usage from any of the generations associated with this trace
-      // In a more complex scenario, we'd sum all generations, but for a skill trace, there's usually one primary.
-      const generations =
-        traceDetails.observations?.filter(
-          (o: any) => o.type === 'GENERATION'
-        ) || [];
-
-      let enrichedPromptTokens = 0;
-      let enrichedCompletionTokens = 0;
-      let enrichedTotalCost = 0;
-
-      for (const gen of generations) {
-        enrichedPromptTokens += gen.usage?.promptTokens || 0;
-        enrichedCompletionTokens += gen.usage?.completionTokens || 0;
-        enrichedTotalCost += gen.usage?.totalCost || 0;
-      }
-
-      if (enrichedPromptTokens > 0 || enrichedCompletionTokens > 0) {
-        await prisma.analyticsEvent.update({
-          where: { id: eventId },
-          data: {
-            promptTokens: enrichedPromptTokens,
-            completionTokens: enrichedCompletionTokens,
-            totalTokens: enrichedPromptTokens + enrichedCompletionTokens,
-            totalCost: enrichedTotalCost > 0 ? enrichedTotalCost : undefined,
-            metadata: {
-              enrichedAt: new Date().toISOString(),
-              langfuseCost: enrichedTotalCost,
-            },
-          },
-        });
-        console.error(
-          `[Telemetry] Enriched event ${eventId} with actual Langfuse data.`
-        );
-      }
-    } catch (err) {
-      console.warn('[Telemetry] Enrichment suppressed:', err);
-    }
-  }
 }
 
 /**

@@ -1,9 +1,9 @@
+import { prisma } from './prisma';
 import {
   telemetryService,
   TelemetryService,
   withAnalytics,
 } from './telemetry-service';
-import { prisma } from './prisma';
 
 jest.mock('./prisma', () => ({
   prisma: {
@@ -16,19 +16,6 @@ jest.mock('./prisma', () => ({
     },
   },
 }));
-
-jest.mock('langfuse', () => {
-  return {
-    Langfuse: jest.fn().mockImplementation(() => ({
-      trace: jest.fn(() => ({
-        id: 'test-trace-id',
-        generation: jest.fn(),
-      })),
-      flushAsync: jest.fn().mockResolvedValue(undefined),
-      getTrace: jest.fn(),
-    })),
-  };
-});
 
 describe('TelemetryService', () => {
   let consoleErrorSpy: jest.SpyInstance;

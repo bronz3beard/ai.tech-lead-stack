@@ -64,6 +64,7 @@ import { AlignmentService } from '../lib/skills/alignment-service.js';
 import { FileSystemService } from '../lib/skills/fs-service.js';
 import { Handlers } from './handlers.js';
 import { Telemetry } from './telemetry.js';
+import { langfuseSink } from '../lib/langfuse-sink.js';
 
 // Initialize Services
 const telemetry = new Telemetry();
@@ -143,6 +144,8 @@ const GET_SKILLS_TOOL: Tool = {
       actorType: { type: 'string', description: 'Optional: Type of actor (AGENT or USER).' },
       autonomy: { type: 'string', description: 'Optional: Autonomy level (AUTONOMOUS or DIRECTED).' },
       loopPhase: { type: 'string', description: 'Optional: Phase of the loop.' },
+      story: { type: 'string', description: 'Direct user story input for standalone execution (materializes a spec).' },
+      slice: { type: 'string', description: 'Direct vertical slice input for standalone execution (materializes a slice-set).' },
     },
     required: ['skillName', 'projectName', 'model', 'agent'],
   },
@@ -467,4 +470,13 @@ runServer().catch((error: unknown) => {
   const errorMessage = error instanceof Error ? error.message : String(error);
   console.error('Fatal error running MCP server:', errorMessage);
   process.exit(1);
+});
+
+process.on('SIGINT', () => {
+  langfuseSink.shutdown();
+  process.exit(0);
+});
+process.on('SIGTERM', () => {
+  langfuseSink.shutdown();
+  process.exit(0);
 });

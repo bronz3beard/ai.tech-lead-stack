@@ -123,7 +123,6 @@
     "husky": "^9.1.7",
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^30.3.0",
-    "langfuse": "^3.38.20",
     "lint-staged": "^16.4.0",
     "markdownlint-cli": "^0.48.0",
     "playwright": "latest",

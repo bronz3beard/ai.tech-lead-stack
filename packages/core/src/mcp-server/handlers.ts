@@ -89,13 +89,19 @@ export class Handlers {
       }
 
       if (cond.requireKi) {
-        const ki = await this.kiService.readKnowledgeItem(cond.requireKi);
-        if (cond.requireKiStatus) {
-          if (!ki || ki.metadata.approval?.status !== cond.requireKiStatus) {
+        if ((cond.requireKi === 'spec' || cond.requireKi === 'feature-spec') && args.story) {
+          // satisfied via direct entry
+        } else if ((cond.requireKi === 'slice-set' || cond.requireKi === 'atomic-batches') && args.slice) {
+          // satisfied via direct entry
+        } else {
+          const ki = await this.kiService.readKnowledgeItem(cond.requireKi);
+          if (cond.requireKiStatus) {
+            if (!ki || ki.metadata.approval?.status !== cond.requireKiStatus) {
+              triggered = true;
+            }
+          } else if (!ki) {
             triggered = true;
           }
-        } else if (!ki) {
-          triggered = true;
         }
       }
 
@@ -106,6 +112,9 @@ export class Handlers {
               .map((f: any) => f.type)
           : [];
         for (const type of consumes) {
+          if ((type === 'spec' || type === 'feature-spec') && args.story) continue;
+          if ((type === 'slice-set' || type === 'atomic-batches') && args.slice) continue;
+          
           const ki = await this.kiService.readKnowledgeItem(type);
           if (
             ki &&
@@ -258,6 +267,26 @@ export class Handlers {
           // cwd is the tech-lead-stack install itself - record as anonymous
           actualProjectName = 'unknown-project';
         }
+      }
+
+      if (args.story) {
+        await this.kiService.upsertKnowledgeItem({
+          slug: 'feature-spec',
+          summary: 'Direct user story input',
+          projectName: actualProjectName,
+          artifacts: [{ name: 'spec.md', content: args.story as string }],
+          approval: { status: 'human-approved', by: 'user', timestamp: new Date().toISOString() }
+        });
+      }
+      
+      if (args.slice) {
+        await this.kiService.upsertKnowledgeItem({
+          slug: 'atomic-batches',
+          summary: 'Direct vertical slice input',
+          projectName: actualProjectName,
+          artifacts: [{ name: 'slice.md', content: args.slice as string }],
+          approval: { status: 'human-approved', by: 'user', timestamp: new Date().toISOString() }
+        });
       }
 
       let fileContent = rawContent;

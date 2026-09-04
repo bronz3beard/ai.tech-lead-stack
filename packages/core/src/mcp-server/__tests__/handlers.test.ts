@@ -6,9 +6,6 @@ import { AlignmentService } from '../../lib/skills/alignment-service';
 import { prisma } from '../../lib/prisma';
 import { runnerFromEnv } from '../../lib/ai/reflexion/providers-env';
 
-jest.mock('langfuse', () => ({
-  Langfuse: jest.fn().mockImplementation(() => ({})),
-}));
 
 jest.mock('../telemetry');
 jest.mock('../../lib/skills/fs-service');

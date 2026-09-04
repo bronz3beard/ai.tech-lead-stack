@@ -43,8 +43,6 @@
     "e2b": "^2.29.1",
     "gray-matter": "^4.0.3",
     "js-yaml": "^5.2.1",
-    "langfuse-core": "^3.38.20",
-    "langfuse-node": "^3.38.20",
     "octokit": "^5.0.5",
     "p-map": "^7.0.4",
     "pg": "^8.20.0",

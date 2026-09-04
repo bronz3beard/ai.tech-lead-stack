@@ -25,6 +25,7 @@ import { runnerFromEnv } from '../src/lib/ai/reflexion/providers-env';
 import { Answers, ReflexionStateV2 } from '../src/lib/ai/reflexion/schema';
 import { FileStateStore } from '../src/lib/ai/reflexion/state-store';
 import { assessTask, enforceTier, type Tier } from '../src/lib/ai/tier-policy';
+import { langfuseSink } from '../src/lib/langfuse-sink';
 import { formatInterviewMd, parseYamlAnswers } from './reflexion-loop-utils';
 
 const STACK_FILES = [
@@ -391,11 +392,15 @@ async function main(): Promise<number> {
 }
 
 main()
-  .then((code) => process.exit(code))
+  .then((code) => {
+    langfuseSink.shutdown();
+    process.exit(code);
+  })
   .catch((err) => {
     console.error(
       '[reflexion] error:',
       err instanceof Error ? err.message : err
     );
+    langfuseSink.shutdown();
     process.exit(4);
   });

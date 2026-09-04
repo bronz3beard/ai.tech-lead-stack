@@ -14,9 +14,6 @@ import { FileSystemService } from '../../skills/fs-service';
 import { KiService } from '../ki-service';
 
 // Mock langfuse to prevent ESM dynamic import issues in Jest
-jest.mock('langfuse', () => ({
-  Langfuse: jest.fn().mockImplementation(() => ({})),
-}));
 
 describe('KiService & create_knowledge_item Readonly Confinement', () => {
   const repoRoot = path.resolve(__dirname, '../../../../../..');
