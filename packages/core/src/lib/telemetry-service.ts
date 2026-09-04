@@ -5,6 +5,7 @@ import { prisma } from './prisma';
 import { normalizeProjectName, normalizeSkillName } from './trace-utils';
 import { MODEL_CATALOG } from './ai/model-registry';
 
+// NOTE: Adding a new routable model (e.g. claude-opus-4-8, gemini-3.7-flash) requires an entry in BOTH PRICING_MAP and MODEL_CATALOG (in model-registry.ts).
 const PRICING_MAP: Record<string, { input: number; output: number }> = {
   'claude-opus-4-6': { input: 5, output: 25 },
   'claude-sonnet-4-6': { input: 3, output: 15 },
@@ -123,9 +124,36 @@ export class TelemetryService {
     let validatedModel = originalModel;
     let validatedAgent = params.agent || 'unknown-agent';
     let invalidModelValue: string | undefined;
+    let isRecognizedModel = false;
 
-    const isRecognizedModel = MODEL_CATALOG.some(m => m.id === originalModel);
+    // 1. First try exact catalog id match (or label match)
+    const exactMatch = MODEL_CATALOG.find(m => m.id === originalModel || m.label === originalModel);
+    
+    if (exactMatch) {
+      validatedModel = exactMatch.id;
+      isRecognizedModel = true;
+    } else if (originalModel !== 'unknown-model') {
+      // 2. Normalize: lowercase, trim, strip trailing date/version suffix (e.g. -20260101, @preview)
+      const normalized = originalModel.toLowerCase().trim().replace(/(-[0-9]{8}|@preview)$/, '');
+      const normalizedMatch = MODEL_CATALOG.find(m => m.id === normalized || m.label.toLowerCase() === normalized);
+      
+      if (normalizedMatch) {
+        validatedModel = normalizedMatch.id;
+        isRecognizedModel = true;
+      } else {
+        // 3. Accept it as a REAL model id if it matches a known provider prefix
+        const isProviderPrefix = /^(claude-|gemini-|gpt-|o[1-9])/i.test(originalModel);
+        const isLocalModel = process.env.LOCAL_MODEL_NAME && originalModel === process.env.LOCAL_MODEL_NAME;
+        
+        if (isProviderPrefix || isLocalModel) {
+          validatedModel = originalModel;
+          isRecognizedModel = true;
+        }
+      }
+    }
+
     if (!isRecognizedModel && originalModel !== 'unknown-model') {
+      // Only route to the agent field values that are clearly NOT model ids
       // Re-route agents like "Antigravity", "Jules", "Cursor" to agent field if agent is missing
       if (!params.agent || params.agent === 'unknown-agent' || params.agent === 'unknown') {
          validatedAgent = originalModel;
@@ -148,7 +176,24 @@ export class TelemetryService {
     if (PRICING_MAP[validatedModel]) {
       inputRate = PRICING_MAP[validatedModel].input;
       outputRate = PRICING_MAP[validatedModel].output;
-    } else if ((promptTokens > 0 || completionTokens > 0) && validatedModel !== 'unknown-model') {
+    } else if (validatedModel !== 'unknown-model') {
+      // Look up closest family rate before falling back
+      const familyRates: Array<{ match: RegExp, rate: { input: number; output: number } }> = [
+        { match: /gemini-.*-flash/i, rate: PRICING_MAP['gemini-3.6-flash'] },
+        { match: /gemini-.*-pro/i, rate: PRICING_MAP['gemini-3.1-pro'] },
+        { match: /claude-.*-opus/i, rate: PRICING_MAP['claude-opus-4-6'] },
+        { match: /claude-.*-sonnet/i, rate: PRICING_MAP['claude-sonnet-4-6'] },
+        { match: /claude-.*-haiku/i, rate: PRICING_MAP['claude-haiku-4-5'] },
+      ];
+      
+      const matchedFamily = familyRates.find(f => f.match.test(validatedModel));
+      if (matchedFamily) {
+        inputRate = matchedFamily.rate.input;
+        outputRate = matchedFamily.rate.output;
+      } else if (promptTokens > 0 || completionTokens > 0) {
+        pricingFallback = true;
+      }
+    } else if (promptTokens > 0 || completionTokens > 0) {
       pricingFallback = true;
     }
 
