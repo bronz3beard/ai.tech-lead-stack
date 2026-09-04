@@ -1,6 +1,7 @@
 import { DashboardDisclaimer } from '@/components/dashboard/DashboardDisclaimer';
 import { InsightsTable } from '@/components/dashboard/InsightsTable';
 import { StepAnalyticsTable } from '@/components/dashboard/StepAnalyticsTable';
+import { PhaseCostPanel } from '@/components/dashboard/PhaseCostPanel';
 import { ProjectSelect, type Project } from '@/components/ProjectSelect';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, LineChart } from '@/components/ui/chart';
@@ -119,26 +120,51 @@ async function getGlobalMetrics(projectId?: string, session?: any) {
       total,
     }));
 
-    const analysisTraces = finalTraces.filter(t => t.name.startsWith('analysis:'));
-    const stepMetricsMap: Record<string, { totalExecutions: number; totalSteps: number }> = {};
+    const analysisTraces = finalTraces.filter(t => t.name === 'reflexion-loop' || t.name.startsWith('analysis:'));
+    
+    // Group traces by run ID to avoid double-counting steps from multiple events (e.g. generate, critique) in the same run
+    const tracesByRun: Record<string, { steps: number, phase: string, skill: string }> = {};
     
     analysisTraces.forEach(t => {
-      const skillName = t.name.replace('analysis:', '');
+      const runId = (t as any).loopRunId || t.id; // fallback to trace ID if no loopRunId
+      let skillName = t.name.replace('analysis:', '');
+      if (t.name === 'reflexion-loop' && t.metadata?.skillName) {
+         skillName = t.metadata.skillName as string;
+      }
       const steps = typeof t.metadata?.totalSteps === 'number' ? t.metadata.totalSteps : 
                     (typeof t.metadata?.totalSteps === 'string' ? parseInt(t.metadata.totalSteps, 10) : 0);
-      if (!stepMetricsMap[skillName]) {
-        stepMetricsMap[skillName] = { totalExecutions: 0, totalSteps: 0 };
+      const phase = (t as any).loopPhase || 'unknown';
+      
+      if (!tracesByRun[runId] || (isNaN(steps) ? 0 : steps) > tracesByRun[runId].steps) {
+        tracesByRun[runId] = {
+           steps: isNaN(steps) ? 0 : steps,
+           phase,
+           skill: skillName
+        };
       }
-      stepMetricsMap[skillName].totalExecutions += 1;
-      stepMetricsMap[skillName].totalSteps += (isNaN(steps) ? 0 : steps);
     });
 
-    const stepMetrics = Object.entries(stepMetricsMap).map(([skillName, data]) => ({
-      skillName,
-      totalExecutions: data.totalExecutions,
-      averageSteps: data.totalSteps / data.totalExecutions,
-      totalSteps: data.totalSteps
-    })).sort((a, b) => b.totalSteps - a.totalSteps);
+    const stepMetricsMap: Record<string, { totalExecutions: number; totalSteps: number }> = {};
+    
+    Object.values(tracesByRun).forEach(runData => {
+      const key = `${runData.skill}|${runData.phase}`;
+      if (!stepMetricsMap[key]) {
+        stepMetricsMap[key] = { totalExecutions: 0, totalSteps: 0 };
+      }
+      stepMetricsMap[key].totalExecutions += 1;
+      stepMetricsMap[key].totalSteps += runData.steps;
+    });
+
+    const stepMetrics = Object.entries(stepMetricsMap).map(([key, data]) => {
+      const [skillName, intentPhase] = key.split('|');
+      return {
+        skillName,
+        intentPhase,
+        totalExecutions: data.totalExecutions,
+        averageSteps: data.totalSteps / data.totalExecutions,
+        totalSteps: data.totalSteps
+      };
+    }).sort((a, b) => b.totalSteps - a.totalSteps);
 
     return {
       totalExecutions,
@@ -296,6 +322,9 @@ export default async function PublicDashboard({ searchParams }: PageProps) {
             <StepAnalyticsTable metrics={metrics.stepMetrics} />
           </CardContent>
         </Card>
+
+        {/* Phase Cost Panel */}
+        <PhaseCostPanel traces={metrics.traces as any} />
 
         {/* Disclaimer Section */}
         <DashboardDisclaimer />

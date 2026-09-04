@@ -4,6 +4,7 @@ exports[`Skill Posture read-only skills snapshots the read-only set to a committ
 [
   "Dummy Skill",
   "ask",
+  "capacity-planner",
   "daily-standup",
   "mission-architect",
   "operational-boundaries",

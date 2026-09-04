@@ -608,7 +608,7 @@ export class Handlers {
               actorType: 'AGENT',
               autonomy: 'AUTONOMOUS',
               loopRunId: runId,
-              loopPhase: e.phase,
+              loopPhase: state.intentPhase || e.phase,
               teamRole,
               promptTokens: ('usage' in e && e.usage) ? e.usage.promptTokens : undefined,
               completionTokens: ('usage' in e && e.usage) ? e.usage.completionTokens : undefined,
@@ -618,6 +618,7 @@ export class Handlers {
                 score: 'critique' in e ? e.critique.score : undefined,
                 passed: 'critique' in e ? e.critique.passed : undefined,
                 criticFallback: runner.wasDegraded() ? true : undefined,
+                totalSteps: revisionCounter,
               },
             })
           )
@@ -882,6 +883,7 @@ export class Handlers {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         criticDegraded: false,
+        intentPhase: args.intentPhase as string | undefined,
       };
 
       await stateStore.save(initialState);
@@ -919,7 +921,7 @@ export class Handlers {
                 actorType: 'AGENT',
                 autonomy: 'AUTONOMOUS',
                 loopRunId: runId,
-                loopPhase: e.phase,
+                loopPhase: initialState.intentPhase || e.phase,
                 teamRole,
                 promptTokens: ('usage' in e && e.usage) ? e.usage.promptTokens : undefined,
                 completionTokens: ('usage' in e && e.usage) ? e.usage.completionTokens : undefined,
@@ -929,6 +931,7 @@ export class Handlers {
                   score: 'critique' in e ? e.critique.score : undefined,
                   passed: 'critique' in e ? e.critique.passed : undefined,
                   criticFallback: runner.wasDegraded() ? true : undefined,
+                  totalSteps: revisionCounter,
                 },
               })
             )

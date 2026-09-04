@@ -3,7 +3,7 @@ import * as fs from 'fs/promises';
 import matter from 'gray-matter';
 import * as path from 'path';
 import { CodeProvider } from './providers/base-provider';
-import { findRepoRoot } from './repo-root.js';
+import { findRepoRoot } from './repo-root';
 
 /**
  * FileSystemService handles all directory traversal and skill file discovery logic.

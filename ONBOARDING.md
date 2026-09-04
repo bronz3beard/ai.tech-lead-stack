@@ -1,28 +1,61 @@
 # Team Onboarding Guide: The Lead Stack 🤖
 
 <!-- ECOSYSTEM-LINK:START -->
-> [!NOTE]
-> **Related project — **SML Gate** (`small-language-model-gate`, CLI `slm-gate`) — a local AI routing and pre-processing layer that uses a small, free local model via Ollama to intercept, compress, and answer easy or repetitive prompts before they reach your paid subscription or API cloud model, cutting token spend and protecting your monthly quota. Its `mcp-gate` layer can sit in front of this stack's MCP server (`TLS_ADAPTER=on` + `DOWNSTREAM_MCP` pointing at `dist/mcp-server.mjs`) to condense tool and skill payloads before they hit your editor's context window.**
+
+> [!NOTE] **Related project — **SML Gate** (`small-language-model-gate`, CLI
+> `slm-gate`) — a local AI routing and pre-processing layer that uses a small,
+> free local model via Ollama to intercept, compress, and answer easy or
+> repetitive prompts before they reach your paid subscription or API cloud
+> model, cutting token spend and protecting your monthly quota. Its `mcp-gate`
+> layer can sit in front of this stack's MCP server (`TLS_ADAPTER=on` +
+> `DOWNSTREAM_MCP` pointing at `dist/mcp-server.mjs`) to condense tool and skill
+> payloads before they hit your editor's context window.**
 >
-> <a href="https://github.com/zenithfoundry/sml-gate" target="_blank" rel="noopener noreferrer">Explore SML Gate on GitHub →</a>
+> <a href="https://github.com/zenithfoundry/sml-gate" target="_blank" rel="noopener noreferrer">Explore
+> SML Gate on GitHub →</a>
+
 <!-- ECOSYSTEM-LINK:END -->
 
 Welcome to our automated engineering workflows! This guide will help you set up
 and use the custom agent skills we've developed.
 
-The "Lead Stack" is a set of modular **agent skills** designed to enhance your day-to-day processes, automate repetitive tasks, and uplevel overall engineering quality. These skills are built to be **Tech-Stack Agnostic** and **Agent-Agnostic**, meaning they adapt to your project's specific language (C#, Python, JS, etc.) and work with various large language model agents.
+The "Lead Stack" is a set of modular **agent skills** designed to enhance your
+day-to-day processes, automate repetitive tasks, and uplevel overall engineering
+quality. These skills are built to be **Tech-Stack Agnostic** and
+**Agent-Agnostic**, meaning they adapt to your project's specific language (C#,
+Python, JS, etc.) and work with various large language model agents.
 
 ## 🧠 The Methodology: Four Pillars
 
-The "Lead Stack" is built upon four foundational pillars of modern engineering excellence:
+The "Lead Stack" is built upon four foundational pillars of modern engineering
+excellence:
 
-1.  **G-Stack (Modularity & Diagnosis-First)**: Inspired by the [garrytan/gstack](https://github.com/garrytan/gstack) philosophy, this pillar mandates **Diagnosis before Advice**. Every skill begins with **Phase 0: Tech-Stack Discovery**. Agents must understand the project's language, framework, and constraints before proposing a single line of code.
-2.  **MinimumCD (Atomic Batches & Continuous Verification)**: This pillar prioritizes **small, atomic batches of work** (<100 lines per task) and continuous automated verification. It is designed to prevent "Big Bang" integrations by enforcing [vertical slicing](https://beyond.minimumcd.org/docs/) and early detection of regression risks.
-3.  **Agent Skills (Production-Grade Ethos)**: Based on Addy Osmani's [agent-skills](https://github.com/addyosmani/agent-skills), this pillar treats AI agents as disciplined senior engineers rather than shortcut-taking assistants.
-    - **Process over Prose**: Skills are structured workflows (not vague advice) with specific verification gates.
-    - **Anti-Rationalization**: It uses documented rebuttals to combat common AI excuses (e.g., "I'll add tests later" or "The fix seems right").
-    - **Verification is Non-Negotiable**: Every task must end with hard evidence (tests, logs, or screenshots). "Seems right" is never an acceptable exit criterion.
-4.  **Modern Web Guidance**: Based on [GoogleChrome/modern-web-guidance-src](https://github.com/GoogleChrome/modern-web-guidance-src), this pillar helps coding agents build better web applications using modern, high-performance, accessible, and secure APIs instead of legacy workarounds.
+1.  **G-Stack (Modularity & Diagnosis-First)**: Inspired by the
+    [garrytan/gstack](https://github.com/garrytan/gstack) philosophy, this
+    pillar mandates **Diagnosis before Advice**. Every skill begins with **Phase
+    0: Tech-Stack Discovery**. Agents must understand the project's language,
+    framework, and constraints before proposing a single line of code.
+2.  **MinimumCD (Atomic Batches & Continuous Verification)**: This pillar
+    prioritizes **small, atomic batches of work** (<100 lines per task) and
+    continuous automated verification. It is designed to prevent "Big Bang"
+    integrations by enforcing
+    [vertical slicing](https://beyond.minimumcd.org/docs/) and early detection
+    of regression risks.
+3.  **Agent Skills (Production-Grade Ethos)**: Based on Addy Osmani's
+    [agent-skills](https://github.com/addyosmani/agent-skills), this pillar
+    treats AI agents as disciplined senior engineers rather than shortcut-taking
+    assistants.
+    - **Process over Prose**: Skills are structured workflows (not vague advice)
+      with specific verification gates.
+    - **Anti-Rationalization**: It uses documented rebuttals to combat common AI
+      excuses (e.g., "I'll add tests later" or "The fix seems right").
+    - **Verification is Non-Negotiable**: Every task must end with hard evidence
+      (tests, logs, or screenshots). "Seems right" is never an acceptable exit
+      criterion.
+4.  **Modern Web Guidance**: Based on
+    [GoogleChrome/modern-web-guidance-src](https://github.com/GoogleChrome/modern-web-guidance-src),
+    this pillar helps coding agents build better web applications using modern,
+    high-performance, accessible, and secure APIs instead of legacy workarounds.
 
 ---
 
@@ -54,8 +87,11 @@ not get a `.cursor/` folder. Example:
 The installer also merges the **tech-lead-stack** MCP server into
 **`~/.cursor/mcp.json`**.
 
-**Updating an Existing Installation:**
-If you are pulling new updates for the `tech-lead-stack`, you don't need to re-run `install.sh` across your projects. Just update the MCP server bundle by running the following in the `tech-lead-stack` root directory:
+**Updating an Existing Installation:** If you are pulling new updates for the
+`tech-lead-stack`, you don't need to re-run `install.sh` across your projects.
+Just update the MCP server bundle by running the following in the
+`tech-lead-stack` root directory:
+
 ```bash
 pnpm install
 pnpm run mcp:build
@@ -103,6 +139,7 @@ Refer to the skill name in your prompt or use the slash menu in supported IDEs.
 ## 🔄 Lifecycle Model & Pipelines
 
 The agent toolbox is organized around a strict **9-Phase Lifecycle**:
+
 1. **Intent**: Strategic alignment, market analysis, and product requirements.
 2. **Specify**: Design system, architecture, and technical specifications.
 3. **Plan**: Decomposition, vertical slicing, and execution planning.
@@ -113,16 +150,28 @@ The agent toolbox is organized around a strict **9-Phase Lifecycle**:
 8. **Polish**: Design tokens extraction and final UI refinements.
 9. **Maintain**: Technical debt auditing, onboarding, and repo intelligence.
 
+> [!TIP] **Phase Cost & Rework**: In the Global Dashboard's "Cost & time by
+> phase" panel, a phase with disproportionate rework cost is the signal to
+> revisit its boundary/ownership. This panel is the iteration backlog.
+
 ### Ownership Axis & Artifact Contracts
-Each skill operates under strict **artifact contracts** (`consumes` and `emits`). A skill cannot run unless its required upstream artifacts (e.g., `intent-brief`, `plan`, `diff`) have been generated.
-Skills also declare their **ownership axis**:
+
+Each skill operates under strict **artifact contracts** (`consumes` and
+`emits`). A skill cannot run unless its required upstream artifacts (e.g.,
+`intent-brief`, `plan`, `diff`) have been generated. Skills also declare their
+**ownership axis**:
+
 - **Drive**: Who drives the execution (`human`, `ai`, or `human-ai`).
 - **Approve**: Who approves the final output (`human`, `ai`, or `none`).
 
 ### The `plan_pipeline` Tool
-You can use the `plan_pipeline` MCP tool to automatically construct a valid chain of skills from your intent to your goal. The tool will read the skill graph and propose a pipeline that satisfies all artifact constraints.
+
+You can use the `plan_pipeline` MCP tool to automatically construct a valid
+chain of skills from your intent to your goal. The tool will read the skill
+graph and propose a pipeline that satisfies all artifact constraints.
 
 **Example**:
+
 ```json
 {
   "goalPhase": "build",
@@ -130,7 +179,10 @@ You can use the `plan_pipeline` MCP tool to automatically construct a valid chai
   "context": "We need to build a new authentication flow starting from a basic product requirement."
 }
 ```
-The tool will return an orchestrated path (e.g., `feature-design-assistant` [Intent] -> `solutioning-facilitator` [Specify] -> `planning-expert` [Plan] -> `clean-code` [Build]) ensuring all `consumes`/`emits` contracts are met.
+
+The tool will return an orchestrated path (e.g., `feature-design-assistant`
+[Intent] -> `solutioning-facilitator` [Specify] -> `planning-expert` [Plan] ->
+`clean-code` [Build]) ensuring all `consumes`/`emits` contracts are met.
 
 ---
 

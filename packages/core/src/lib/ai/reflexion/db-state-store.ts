@@ -11,6 +11,9 @@ export class DbStateStore implements StateStore {
     try {
       const parsed = ReflexionStateV2Schema.parse(run.stateJson);
       (parsed as any)._dbVersion = run.version;
+      if (run.intentPhase && !parsed.intentPhase) {
+        parsed.intentPhase = run.intentPhase;
+      }
       return parsed;
     } catch (err) {
       console.error(`[DbStateStore] Failed to parse stateJson for runId ${runId}:`, err);
@@ -44,6 +47,7 @@ export class DbStateStore implements StateStore {
           revision: state.revision,
           version: 0,
           costUsd: state.usage.costUsd,
+          intentPhase: state.intentPhase,
         }
       });
       (state as any)._dbVersion = 0;
@@ -59,6 +63,7 @@ export class DbStateStore implements StateStore {
           revision: state.revision,
           version: currentVersion + 1,
           costUsd: state.usage.costUsd,
+          intentPhase: state.intentPhase,
         }
       });
       

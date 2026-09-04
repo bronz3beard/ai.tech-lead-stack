@@ -1,5 +1,5 @@
-import { FileSystemService } from "./fs-service.js";
-import { findRepoRoot } from "./repo-root.js";
+import { FileSystemService } from "./fs-service";
+import { findRepoRoot } from "./repo-root";
 
 const repoRoot = findRepoRoot();
 
@@ -8,6 +8,6 @@ const repoRoot = findRepoRoot();
  */
 export const skillsService = new FileSystemService(repoRoot);
 
-export * from "./fs-service.js";
-export * from "./repo-root.js";
+export * from "./fs-service";
+export * from "./repo-root";
 

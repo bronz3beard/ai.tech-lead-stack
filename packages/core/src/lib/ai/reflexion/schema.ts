@@ -132,6 +132,7 @@ export const ReflexionStateV2Schema = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   criticDegraded: z.boolean().default(false).optional(),
+  intentPhase: z.string().optional(),
 });
 export type ReflexionStateV2 = z.infer<typeof ReflexionStateV2Schema>;
 
