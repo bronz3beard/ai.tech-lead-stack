@@ -1,6 +1,6 @@
 # The Lead Stack: Agent-Agnostic Workflows
 
-![CI Status](https://github.com/bronz3beard/tech-lead-stack/actions/workflows/agent-ci.yml/badge.svg)
+![CI Status](https://github.com/bronz3beard/tech-lead-stack/actions/workflows/ci.yml/badge.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
@@ -638,6 +638,8 @@ copy-paste IDE prompt; only the IDE/MCP surface edits code.
 | [`docs/github-action-example.yml`](./docs/github-action-example.yml)                                                           | Reference for CI automation.                  |
 | [`docs/designs/2026-07-08-agentic-dev-team-design.md`](./docs/designs/2026-07-08-agentic-dev-team-design.md)                   | Design doc for the dev team orchestrator.     |
 | [`docs/designs/2026-07-08-reflexion-loop-v2-interview-gate.md`](./docs/designs/2026-07-08-reflexion-loop-v2-interview-gate.md) | Design doc for the reflexion loop.            |
+| [`docs/decisions/0002-lifecycle-paradigm.md`](./docs/decisions/0002-lifecycle-paradigm.md)                                     | ADR 0002: 9-Phase Lifecycle Paradigm.         |
+| [`docs/decisions/0003-execution-targets.md`](./docs/decisions/0003-execution-targets.md)                                       | ADR 0003: Agent Execution Targets.            |
 
 ## Available Skills
 
@@ -816,20 +818,45 @@ agents default to high-discipline engineering rather than the shortest path:
 > robust verification. It is designed to work seamlessly with C#, Python,
 > JavaScript, Java, Go, and any other ecosystem.
 
-> [!NOTE] **🧭 The Three-Phase Engine** The **Feature Orchestrator** governs a
-> single feature's lifecycle through a disciplined three-phase loop:
->
-> 1. **Research (Research Phase)**: Prototypes domain models, data structures,
->    and contract boundaries using `feature-design-assistant` (optionally
->    chaining `ui-spec-generator` and `design-system-review` when design inputs
->    are available).
-> 2. **Plan (Planning Phase)**: Decomposes the requirements into thin,
->    independently deployable vertical slices using `vertical-slice-decomposer`
->    (or `planning-expert` for backend/architectural tasks).
-> 3. **Implement (Implementation Phase)**: Sandbox execution and continuous
->    verification using `verification-auditor` and `regression-bug-fix` to
->    ensure that every slice satisfies all compilation, type-safety, and visual
->    design requirements.
+> [!NOTE] **🧭 The 9-Phase Lifecycle** The orchestrators govern features through
+> a strict 9-phase lifecycle (Intent, Specify, Plan, Build, Review, Deploy,
+> Scale, Polish, Maintain). Under the "nine-in-metadata" rule, a skill's phase
+> lives strictly in its extended markdown frontmatter contract and the compiled
+> `skills.graph.json`, never in its directory structure.
+
+### Skill Orchestration & Handoffs
+
+Skills are classified along **kind**, **domain**, and **ownership** axes.
+Orchestrator skills use `spans` to run sub-agents. Handoffs between skills are
+strictly typed and backed by Knowledge Items. A skill's `consumes` and `emits`
+properties map directly to KI slugs, ensuring that a skill only runs when its
+prerequisite artifacts exist. The MCP server uses `plan_pipeline` and a
+graph-aware `get_skill` tool (which injects requires/suggests footers) to
+enforce this graph. The compiled `skills.graph.json` acts as the source of truth
+for these relationships; any undocumented drift is blocked in CI by the drift
+gate (`npm run generate:registry -- --check`).
+
+### Policies & CI Hooks Enforcer
+
+Dynamic operational rules are injected via `.ai/policies` (e.g., four-pillars,
+user-sovereignty, diagnosis-first). The hooks layer (`.ai/hooks`) enforces
+ownership gates at MCP call-time and in CI via a dedicated hooks enforcer.
+
+### Execution Targets
+
+Agent tasks are governed by four distinct execution targets depending on budget
+and capability constraints:
+
+- **`local`**: Offline execution using the local model tier.
+- **`sub-pro`**: Baseline subscription tier ($20/mo) execution.
+- **`sub-max`**: Advanced subscription tier ($100/mo) execution.
+- **`byo`**: Bring-Your-Own API key execution for full capabilities.
+
+### Analytics
+
+We capture per-phase measurement metrics using Langfuse telemetry, which
+includes recent accuracy fixes (PROMPTS A and B) to better track agent
+progression.
 
 ### ✨ Special Feature: The Reflexion Loop
 
@@ -904,7 +931,7 @@ through the **MCP Server**, which enforces a strict priority of discovery:
 ### Priority Logic Snippet:
 
 ```typescript
-// src/mcp-server/fs-service.ts
+// src/lib/skills/fs-service.ts
 
 async readSkill(safeSkillName: string) {
   // Define Search Paths: Local Project has priority over Global Repo

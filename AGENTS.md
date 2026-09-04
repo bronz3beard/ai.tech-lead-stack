@@ -49,6 +49,13 @@ name. Not applicable if your environment doesn't connect to this MCP server.
 4. **Modern Web Guidance** — UI/web-facing code uses Server Components, Zod
    validation, semantic HTML/ARIA. No legacy workarounds.
 
+## Policies & Execution
+
+Agent policies and constraints are centrally enforced:
+- **`.ai/policies`**: Read any policy documents here when making operational decisions.
+- **`.ai/hooks`**: Aware of the hooks layer. Ownership gates and capability boundaries are enforced both at MCP call-time and in CI via a dedicated hooks enforcer.
+- **Execution Targets**: Be aware that you operate under one of four execution targets (`local`, `sub-pro`, `sub-max`, `byo`). Each has specific latency, context, and capability budgets as defined in `docs/decisions/0003-execution-targets.md`.
+
 ## Git discipline
 
 Work only on the feature branch named in your task. Never merge, never touch

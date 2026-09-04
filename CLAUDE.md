@@ -141,6 +141,10 @@ For any linked project, use the localized runner for stack-specific skills:
 ./.ai/rtk-run run <tool>    # Execute a stack tool (e.g., visual-verifier)
 ```
 
+### Agent Awareness & Enforcement
+- **Analytics**: Code interactions and test outputs are evaluated via `rtk run reflexion-loop`. PROMPTS A and B accuracy fixes are enabled by default for Langfuse telemetry.
+- **Hooks & Policies**: Be aware of `.ai/hooks` and `.ai/policies` enforcements. Ownership boundaries for generated files are verified at runtime; attempting to drift out of permitted domains will trigger a rejection.
+
 ## Token Savings Overview
 
 | Category         | Commands                       | Typical Savings |

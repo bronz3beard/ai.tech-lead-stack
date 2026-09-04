@@ -138,7 +138,7 @@ Refer to the skill name in your prompt or use the slash menu in supported IDEs.
 
 ## 🔄 Lifecycle Model & Pipelines
 
-The agent toolbox is organized around a strict **9-Phase Lifecycle**:
+The agent toolbox is organized around a strict **9-Phase Lifecycle** (see [ADR 0002: 9-Phase Lifecycle Paradigm](docs/decisions/0002-lifecycle-paradigm.md)):
 
 1. **Intent**: Strategic alignment, market analysis, and product requirements.
 2. **Specify**: Design system, architecture, and technical specifications.
@@ -150,19 +150,28 @@ The agent toolbox is organized around a strict **9-Phase Lifecycle**:
 8. **Polish**: Design tokens extraction and final UI refinements.
 9. **Maintain**: Technical debt auditing, onboarding, and repo intelligence.
 
-> [!TIP] **Phase Cost & Rework**: In the Global Dashboard's "Cost & time by
-> phase" panel, a phase with disproportionate rework cost is the signal to
-> revisit its boundary/ownership. This panel is the iteration backlog.
+> [!TIP] **The "Nine-in-Metadata" Rule**: A skill's lifecycle phase lives strictly in its markdown frontmatter and the compiled `skills.graph.json`, never in its directory structure.
 
-### Ownership Axis & Artifact Contracts
+### Skill Orchestration & Axes
 
-Each skill operates under strict **artifact contracts** (`consumes` and
-`emits`). A skill cannot run unless its required upstream artifacts (e.g.,
-`intent-brief`, `plan`, `diff`) have been generated. Skills also declare their
-**ownership axis**:
-
+Skills are classified along **kind**, **domain**, and **ownership** axes:
 - **Drive**: Who drives the execution (`human`, `ai`, or `human-ai`).
 - **Approve**: Who approves the final output (`human`, `ai`, or `none`).
+- Orchestrator skills use `spans` to execute and monitor sub-agents.
+
+### Artifact Contracts & Knowledge Items (KIs)
+
+Each skill operates under strictly typed **artifact contracts** (`consumes` and `emits`). These properties map directly to **Knowledge Item (KI) slugs**. A skill cannot run unless its required upstream artifacts (e.g., `intent-brief`, `plan`, `diff`) have been generated and stored as KIs.
+
+### Dynamic Policies & Execution Targets
+
+Operational rules are dynamically injected via `.ai/policies` to ensure that agent interactions are consistently aligned with the project's methodologies.
+
+Tasks are executed against specific targets depending on capabilities and tier (see [ADR 0003: Agent Execution Targets](docs/decisions/0003-execution-targets.md)):
+- **`local`**: Offline execution.
+- **`sub-pro`**: Baseline subscription ($20/mo).
+- **`sub-max`**: Advanced subscription ($100/mo).
+- **`byo`**: Bring-Your-Own API keys.
 
 ### The `plan_pipeline` Tool
 

@@ -242,7 +242,30 @@ export default function OnboardingPage() {
           </div>
         </section>
 
-        {/* Section 3: The Pillars of Excellence */}
+        {/* Section 3: Lifecycle & Orchestration Architecture */}
+        <section className="space-y-8">
+          <div className="space-y-4">
+            <h2 className="text-3xl font-bold text-white flex items-center gap-3">
+              <BookOpen className="w-8 h-8 text-indigo-500" />
+              Lifecycle & Orchestration Architecture
+            </h2>
+            <div className="prose prose-invert prose-slate max-w-none text-lg text-slate-300 space-y-6">
+              <p>
+                Our agent toolbox is organized around a strict <strong>9-Phase Lifecycle</strong> (Intent, Specify, Plan, Build, Review, Deploy, Scale, Polish, Maintain). Following the <em>"nine-in-metadata" rule</em>, a skill's phase lives strictly in its markdown frontmatter and the compiled <code>skills.graph.json</code>.
+              </p>
+              
+              <p>
+                <strong>Orchestration & Handoffs</strong>: Skills are classified along <em>kind</em>, <em>domain</em>, and <em>ownership</em> axes. Orchestrator skills use <code>spans</code> to run sub-agents. Handoffs between skills are strictly typed and backed by <strong>Knowledge Items (KIs)</strong>. A skill's <code>consumes</code> and <code>emits</code> properties map directly to KI slugs, ensuring that a skill only runs when its prerequisite artifacts exist. 
+              </p>
+
+              <p>
+                <strong>Execution Targets</strong>: Agent tasks are governed by four distinct execution targets (`local`, `sub-pro`, `sub-max`, `byo`) depending on budget and capability constraints. We capture per-phase measurement metrics using Langfuse telemetry, which includes recent accuracy fixes to better track agent progression.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Section 4: The Pillars of Excellence */}
         <section className="bg-slate-900/40 border border-slate-800/60 rounded-3xl p-10 md:p-16 space-y-12 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 blur-[100px] -z-10" />
           <div className="space-y-4 text-center">
@@ -402,7 +425,7 @@ export default function OnboardingPage() {
           </div>
         </section>
 
-        {/* Section 4: Next Steps */}
+        {/* Section 5: Next Steps */}
         <section className="text-center space-y-8">
           <h2 className="text-3xl font-bold text-white">
             Ready to dive deeper?
