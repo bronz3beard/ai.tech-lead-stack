@@ -23,6 +23,8 @@
     "reflexion": "tsx scripts/reflexion-loop.ts",
     "reflexion:eval": "tsx scripts/reflexion-eval.ts",
     "generate:registry": "tsx scripts/generate-skill-registry.ts",
+    "index:build": "tsx scripts/build-index.ts",
+    "index:update": "tsx scripts/build-index.ts",
     "calibrate-skill-costs": "tsx scripts/calibrate-skill-costs.ts",
     "db:generate": "prisma generate",
     "check-types": "tsc --noEmit --skipLibCheck",

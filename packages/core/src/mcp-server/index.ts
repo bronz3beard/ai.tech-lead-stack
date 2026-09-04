@@ -361,6 +361,45 @@ const REFLEXION_STATUS_TOOL: Tool = {
   }
 };
 
+const REPO_MAP_TOOL: Tool = {
+  name: 'repo_map',
+  description: 'Retrieves a compact map of the repository files and top-level symbol signatures.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      tokenBudget: { type: 'number', description: 'Optional budget to trim the map size.' }
+    }
+  }
+};
+
+const CODE_SEARCH_TOOL: Tool = {
+  name: 'code_search',
+  description: 'Semantic search across the repository code using local embeddings.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      query: { type: 'string', description: 'The search query or keyword.' },
+      k: { type: 'number', description: 'Optional number of top results to return (default 5).' }
+    },
+    required: ['query']
+  }
+};
+
+const READ_REGION_TOOL: Tool = {
+  name: 'read_region',
+  description: 'Reads a specific line range from a file.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      path: { type: 'string', description: 'Relative path to the file.' },
+      startLine: { type: 'number', description: '1-indexed starting line.' },
+      endLine: { type: 'number', description: '1-indexed ending line.' }
+    },
+    required: ['path', 'startLine', 'endLine']
+  }
+};
+
+
 /**
  * Handlers: Tool Listing
  */
@@ -381,6 +420,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       REFLEXION_LOOP_SUB_PRO_TOOL,
       REFLEXION_RESUME_TOOL,
       REFLEXION_STATUS_TOOL,
+      REPO_MAP_TOOL,
+      CODE_SEARCH_TOOL,
+      READ_REGION_TOOL,
     ],
   };
 });
@@ -450,6 +492,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   if (name === 'reflexion_status') {
     return await handlers.handleReflexionStatus(args || {});
+  }
+
+  if (name === 'repo_map') {
+    return await handlers.handleRepoMap(args || {});
+  }
+
+  if (name === 'code_search') {
+    return await handlers.handleCodeSearch(args || {});
+  }
+
+  if (name === 'read_region') {
+    return await handlers.handleReadRegion(args || {});
   }
 
   throw new Error(`Unknown tool: ${name}`);

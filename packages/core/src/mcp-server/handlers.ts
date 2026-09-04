@@ -1,996 +1,110 @@
 import { CallToolResult } from '@modelcontextprotocol/sdk/types';
-import * as fs from 'fs/promises';
-import matter from 'gray-matter';
-import * as path from 'path';
-import { resumeReflexion, runReflexion } from '../lib/ai/reflexion/engine.js';
-import { runnerFromEnv } from '../lib/ai/reflexion/providers-env.js';
-import { FileStateStore } from '../lib/ai/reflexion/state-store.js';
-import { assessTask, enforceTier, type Tier } from '../lib/ai/tier-policy.js';
-import { decrypt } from '../lib/crypto';
 import { KiService } from '../lib/ki/ki-service.js';
-import { prisma } from '../lib/prisma.js';
 import { AlignmentService } from '../lib/skills/alignment-service.js';
 import { FileSystemService } from '../lib/skills/fs-service.js';
-import { isSkillTrace } from '../lib/trace-utils';
 import { Telemetry } from './telemetry.js';
-import { UserResolver } from './user-resolver.js';
+
+import { AlignmentHandlers } from './handlers/alignment.js';
+import { CodebaseHandlers } from './handlers/codebase.js';
+import { HookHandlers } from './handlers/hooks.js';
+import { KnowledgeHandlers } from './handlers/knowledge-items.js';
+import { PipelineHandlers } from './handlers/pipeline.js';
+import { ReflexionHandlers } from './handlers/reflexion.js';
+import { SkillHandlers } from './handlers/skills.js';
 
 /**
  * Handlers manages the execution logic for all MCP tools.
  * Enforces SRP by separating request handling from server configuration.
+ * Refactored to delegate to domain-specific handler modules.
  */
 export class Handlers {
+  private hookHandlers: HookHandlers;
+  private skillHandlers: SkillHandlers;
+  private knowledgeHandlers: KnowledgeHandlers;
+  private alignmentHandlers: AlignmentHandlers;
+  private reflexionHandlers: ReflexionHandlers;
+  private pipelineHandlers: PipelineHandlers;
+  private codebaseHandlers: CodebaseHandlers;
+
   constructor(
     private fsService: FileSystemService,
     private telemetry: Telemetry,
     private alignmentService: AlignmentService,
     private kiService: KiService
-  ) {}
+  ) {
+    this.hookHandlers = new HookHandlers(this.fsService, this.kiService);
+    this.skillHandlers = new SkillHandlers(this.fsService, this.telemetry, this.kiService);
+    this.knowledgeHandlers = new KnowledgeHandlers(this.kiService, this.fsService);
+    this.alignmentHandlers = new AlignmentHandlers(this.alignmentService);
+    this.reflexionHandlers = new ReflexionHandlers();
+    this.pipelineHandlers = new PipelineHandlers(this.fsService, this.telemetry);
+    this.codebaseHandlers = new CodebaseHandlers();
+  }
 
-  /**
-   * @desc Evaluates hooks/guards for a given skill execution request.
-   */
   async evaluateHooks(
     toolName: string,
     args: Record<string, unknown>
   ): Promise<{ allowed: boolean; refusalPayload?: any }> {
-    const isDiscreteTool =
-      toolName.startsWith('get_') &&
-      toolName !== 'get_skill' &&
-      toolName !== 'get_skills';
-    let safeSkillName = '';
-    if (isDiscreteTool) {
-      safeSkillName = toolName.replace(/^get_/, '').replace(/_/g, '-');
-    } else if (toolName === 'get_skill' || toolName === 'get_skills') {
-      const skillName = args.skillName as string | undefined;
-      safeSkillName = path.basename(skillName || 'unknown', '.md');
-    } else {
-      return { allowed: true };
-    }
-
-    const graph = await this.fsService.loadGraph();
-    if (!graph || !graph.nodes) return { allowed: true };
-
-    const node = graph.nodes.find((n: any) => n.id === safeSkillName);
-    if (!node) return { allowed: true };
-
-    const phase = node.phase;
-    const kind = node.kind;
-
-    const hooksDir = path.join(process.cwd(), '.ai', 'hooks');
-    let guards: any[] = [];
-    try {
-      const files = await fs.readdir(hooksDir);
-      for (const file of files) {
-        if (file.endsWith('.json')) {
-          const content = await fs.readFile(path.join(hooksDir, file), 'utf-8');
-          guards.push(JSON.parse(content));
-        }
-      }
-    } catch {
-      return { allowed: true };
-    }
-
-    const actorType = (args.actorType as string) || 'USER';
-
-    for (const guard of guards) {
-      let applies = false;
-      if (guard.appliesToPhase && guard.appliesToPhase.includes(phase))
-        applies = true;
-      if (guard.appliesToKind && guard.appliesToKind.includes(kind))
-        applies = true;
-      if (!applies) continue;
-
-      const cond = guard.condition || {};
-      let triggered = false;
-
-      if (cond.actorTypeNot && actorType !== cond.actorTypeNot) {
-        triggered = true;
-      }
-
-      if (cond.requireKi) {
-        if ((cond.requireKi === 'spec' || cond.requireKi === 'feature-spec') && args.story) {
-          // satisfied via direct entry
-        } else if ((cond.requireKi === 'slice-set' || cond.requireKi === 'atomic-batches') && args.slice) {
-          // satisfied via direct entry
-        } else {
-          const ki = await this.kiService.readKnowledgeItem(cond.requireKi);
-          if (cond.requireKiStatus) {
-            if (!ki || ki.metadata.approval?.status !== cond.requireKiStatus) {
-              triggered = true;
-            }
-          } else if (!ki) {
-            triggered = true;
-          }
-        }
-      }
-
-      if (cond.consumesApprovedKi) {
-        const consumes = graph.artifactFlow
-          ? graph.artifactFlow
-              .filter((f: any) => f.consumedBy?.includes(phase))
-              .map((f: any) => f.type)
-          : [];
-        for (const type of consumes) {
-          if ((type === 'spec' || type === 'feature-spec') && args.story) continue;
-          if ((type === 'slice-set' || type === 'atomic-batches') && args.slice) continue;
-          
-          const ki = await this.kiService.readKnowledgeItem(type);
-          if (
-            ki &&
-            (!ki.metadata.approval ||
-              ki.metadata.approval.status !== 'human-approved')
-          ) {
-            triggered = true;
-            break;
-          }
-        }
-      }
-
-      if (triggered) {
-        if (
-          guard.action === 'block' ||
-          guard.action === 'require-human-approve'
-        ) {
-          return {
-            allowed: false,
-            refusalPayload: {
-              content: [
-                {
-                  type: 'text',
-                  text: JSON.stringify(
-                    {
-                      refused: true,
-                      reason: guard.message,
-                      escalateTo: 'human',
-                      guardId: guard.id,
-                    },
-                    null,
-                    2
-                  ),
-                },
-              ],
-              isError: false,
-            },
-          };
-        }
-      }
-    }
-    return { allowed: true };
+    return this.hookHandlers.evaluateHooks(toolName, args);
   }
 
-  /**
-   * Logic for the 'list_skills' tool.
-   */
   async handleListSkills() {
-    const searchDirs = this.fsService.getSearchDirs();
-    const allSkills = new Set<string>();
-
-    await Promise.all(
-      searchDirs.map(async (dir) => {
-        try {
-          const files = await fs.readdir(dir);
-          files
-            .filter((file) => file.endsWith('.md'))
-            .forEach((file) => allSkills.add(path.basename(file, '.md')));
-        } catch {
-          /* skip directory if missing */
-        }
-      })
-    );
-
-    const skillFiles = Array.from(allSkills)
-      .filter(
-        (skill) => !isSkillTrace(undefined, skill) && !skill.startsWith('pm-')
-      )
-      .sort();
-
-    const formattedSkills = await Promise.all(
-      skillFiles.map(async (s) => {
-        const skill = await this.fsService.readSkill(s);
-        if (skill) {
-          const parsed = matter(skill.content);
-          const modes = Array.isArray(parsed.data?.modes)
-            ? parsed.data.modes
-            : [];
-          if (modes.length > 0) {
-            return `- ${s} [modes: ${modes.join(', ')}]`;
-          }
-        }
-        return `- ${s}`;
-      })
-    );
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: `Available skills (found in ${searchDirs.join(', ')}):\n${formattedSkills.join('\n')}`,
-        },
-      ],
-      isError: false,
-    };
+    return this.skillHandlers.handleListSkills();
   }
 
-  /**
-   * Logic for 'get_skills' and 'get_skill' tools (and dynamic tool aliases).
-   */
   async handleGetSkill(name: string, args: Record<string, unknown>) {
-    const skillName = args.skillName as string | undefined;
-    const projectName = args.projectName as string | undefined;
-    const model = args.model as string | undefined;
-    const agent = args.agent as string | undefined;
-
-    // Normalize tool name to skill filename
-    const isDiscreteTool =
-      name.startsWith('get_') && name !== 'get_skill' && name !== 'get_skills';
-
-    // Reverse map: "get_planning_expert" -> "planning-expert"
-    const toolToSkillName = (tool: string) =>
-      tool.replace(/^get_/, '').replace(/_/g, '-');
-
-    const effectiveSkillName = isDiscreteTool
-      ? toolToSkillName(name)
-      : path.basename(skillName || 'unknown', '.md');
-    const safeSkillName = path.basename(effectiveSkillName, '.md');
-
-    const skill = await this.fsService.readSkill(safeSkillName);
-
-    if (skill) {
-      const { content: rawContent } = skill;
-      let actualProjectName = projectName;
-
-      const isTrustedProjectName =
-        !!actualProjectName &&
-        actualProjectName.toLowerCase() !== 'unknown' &&
-        actualProjectName !== '.' &&
-        !actualProjectName.includes('tech-lead-stack');
-
-      if (!isTrustedProjectName) {
-        // Attempt to resolve the caller's project root. findProjectRoot skips the
-        // tech-lead-stack itself, so null means we are the server - use a safe fallback.
-        const projectRoot = await this.fsService.findProjectRoot(
-          /*turbopackIgnore: true*/ process.cwd()
-        );
-        if (projectRoot) {
-          try {
-            const packagePath = path.join(projectRoot, 'package.json');
-            const pkg = JSON.parse(await fs.readFile(packagePath, 'utf-8'));
-            actualProjectName =
-              pkg.name && !pkg.name.includes('tech-lead-stack')
-                ? pkg.name
-                : path.basename(projectRoot);
-          } catch {
-            actualProjectName = path.basename(projectRoot);
-          }
-        } else {
-          // cwd is the tech-lead-stack install itself - record as anonymous
-          actualProjectName = 'unknown-project';
-        }
-      }
-
-      if (args.story) {
-        await this.kiService.upsertKnowledgeItem({
-          slug: 'feature-spec',
-          summary: 'Direct user story input',
-          projectName: actualProjectName,
-          artifacts: [{ name: 'spec.md', content: args.story as string }],
-          approval: { status: 'human-approved', by: 'user', timestamp: new Date().toISOString() }
-        });
-      }
-      
-      if (args.slice) {
-        await this.kiService.upsertKnowledgeItem({
-          slug: 'atomic-batches',
-          summary: 'Direct vertical slice input',
-          projectName: actualProjectName,
-          artifacts: [{ name: 'slice.md', content: args.slice as string }],
-          approval: { status: 'human-approved', by: 'user', timestamp: new Date().toISOString() }
-        });
-      }
-
-      let fileContent = rawContent;
-      const graph = await this.fsService.loadGraph();
-      if (graph && graph.nodes) {
-        const node = graph.nodes.find((n: any) => n.id === safeSkillName);
-        if (node) {
-          const requires = graph.edges
-            ? graph.edges
-                .filter(
-                  (e: any) => e.from === safeSkillName && e.type === 'requires'
-                )
-                .map((e: any) => e.to)
-            : [];
-          const suggests = graph.edges
-            ? graph.edges
-                .filter(
-                  (e: any) => e.from === safeSkillName && e.type === 'suggests'
-                )
-                .map((e: any) => e.to)
-            : [];
-          const consumes = graph.artifactFlow
-            ? graph.artifactFlow
-                .filter((f: any) => f.consumedBy?.includes(node.phase))
-                .map((f: any) => f.type)
-            : [];
-          const emits = graph.artifactFlow
-            ? graph.artifactFlow
-                .filter((f: any) => f.emittedBy?.includes(node.phase))
-                .map((f: any) => f.type)
-            : [];
-          const targets = node.targets || [];
-
-          const footer = `\n\n---\n[GRAPH] phase=${node.phase || 'none'} kind=${node.kind || 'none'} domain=${node.domain || 'none'}\nrequires=[${requires.join(',')}] suggests=[${suggests.join(',')}]\nconsumes=[${consumes.join(',')}] emits=[${emits.join(',')}] targets=[${targets.join(',')}]`;
-          fileContent += footer;
-        }
-      }
-
-      const parsed = matter(rawContent);
-      if (Array.isArray(parsed.data?.policies)) {
-        const policyText = await this.fsService.resolvePolicies(
-          parsed.data.policies
-        );
-        if (policyText) {
-          fileContent += `\n\n---\n## Injected policies\n${policyText}`;
-        }
-      }
-
-      const shouldSkipAnalytics = isSkillTrace(undefined, safeSkillName);
-
-      let skillCost = 'unknown';
-      const metaMatch = rawContent.match(/cost:\s*(.*)/);
-      if (metaMatch) skillCost = metaMatch[1].trim();
-
-      const overrides: {
-        actorType?: string | null;
-        autonomy?: string | null;
-        loopRunId?: string | null;
-        loopPhase?: string | null;
-        teamRole?: string | null;
-      } = {};
-
-      if (typeof args.actorType === 'string')
-        overrides.actorType = args.actorType;
-      if (typeof args.autonomy === 'string') overrides.autonomy = args.autonomy;
-      if (typeof args.loopRunId === 'string')
-        overrides.loopRunId = args.loopRunId;
-      if (typeof args.loopPhase === 'string')
-        overrides.loopPhase = args.loopPhase;
-      if (typeof args.teamRole === 'string') overrides.teamRole = args.teamRole;
-
-      if (safeSkillName === 'qa-handover-generator') {
-        if (overrides.teamRole === undefined) {
-          overrides.teamRole = 'qa';
-        }
-        if (overrides.actorType === undefined) {
-          overrides.actorType = 'AGENT';
-        }
-      }
-
-      const trackedContent = shouldSkipAnalytics
-        ? fileContent
-        : await this.telemetry.withAnalytics(
-            safeSkillName,
-            actualProjectName,
-            model,
-            agent,
-            skillCost,
-            async () => fileContent,
-            overrides
-          );
-
-      return {
-        content: [{ type: 'text', text: trackedContent }],
-        isError: false,
-      };
-    }
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: `Error: Skill file "${safeSkillName}" not found. Use list_skills to see available skills.`,
-        },
-      ],
-      isError: true,
-    };
+    return this.skillHandlers.handleGetSkill(name, args);
   }
 
-  /**
-   * Logic for the 'verify_mission_alignment' tool.
-   */
   async handleVerifyMissionAlignment(args: Record<string, unknown>) {
-    const agent = args.agent as string | undefined;
-    const projectName = args.projectName as string | undefined;
-
-    if (!agent || !projectName) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: 'Error: Please provide both "agent" and "projectName" to align.',
-          },
-        ],
-        isError: true,
-      };
-    }
-
-    try {
-      const result = await this.alignmentService.recordAlignment(
-        agent,
-        projectName
-      );
-      return {
-        content: [{ type: 'text', text: result }],
-        isError: false,
-      };
-    } catch (error) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Error: ${error instanceof Error ? error.message : String(error)}`,
-          },
-        ],
-        isError: true,
-      };
-    }
+    return this.alignmentHandlers.handleVerifyMissionAlignment(args);
   }
 
-  /*
-   * Logic for the 'list_knowledge_items' tool.
-   */
   async handleListKnowledgeItems(
     args: Record<string, unknown>
   ): Promise<CallToolResult> {
-    try {
-      const projectName =
-        typeof args.projectName === 'string' ? args.projectName : undefined;
-      const items = await this.kiService.listKnowledgeItems(projectName);
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(items, null, 2),
-          },
-        ],
-      };
-    } catch (error: any) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Failed to list Knowledge Items: ${error.message}`,
-          },
-        ],
-        isError: true,
-      };
-    }
+    return this.knowledgeHandlers.handleListKnowledgeItems(args);
   }
 
-  /**
-   * Logic for the 'approve_knowledge_item' tool.
-   */
   async handleApproveKnowledgeItem(
     args: Record<string, unknown>
   ): Promise<CallToolResult> {
-    try {
-      const slug = args.slug as string;
-      const status = args.status as 'draft' | 'human-approved' | 'rejected';
-      const by = typeof args.by === 'string' ? args.by : undefined;
-
-      await this.kiService.setApproval(slug, status, by);
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Successfully updated approval status for '${slug}' to '${status}'.`,
-          },
-        ],
-      };
-    } catch (error: any) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Failed to approve Knowledge Item: ${error.message}`,
-          },
-        ],
-        isError: true,
-      };
-    }
+    return this.knowledgeHandlers.handleApproveKnowledgeItem(args);
   }
 
-  /**
-   * Logic for the 'read_knowledge_item' tool.
-   */
   async handleReadKnowledgeItem(args: Record<string, unknown>) {
-    const slug = args.slug as string;
-    const item = await this.kiService.readKnowledgeItem(slug);
-
-    if (!item) {
-      return {
-        content: [
-          { type: 'text', text: `Error: Knowledge item "${slug}" not found.` },
-        ],
-        isError: true,
-      };
-    }
-
-    let text = `# ${item.slug}\n\n`;
-    text += `Summary: ${item.metadata.summary}\n`;
-    text += `Project: ${item.metadata.projectName || 'global'}\n`;
-    text += `Created: ${item.metadata.createdAt}\n`;
-    text += `Updated: ${item.metadata.updatedAt}\n\n`;
-
-    if (item.metadata.references?.length) {
-      text += `## References\n${item.metadata.references.map((r) => `- ${r}`).join('\n')}\n\n`;
-    }
-
-    text += `## Artifacts\n\n`;
-    for (const artifact of item.artifacts) {
-      text += `### ${artifact.name}\n\n\`\`\`\n${artifact.content}\n\`\`\`\n\n`;
-    }
-
-    return {
-      content: [{ type: 'text', text }],
-      isError: false,
-    };
+    return this.knowledgeHandlers.handleReadKnowledgeItem(args);
   }
 
-  /**
-   * Logic for the 'create_knowledge_item' tool.
-   */
   async handleCreateKnowledgeItem(args: Record<string, unknown>) {
-    const slug = args.slug as string;
-    const summary = args.summary as string;
-    const artifacts = args.artifacts as { name: string; content: string }[];
-    const references = args.references as string[] | undefined;
-    const tags = args.tags as string[] | undefined;
-    let projectName = args.projectName as string | undefined;
-
-    // Automatic project name detection if not provided
-    if (!projectName) {
-      const projectRoot = await this.fsService.findProjectRoot(process.cwd());
-      if (projectRoot) {
-        try {
-          const packagePath = path.join(projectRoot, 'package.json');
-          const pkg = JSON.parse(await fs.readFile(packagePath, 'utf-8'));
-          projectName = pkg.name || path.basename(projectRoot);
-        } catch {
-          projectName = path.basename(projectRoot);
-        }
-      }
-    }
-
-    const item = await this.kiService.upsertKnowledgeItem({
-      slug,
-      summary,
-      artifacts,
-      references,
-      tags,
-      projectName,
-    });
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: `Successfully created/updated knowledge item: ${item.slug} (Project: ${item.metadata.projectName || 'global'})`,
-        },
-      ],
-      isError: false,
-    };
+    return this.knowledgeHandlers.handleCreateKnowledgeItem(args);
   }
-
-  /**
-   * Logic for the 'reflexion_loop' tool (✨ special feature).
-   *
-   * DEVELOPER PATH. Unlike the read-only web/chat surface, this runs inside an
-   * IDE agent that CAN change code: the agent takes the returned plan/prompt and
-   * implements it. Usage is logged to Prisma via telemetry, like every other
-   * skill, so it shows up in the dashboard.
-   */
 
   async handleReflexionResume(args: Record<string, any>) {
-    try {
-      const { runId, stateDir, answers } = args;
-      if (!runId || !answers) {
-        throw new Error('runId and answers are required');
-      }
-
-      const outDir = stateDir || '.reflexion-out';
-      const stateStore = new FileStateStore(outDir);
-
-      const state = await stateStore.load(runId);
-      if (!state) {
-        throw new Error('Run state not found in ' + outDir);
-      }
-
-      const runner = runnerFromEnv({ decrypt });
-      const cfg = {
-        brief: state.brief,
-        maxRevisions: state.params.maxRevisions,
-        passThreshold: state.params.passThreshold,
-        mode: 'interview' as const,
-        stateStore,
-      };
-
-      let revisionCounter = state.revision;
-      const result = await resumeReflexion(runner, state, answers, cfg, (e) => {
-        let teamRole: string | undefined;
-        if ('revision' in e) revisionCounter = e.revision;
-        if (e.phase === 'critique' || e.phase === 'scored') teamRole = 'critic';
-        if (e.phase === 'adjudicate') teamRole = 'adjudicator';
-        if (e.phase === 'interview') teamRole = 'interviewer';
-
-        // Call telemetryService directly because this.telemetry is ITelemetry (no recordEvent exposed)
-        import('../lib/telemetry-service')
-          .then((m) =>
-            m.telemetryService.recordEvent({
-              skillName: 'reflexion-loop',
-              projectName: undefined,
-              agent: undefined,
-              duration: 0,
-              status: 'SUCCESS',
-              actorType: 'AGENT',
-              autonomy: 'AUTONOMOUS',
-              loopRunId: runId,
-              loopPhase: state.intentPhase || e.phase,
-              teamRole,
-              promptTokens: ('usage' in e && e.usage) ? e.usage.promptTokens : undefined,
-              completionTokens: ('usage' in e && e.usage) ? e.usage.completionTokens : undefined,
-              model: ('usage' in e && e.usage) ? e.usage.modelId : undefined,
-              metadata: {
-                revision: revisionCounter,
-                score: 'critique' in e ? e.critique.score : undefined,
-                passed: 'critique' in e ? e.critique.passed : undefined,
-                criticFallback: runner.wasDegraded() ? true : undefined,
-                totalSteps: revisionCounter,
-              },
-            })
-          )
-          .catch(() => {});
-      });
-
-      const finalPass =
-        result.stopReason === 'passed' || result.stopReason === 'user-approve';
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text:
-              `Run ID: ${result.runId}\n` +
-              `Verdict: ${result.verdict}\n` +
-              (result.interview?.questions.length
-                ? '\nQuestions waiting:\n' +
-                  JSON.stringify(result.interview.questions, null, 2) +
-                  '\n'
-                : '') +
-              (finalPass ? '\nIDE Prompt:\n' + result.idePrompt : ''),
-          },
-        ],
-      };
-    } catch (e: any) {
-      return { isError: true, content: [{ type: 'text', text: e.message }] };
-    }
+    return this.reflexionHandlers.handleReflexionResume(args);
   }
 
   async handleReflexionStatus(args: Record<string, any>) {
-    try {
-      const { runId, stateDir } = args;
-      if (!runId) throw new Error('runId is required');
-
-      const outDir = stateDir || '.reflexion-out';
-      const stateStore = new FileStateStore(outDir);
-      const state = await stateStore.load(runId);
-
-      if (!state) {
-        return {
-          content: [
-            { type: 'text', text: `Run ID ${runId} not found in ${outDir}.` },
-          ],
-          isError: true,
-        };
-      }
-
-      let extra = '';
-      if (state.phase === 'AWAITING_ANSWERS') {
-        extra =
-          '\nRun is parked for interview. Use reflexion_resume with answers to proceed.\nQuestions:\n' +
-          JSON.stringify(state.interview?.questions, null, 2);
-      } else if (
-        state.phase === 'APPROVED' ||
-        state.phase.startsWith('STOPPED')
-      ) {
-        extra = `\nRun is finished. Final verdict: ${state.stopReason}. \nTo get the final IDE Prompt, you can call reflexion_resume with { directive: "approve" } or read the state file directly.`;
-      }
-
-      const score =
-        state.critiques.length > 0
-          ? state.critiques[state.critiques.length - 1].score
-          : 'N/A';
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Run ID: ${state.runId}\nPhase: ${state.phase}\nRevision: ${state.revision}\nLast Score: ${score}${extra}`,
-          },
-        ],
-      };
-    } catch (e: any) {
-      return { isError: true, content: [{ type: 'text', text: e.message }] };
-    }
+    return this.reflexionHandlers.handleReflexionStatus(args);
   }
 
   async handlePlanPipeline(args: Record<string, unknown>) {
-    const intent = args.intent as string;
-    if (!intent) {
-      return {
-        content: [{ type: 'text', text: 'Error: "intent" is required.' }],
-        isError: true,
-      };
-    }
-    const targets = args.targets as string[] | undefined;
-    const domain = args.domain as string | undefined;
-
-    const graph = await this.fsService.loadGraph();
-    if (!graph || !graph.nodes) {
-      return {
-        content: [{ type: 'text', text: 'Error: graph not found.' }],
-        isError: true,
-      };
-    }
-
-    const phases = ['intent', 'specify', 'plan', 'build', 'review', 'deploy'];
-    const chain: string[] = [];
-
-    let excludedDueToModelClass = false;
-    for (const phase of phases) {
-      const candidates = graph.nodes.filter((n: any) => {
-        if (n.phase !== phase) return false;
-        if (domain && n.domain && n.domain !== domain) return false;
-        if (
-          targets &&
-          targets.length > 0 &&
-          n.targets &&
-          n.targets.length > 0
-        ) {
-          if (!targets.some((t: string) => n.targets.includes(t))) return false;
-        }
-        if (process.env.LOCAL_MODEL_CLASS && n.minModelClass) {
-          const w: Record<string, number> = { small: 1, mid: 2, large: 3 };
-          const l = w[process.env.LOCAL_MODEL_CLASS.toLowerCase()] || 0;
-          const r = w[n.minModelClass.toLowerCase()] || 0;
-          if (r > l) {
-            excludedDueToModelClass = true;
-            return false;
-          }
-        }
-        return true;
-      });
-
-      if (candidates.length > 0) {
-        const skills = candidates.map((c: any) => c.id).join(', ');
-        const flow = graph.artifactFlow?.find((f: any) =>
-          f.emittedBy?.includes(phase)
-        );
-        const emitted = flow ? flow.type : 'none';
-        chain.push(`Phase ${phase}: [${skills}] -> emits [${emitted}]`);
-      }
-    }
-
-    if (excludedDueToModelClass) {
-      chain.push(
-        '\nNote: Some skills were excluded because they require a larger model or the sub-pro tier.'
-      );
-    }
-
-    const resultText = chain.join('\n');
-    const trackedContent = await this.telemetry.withAnalytics(
-      'plan_pipeline',
-      undefined,
-      undefined,
-      undefined,
-      'unknown',
-      async () => resultText,
-      {}
-    );
-
-    return {
-      content: [{ type: 'text', text: trackedContent }],
-      isError: false,
-    };
+    return this.pipelineHandlers.handlePlanPipeline(args);
   }
 
   async handleReflexionLoop(args: Record<string, any>) {
-    const brief = args.brief?.trim();
-    if (!brief) {
-      return {
-        content: [{ type: 'text', text: 'Error: "brief" is required.' }],
-        isError: true,
-      };
-    }
-    const maxRevisions = args.maxRevisions ?? 3;
-    const passThreshold = args.passThreshold ?? 8;
-    const stack = args.stack ?? '';
-    const mode = args.mode || 'interview';
-    const tier = args.tier as Tier | undefined;
-    const budget =
-      tier === 'local'
-        ? {
-            maxTotalTokens: args.budget?.maxTotalTokens,
-            maxWallClockMs:
-              Number(process.env.REFLEXION_MAX_WALLCLOCK_MS) || undefined,
-          }
-        : args.budget;
+    return this.reflexionHandlers.handleReflexionLoop(args);
+  }
 
-    if (tier && tier !== 'byo') {
-      const sizeScore = args.sizeScore ?? 0;
-      const riskSignals = args.riskSignals ?? [];
-      const assessment = assessTask({ sizeScore, riskSignals });
-      const enforcement = enforceTier(tier, assessment);
+  async handleRepoMap(args: Record<string, any>) {
+    return this.codebaseHandlers.handleRepoMap(args);
+  }
 
-      if (!enforcement.allowed) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(
-                {
-                  refused: true,
-                  reason: enforcement.reason,
-                  escalateTo: enforcement.escalateTo,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-          isError: false,
-        };
-      }
-    }
+  async handleCodeSearch(args: Record<string, any>) {
+    return this.codebaseHandlers.handleCodeSearch(args);
+  }
 
-    try {
-      let user = null;
-      let project = null;
-
-      try {
-        const userResolver = new UserResolver();
-        const userEmail = userResolver.getUserEmail();
-        if (userEmail && userEmail !== 'unknown') {
-          user = await prisma.user.findFirst({
-            where: { email: userEmail },
-          });
-        }
-      } catch {
-        // Fallback gracefully
-      }
-
-      if (args.projectName && typeof args.projectName === 'string') {
-        try {
-          project = await prisma.project.findFirst({
-            where: {
-              OR: [
-                { name: args.projectName },
-                { githubFullName: args.projectName },
-              ],
-            },
-          });
-        } catch {
-          // Fallback gracefully
-        }
-      }
-
-      const runner = runnerFromEnv({
-        user: user ?? undefined,
-        project: project ?? undefined,
-        decrypt,
-      });
-      const stateStore = new FileStateStore('.reflexion-out');
-      const runId = `run-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-
-      const initialState = {
-        version: 2 as const,
-        runId,
-        brief,
-        phase: 'INIT',
-        plan: '',
-        critiques: [],
-        revision: 0,
-        params: {
-          passThreshold,
-          maxRevisions,
-          maxStructuralRepairs: 1,
-          focus: [],
-        },
-        usage: { totalTokens: 0, costUsd: 0, perPhase: [] },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        criticDegraded: false,
-        intentPhase: args.intentPhase as string | undefined,
-      };
-
-      await stateStore.save(initialState);
-
-      // Fire and forget
-      runReflexion(
-        runner,
-        {
-          brief,
-          stack,
-          maxRevisions,
-          passThreshold,
-          mode: mode as any,
-          budget,
-          stateStore,
-        },
-        (e) => {
-          let teamRole: string | undefined;
-          let revisionCounter = 0;
-          if ('revision' in e) revisionCounter = e.revision;
-          if (e.phase === 'critique' || e.phase === 'scored')
-            teamRole = 'critic';
-          if (e.phase === 'adjudicate') teamRole = 'adjudicator';
-          if (e.phase === 'interview') teamRole = 'interviewer';
-
-          // Call telemetryService directly because this.telemetry is ITelemetry (no recordEvent exposed)
-          import('../lib/telemetry-service')
-            .then((m) =>
-              m.telemetryService.recordEvent({
-                skillName: 'reflexion-loop',
-                projectName: undefined,
-                agent: undefined,
-                duration: 0,
-                status: 'SUCCESS',
-                actorType: 'AGENT',
-                autonomy: 'AUTONOMOUS',
-                loopRunId: runId,
-                loopPhase: initialState.intentPhase || e.phase,
-                teamRole,
-                promptTokens: ('usage' in e && e.usage) ? e.usage.promptTokens : undefined,
-                completionTokens: ('usage' in e && e.usage) ? e.usage.completionTokens : undefined,
-                model: ('usage' in e && e.usage) ? e.usage.modelId : undefined,
-                metadata: {
-                  revision: revisionCounter,
-                  score: 'critique' in e ? e.critique.score : undefined,
-                  passed: 'critique' in e ? e.critique.passed : undefined,
-                  criticFallback: runner.wasDegraded() ? true : undefined,
-                  totalSteps: revisionCounter,
-                },
-              })
-            )
-            .catch(() => {});
-        },
-        initialState
-      ).catch((e) => {
-        console.error('[MCP] Async reflexion loop failed:', e);
-        stateStore
-          .load(runId)
-          .then((s) => {
-            if (s) {
-              s.phase = 'STOPPED(error)';
-              s.stopReason = 'error' as any;
-              stateStore.save(s).catch(() => {});
-            }
-          })
-          .catch(() => {});
-      });
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Reflexion Loop started asynchronously.\nRun ID: ${runId}\nStatus: running\n\nUse the reflexion_status tool with this Run ID to poll for completion.`,
-          },
-        ],
-      };
-    } catch (e: any) {
-      return { isError: true, content: [{ type: 'text', text: e.message }] };
-    }
+  async handleReadRegion(args: Record<string, any>) {
+    return this.codebaseHandlers.handleReadRegion(args);
   }
 }

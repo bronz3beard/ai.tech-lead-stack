@@ -1,0 +1,843 @@
+[
+  {
+    "path": "scripts/build-index.ts",
+    "symbols": [
+      {
+        "signature": "interface Chunk"
+      },
+      {
+        "signature": "interface IndexData"
+      },
+      {
+        "signature": "interface RepoMapSymbol"
+      },
+      {
+        "signature": "interface RepoMapFile"
+      },
+      {
+        "signature": "async function getEmbedding(text: string): Promise<number[] | null>"
+      },
+      {
+        "signature": "async function walkDir(dir: string, files: string[] = []): Promise<string[]>"
+      },
+      {
+        "signature": "function chunkFile(content: string, filePath: string): Omit<Chunk, 'embedding' | 'path'>[]"
+      },
+      {
+        "signature": "function extractSignatures(content: string): string[]"
+      },
+      {
+        "signature": "async function loadIndex(): Promise<IndexData>"
+      },
+      {
+        "signature": "async function saveIndex(data: IndexData)"
+      },
+      {
+        "signature": "async function saveRepoMap(map: RepoMapFile[])"
+      },
+      {
+        "signature": "function hashString(str: string): string"
+      },
+      {
+        "signature": "async function run()"
+      }
+    ]
+  },
+  {
+    "path": "scripts/calibrate-skill-costs.ts",
+    "symbols": [
+      {
+        "signature": "interface Declared"
+      },
+      {
+        "signature": "interface Observed"
+      },
+      {
+        "signature": "function arg(flag: string): string | undefined"
+      },
+      {
+        "signature": "const hasFlag = (flag: string) => process.argv.includes(flag);"
+      },
+      {
+        "signature": "function percentile(sortedAsc: number[], p: number): number"
+      },
+      {
+        "signature": "function roundTo(n: number, step = 50): number"
+      },
+      {
+        "signature": "function loadDeclared(): Declared[]"
+      },
+      {
+        "signature": "async function loadObserved(): Promise<Map<string, Observed>>"
+      },
+      {
+        "signature": "function rewriteCost(file: string, newTokens: number): boolean"
+      },
+      {
+        "signature": "async function main()"
+      }
+    ]
+  },
+  {
+    "path": "scripts/generate-skill-registry.ts",
+    "symbols": [
+      {
+        "signature": "type Skill = z.infer<typeof frontmatterSchema>;"
+      },
+      {
+        "signature": "function parseSkills(): Skill[]"
+      },
+      {
+        "signature": "function generateManifest(skills: Skill[]): string"
+      },
+      {
+        "signature": "function buildGraph(skills: Skill[])"
+      },
+      {
+        "signature": "function generateReadmeTable(skills: Skill[]): string"
+      },
+      {
+        "signature": "function injectTable(readmeContent: string, newTable: string): string"
+      },
+      {
+        "signature": "async function main()"
+      }
+    ]
+  },
+  {
+    "path": "scripts/reflexion-eval.ts",
+    "symbols": [
+      {
+        "signature": "function buildCriticRunner()"
+      },
+      {
+        "signature": "interface ExpectedResult"
+      },
+      {
+        "signature": "interface FrontMatter"
+      },
+      {
+        "signature": "interface EvalCase"
+      },
+      {
+        "signature": "interface EvalResult"
+      },
+      {
+        "signature": "export function evaluateCritique("
+      },
+      {
+        "signature": "function isProviderBillingOrQuotaError(err: unknown): boolean"
+      },
+      {
+        "signature": "async function main()"
+      }
+    ]
+  },
+  {
+    "path": "scripts/reflexion-issue-runner-utils.js",
+    "symbols": [
+      {
+        "signature": "function extractRunIdMarker(body)"
+      },
+      {
+        "signature": "function extractProcessedCommentIdMarker(body)"
+      },
+      {
+        "signature": "function formatRunnerComment(opts)"
+      },
+      {
+        "signature": "function extractYamlBlock(text)"
+      },
+      {
+        "signature": "function validateAnswers(yamlObj)"
+      }
+    ]
+  },
+  {
+    "path": "scripts/reflexion-issue-runner.js",
+    "symbols": [
+      {
+        "signature": "async function main()"
+      },
+      {
+        "signature": "async function handleDispatchPath(payload)"
+      },
+      {
+        "signature": "async function handleStartPath(payload)"
+      },
+      {
+        "signature": "async function countTurns(issueNumber)"
+      },
+      {
+        "signature": "async function downloadArtifact(runId, artifactName, token)"
+      },
+      {
+        "signature": "async function verifyArtifactExists(runId, artifactName, token)"
+      },
+      {
+        "signature": "async function handleResumePath(payload)"
+      },
+      {
+        "signature": "async function postResultComment(issueNumber, triggeringCommentId)"
+      },
+      {
+        "signature": "async function postDiagnosticComment(payload, errorMsg)"
+      },
+      {
+        "signature": "async function createIssueComment(issueNumber, body)"
+      },
+      {
+        "signature": "async function applyApprovedLabel(issueNumber)"
+      }
+    ]
+  },
+  {
+    "path": "scripts/reflexion-loop-utils.ts",
+    "symbols": [
+      {
+        "signature": "export function parseYamlAnswers(text: string): Answers"
+      },
+      {
+        "signature": "export function formatInterviewMd(runId: string, questions: any[]): string"
+      }
+    ]
+  },
+  {
+    "path": "scripts/reflexion-loop.ts",
+    "symbols": [
+      {
+        "signature": "function arg(flag: string): string | undefined"
+      },
+      {
+        "signature": "function hasFlag(flag: string): boolean"
+      },
+      {
+        "signature": "function readStack(repo: string, maxCharsPerFile = 1800): string"
+      },
+      {
+        "signature": "function svgChart(scores: number[], threshold: number): string"
+      },
+      {
+        "signature": "async function handleInteractive(state: ReflexionStateV2): Promise<Answers>"
+      },
+      {
+        "signature": "async function main(): Promise<number>"
+      }
+    ]
+  },
+  {
+    "path": "src/__tests__/helpers/readonly-harness.ts",
+    "symbols": [
+      {
+        "signature": "export interface FsWriteRecord"
+      },
+      {
+        "signature": "export interface ChildProcessCall"
+      },
+      {
+        "signature": "export interface FakeClientRepo"
+      },
+      {
+        "signature": "export function makeFakeClientRepo("
+      },
+      {
+        "signature": "export function snapshotTree(dir: string): Map<string, string>"
+      },
+      {
+        "signature": "export function assertNoRepoWrites("
+      },
+      {
+        "signature": "function extractPath(arg: unknown): string"
+      },
+      {
+        "signature": "function cleanRemoveSync(target: string): void"
+      },
+      {
+        "signature": "export function spyOnFsWrites():"
+      },
+      {
+        "signature": "export function spyOnChildProcess():"
+      },
+      {
+        "signature": "export function readSkillModes(skillFile: string): string[]"
+      }
+    ]
+  },
+  {
+    "path": "src/__tests__/no-git-mutations.test.ts",
+    "symbols": [
+      {
+        "signature": "function createStubRunner(): ReflexionRunner"
+      }
+    ]
+  },
+  {
+    "path": "src/__tests__/repo-readonly-boundary.test.ts",
+    "symbols": [
+      {
+        "signature": "function createStubRunner(): ReflexionRunner"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/ai/agent-tools.ts",
+    "symbols": [
+      {
+        "signature": "export function createAgentTools(currentContent: string)"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/ai/constants.ts",
+    "symbols": [
+      {
+        "signature": "export type ModelProvider = 'gemini' | 'claude' | 'openai' | 'jules';"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/ai/context-pruning.ts",
+    "symbols": [
+      {
+        "signature": "export function estimatePrefixTokens(system: string, stablePrefix: string = ''): number"
+      },
+      {
+        "signature": "export function pruneStackContext(raw: string, maxChars: number, preserveForCache: boolean = false): string"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/ai/model-capabilities.ts",
+    "symbols": [
+      {
+        "signature": "export interface ModelCapabilities"
+      },
+      {
+        "signature": "export function getModelCapabilities(modelId: string): ModelCapabilities"
+      },
+      {
+        "signature": "export function assertCanCritique(modelId: string): void"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/ai/model-registry.ts",
+    "symbols": [
+      {
+        "signature": "export type ProviderFamily = 'anthropic' | 'google' | 'openai' | 'local';"
+      },
+      {
+        "signature": "export function providerOf(modelId: string): ProviderFamily"
+      },
+      {
+        "signature": "export function createModel(modelId: string, apiKey: string): LanguageModel"
+      },
+      {
+        "signature": "export type KeySlot = 'anthropic' | 'gemini' | 'openai' | 'jules';"
+      },
+      {
+        "signature": "export interface ModelCatalogEntry"
+      },
+      {
+        "signature": "export function catalogEntry(modelId: string): ModelCatalogEntry | undefined"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/ai/model-resolver.ts",
+    "symbols": [
+      {
+        "signature": "export type Responsibility ="
+      },
+      {
+        "signature": "export type KeySlot = 'anthropic' | 'gemini' | 'openai' | 'jules';"
+      },
+      {
+        "signature": "export function toResponsibility(role: 'creator' | 'critic' | 'adjudicator'): Responsibility"
+      },
+      {
+        "signature": "export interface ResolveCtx"
+      },
+      {
+        "signature": "type RoutingMap = Partial<Record<Responsibility, string>>;"
+      },
+      {
+        "signature": "export function normalizeLegacy(value: string): string"
+      },
+      {
+        "signature": "export type ModelSource = 'env' | 'project' | 'user' | 'default';"
+      },
+      {
+        "signature": "export interface ResolvedModel"
+      },
+      {
+        "signature": "export function resolveModelWithSource("
+      },
+      {
+        "signature": "export function resolveModelId("
+      },
+      {
+        "signature": "function envGeminiKey(): string | undefined"
+      },
+      {
+        "signature": "function decryptStored("
+      },
+      {
+        "signature": "export function keyFor(slot: KeySlot, ctx: ResolveCtx = {}): string"
+      },
+      {
+        "signature": "export function slotForModel(id: string): KeySlot"
+      },
+      {
+        "signature": "export function buildRoleModel("
+      },
+      {
+        "signature": "export function assertDistinctModels("
+      }
+    ]
+  },
+  {
+    "path": "src/lib/ai/model-routing-schema.ts",
+    "symbols": [
+      {
+        "signature": "export type Responsibility = (typeof RESPONSIBILITIES)[number];"
+      },
+      {
+        "signature": "export type ModelRouting = z.infer<typeof ModelRoutingSchema>;"
+      },
+      {
+        "signature": "export interface ModelOption"
+      },
+      {
+        "signature": "export function getModelOptions(): ModelOption[]"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/ai/orchestrator.ts",
+    "symbols": [
+      {
+        "signature": "export interface OrchestratorModels"
+      },
+      {
+        "signature": "export function getOrchestratorModels("
+      },
+      {
+        "signature": "export function validateDistinctModels(creator: string, auditor: string, tier: Tier): void"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/ai/reflexion/__tests__/engine.test.ts",
+    "symbols": [
+      {
+        "signature": "function createMockRunner("
+      }
+    ]
+  },
+  {
+    "path": "src/lib/ai/reflexion/__tests__/state-confinement.test.ts",
+    "symbols": [
+      {
+        "signature": "function createStubRunner(): ReflexionRunner"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/ai/reflexion/db-state-store.ts",
+    "symbols": [
+      {
+        "signature": "export class DbStateStore implements StateStore"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/ai/reflexion/engine.ts",
+    "symbols": [
+      {
+        "signature": "export interface ReflexionRunner"
+      },
+      {
+        "signature": "export interface ReflexionConfig"
+      },
+      {
+        "signature": "export interface ReflexionRound"
+      },
+      {
+        "signature": "export interface ReflexionResult"
+      },
+      {
+        "signature": "export type StepEvent ="
+      },
+      {
+        "signature": "function checkBudget(runner: ReflexionRunner, cfg: ReflexionConfig): boolean"
+      },
+      {
+        "signature": "function budgetStop(runner: ReflexionRunner, cfg: ReflexionConfig, startTime: number): StopReason | null"
+      },
+      {
+        "signature": "export async function runReflexion("
+      },
+      {
+        "signature": "export async function resumeReflexion("
+      },
+      {
+        "signature": "function extractSection(plan: string, slug: string): string"
+      },
+      {
+        "signature": "function getUntouchedSections(plan: string, slug: string): string"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/ai/reflexion/plan-contract.ts",
+    "symbols": [
+      {
+        "signature": "export type PlanContractViolation ="
+      },
+      {
+        "signature": "export type PlanContractTask ="
+      },
+      {
+        "signature": "export type PlanContractReport = z.infer<typeof PlanContractReportSchema>;"
+      },
+      {
+        "signature": "export function validatePlanContract(planMarkdown: string): PlanContractReport"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/ai/reflexion/prompts.ts",
+    "symbols": [
+      {
+        "signature": "export function sectionRefinePrompt("
+      },
+      {
+        "signature": "export function focusPillarsBlock(focus: string[]): string"
+      },
+      {
+        "signature": "export function stackContextBlock(stack: string): string"
+      },
+      {
+        "signature": "export function generatorRevisionPrompt("
+      },
+      {
+        "signature": "export function buildIdeHandoffPrompt("
+      }
+    ]
+  },
+  {
+    "path": "src/lib/ai/reflexion/providers-env.ts",
+    "symbols": [
+      {
+        "signature": "export function isHardApiFailure(error: unknown): boolean"
+      },
+      {
+        "signature": "function assertDistinct(creator: string, critic: string): void"
+      },
+      {
+        "signature": "export function buildRunner("
+      },
+      {
+        "signature": "export function runnerFromEnv("
+      }
+    ]
+  },
+  {
+    "path": "src/lib/ai/reflexion/providers-user.ts",
+    "symbols": [
+      {
+        "signature": "export function runnerFromUser("
+      }
+    ]
+  },
+  {
+    "path": "src/lib/ai/reflexion/schema.ts",
+    "symbols": [
+      {
+        "signature": "export type LoopParams = z.infer<typeof LoopParamsSchema>;"
+      },
+      {
+        "signature": "export type LoopParamsPatch = z.infer<typeof LoopParamsPatchSchema>;"
+      },
+      {
+        "signature": "export type StopReason = z.infer<typeof StopReasonSchema>;"
+      },
+      {
+        "signature": "export type Question = z.infer<typeof QuestionSchema>;"
+      },
+      {
+        "signature": "export type Interview = z.infer<typeof InterviewSchema>;"
+      },
+      {
+        "signature": "export type Answers = z.infer<typeof AnswersSchema>;"
+      },
+      {
+        "signature": "export type UsageSnapshot = z.infer<typeof UsageSnapshotSchema>;"
+      },
+      {
+        "signature": "export type Critique = z.infer<typeof CritiqueSchema>;"
+      },
+      {
+        "signature": "export type ReflexionStateV2 = z.infer<typeof ReflexionStateV2Schema>;"
+      },
+      {
+        "signature": "export interface StateStore"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/ai/reflexion/state-store.ts",
+    "symbols": [
+      {
+        "signature": "export function resolveStateDir(dir: string): string"
+      },
+      {
+        "signature": "export class FileStateStore implements StateStore"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/ai/routing-policy.ts",
+    "symbols": [
+      {
+        "signature": "export function nextModelUp(currentId: string): string | null"
+      },
+      {
+        "signature": "export function shouldEscalate(scores: number[], passThreshold: number): boolean"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/ai/tier-policy.ts",
+    "symbols": [
+      {
+        "signature": "export type Tier = 'byo' | 'sub-max' | 'sub-pro' | 'local';"
+      },
+      {
+        "signature": "export type TaskSize = 'XS' | 'S' | 'M' | 'L' | 'XL';"
+      },
+      {
+        "signature": "export type RiskLevel = 0 | 1 | 2;"
+      },
+      {
+        "signature": "export type TierPolicy = z.infer<typeof TierPolicySchema>;"
+      },
+      {
+        "signature": "export interface TaskAssessment"
+      },
+      {
+        "signature": "export function assessTask(input: { sizeScore: number; riskSignals: string[] }): TaskAssessment"
+      },
+      {
+        "signature": "export interface TierEnforcementResult"
+      },
+      {
+        "signature": "export function enforceTier(tier: Tier, assessment: TaskAssessment): TierEnforcementResult"
+      },
+      {
+        "signature": "export function deriveLoopParams(tier: Tier): { maxRevisions: number; maxLanes: number; autoEscalate: boolean }"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/crypto.ts",
+    "symbols": [
+      {
+        "signature": "function getEncryptionKey(): Buffer"
+      },
+      {
+        "signature": "export function encrypt(plaintext: string): string"
+      },
+      {
+        "signature": "export function decrypt(ciphertext: string): string"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/ki/ki-service.ts",
+    "symbols": [
+      {
+        "signature": "export class KiService"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/ki/ki-types.ts",
+    "symbols": [
+      {
+        "signature": "export interface KiMetadata"
+      },
+      {
+        "signature": "export interface KnowledgeItem"
+      },
+      {
+        "signature": "export interface UpsertKiInput"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/langfuse-labels.ts",
+    "symbols": [
+      {
+        "signature": "export function langfuseLabel(value: unknown): string"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/langfuse-sink.ts",
+    "symbols": [
+      {
+        "signature": "export interface EnqueueEventParams"
+      },
+      {
+        "signature": "export interface LangfuseQueuePayload"
+      },
+      {
+        "signature": "export class LangfuseSink"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/prisma.ts",
+    "symbols": [
+      {
+        "signature": "const loadEnv = () =>"
+      },
+      {
+        "signature": "export async function disconnectPrisma(): Promise<void>"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/skills/alignment-service.ts",
+    "symbols": [
+      {
+        "signature": "export interface AlignmentState"
+      },
+      {
+        "signature": "export class AlignmentService"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/skills/frontmatter-schema.ts",
+    "symbols": [
+      {
+        "signature": "export const frontmatterSchema = baseSchema.superRefine((data, ctx) =>"
+      },
+      {
+        "signature": "export type SkillFrontmatter = z.infer<typeof frontmatterSchema>;"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/skills/fs-service.ts",
+    "symbols": [
+      {
+        "signature": "export class FileSystemService implements CodeProvider"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/skills/providers/base-provider.ts",
+    "symbols": [
+      {
+        "signature": "export interface CodeProvider"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/skills/providers/github-provider.ts",
+    "symbols": [
+      {
+        "signature": "export class GitHubCodeProvider implements CodeProvider"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/skills/repo-root.ts",
+    "symbols": [
+      {
+        "signature": "function getDefaultDir(): string"
+      },
+      {
+        "signature": "export function findRepoRoot(startDir?: string): string"
+      }
+    ]
+  },
+  {
+    "path": "src/lib/telemetry-service.ts",
+    "symbols": [
+      {
+        "signature": "export interface TelemetryMetadata"
+      },
+      {
+        "signature": "export class TelemetryService"
+      },
+      {
+        "signature": "export async function withAnalytics<T, U>("
+      }
+    ]
+  },
+  {
+    "path": "src/lib/trace-utils.ts",
+    "symbols": [
+      {
+        "signature": "export function normalizeProjectName(name: string | undefined | null): string"
+      },
+      {
+        "signature": "export function normalizeSkillName(name: string | undefined | null): string"
+      },
+      {
+        "signature": "export function isActiveSkill(skillName: string | undefined): boolean"
+      },
+      {
+        "signature": "export function isSkillTrace(name?: string, skillName?: string): boolean"
+      }
+    ]
+  },
+  {
+    "path": "src/mcp-server/handlers.ts",
+    "symbols": [
+      {
+        "signature": "export class Handlers"
+      }
+    ]
+  },
+  {
+    "path": "src/mcp-server/index.ts",
+    "symbols": [
+      {
+        "signature": "async function runServer()"
+      }
+    ]
+  },
+  {
+    "path": "src/mcp-server/telemetry.ts",
+    "symbols": [
+      {
+        "signature": "export interface ITelemetry"
+      },
+      {
+        "signature": "export class Telemetry implements ITelemetry"
+      }
+    ]
+  },
+  {
+    "path": "src/mcp-server/user-resolver.ts",
+    "symbols": [
+      {
+        "signature": "export class UserResolver"
+      }
+    ]
+  },
+  {
+    "path": "test-search.ts",
+    "symbols": [
+      {
+        "signature": "async function testSearch()"
+      }
+    ]
+  }
+]

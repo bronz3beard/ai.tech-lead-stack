@@ -4,6 +4,19 @@ import { submitSkill, validateSkill } from '@/app/api/skills/actions';
 import EasyMDE from 'easymde';
 import 'easymde/dist/easymde.min.css';
 import matter from 'gray-matter';
+
+import {
+  frontmatterSchema,
+  phaseEnum,
+  kindEnum,
+  domainEnum,
+  ownershipDriveEnum,
+  ownershipApproveEnum,
+  targetsEnum,
+  minModelClassEnum,
+  artifactTypeEnum,
+} from '@zenithfoundry/tech-lead-stack/skills/frontmatter-schema';
+
 import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
 import SkillAssistant from './SkillAssistant';
@@ -36,26 +49,53 @@ export default function SkillForm({
   const validation = useMemo(() => {
     try {
       const parsed = matter(content);
-      const errors: string[] = [];
-      const data = parsed.data;
-
-      if (!data.name) errors.push("Missing 'name' in frontmatter");
-      if (!data.description)
-        errors.push("Missing 'description' in frontmatter");
-      if (!data.cost) errors.push("Missing 'cost' in frontmatter");
-
-      return {
-        isValid: errors.length === 0,
-        errors,
-      };
+      const validated = frontmatterSchema.safeParse(parsed.data);
+      if (validated.success) {
+        return { isValid: true, errors: [], data: parsed.data };
+      } else {
+        return {
+          isValid: false,
+          errors: validated.error.issues.map(
+            (e) => `${e.path.join('.')}: ${e.message}`
+          ),
+          data: parsed.data,
+        };
+      }
     } catch (e: unknown) {
       const err = e as Error;
       return {
         isValid: false,
         errors: [`YAML parsing error: ${err.message}`],
+        data: {},
       };
     }
   }, [content]);
+
+  const handleFrontmatterChange = (field: string, value: any) => {
+    try {
+      const parsed = matter(content);
+      const newData = { ...parsed.data };
+
+      if (field.includes('.')) {
+        const [parent, child] = field.split('.');
+        newData[parent] = { ...newData[parent], [child]: value };
+      } else {
+        newData[field] = value;
+      }
+
+      const newContent = matter.stringify(parsed.content, newData);
+      setContent(newContent);
+      setServerFeedback(null);
+      if (submissionStatus === 'success' || submissionStatus === 'error') {
+        setSubmissionStatus('idle');
+      }
+    } catch (e) {
+      console.error('Failed to update frontmatter', e);
+    }
+  };
+
+  const parsedData = validation.data || {};
+  const kind = parsedData.kind || 'skill';
 
   const { isValid, validationErrors } = {
     isValid: validation.isValid,
@@ -162,8 +202,321 @@ export default function SkillForm({
       <div className="flex flex-col space-y-4 overflow-y-auto ">
         <div className="bg-card border border-border p-4 rounded-lg shadow-sm shrink-0">
           <h2 className="text-xl font-semibold mb-4 text-foreground">
-            Frontmatter Status
+            Frontmatter Form
           </h2>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-4 bg-muted/50 p-4 rounded border border-border">
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">Kind</label>
+              <select
+                className="border border-border rounded p-1 text-sm bg-background text-foreground"
+                value={kind}
+                onChange={(e) =>
+                  handleFrontmatterChange('kind', e.target.value)
+                }
+              >
+                {kindEnum.options.map((o) => (
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {kind !== 'orchestrator' ? (
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium">Phase</label>
+                <select
+                  className="border border-border rounded p-1 text-sm bg-background text-foreground"
+                  value={parsedData.phase || ''}
+                  onChange={(e) =>
+                    handleFrontmatterChange('phase', e.target.value)
+                  }
+                >
+                  <option value="">Select...</option>
+                  {phaseEnum.options.map((o) => (
+                    <option key={o} value={o}>
+                      {o}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1 col-span-2">
+                <label className="text-sm font-medium">Spans (Phases)</label>
+                <div className="flex flex-wrap gap-2 border border-border rounded p-2 bg-background">
+                  {phaseEnum.options.map((o) => (
+                    <label
+                      key={o}
+                      className="flex items-center gap-1 text-sm text-foreground"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={
+                          Array.isArray(parsedData.spans) &&
+                          parsedData.spans.includes(o)
+                        }
+                        onChange={(e) => {
+                          const current = Array.isArray(parsedData.spans)
+                            ? parsedData.spans
+                            : [];
+                          handleFrontmatterChange(
+                            'spans',
+                            e.target.checked
+                              ? [...current, o]
+                              : current.filter((s) => s !== o)
+                          );
+                        }}
+                      />
+                      {o}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">Domain</label>
+              <select
+                className="border border-border rounded p-1 text-sm bg-background text-foreground"
+                value={parsedData.domain || ''}
+                onChange={(e) =>
+                  handleFrontmatterChange('domain', e.target.value)
+                }
+              >
+                <option value="">Select...</option>
+                {domainEnum.options.map((o) => (
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">Ownership.Drive</label>
+              <select
+                className="border border-border rounded p-1 text-sm bg-background text-foreground"
+                value={parsedData.ownership?.drive || ''}
+                onChange={(e) =>
+                  handleFrontmatterChange('ownership.drive', e.target.value)
+                }
+              >
+                <option value="">Select...</option>
+                {ownershipDriveEnum.options.map((o) => (
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">Ownership.Approve</label>
+              <select
+                className="border border-border rounded p-1 text-sm bg-background text-foreground"
+                value={parsedData.ownership?.approve || ''}
+                onChange={(e) =>
+                  handleFrontmatterChange('ownership.approve', e.target.value)
+                }
+              >
+                <option value="">Select...</option>
+                {ownershipApproveEnum.options.map((o) => (
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">Min Model Class</label>
+              <select
+                className="border border-border rounded p-1 text-sm bg-background text-foreground"
+                value={parsedData.minModelClass || ''}
+                onChange={(e) =>
+                  handleFrontmatterChange('minModelClass', e.target.value)
+                }
+              >
+                <option value="">Select...</option>
+                {minModelClassEnum.options.map((o) => (
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1 col-span-2">
+              <label className="text-sm font-medium">Targets</label>
+              <div className="flex flex-wrap gap-2 border border-border rounded p-2 bg-background">
+                {targetsEnum.options.map((o) => (
+                  <label
+                    key={o}
+                    className="flex items-center gap-1 text-sm text-foreground"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={
+                        Array.isArray(parsedData.targets) &&
+                        parsedData.targets.includes(o)
+                      }
+                      onChange={(e) => {
+                        const current = Array.isArray(parsedData.targets)
+                          ? parsedData.targets
+                          : [];
+                        handleFrontmatterChange(
+                          'targets',
+                          e.target.checked
+                            ? [...current, o]
+                            : current.filter((s) => s !== o)
+                        );
+                      }}
+                    />
+                    {o}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1 col-span-1 lg:col-span-3">
+              <label className="text-sm font-medium">Consumes</label>
+              <div className="flex flex-wrap gap-2 border border-border rounded p-2 bg-background max-h-32 overflow-y-auto">
+                {artifactTypeEnum.options.map((o) => (
+                  <label
+                    key={o}
+                    className="flex items-center gap-1 text-sm text-foreground"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={
+                        Array.isArray(parsedData.consumes) &&
+                        parsedData.consumes.includes(o)
+                      }
+                      onChange={(e) => {
+                        const current = Array.isArray(parsedData.consumes)
+                          ? parsedData.consumes
+                          : [];
+                        handleFrontmatterChange(
+                          'consumes',
+                          e.target.checked
+                            ? [...current, o]
+                            : current.filter((s) => s !== o)
+                        );
+                      }}
+                    />
+                    {o}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1 col-span-1 lg:col-span-3">
+              <label className="text-sm font-medium">Emits</label>
+              <div className="flex flex-wrap gap-2 border border-border rounded p-2 bg-background max-h-32 overflow-y-auto">
+                {artifactTypeEnum.options.map((o) => (
+                  <label
+                    key={o}
+                    className="flex items-center gap-1 text-sm text-foreground"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={
+                        Array.isArray(parsedData.emits) &&
+                        parsedData.emits.includes(o)
+                      }
+                      onChange={(e) => {
+                        const current = Array.isArray(parsedData.emits)
+                          ? parsedData.emits
+                          : [];
+                        handleFrontmatterChange(
+                          'emits',
+                          e.target.checked
+                            ? [...current, o]
+                            : current.filter((s) => s !== o)
+                        );
+                      }}
+                    />
+                    {o}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">
+                Requires (comma sep)
+              </label>
+              <input
+                type="text"
+                className="border border-border rounded p-1 text-sm bg-background text-foreground"
+                placeholder="skill-a, skill-b"
+                value={
+                  Array.isArray(parsedData.requires)
+                    ? parsedData.requires.join(', ')
+                    : ''
+                }
+                onChange={(e) =>
+                  handleFrontmatterChange(
+                    'requires',
+                    e.target.value
+                      .split(',')
+                      .map((s) => s.trim())
+                      .filter(Boolean)
+                  )
+                }
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">
+                Suggests (comma sep)
+              </label>
+              <input
+                type="text"
+                className="border border-border rounded p-1 text-sm bg-background text-foreground"
+                placeholder="skill-c"
+                value={
+                  Array.isArray(parsedData.suggests)
+                    ? parsedData.suggests.join(', ')
+                    : ''
+                }
+                onChange={(e) =>
+                  handleFrontmatterChange(
+                    'suggests',
+                    e.target.value
+                      .split(',')
+                      .map((s) => s.trim())
+                      .filter(Boolean)
+                  )
+                }
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">
+                Policies (comma sep)
+              </label>
+              <input
+                type="text"
+                className="border border-border rounded p-1 text-sm bg-background text-foreground"
+                placeholder="policy-x"
+                value={
+                  Array.isArray(parsedData.policies)
+                    ? parsedData.policies.join(', ')
+                    : ''
+                }
+                onChange={(e) =>
+                  handleFrontmatterChange(
+                    'policies',
+                    e.target.value
+                      .split(',')
+                      .map((s) => s.trim())
+                      .filter(Boolean)
+                  )
+                }
+              />
+            </div>
+          </div>
           {isValid ? (
             <div className="flex items-center text-green-600 font-medium">
               <svg
@@ -202,7 +555,7 @@ export default function SkillForm({
                 ❌ Invalid Frontmatter
               </div>
               <ul className="list-disc list-inside text-sm pl-2">
-                {validationErrors.map((err, i) => (
+                {validationErrors.map((err: string, i: number) => (
                   <li key={i}>{err}</li>
                 ))}
               </ul>
