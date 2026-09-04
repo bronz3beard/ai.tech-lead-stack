@@ -513,12 +513,22 @@ export class Handlers {
     const phases = ['intent', 'specify', 'plan', 'build', 'review', 'deploy'];
     const chain: string[] = [];
 
+    let excludedDueToModelClass = false;
     for (const phase of phases) {
       const candidates = graph.nodes.filter((n: any) => {
         if (n.phase !== phase) return false;
         if (domain && n.domain && n.domain !== domain) return false;
         if (targets && targets.length > 0 && n.targets && n.targets.length > 0) {
           if (!targets.some((t: string) => n.targets.includes(t))) return false;
+        }
+        if (process.env.LOCAL_MODEL_CLASS && n.minModelClass) {
+          const w: Record<string, number> = { small: 1, mid: 2, large: 3 };
+          const l = w[process.env.LOCAL_MODEL_CLASS.toLowerCase()] || 0;
+          const r = w[n.minModelClass.toLowerCase()] || 0;
+          if (r > l) {
+            excludedDueToModelClass = true;
+            return false;
+          }
         }
         return true;
       });
@@ -529,6 +539,10 @@ export class Handlers {
         const emitted = flow ? flow.type : 'none';
         chain.push(`Phase ${phase}: [${skills}] -> emits [${emitted}]`);
       }
+    }
+
+    if (excludedDueToModelClass) {
+      chain.push('\nNote: Some skills were excluded because they require a larger model or the sub-pro tier.');
     }
 
     const resultText = chain.join('\n');
@@ -560,8 +574,10 @@ export class Handlers {
     const passThreshold = args.passThreshold ?? 8;
     const stack = args.stack ?? '';
     const mode = args.mode || 'interview';
-    const budget = args.budget;
     const tier = args.tier as Tier | undefined;
+    const budget = tier === 'local' 
+      ? { maxTotalTokens: args.budget?.maxTotalTokens, maxWallClockMs: Number(process.env.REFLEXION_MAX_WALLCLOCK_MS) || undefined }
+      : args.budget;
 
     if (tier && tier !== 'byo') {
       const sizeScore = args.sizeScore ?? 0;

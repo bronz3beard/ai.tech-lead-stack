@@ -15,6 +15,7 @@ export const LoopParamsSchema = z.object({
   focus: z.array(z.string()).optional(),
   autoEscalate: z.boolean().default(false).optional(),
   maxStackChars: z.number().default(20000).optional(),
+  maxWallClockMs: z.number().int().positive().optional(),
 });
 export type LoopParams = z.infer<typeof LoopParamsSchema>;
 
@@ -27,6 +28,7 @@ export const LoopParamsPatchSchema = z.object({
   focus: z.array(z.string()).optional(),
   autoEscalate: z.boolean().optional(),
   maxStackChars: z.number().int().positive().optional(),
+  maxWallClockMs: z.number().int().positive().optional(),
 }).strict();
 export type LoopParamsPatch = z.infer<typeof LoopParamsPatchSchema>;
 
@@ -35,6 +37,7 @@ export const StopReasonSchema = z.enum([
   'user-approve',
   'user-stop',
   'budget-exceeded',
+  'wallclock-exceeded',
   'max-revisions',
   'refine-contract-violation',
 ]);

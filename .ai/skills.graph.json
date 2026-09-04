@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "generatedAt": "2026-09-03T19:26:05.237Z",
+  "generatedAt": "2026-09-04T00:11:06.360Z",
   "nodes": [
     {
       "name": "accessibility-auditor",
@@ -233,6 +233,20 @@
       ],
       "surface": "public",
       "cost": "~1400 tokens"
+    },
+    {
+      "name": "dev-team-local",
+      "phase": "build",
+      "kind": "orchestrator",
+      "domain": "eng",
+      "targets": [
+        "local"
+      ],
+      "minModelClass": "small",
+      "consumes": [],
+      "emits": [],
+      "surface": "public",
+      "cost": "~0 tokens"
     },
     {
       "name": "dev-team-orchestrator",
@@ -569,6 +583,24 @@
       ],
       "surface": "public",
       "cost": "~1000 tokens"
+    },
+    {
+      "name": "reflexion-loop-local",
+      "phase": "plan",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local"
+      ],
+      "minModelClass": "small",
+      "consumes": [],
+      "emits": [],
+      "surface": "public",
+      "cost": "~0 tokens"
     },
     {
       "name": "reflexion-loop-sub-max",

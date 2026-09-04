@@ -26,7 +26,7 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
 import type { LanguageModel } from 'ai';
 
-export type ProviderFamily = 'anthropic' | 'google' | 'openai';
+export type ProviderFamily = 'anthropic' | 'google' | 'openai' | 'local';
 
 /**
  * Prefix rules, evaluated top-to-bottom. Add rows here when you onboard a new
@@ -41,6 +41,9 @@ const PREFIX_RULES: Array<[RegExp, ProviderFamily]> = [
 
 export function providerOf(modelId: string): ProviderFamily {
   const id = (modelId ?? '').trim();
+  if (process.env.LOCAL_MODEL_ENDPOINT && id === process.env.LOCAL_MODEL_NAME) {
+    return 'local';
+  }
   for (const [re, family] of PREFIX_RULES) {
     if (re.test(id)) return family;
   }
@@ -55,6 +58,9 @@ export function providerOf(modelId: string): ProviderFamily {
  * purely from the model id, so any responsibility can be pointed at any model.
  */
 export function createModel(modelId: string, apiKey: string): LanguageModel {
+  if (providerOf(modelId) === 'local') {
+    return createOpenAI({ baseURL: process.env.LOCAL_MODEL_ENDPOINT, apiKey: apiKey || 'local' })(modelId);
+  }
   if (!apiKey?.trim()) {
     throw new Error(
       `model-registry: no API key supplied for model "${modelId}".`
@@ -68,6 +74,8 @@ export function createModel(modelId: string, apiKey: string): LanguageModel {
       return createGoogleGenerativeAI({ apiKey: key })(modelId);
     case 'openai':
       return createOpenAI({ apiKey: key })(modelId);
+    case 'local':
+      return createOpenAI({ baseURL: process.env.LOCAL_MODEL_ENDPOINT, apiKey: key || 'local' })(modelId);
   }
 }
 

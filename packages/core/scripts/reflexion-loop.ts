@@ -129,15 +129,18 @@ async function main(): Promise<number> {
   const repo = arg('--repo') || '.';
   const maxRevisions = Number(arg('--max') || 3);
   const passThreshold = Number(arg('--threshold') || 8);
-  const maxCostUsd = arg('--max-cost-usd')
+  const tier = arg('--tier') as Tier | undefined;
+  const maxCostUsd = tier === 'local' ? undefined : (arg('--max-cost-usd')
     ? Number(arg('--max-cost-usd'))
-    : undefined;
+    : undefined);
   const maxTokens = arg('--max-tokens')
     ? Number(arg('--max-tokens'))
     : undefined;
+  const maxWallClockMs = arg('--max-wallclock-ms')
+    ? Number(arg('--max-wallclock-ms'))
+    : (tier === 'local' && process.env.REFLEXION_MAX_WALLCLOCK_MS ? Number(process.env.REFLEXION_MAX_WALLCLOCK_MS) : undefined);
   const focus = arg('--focus') ? arg('--focus')!.split(',') : undefined;
   
-  const tier = arg('--tier') as Tier | undefined;
   const sizeScore = arg('--size-score') ? Number(arg('--size-score')) : 0;
   const riskSignals = arg('--risk-signals') ? arg('--risk-signals')!.split(',') : [];
 
@@ -195,7 +198,7 @@ async function main(): Promise<number> {
         stack: readStack(repo),
         maxRevisions: state.params.maxRevisions,
         passThreshold: state.params.passThreshold,
-        budget: { maxCostUsd, maxTotalTokens: maxTokens },
+        budget: { maxCostUsd, maxTotalTokens: maxTokens, maxWallClockMs },
         focusPillars: focus,
         stateStore,
       },
@@ -229,6 +232,7 @@ async function main(): Promise<number> {
             '--threshold',
             '--max-cost-usd',
             '--max-tokens',
+            '--max-wallclock-ms',
             '--focus',
             '--out',
             '--resume',
@@ -282,7 +286,7 @@ async function main(): Promise<number> {
         maxRevisions,
         passThreshold,
         mode: autoMode ? 'auto' : 'interview',
-        budget: { maxCostUsd, maxTotalTokens: maxTokens },
+        budget: { maxCostUsd, maxTotalTokens: maxTokens, maxWallClockMs },
         focusPillars: focus,
         stateStore,
       },
@@ -312,7 +316,8 @@ async function main(): Promise<number> {
     exitCode = 2; // parked
   } else if (
     result.stopReason === 'budget-exceeded' ||
-    result.stopReason === 'user-stop'
+    result.stopReason === 'user-stop' ||
+    result.stopReason === 'wallclock-exceeded'
   ) {
     exitCode = 3;
   } else if (

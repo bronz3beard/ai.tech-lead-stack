@@ -62,7 +62,7 @@ export interface ReflexionConfig {
   maxStructuralRepairs?: number;
   passThreshold?: number;
   mode?: 'auto' | 'interview';
-  budget?: { maxCostUsd?: number; maxTotalTokens?: number };
+  budget?: { maxCostUsd?: number; maxTotalTokens?: number; maxWallClockMs?: number };
   focusPillars?: string[];
   stateStore?: StateStore;
   tier?: Tier;
@@ -124,12 +124,20 @@ function checkBudget(runner: ReflexionRunner, cfg: ReflexionConfig): boolean {
   return true;
 }
 
+function budgetStop(runner: ReflexionRunner, cfg: ReflexionConfig, startTime: number): StopReason | null {
+  if (cfg.budget?.maxWallClockMs && Date.now() - startTime > cfg.budget.maxWallClockMs)
+    return 'wallclock-exceeded';
+  if (!checkBudget(runner, cfg)) return 'budget-exceeded';
+  return null;
+}
+
 export async function runReflexion(
   runner: ReflexionRunner,
   cfg: ReflexionConfig,
   onStep?: (e: StepEvent) => void,
   existingState?: ReflexionStateV2
 ): Promise<ReflexionResult> {
+  const startTime = Date.now();
   const runId =
     existingState?.runId ||
     `run-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -213,8 +221,9 @@ export async function runReflexion(
     phase.startsWith('CRITIQUING')
   ) {
     for (let revision = startRevision; revision <= maxRevisions; revision++) {
-      if (!checkBudget(runner, cfg)) {
-        stopReason = 'budget-exceeded';
+      const bStop1 = budgetStop(runner, cfg, startTime);
+      if (bStop1) {
+        stopReason = bStop1;
         await saveState(`STOPPED(${stopReason})`);
         break;
       }
@@ -227,8 +236,9 @@ export async function runReflexion(
           : `${stackBlock}\nBRIEF:\n${cfg.brief}\n\n${generatorRevisionPrompt(draft, score, fix)}${focusBlock}`;
       draft = await runner.generate(prompt, GENERATOR_SYSTEM + focusBlock);
 
-      if (!checkBudget(runner, cfg)) {
-        stopReason = 'budget-exceeded';
+      const bStop2 = budgetStop(runner, cfg, startTime);
+      if (bStop2) {
+        stopReason = bStop2;
         await saveState(`STOPPED(${stopReason})`);
         break;
       }
@@ -296,8 +306,9 @@ export async function runReflexion(
   }
 
   if (!stopReason) {
-    if (!checkBudget(runner, cfg)) {
-      stopReason = 'budget-exceeded';
+    const bStop3 = budgetStop(runner, cfg, startTime);
+    if (bStop3) {
+      stopReason = bStop3;
       await saveState(`STOPPED(${stopReason})`);
     } else {
       onStep?.({ phase: 'adjudicate' });
@@ -436,6 +447,7 @@ export async function resumeReflexion(
   cfg: ReflexionConfig,
   onStep?: (e: StepEvent) => void
 ): Promise<ReflexionResult> {
+  const startTime = Date.now();
   onStep?.({ phase: 'resume', recommendation: answers.directive || 'refine' });
 
   if (answers.directive === 'approve') {
@@ -557,9 +569,10 @@ export async function resumeReflexion(
     for (const ans of planAnswers) {
       const q = state.interview?.questions.find((q) => q.id === ans.id);
       if (q && q.ref) {
-        if (!checkBudget(runner, cfg)) {
-          state.stopReason = 'budget-exceeded';
-          state.phase = 'STOPPED(budget-exceeded)';
+        const bStopResume = budgetStop(runner, cfg, startTime);
+        if (bStopResume) {
+          state.stopReason = bStopResume;
+          state.phase = `STOPPED(${bStopResume})`;
           state.criticDegraded = runner.wasDegraded() || !!state.criticDegraded;
           if (cfg.stateStore) await cfg.stateStore.save(state);
           const usage = runner.getUsage();
@@ -574,7 +587,7 @@ export async function resumeReflexion(
             verdict: 'Budget exceeded during section refinement',
             idePrompt: '',
             models: runner.models,
-            stopReason: 'budget-exceeded',
+            stopReason: bStopResume,
             usage: {
               totalTokens: usage.tokens,
               costUsd: usage.costUsd,
