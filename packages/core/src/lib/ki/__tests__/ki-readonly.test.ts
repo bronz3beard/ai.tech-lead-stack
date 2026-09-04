@@ -1,17 +1,17 @@
-import path from 'path';
 import fs from 'fs';
 import os from 'os';
+import path from 'path';
 import {
+  assertNoRepoWrites,
   makeFakeClientRepo,
   snapshotTree,
-  assertNoRepoWrites,
   spyOnFsWrites,
 } from '../../../__tests__/helpers/readonly-harness';
-import { KiService } from '../ki-service';
 import { Handlers } from '../../../mcp-server/handlers';
-import { FileSystemService } from '../../skills/fs-service';
 import { Telemetry } from '../../../mcp-server/telemetry';
 import { AlignmentService } from '../../skills/alignment-service';
+import { FileSystemService } from '../../skills/fs-service';
+import { KiService } from '../ki-service';
 
 // Mock langfuse to prevent ESM dynamic import issues in Jest
 jest.mock('langfuse', () => ({
@@ -220,5 +220,30 @@ describe('KiService & create_knowledge_item Readonly Confinement', () => {
     } finally {
       restore();
     }
+  });
+
+  it('supports round-trip approval state (create -> setApproval -> read)', async () => {
+    const kiService = new KiService();
+    const slug = 'approval-roundtrip-test';
+
+    // 1. Create with default approval state
+    await kiService.upsertKnowledgeItem({
+      slug,
+      summary: 'Test approval state',
+      artifacts: [{ name: 'test.txt', content: 'test' }],
+    });
+
+    let readKi = await kiService.readKnowledgeItem(slug);
+    expect(readKi?.metadata.approval?.status).toBeUndefined(); // or whatever default it holds
+
+    // 2. Set approval state
+    await kiService.setApproval(slug, 'human-approved', 'test-user');
+
+    // 3. Read back and verify
+    readKi = await kiService.readKnowledgeItem(slug);
+    expect(readKi?.metadata.approval).toBeDefined();
+    expect(readKi?.metadata.approval?.status).toBe('human-approved');
+    expect(readKi?.metadata.approval?.by).toBe('test-user');
+    expect(readKi?.metadata.approval?.timestamp).toBeDefined();
   });
 });

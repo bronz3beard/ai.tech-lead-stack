@@ -237,6 +237,30 @@ const CREATE_KI_TOOL: Tool = {
   },
 };
 
+const APPROVE_KI_TOOL: Tool = {
+  name: 'approve_knowledge_item',
+  description: 'Sets the approval state of a Knowledge Item.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      slug: {
+        type: 'string',
+        description: 'The slug of the knowledge item to approve',
+      },
+      status: {
+        type: 'string',
+        enum: ['draft', 'human-approved', 'rejected'],
+        description: 'The new approval status',
+      },
+      by: {
+        type: 'string',
+        description: 'Optional: Identifier for who approved/rejected it',
+      },
+    },
+    required: ['slug', 'status'],
+  },
+};
+
 const PLAN_PIPELINE_TOOL: Tool = {
   name: 'plan_pipeline',
   description: 'Returns the ordered phase->skill chain for a task.',
@@ -347,6 +371,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       LIST_KI_TOOL,
       READ_KI_TOOL,
       CREATE_KI_TOOL,
+      APPROVE_KI_TOOL,
       PLAN_PIPELINE_TOOL,
       REFLEXION_LOOP_TOOL,
       REFLEXION_LOOP_SUB_MAX_TOOL,
@@ -362,6 +387,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
  */
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
+
+  const hookCheck = await handlers.evaluateHooks(name, args || {});
+  if (!hookCheck.allowed && hookCheck.refusalPayload) {
+    return hookCheck.refusalPayload;
+  }
 
   if (name === 'list_skills') {
     return await handlers.handleListSkills();
@@ -389,6 +419,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   if (name === 'create_knowledge_item') {
     return await handlers.handleCreateKnowledgeItem(args || {});
+  }
+
+  if (name === 'approve_knowledge_item') {
+    return await handlers.handleApproveKnowledgeItem(args || {});
   }
 
   if (name === 'plan_pipeline') {

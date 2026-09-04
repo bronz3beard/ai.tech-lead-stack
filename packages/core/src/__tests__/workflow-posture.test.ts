@@ -3,9 +3,10 @@ import path from 'path';
 import matter from 'gray-matter';
 
 describe('Workflow Posture', () => {
-  const WORKFLOWS_DIR = path.join(process.cwd(), '../../.agents', 'workflows');
-  const PM_WORKFLOWS_DIR = path.join(process.cwd(), '../../.agents', 'pm-workflows');
-  const HR_WORKFLOWS_DIR = path.join(process.cwd(), '../../.agents', 'hr-workflows');
+  const REPO_ROOT = path.join(__dirname, '../../../..');
+  const WORKFLOWS_DIR = path.join(REPO_ROOT, '.agents', 'workflows');
+  const PM_WORKFLOWS_DIR = path.join(REPO_ROOT, '.agents', 'pm-workflows');
+  const HR_WORKFLOWS_DIR = path.join(REPO_ROOT, '.agents', 'hr-workflows');
 
   function getWorkflowFiles(dir: string): string[] {
     if (!fs.existsSync(dir)) return [];

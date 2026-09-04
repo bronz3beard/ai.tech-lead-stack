@@ -75,6 +75,7 @@
     "lint": "npx markdownlint-cli \".ai/skills/*.md\"",
     "lint:fix": "npx markdownlint-cli --fix \".ai/skills/*.md\" && npm run format",
     "validate:skills": "bash scripts/validate-skills.sh",
+    "validate:hooks": "node scripts/enforce-hooks.mjs",
     "validate:gherkin": "node scripts/validate-gherkin.mjs",
     "validate:scripts": "bash scripts/validate-scripts.sh",
     "prepare": "husky",

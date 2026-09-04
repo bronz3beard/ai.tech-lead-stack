@@ -270,3 +270,10 @@ role actions:
 Pass `{ teamRole: "<ROLE>", loopRunId: "<MISSION_ID>", actorType: "AGENT" }`
 when invoking skills to ensure the activity is correctly attributed on the
 Agentic Health dashboard.
+
+### Hooks (Ownership Gates)
+
+Before advancing to the next phase or gate, you MUST consult `.ai/hooks/`. If a
+guard is triggered and requires human approval (`require-human-approve`), you
+MUST append the question to the human inbox (`.dev-team/inbox.md`) rather than
+proceeding.

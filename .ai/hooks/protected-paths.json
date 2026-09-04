@@ -1,0 +1,10 @@
+{
+  "id": "protected-paths",
+  "description": "Require human approve when touching auth/payments/infra",
+  "appliesToPhase": ["build"],
+  "condition": {
+    "diffContains": ["**/auth/**", "**/payments/**", "infra/**"]
+  },
+  "action": "require-human-approve",
+  "message": "Modifications to protected paths require human approval."
+}

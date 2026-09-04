@@ -257,3 +257,10 @@ beneath disclosure line.
 | "The audit passed anyway, so the notice would just worry them."               | A pass from the author is not a pass; the notice IS the finding. Emit disclosure line as line 1.                 |
 | "The model swap was handled automatically, so it's an implementation detail." | Handling it seamlessly is why developer cannot see it, which is exactly why it must be stated.                   |
 | "It is already recorded in the provenance table below."                       | A table row is not a disclosure; the first line is.                                                              |
+
+### Hooks (Ownership Gates)
+
+Before advancing to the next phase or gate, you MUST consult `.ai/hooks/`. If a
+guard is triggered and requires human approval (`require-human-approve`), you
+MUST append the question to the human inbox (`.dev-team/inbox.md`) rather than
+proceeding.

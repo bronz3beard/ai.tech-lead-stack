@@ -244,3 +244,69 @@ describe('Handlers.handleReflexionLoop project model routing', () => {
     });
   });
 });
+
+describe('Handlers.evaluateHooks', () => {
+  const originalCwd = process.cwd;
+  let tmpDir = '';
+
+  beforeAll(() => {
+    const os = require('os');
+    const fsSync = require('fs');
+    const path = require('path');
+    tmpDir = fsSync.mkdtempSync(path.join(os.tmpdir(), 'hooks-test-'));
+    fsSync.mkdirSync(path.join(tmpDir, '.ai', 'hooks'), { recursive: true });
+    fsSync.writeFileSync(path.join(tmpDir, '.ai', 'hooks', 'no-ai-approve-deploy.json'), JSON.stringify({
+      id: 'no-ai-approve-deploy',
+      appliesToPhase: ['deploy'],
+      condition: { actorTypeNot: 'USER' },
+      action: 'block',
+      message: 'AI blocked'
+    }));
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    process.cwd = jest.fn().mockReturnValue(tmpDir);
+  });
+
+  afterAll(() => {
+    process.cwd = originalCwd;
+  });
+
+  it('blocks AI actor for deploy phase skills', async () => {
+    const mockFsService = new FileSystemService('root') as jest.Mocked<FileSystemService>;
+    const mockTelemetry = new Telemetry() as jest.Mocked<Telemetry>;
+    const mockKiService = new KiService() as jest.Mocked<KiService>;
+    const mockAlignmentService = new AlignmentService('root') as jest.Mocked<AlignmentService>;
+
+    mockFsService.loadGraph.mockResolvedValue({
+      nodes: [{ id: 'deploy-skill', phase: 'deploy', kind: 'skill' }]
+    });
+
+    const handlers = new Handlers(mockFsService, mockTelemetry, mockAlignmentService, mockKiService);
+    
+    const result = await handlers.evaluateHooks('get_skill', { skillName: 'deploy-skill', actorType: 'AGENT' });
+    
+    expect(result.allowed).toBe(false);
+    expect(result.refusalPayload).toBeDefined();
+    expect(result.refusalPayload.content[0].text).toContain('AI blocked');
+  });
+
+  it('allows USER actor for deploy phase skills', async () => {
+    const mockFsService = new FileSystemService('root') as jest.Mocked<FileSystemService>;
+    const mockTelemetry = new Telemetry() as jest.Mocked<Telemetry>;
+    const mockKiService = new KiService() as jest.Mocked<KiService>;
+    const mockAlignmentService = new AlignmentService('root') as jest.Mocked<AlignmentService>;
+
+    mockFsService.loadGraph.mockResolvedValue({
+      nodes: [{ id: 'deploy-skill', phase: 'deploy', kind: 'skill' }]
+    });
+
+    const handlers = new Handlers(mockFsService, mockTelemetry, mockAlignmentService, mockKiService);
+    
+    const result = await handlers.evaluateHooks('get_skill', { skillName: 'deploy-skill', actorType: 'USER' });
+    
+    expect(result.allowed).toBe(true);
+    expect(result.refusalPayload).toBeUndefined();
+  });
+});

@@ -1,18 +1,19 @@
+import { CallToolResult } from '@modelcontextprotocol/sdk/types';
 import * as fs from 'fs/promises';
-import * as path from 'path';
 import matter from 'gray-matter';
+import * as path from 'path';
 import { resumeReflexion, runReflexion } from '../lib/ai/reflexion/engine.js';
 import { runnerFromEnv } from '../lib/ai/reflexion/providers-env.js';
 import { FileStateStore } from '../lib/ai/reflexion/state-store.js';
+import { assessTask, enforceTier, type Tier } from '../lib/ai/tier-policy.js';
+import { decrypt } from '../lib/crypto';
 import { KiService } from '../lib/ki/ki-service.js';
+import { prisma } from '../lib/prisma.js';
 import { AlignmentService } from '../lib/skills/alignment-service.js';
 import { FileSystemService } from '../lib/skills/fs-service.js';
 import { isSkillTrace } from '../lib/trace-utils';
 import { Telemetry } from './telemetry.js';
 import { UserResolver } from './user-resolver.js';
-import { decrypt } from '../lib/crypto';
-import { prisma } from '../lib/prisma.js';
-import { assessTask, enforceTier, type Tier } from '../lib/ai/tier-policy.js';
 
 /**
  * Handlers manages the execution logic for all MCP tools.
@@ -25,6 +26,129 @@ export class Handlers {
     private alignmentService: AlignmentService,
     private kiService: KiService
   ) {}
+
+  /**
+   * @desc Evaluates hooks/guards for a given skill execution request.
+   */
+  async evaluateHooks(
+    toolName: string,
+    args: Record<string, unknown>
+  ): Promise<{ allowed: boolean; refusalPayload?: any }> {
+    const isDiscreteTool =
+      toolName.startsWith('get_') &&
+      toolName !== 'get_skill' &&
+      toolName !== 'get_skills';
+    let safeSkillName = '';
+    if (isDiscreteTool) {
+      safeSkillName = toolName.replace(/^get_/, '').replace(/_/g, '-');
+    } else if (toolName === 'get_skill' || toolName === 'get_skills') {
+      const skillName = args.skillName as string | undefined;
+      safeSkillName = path.basename(skillName || 'unknown', '.md');
+    } else {
+      return { allowed: true };
+    }
+
+    const graph = await this.fsService.loadGraph();
+    if (!graph || !graph.nodes) return { allowed: true };
+
+    const node = graph.nodes.find((n: any) => n.id === safeSkillName);
+    if (!node) return { allowed: true };
+
+    const phase = node.phase;
+    const kind = node.kind;
+
+    const hooksDir = path.join(process.cwd(), '.ai', 'hooks');
+    let guards: any[] = [];
+    try {
+      const files = await fs.readdir(hooksDir);
+      for (const file of files) {
+        if (file.endsWith('.json')) {
+          const content = await fs.readFile(path.join(hooksDir, file), 'utf-8');
+          guards.push(JSON.parse(content));
+        }
+      }
+    } catch {
+      return { allowed: true };
+    }
+
+    const actorType = (args.actorType as string) || 'USER';
+
+    for (const guard of guards) {
+      let applies = false;
+      if (guard.appliesToPhase && guard.appliesToPhase.includes(phase))
+        applies = true;
+      if (guard.appliesToKind && guard.appliesToKind.includes(kind))
+        applies = true;
+      if (!applies) continue;
+
+      const cond = guard.condition || {};
+      let triggered = false;
+
+      if (cond.actorTypeNot && actorType !== cond.actorTypeNot) {
+        triggered = true;
+      }
+
+      if (cond.requireKi) {
+        const ki = await this.kiService.readKnowledgeItem(cond.requireKi);
+        if (cond.requireKiStatus) {
+          if (!ki || ki.metadata.approval?.status !== cond.requireKiStatus) {
+            triggered = true;
+          }
+        } else if (!ki) {
+          triggered = true;
+        }
+      }
+
+      if (cond.consumesApprovedKi) {
+        const consumes = graph.artifactFlow
+          ? graph.artifactFlow
+              .filter((f: any) => f.consumedBy?.includes(phase))
+              .map((f: any) => f.type)
+          : [];
+        for (const type of consumes) {
+          const ki = await this.kiService.readKnowledgeItem(type);
+          if (
+            ki &&
+            (!ki.metadata.approval ||
+              ki.metadata.approval.status !== 'human-approved')
+          ) {
+            triggered = true;
+            break;
+          }
+        }
+      }
+
+      if (triggered) {
+        if (
+          guard.action === 'block' ||
+          guard.action === 'require-human-approve'
+        ) {
+          return {
+            allowed: false,
+            refusalPayload: {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(
+                    {
+                      refused: true,
+                      reason: guard.message,
+                      escalateTo: 'human',
+                      guardId: guard.id,
+                    },
+                    null,
+                    2
+                  ),
+                },
+              ],
+              isError: false,
+            },
+          };
+        }
+      }
+    }
+    return { allowed: true };
+  }
 
   /**
    * Logic for the 'list_skills' tool.
@@ -57,7 +181,9 @@ export class Handlers {
         const skill = await this.fsService.readSkill(s);
         if (skill) {
           const parsed = matter(skill.content);
-          const modes = Array.isArray(parsed.data?.modes) ? parsed.data.modes : [];
+          const modes = Array.isArray(parsed.data?.modes)
+            ? parsed.data.modes
+            : [];
           if (modes.length > 0) {
             return `- ${s} [modes: ${modes.join(', ')}]`;
           }
@@ -140,19 +266,31 @@ export class Handlers {
         const node = graph.nodes.find((n: any) => n.id === safeSkillName);
         if (node) {
           const requires = graph.edges
-            ? graph.edges.filter((e: any) => e.from === safeSkillName && e.type === 'requires').map((e: any) => e.to)
+            ? graph.edges
+                .filter(
+                  (e: any) => e.from === safeSkillName && e.type === 'requires'
+                )
+                .map((e: any) => e.to)
             : [];
           const suggests = graph.edges
-            ? graph.edges.filter((e: any) => e.from === safeSkillName && e.type === 'suggests').map((e: any) => e.to)
+            ? graph.edges
+                .filter(
+                  (e: any) => e.from === safeSkillName && e.type === 'suggests'
+                )
+                .map((e: any) => e.to)
             : [];
           const consumes = graph.artifactFlow
-            ? graph.artifactFlow.filter((f: any) => f.consumedBy?.includes(node.phase)).map((f: any) => f.type)
+            ? graph.artifactFlow
+                .filter((f: any) => f.consumedBy?.includes(node.phase))
+                .map((f: any) => f.type)
             : [];
           const emits = graph.artifactFlow
-            ? graph.artifactFlow.filter((f: any) => f.emittedBy?.includes(node.phase)).map((f: any) => f.type)
+            ? graph.artifactFlow
+                .filter((f: any) => f.emittedBy?.includes(node.phase))
+                .map((f: any) => f.type)
             : [];
           const targets = node.targets || [];
-          
+
           const footer = `\n\n---\n[GRAPH] phase=${node.phase || 'none'} kind=${node.kind || 'none'} domain=${node.domain || 'none'}\nrequires=[${requires.join(',')}] suggests=[${suggests.join(',')}]\nconsumes=[${consumes.join(',')}] emits=[${emits.join(',')}] targets=[${targets.join(',')}]`;
           fileContent += footer;
         }
@@ -160,7 +298,9 @@ export class Handlers {
 
       const parsed = matter(rawContent);
       if (Array.isArray(parsed.data?.policies)) {
-        const policyText = await this.fsService.resolvePolicies(parsed.data.policies);
+        const policyText = await this.fsService.resolvePolicies(
+          parsed.data.policies
+        );
         if (policyText) {
           fileContent += `\n\n---\n## Injected policies\n${policyText}`;
         }
@@ -180,10 +320,13 @@ export class Handlers {
         teamRole?: string | null;
       } = {};
 
-      if (typeof args.actorType === 'string') overrides.actorType = args.actorType;
+      if (typeof args.actorType === 'string')
+        overrides.actorType = args.actorType;
       if (typeof args.autonomy === 'string') overrides.autonomy = args.autonomy;
-      if (typeof args.loopRunId === 'string') overrides.loopRunId = args.loopRunId;
-      if (typeof args.loopPhase === 'string') overrides.loopPhase = args.loopPhase;
+      if (typeof args.loopRunId === 'string')
+        overrides.loopRunId = args.loopRunId;
+      if (typeof args.loopPhase === 'string')
+        overrides.loopPhase = args.loopPhase;
       if (typeof args.teamRole === 'string') overrides.teamRole = args.teamRole;
 
       if (safeSkillName === 'qa-handover-generator') {
@@ -268,22 +411,66 @@ export class Handlers {
   /*
    * Logic for the 'list_knowledge_items' tool.
    */
-  async handleListKnowledgeItems(args: Record<string, unknown>) {
-    const projectName = args.projectName as string | undefined;
-    const items = await this.kiService.listKnowledgeItems(projectName);
+  async handleListKnowledgeItems(
+    args: Record<string, unknown>
+  ): Promise<CallToolResult> {
+    try {
+      const projectName =
+        typeof args.projectName === 'string' ? args.projectName : undefined;
+      const items = await this.kiService.listKnowledgeItems(projectName);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(items, null, 2),
+          },
+        ],
+      };
+    } catch (error: any) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Failed to list Knowledge Items: ${error.message}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  }
 
-    return {
-      content: [
-        {
-          type: 'text',
-          text:
-            items.length > 0
-              ? `Found ${items.length} knowledge items:\n${items.map((i) => `- ${i.slug}: ${i.summary} (${i.projectName || 'global'})`).join('\n')}`
-              : 'No knowledge items found.',
-        },
-      ],
-      isError: false,
-    };
+  /**
+   * Logic for the 'approve_knowledge_item' tool.
+   */
+  async handleApproveKnowledgeItem(
+    args: Record<string, unknown>
+  ): Promise<CallToolResult> {
+    try {
+      const slug = args.slug as string;
+      const status = args.status as 'draft' | 'human-approved' | 'rejected';
+      const by = typeof args.by === 'string' ? args.by : undefined;
+
+      await this.kiService.setApproval(slug, status, by);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Successfully updated approval status for '${slug}' to '${status}'.`,
+          },
+        ],
+      };
+    } catch (error: any) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Failed to approve Knowledge Item: ${error.message}`,
+          },
+        ],
+        isError: true,
+      };
+    }
   }
 
   /**
@@ -469,20 +656,29 @@ export class Handlers {
 
       if (!state) {
         return {
-          content: [{ type: 'text', text: `Run ID ${runId} not found in ${outDir}.` }],
+          content: [
+            { type: 'text', text: `Run ID ${runId} not found in ${outDir}.` },
+          ],
           isError: true,
         };
       }
 
       let extra = '';
       if (state.phase === 'AWAITING_ANSWERS') {
-        extra = '\nRun is parked for interview. Use reflexion_resume with answers to proceed.\nQuestions:\n' + 
-                JSON.stringify(state.interview?.questions, null, 2);
-      } else if (state.phase === 'APPROVED' || state.phase.startsWith('STOPPED')) {
+        extra =
+          '\nRun is parked for interview. Use reflexion_resume with answers to proceed.\nQuestions:\n' +
+          JSON.stringify(state.interview?.questions, null, 2);
+      } else if (
+        state.phase === 'APPROVED' ||
+        state.phase.startsWith('STOPPED')
+      ) {
         extra = `\nRun is finished. Final verdict: ${state.stopReason}. \nTo get the final IDE Prompt, you can call reflexion_resume with { directive: "approve" } or read the state file directly.`;
       }
 
-      const score = state.critiques.length > 0 ? state.critiques[state.critiques.length - 1].score : 'N/A';
+      const score =
+        state.critiques.length > 0
+          ? state.critiques[state.critiques.length - 1].score
+          : 'N/A';
 
       return {
         content: [
@@ -500,14 +696,20 @@ export class Handlers {
   async handlePlanPipeline(args: Record<string, unknown>) {
     const intent = args.intent as string;
     if (!intent) {
-      return { content: [{ type: 'text', text: 'Error: "intent" is required.' }], isError: true };
+      return {
+        content: [{ type: 'text', text: 'Error: "intent" is required.' }],
+        isError: true,
+      };
     }
     const targets = args.targets as string[] | undefined;
     const domain = args.domain as string | undefined;
 
     const graph = await this.fsService.loadGraph();
     if (!graph || !graph.nodes) {
-      return { content: [{ type: 'text', text: 'Error: graph not found.' }], isError: true };
+      return {
+        content: [{ type: 'text', text: 'Error: graph not found.' }],
+        isError: true,
+      };
     }
 
     const phases = ['intent', 'specify', 'plan', 'build', 'review', 'deploy'];
@@ -518,7 +720,12 @@ export class Handlers {
       const candidates = graph.nodes.filter((n: any) => {
         if (n.phase !== phase) return false;
         if (domain && n.domain && n.domain !== domain) return false;
-        if (targets && targets.length > 0 && n.targets && n.targets.length > 0) {
+        if (
+          targets &&
+          targets.length > 0 &&
+          n.targets &&
+          n.targets.length > 0
+        ) {
           if (!targets.some((t: string) => n.targets.includes(t))) return false;
         }
         if (process.env.LOCAL_MODEL_CLASS && n.minModelClass) {
@@ -535,14 +742,18 @@ export class Handlers {
 
       if (candidates.length > 0) {
         const skills = candidates.map((c: any) => c.id).join(', ');
-        const flow = graph.artifactFlow?.find((f: any) => f.emittedBy?.includes(phase));
+        const flow = graph.artifactFlow?.find((f: any) =>
+          f.emittedBy?.includes(phase)
+        );
         const emitted = flow ? flow.type : 'none';
         chain.push(`Phase ${phase}: [${skills}] -> emits [${emitted}]`);
       }
     }
 
     if (excludedDueToModelClass) {
-      chain.push('\nNote: Some skills were excluded because they require a larger model or the sub-pro tier.');
+      chain.push(
+        '\nNote: Some skills were excluded because they require a larger model or the sub-pro tier.'
+      );
     }
 
     const resultText = chain.join('\n');
@@ -575,9 +786,14 @@ export class Handlers {
     const stack = args.stack ?? '';
     const mode = args.mode || 'interview';
     const tier = args.tier as Tier | undefined;
-    const budget = tier === 'local' 
-      ? { maxTotalTokens: args.budget?.maxTotalTokens, maxWallClockMs: Number(process.env.REFLEXION_MAX_WALLCLOCK_MS) || undefined }
-      : args.budget;
+    const budget =
+      tier === 'local'
+        ? {
+            maxTotalTokens: args.budget?.maxTotalTokens,
+            maxWallClockMs:
+              Number(process.env.REFLEXION_MAX_WALLCLOCK_MS) || undefined,
+          }
+        : args.budget;
 
     if (tier && tier !== 'byo') {
       const sizeScore = args.sizeScore ?? 0;
@@ -590,12 +806,16 @@ export class Handlers {
           content: [
             {
               type: 'text',
-              text: JSON.stringify({
-                refused: true,
-                reason: enforcement.reason,
-                escalateTo: enforcement.escalateTo,
-              }, null, 2)
-            }
+              text: JSON.stringify(
+                {
+                  refused: true,
+                  reason: enforcement.reason,
+                  escalateTo: enforcement.escalateTo,
+                },
+                null,
+                2
+              ),
+            },
           ],
           isError: false,
         };
@@ -649,7 +869,12 @@ export class Handlers {
         plan: '',
         critiques: [],
         revision: 0,
-        params: { passThreshold, maxRevisions, maxStructuralRepairs: 1, focus: [] },
+        params: {
+          passThreshold,
+          maxRevisions,
+          maxStructuralRepairs: 1,
+          focus: [],
+        },
         usage: { totalTokens: 0, costUsd: 0, perPhase: [] },
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -674,7 +899,8 @@ export class Handlers {
           let teamRole: string | undefined;
           let revisionCounter = 0;
           if ('revision' in e) revisionCounter = e.revision;
-          if (e.phase === 'critique' || e.phase === 'scored') teamRole = 'critic';
+          if (e.phase === 'critique' || e.phase === 'scored')
+            teamRole = 'critic';
           if (e.phase === 'adjudicate') teamRole = 'adjudicator';
           if (e.phase === 'interview') teamRole = 'interviewer';
 
@@ -705,13 +931,16 @@ export class Handlers {
         initialState
       ).catch((e) => {
         console.error('[MCP] Async reflexion loop failed:', e);
-        stateStore.load(runId).then(s => {
-          if (s) {
-            s.phase = 'STOPPED(error)';
-            s.stopReason = 'error' as any;
-            stateStore.save(s).catch(() => {});
-          }
-        }).catch(() => {});
+        stateStore
+          .load(runId)
+          .then((s) => {
+            if (s) {
+              s.phase = 'STOPPED(error)';
+              s.stopReason = 'error' as any;
+              stateStore.save(s).catch(() => {});
+            }
+          })
+          .catch(() => {});
       });
 
       return {
