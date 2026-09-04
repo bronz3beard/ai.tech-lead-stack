@@ -120,17 +120,14 @@ async function getGlobalMetrics(projectId?: string, session?: any) {
       total,
     }));
 
-    const analysisTraces = finalTraces.filter(t => t.name === 'reflexion-loop' || t.name.startsWith('analysis:'));
+    const analysisTraces = finalTraces.filter(t => t.name === 'reflexion-loop' || t.metadata?.totalSteps !== undefined);
     
     // Group traces by run ID to avoid double-counting steps from multiple events (e.g. generate, critique) in the same run
     const tracesByRun: Record<string, { steps: number, phase: string, skill: string }> = {};
     
     analysisTraces.forEach(t => {
       const runId = (t as any).loopRunId || t.id; // fallback to trace ID if no loopRunId
-      let skillName = t.name.replace('analysis:', '');
-      if (t.name === 'reflexion-loop' && t.metadata?.skillName) {
-         skillName = t.metadata.skillName as string;
-      }
+      let skillName = t.metadata?.skillName as string || t.name;
       const steps = typeof t.metadata?.totalSteps === 'number' ? t.metadata.totalSteps : 
                     (typeof t.metadata?.totalSteps === 'string' ? parseInt(t.metadata.totalSteps, 10) : 0);
       const phase = (t as any).loopPhase || 'unknown';

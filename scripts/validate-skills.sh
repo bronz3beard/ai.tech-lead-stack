@@ -112,6 +112,79 @@ for file in "${files[@]}"; do
     fi
   fi
 
+  # Check for 'kind' field in frontmatter
+  if ! grep -q "^kind:" "$file"; then
+     echo "::error file=$file::Missing 'kind' field in frontmatter"
+     echo "Error: Missing 'kind' in $file"
+     EXIT_CODE=1
+  else
+    kind_val=$(grep "^kind:" "$file" | sed 's/^kind:[[:space:]]*//' | tr -d '\r')
+    if [[ "$kind_val" != "skill" && "$kind_val" != "orchestrator" && "$kind_val" != "policy" && "$kind_val" != "report" ]]; then
+      echo "::error file=$file::Invalid 'kind' value '$kind_val'. Must be 'skill', 'orchestrator', 'policy', or 'report'"
+      echo "Error: Invalid 'kind' in $file"
+      EXIT_CODE=1
+    fi
+  fi
+
+  # Check for 'domain' field in frontmatter
+  if ! grep -q "^domain:" "$file"; then
+     echo "::error file=$file::Missing 'domain' field in frontmatter"
+     echo "Error: Missing 'domain' in $file"
+     EXIT_CODE=1
+  else
+    domain_val=$(grep "^domain:" "$file" | sed 's/^domain:[[:space:]]*//' | tr -d '\r')
+    if [[ "$domain_val" != "eng" && "$domain_val" != "product" && "$domain_val" != "hiring" && "$domain_val" != "shared" ]]; then
+      echo "::error file=$file::Invalid 'domain' value '$domain_val'. Must be 'eng', 'product', 'hiring', or 'shared'"
+      echo "Error: Invalid 'domain' in $file"
+      EXIT_CODE=1
+    fi
+  fi
+
+  # Check for 'ownership' field in frontmatter
+  if ! grep -q "^ownership:" "$file"; then
+     echo "::error file=$file::Missing 'ownership' field in frontmatter"
+     echo "Error: Missing 'ownership' in $file"
+     EXIT_CODE=1
+  fi
+
+  # Check for 'targets' field in frontmatter
+  if ! grep -q "^targets:" "$file"; then
+     echo "::error file=$file::Missing 'targets' field in frontmatter"
+     echo "Error: Missing 'targets' in $file"
+     EXIT_CODE=1
+  fi
+
+  # Check for 'phase' or 'spans'
+  has_phase=false
+  has_spans=false
+  if grep -q "^phase:" "$file"; then
+    has_phase=true
+    phase_val=$(grep "^phase:" "$file" | sed 's/^phase:[[:space:]]*//' | tr -d '\r')
+    valid_phases=("intent" "specify" "plan" "build" "maintain" "review" "scale" "deploy" "polish")
+    is_valid_phase=false
+    for valid_phase in "${valid_phases[@]}"; do
+      if [[ "$phase_val" == "$valid_phase" ]]; then
+        is_valid_phase=true
+        break
+      fi
+    done
+    if [ "$is_valid_phase" = false ]; then
+      echo "::error file=$file::Invalid 'phase' value '$phase_val'."
+      echo "Error: Invalid 'phase' in $file"
+      EXIT_CODE=1
+    fi
+  fi
+
+  if grep -q "^spans:" "$file"; then
+    has_spans=true
+  fi
+
+  if [ "$has_phase" = false ] && [ "$has_spans" = false ]; then
+     echo "::error file=$file::Missing 'phase' or 'spans' field in frontmatter"
+     echo "Error: Missing 'phase' or 'spans' in $file"
+     EXIT_CODE=1
+  fi
+
 done
 
 echo "🔍 Checking registry drift..."

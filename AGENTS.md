@@ -51,10 +51,13 @@ name. Not applicable if your environment doesn't connect to this MCP server.
 
 ## Policies & Execution
 
-Agent policies and constraints are centrally enforced:
-- **`.ai/policies`**: Read any policy documents here when making operational decisions.
-- **`.ai/hooks`**: Aware of the hooks layer. Ownership gates and capability boundaries are enforced both at MCP call-time and in CI via a dedicated hooks enforcer.
-- **Execution Targets**: Be aware that you operate under one of four execution targets (`local`, `sub-pro`, `sub-max`, `byo`). Each has specific latency, context, and capability budgets as defined in `docs/decisions/0003-execution-targets.md`.
+Agent policies and constraints are centrally enforced across the entire AI lifecycle. Note these critical architecture changes:
+- **Nine Phases**: All work is categorized into exactly nine phases (intent, specify, plan, build, maintain, review, scale, deploy, polish). Every skill frontmatter and telemetry metadata payload MUST declare a valid phase.
+- **Typed Artifact Handoffs**: Skills no longer pass arbitrary context. Deliverables (spec, plan, diff, etc.) are explicitly typed and handed off via Knowledge Items (KIs).
+- **New MCP Tools**: We've introduced `plan_pipeline` to sequence orchestrators and `approve_knowledge_item` to formalize KI handoffs. Note that `get_skill` now appends a dependency graph footer outlining upstream/downstream connections.
+- **Dynamic Policies (`.ai/policies`)**: Policy documents are loaded dynamically into agent contexts to guide operational decisions without hardcoding logic.
+- **Hooks Layer (`.ai/hooks`)**: Ownership gates and capability boundaries are strictly enforced at MCP call-time and validated in CI via a dedicated hooks enforcer.
+- **Execution Targets**: You operate under one of four execution tiers (`local`, `sub-pro`, `sub-max`, `byo`). Each has specific latency, context, and capability budgets (e.g., `local` enforces single-lane pipeline).
 
 ## Git discipline
 

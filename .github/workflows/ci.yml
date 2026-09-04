@@ -53,6 +53,9 @@ jobs:
       - name: Check Skill Graph Drift
         run: pnpm run generate:registry --check
 
+      - name: Validate Skills
+        run: pnpm run validate:skills
+
       - name: Lint (Next.js)
         run: pnpm run lint:next
 
