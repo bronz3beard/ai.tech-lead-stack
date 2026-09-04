@@ -2,6 +2,16 @@ import { Langfuse } from 'langfuse';
 import { langfuseLabel } from './langfuse-labels';
 import { prisma } from './prisma';
 import { normalizeProjectName, normalizeSkillName } from './trace-utils';
+import { MODEL_CATALOG } from './ai/model-registry';
+
+const PRICING_MAP: Record<string, { input: number; output: number }> = {
+  'claude-opus-4-6': { input: 5, output: 25 },
+  'claude-sonnet-4-6': { input: 3, output: 15 },
+  'claude-haiku-4-5': { input: 1, output: 5 },
+  'gemini-3.6-flash': { input: 0.75, output: 3.75 },
+  'gemini-3.1-pro': { input: 2, output: 12 },
+};
+const DEFAULT_PRICING = { input: 3, output: 15 };
 
 export interface TelemetryMetadata {
   skillName: string;
@@ -112,16 +122,51 @@ export class TelemetryService {
 
     const normalizedSkill = normalizeSkillName(params.skillName);
     const normalizedProject = normalizeProjectName(params.projectName);
-    const resolvedModel = langfuseLabel(params.model || 'unknown-model');
-    const resolvedAgent = langfuseLabel(params.agent || 'unknown-agent');
+
+    // Validate Model against Catalog
+    const originalModel = params.model || 'unknown-model';
+    let validatedModel = originalModel;
+    let validatedAgent = params.agent || 'unknown-agent';
+    let invalidModelValue: string | undefined;
+
+    const isRecognizedModel = MODEL_CATALOG.some(m => m.id === originalModel);
+    if (!isRecognizedModel && originalModel !== 'unknown-model') {
+      // Re-route agents like "Antigravity", "Jules", "Cursor" to agent field if agent is missing
+      if (!params.agent || params.agent === 'unknown-agent' || params.agent === 'unknown') {
+         validatedAgent = originalModel;
+      }
+      invalidModelValue = originalModel;
+      validatedModel = 'unknown-model';
+    }
+
+    const resolvedModel = langfuseLabel(validatedModel);
+    const resolvedAgent = langfuseLabel(validatedAgent);
 
     const promptTokens = params.promptTokens || 0;
     const completionTokens = params.completionTokens || 0;
 
-    // Estimate total cost based on GPT-4o pricing
-    const inputCost = (promptTokens / 1_000_000) * 5.0;
-    const outputCost = (completionTokens / 1_000_000) * 15.0;
+    // Estimate total cost based on pricing map
+    let inputRate = DEFAULT_PRICING.input;
+    let outputRate = DEFAULT_PRICING.output;
+    let pricingFallback = false;
+
+    if (PRICING_MAP[validatedModel]) {
+      inputRate = PRICING_MAP[validatedModel].input;
+      outputRate = PRICING_MAP[validatedModel].output;
+    } else if ((promptTokens > 0 || completionTokens > 0) && validatedModel !== 'unknown-model') {
+      pricingFallback = true;
+    }
+
+    const inputCost = (promptTokens / 1_000_000) * inputRate;
+    const outputCost = (completionTokens / 1_000_000) * outputRate;
     const totalCost = Number((inputCost + outputCost).toFixed(6));
+
+    const finalMetadata = {
+      ...params.metadata,
+      ...(invalidModelValue && { invalidModel: invalidModelValue }),
+      ...(pricingFallback && { pricingFallback: true }),
+      llmCall: params.metadata?.llmCall !== undefined ? params.metadata.llmCall : true,
+    };
 
     // 1. Log to Langfuse (Async)
     let langfuseTraceId: string | null = null;
@@ -131,7 +176,7 @@ export class TelemetryService {
           name: `skill:${normalizedSkill}`,
           userId: params.userEmail,
           metadata: {
-            ...params.metadata,
+            ...finalMetadata,
             projectName: normalizedProject,
             model: resolvedModel,
             agent: resolvedAgent,
@@ -152,7 +197,7 @@ export class TelemetryService {
             promptTokens,
             completionTokens,
           },
-          metadata: params.metadata,
+          metadata: finalMetadata,
         });
 
         this.langfuse.flushAsync().catch(() => {});
@@ -212,7 +257,7 @@ export class TelemetryService {
         totalCost: totalCost,
         langfuseTraceId,
         metadata: {
-          ...params.metadata,
+          ...finalMetadata,
           userEmail: params.userEmail,
           projectName: normalizedProject,
           estimatedCost: totalCost,

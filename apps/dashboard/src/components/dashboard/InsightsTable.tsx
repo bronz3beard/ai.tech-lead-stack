@@ -57,8 +57,8 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
         errors: number;
         tokenCost: number;
         tokenUsage: number;
-        hasLangfuseCost: boolean;
-        hasLangfuseTokens: boolean;
+        isLlmSkill: boolean;
+        hasPricingFallback: boolean;
         models: Set<string>;
         agents: Set<string>;
       }
@@ -99,8 +99,8 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
           errors: 0,
           tokenCost: 0,
           tokenUsage: 0,
-          hasLangfuseCost: false,
-          hasLangfuseTokens: false,
+          isLlmSkill: false,
+          hasPricingFallback: false,
           models: new Set<string>(),
           agents: new Set<string>(),
         };
@@ -120,19 +120,26 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
         skillStats[skillName].errors += 1;
       }
 
-      // Check for totalCost from langfuse
-      if (typeof trace.totalCost === 'number' && trace.totalCost > 0) {
+      // Check for totalCost from the trace
+      if (typeof trace.totalCost === 'number') {
         skillStats[skillName].tokenCost += trace.totalCost;
-        skillStats[skillName].hasLangfuseCost = true;
       }
 
       // Accumulate tokens
-      if (typeof trace.totalTokens === 'number' && trace.totalTokens > 0) {
+      if (typeof trace.totalTokens === 'number') {
         skillStats[skillName].tokenUsage += trace.totalTokens;
-        skillStats[skillName].hasLangfuseTokens = true;
       }
 
-      if (trace.model && trace.model !== 'unknown') {
+      const isLlmCall = trace.metadata?.llmCall !== false;
+      if (isLlmCall) {
+        skillStats[skillName].isLlmSkill = true;
+      }
+
+      if (trace.metadata?.pricingFallback) {
+        skillStats[skillName].hasPricingFallback = true;
+      }
+
+      if (isLlmCall && trace.model && trace.model !== 'unknown') {
         skillStats[skillName].models.add(trace.model);
       }
       if (trace.agent && trace.agent !== 'unknown') {
@@ -159,35 +166,19 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
 
         const normalizedName = name.toLowerCase();
 
-        // Cost logic: Use Langfuse if available, otherwise 0
-        const perRunCost = stats.hasLangfuseCost
-          ? stats.tokenCost / stats.executions
-          : 0;
+        // Cost logic
+        const perRunCost = stats.executions > 0 ? stats.tokenCost / stats.executions : 0;
         const totalCost = stats.tokenCost;
 
-        // Token logic: Use Langfuse if available, otherwise fallback
-        const perRunTokens = stats.hasLangfuseTokens
-          ? stats.tokenUsage / stats.executions
-          : FALLBACK_TOKEN_COST[normalizedName] || 0;
-        const totalTokens = stats.hasLangfuseTokens
-          ? stats.tokenUsage
-          : perRunTokens * stats.executions;
+        // Token logic
+        const perRunTokens = stats.executions > 0 ? stats.tokenUsage / stats.executions : 0;
+        const totalTokens = stats.tokenUsage;
 
-        const displayPerRunCost = stats.hasLangfuseCost
-          ? `$${perRunCost.toFixed(4)}`
-          : `$0.0000`;
+        const displayPerRunCost = `$${perRunCost.toFixed(4)}`;
+        const displayTotalCost = `$${totalCost.toFixed(4)}`;
 
-        const displayTotalCost = stats.hasLangfuseCost
-          ? `$${totalCost.toFixed(4)}`
-          : `$0.0000`;
-
-        const displayPerRunTokens = stats.hasLangfuseTokens
-          ? `${Math.round(perRunTokens).toLocaleString()}`
-          : `~${Math.round(perRunTokens).toLocaleString()}`;
-
-        const displayTotalTokens = stats.hasLangfuseTokens
-          ? `${Math.round(totalTokens).toLocaleString()}`
-          : `~${Math.round(totalTokens).toLocaleString()}`;
+        const displayPerRunTokens = `${Math.round(perRunTokens).toLocaleString()}`;
+        const displayTotalTokens = `${Math.round(totalTokens).toLocaleString()}`;
 
         const modelList = Array.from(stats.models).sort().join(', ') || 'unknown';
         const isModelTruncated = modelList.length > 55;
@@ -205,8 +196,8 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
           totalCost: displayTotalCost,
           perRunTokens: displayPerRunTokens,
           totalTokens: displayTotalTokens,
-          isFallbackTokens: !stats.hasLangfuseTokens,
-          isFallbackCost: !stats.hasLangfuseCost,
+          isLlmSkill: stats.isLlmSkill,
+          hasPricingFallback: stats.hasPricingFallback,
           avgDuration: formattedDuration,
           accuracy: `${accuracy}%`,
         };
@@ -265,26 +256,28 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
             </TableCell>
             <TableCell className="text-right">{row.executions}</TableCell>
             <TableCell className="text-right">
-              {row.isFallbackTokens ? (
-                <Tooltip text="Estimated average token usage. Langfuse data unavailable.">
-                  <span className="border-b border-dotted border-gray-400 cursor-help text-amber-400/80">
-                    {row.perRunTokens}
-                  </span>
-                </Tooltip>
+              {!row.isLlmSkill ? (
+                <span className="text-muted-foreground">-</span>
               ) : (
                 row.perRunTokens
               )}
             </TableCell>
             <TableCell className="text-right text-emerald-400 font-medium">
-              {row.totalCost}
-            </TableCell>
-            <TableCell className="text-right">
-              {row.isFallbackTokens ? (
-                <Tooltip text="Estimated total tokens based on base skill cost. Langfuse data unavailable.">
-                  <span className="border-b border-dotted border-gray-400 cursor-help text-amber-400/80">
-                    {row.totalTokens}
+              {row.hasPricingFallback ? (
+                <Tooltip text="Cost estimated using fallback pricing for unrecognized model">
+                  <span className="border-b border-dotted border-emerald-400/50 cursor-help text-emerald-400">
+                    {row.totalCost}*
                   </span>
                 </Tooltip>
+              ) : !row.isLlmSkill ? (
+                <span className="text-muted-foreground">$0.00</span>
+              ) : (
+                row.totalCost
+              )}
+            </TableCell>
+            <TableCell className="text-right">
+              {!row.isLlmSkill ? (
+                <span className="text-muted-foreground">-</span>
               ) : (
                 row.totalTokens
               )}

@@ -43,6 +43,8 @@ export interface ReflexionRunner {
   interview(prompt: string, system: string): Promise<Interview>;
   getUsage(): {
     tokens: number;
+    promptTokens?: number;
+    completionTokens?: number;
     costUsd: number;
     cachedReadTokens?: number;
     cacheWriteTokens?: number;
@@ -97,6 +99,8 @@ export interface ReflexionResult {
   criticDegraded: boolean;
   usage?: { 
     totalTokens: number;
+    promptTokens?: number;
+    completionTokens?: number;
     costUsd: number;
     cachedReadTokens?: number;
     cacheWriteTokens?: number;
@@ -106,11 +110,13 @@ export interface ReflexionResult {
 
 export type StepEvent =
   | { phase: 'generate'; revision: number }
+  | { phase: 'generated'; revision: number; usage: { promptTokens: number; completionTokens: number; modelId: string } }
   | { phase: 'structural-gate'; revision: number; report: PlanContractReport }
   | { phase: 'critique'; revision: number }
-  | { phase: 'scored'; revision: number; critique: Critique }
+  | { phase: 'scored'; revision: number; critique: Critique; usage?: { promptTokens: number; completionTokens: number; modelId: string } }
   | { phase: 'adjudicate' }
-  | { phase: 'interview'; interview: Interview }
+  | { phase: 'adjudicated'; verdict: string; usage: { promptTokens: number; completionTokens: number; modelId: string } }
+  | { phase: 'interview'; interview: Interview; usage?: { promptTokens: number; completionTokens: number; modelId: string } }
   | { phase: 'resume'; recommendation: string }
   | { phase: 'escalate'; from: string; to: string };
 
@@ -234,7 +240,19 @@ export async function runReflexion(
         revision === 0
           ? `${stackBlock}\nBRIEF:\n${cfg.brief}${focusBlock}`
           : `${stackBlock}\nBRIEF:\n${cfg.brief}\n\n${generatorRevisionPrompt(draft, score, fix)}${focusBlock}`;
+      
+      const usageBeforeGen = runner.getUsage();
       draft = await runner.generate(prompt, GENERATOR_SYSTEM + focusBlock);
+      const usageAfterGen = runner.getUsage();
+      onStep?.({
+        phase: 'generated',
+        revision,
+        usage: {
+          promptTokens: (usageAfterGen.promptTokens ?? 0) - (usageBeforeGen.promptTokens ?? 0),
+          completionTokens: (usageAfterGen.completionTokens ?? 0) - (usageBeforeGen.completionTokens ?? 0),
+          modelId: runner.models.creator
+        }
+      });
 
       const bStop2 = budgetStop(runner, cfg, startTime);
       if (bStop2) {
@@ -276,17 +294,28 @@ export async function runReflexion(
         critiquePrompt += `\n\nSTRUCTURAL REPORT: The following fatal structural violations were found. Ensure your critique penalises the relevant pillar severely.\n${JSON.stringify(report.violations.filter(v => v.severity === 'fatal'), null, 2)}`;
       }
 
+      const usageBeforeCrit = runner.getUsage();
       const crit = await runner.critique(
         critiquePrompt,
         CRITIC_SYSTEM + focusBlock
       );
+      const usageAfterCrit = runner.getUsage();
 
       last = crit;
       score = crit.score;
       fix = crit.actionableFix;
       rounds.push({ revision, draft, critique: crit });
       scores.push(score);
-      onStep?.({ phase: 'scored', revision, critique: crit });
+      onStep?.({
+        phase: 'scored',
+        revision,
+        critique: crit,
+        usage: {
+          promptTokens: (usageAfterCrit.promptTokens ?? 0) - (usageBeforeCrit.promptTokens ?? 0),
+          completionTokens: (usageAfterCrit.completionTokens ?? 0) - (usageBeforeCrit.completionTokens ?? 0),
+          modelId: runner.models.critic
+        }
+      });
 
       await saveState('ADJUDICATING');
 
@@ -318,10 +347,22 @@ export async function runReflexion(
         `PASS THRESHOLD: ${passThreshold}/10 | REVISIONS USED: ${rounds.length - 1}/${maxRevisions} | PASSED: ${last?.passed}\n\n` +
         `FINAL CRITIQUE: ${JSON.stringify(last)}\n\n` +
         `FINAL PLAN:\n---\n${draft}\n---`;
+      
+      const usageBeforeAdj = runner.getUsage();
       const verdict = await runner.adjudicate(
         adjudicatorPrompt,
         ADJUDICATOR_SYSTEM
       );
+      const usageAfterAdj = runner.getUsage();
+      onStep?.({
+        phase: 'adjudicated',
+        verdict,
+        usage: {
+          promptTokens: (usageAfterAdj.promptTokens ?? 0) - (usageBeforeAdj.promptTokens ?? 0),
+          completionTokens: (usageAfterAdj.completionTokens ?? 0) - (usageBeforeAdj.completionTokens ?? 0),
+          modelId: runner.models.adjudicator
+        }
+      });
 
       if (mode === 'interview') {
         await saveState('INTERVIEWING');
@@ -331,10 +372,12 @@ export async function runReflexion(
           `CRITIQUE:\n${JSON.stringify(last)}\n\n` +
           `LOOP PARAMS:\n${JSON.stringify({ passThreshold, maxRevisions })}`;
 
+        const usageBeforeInt = runner.getUsage();
         interviewResult = await runner.interview(
           interviewPrompt,
           INTERVIEWER_SYSTEM
         );
+        const usageAfterInt = runner.getUsage();
 
         // Zero-question rule
         if (
@@ -348,7 +391,15 @@ export async function runReflexion(
           interviewResult.questions = [];
         }
 
-        onStep?.({ phase: 'interview', interview: interviewResult });
+        onStep?.({ 
+          phase: 'interview', 
+          interview: interviewResult,
+          usage: {
+            promptTokens: (usageAfterInt.promptTokens ?? 0) - (usageBeforeInt.promptTokens ?? 0),
+            completionTokens: (usageAfterInt.completionTokens ?? 0) - (usageBeforeInt.completionTokens ?? 0),
+            modelId: runner.models.critic
+          }
+        });
 
         if (interviewResult.questions.length > 0) {
           await saveState('AWAITING_ANSWERS');
@@ -667,12 +718,23 @@ export async function resumeReflexion(
       `${stackBlock}\nORIGINAL BRIEF:\n${cfg.brief}\n\n` +
       `PLAN TO GRADE:\n---\n${state.plan}\n---${focusBlock}`;
 
+    const usageBeforeCritResume = runner.getUsage();
     const crit = await runner.critique(
       critiquePrompt,
       CRITIC_SYSTEM + focusBlock
     );
+    const usageAfterCritResume = runner.getUsage();
     state.critiques.push(crit);
-    onStep?.({ phase: 'scored', revision: state.revision, critique: crit });
+    onStep?.({
+      phase: 'scored',
+      revision: state.revision,
+      critique: crit,
+      usage: {
+        promptTokens: (usageAfterCritResume.promptTokens ?? 0) - (usageBeforeCritResume.promptTokens ?? 0),
+        completionTokens: (usageAfterCritResume.completionTokens ?? 0) - (usageBeforeCritResume.completionTokens ?? 0),
+        modelId: runner.models.critic
+      }
+    });
 
     // Drop directly back into the interview/adjudication phase, skipping generator
     state.phase = 'ADJUDICATING';

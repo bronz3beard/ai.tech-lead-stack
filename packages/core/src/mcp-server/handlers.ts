@@ -610,6 +610,9 @@ export class Handlers {
               loopRunId: runId,
               loopPhase: e.phase,
               teamRole,
+              promptTokens: ('usage' in e && e.usage) ? e.usage.promptTokens : undefined,
+              completionTokens: ('usage' in e && e.usage) ? e.usage.completionTokens : undefined,
+              model: ('usage' in e && e.usage) ? e.usage.modelId : undefined,
               metadata: {
                 revision: revisionCounter,
                 score: 'critique' in e ? e.critique.score : undefined,
@@ -918,6 +921,9 @@ export class Handlers {
                 loopRunId: runId,
                 loopPhase: e.phase,
                 teamRole,
+                promptTokens: ('usage' in e && e.usage) ? e.usage.promptTokens : undefined,
+                completionTokens: ('usage' in e && e.usage) ? e.usage.completionTokens : undefined,
+                model: ('usage' in e && e.usage) ? e.usage.modelId : undefined,
                 metadata: {
                   revision: revisionCounter,
                   score: 'critique' in e ? e.critique.score : undefined,

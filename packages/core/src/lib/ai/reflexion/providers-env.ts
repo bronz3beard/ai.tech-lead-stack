@@ -77,6 +77,8 @@ export function buildRunner(
 ): ReflexionRunner {
   let currentCreator = creator;
   let accumulatedTokens = 0;
+  let accumulatedPromptTokens = 0;
+  let accumulatedCompletionTokens = 0;
   let accumulatedCacheReadTokens = 0;
   let accumulatedCacheWriteTokens = 0;
   let totalCostUsd = 0;
@@ -107,6 +109,9 @@ export function buildRunner(
     
     const rawInputTokens = usageFallback.promptTokens ?? usage.inputTokens ?? 0;
     const outputTokens = usageFallback.completionTokens ?? usage.outputTokens ?? 0;
+    
+    accumulatedPromptTokens += rawInputTokens;
+    accumulatedCompletionTokens += outputTokens;
     
     const providerMetadata = (usage as any).providerMetadata;
     const anthropicRead = Number(providerMetadata?.anthropic?.cacheReadInputTokens || 0);
@@ -337,6 +342,8 @@ export function buildRunner(
     getUsage() {
       return {
         tokens: accumulatedTokens,
+        promptTokens: accumulatedPromptTokens,
+        completionTokens: accumulatedCompletionTokens,
         costUsd: Number(totalCostUsd.toFixed(6)),
         cachedReadTokens: accumulatedCacheReadTokens,
         cacheWriteTokens: accumulatedCacheWriteTokens,
