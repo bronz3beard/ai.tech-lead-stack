@@ -40,3 +40,13 @@ environments:
 
 Usage: The execution flows exactly like `dev-team-sub-pro`, utilizing local
 endpoints specified in `LOCAL_MODEL_ENDPOINT` and `LOCAL_MODEL_NAME`.
+
+## Code Modification Convention
+
+**REQUIREMENT:** When modifying files, you MUST use the `apply_patch` tool with
+minimal SEARCH/REPLACE blocks instead of rewriting whole files.
+
+- Never emit a full-file rewrite.
+- Never restate unchanged code.
+- **Rule:** Include only the lines that change plus minimal surrounding anchor
+  context.

@@ -107,4 +107,12 @@ export class Handlers {
   async handleReadRegion(args: Record<string, any>) {
     return this.codebaseHandlers.handleReadRegion(args);
   }
+
+  /**
+   * Delegates the apply_patch command to CodebaseHandlers.
+   * @param args The arguments containing path and patch string.
+   */
+  async handleApplyPatch(args: Record<string, any>) {
+    return this.codebaseHandlers.handleApplyPatch(args);
+  }
 }

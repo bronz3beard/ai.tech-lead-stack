@@ -83,3 +83,13 @@ verifies the fix phase in an IDE/MCP agent.
 - **Deliver:** Success notification once the feedback is resolved and verified.
 - **Chain:** Switch back to `mission-architect` if the fix requires structural
   re-architecture.
+
+## Code Modification Convention
+
+**REQUIREMENT:** When modifying files, you MUST use the `apply_patch` tool with
+minimal SEARCH/REPLACE blocks instead of rewriting whole files.
+
+- Never emit a full-file rewrite.
+- Never restate unchanged code.
+- **Rule:** Include only the lines that change plus minimal surrounding anchor
+  context.

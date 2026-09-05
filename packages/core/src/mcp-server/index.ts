@@ -60,11 +60,11 @@ import './config.js';
 import { repoRoot } from './config.js';
 
 import { KiService } from '../lib/ki/ki-service.js';
+import { langfuseSink } from '../lib/langfuse-sink.js';
 import { AlignmentService } from '../lib/skills/alignment-service.js';
 import { FileSystemService } from '../lib/skills/fs-service.js';
 import { Handlers } from './handlers.js';
 import { Telemetry } from './telemetry.js';
-import { langfuseSink } from '../lib/langfuse-sink.js';
 
 // Initialize Services
 const telemetry = new Telemetry();
@@ -118,7 +118,8 @@ const server = new Server(
 );
 
 /**
- * Tool Definitions
+ * Allows the system to see a complete list of all the specialized workflows and skills available in the Tech-Lead Stack.
+ * This is always the first step used to understand what capabilities the system has access to.
  */
 const LIST_SKILLS_TOOL: Tool = {
   name: 'list_skills',
@@ -127,6 +128,10 @@ const LIST_SKILLS_TOOL: Tool = {
   inputSchema: { type: 'object', properties: {} },
 };
 
+/**
+ * Allows the system to read the instructions for one or more specific skills.
+ * This teaches the system exactly how to perform a specialized task or workflow.
+ */
 const GET_SKILLS_TOOL: Tool = {
   name: 'get_skills',
   description: 'Reads the content of one or more skill markdown files.',
@@ -134,23 +139,59 @@ const GET_SKILLS_TOOL: Tool = {
     type: 'object',
     properties: {
       skillName: { type: 'string' },
-      mode: { type: 'string', description: "'auto' | 'interview' (default 'interview')" },
-      budget: { type: 'object', properties: { maxCostUsd: { type: 'number' }, maxTotalTokens: { type: 'number' } } },
+      mode: {
+        type: 'string',
+        description: "'auto' | 'interview' (default 'interview')",
+      },
+      budget: {
+        type: 'object',
+        properties: {
+          maxCostUsd: { type: 'number' },
+          maxTotalTokens: { type: 'number' },
+        },
+      },
       projectName: { type: 'string' },
       model: { type: 'string' },
       agent: { type: 'string' },
-      loopRunId: { type: 'string', description: 'Optional: ID of the loop run for tracking.' },
-      teamRole: { type: 'string', description: 'Optional: Role of the team executing the skill.' },
-      actorType: { type: 'string', description: 'Optional: Type of actor (AGENT or USER).' },
-      autonomy: { type: 'string', description: 'Optional: Autonomy level (AUTONOMOUS or DIRECTED).' },
-      loopPhase: { type: 'string', description: 'Optional: Phase of the loop.' },
-      story: { type: 'string', description: 'Direct user story input for standalone execution (materializes a spec).' },
-      slice: { type: 'string', description: 'Direct vertical slice input for standalone execution (materializes a slice-set).' },
+      loopRunId: {
+        type: 'string',
+        description: 'Optional: ID of the loop run for tracking.',
+      },
+      teamRole: {
+        type: 'string',
+        description: 'Optional: Role of the team executing the skill.',
+      },
+      actorType: {
+        type: 'string',
+        description: 'Optional: Type of actor (AGENT or USER).',
+      },
+      autonomy: {
+        type: 'string',
+        description: 'Optional: Autonomy level (AUTONOMOUS or DIRECTED).',
+      },
+      loopPhase: {
+        type: 'string',
+        description: 'Optional: Phase of the loop.',
+      },
+      story: {
+        type: 'string',
+        description:
+          'Direct user story input for standalone execution (materializes a spec).',
+      },
+      slice: {
+        type: 'string',
+        description:
+          'Direct vertical slice input for standalone execution (materializes a slice-set).',
+      },
     },
     required: ['skillName', 'projectName', 'model', 'agent'],
   },
 };
 
+/**
+ * Allows the system to read the instructions for a single, specific skill.
+ * Used as the primary way for the AI to learn how to execute a specific workflow (like 'planning-expert').
+ */
 const GET_SKILL_TOOL: Tool = {
   ...GET_SKILLS_TOOL,
   name: 'get_skill',
@@ -158,6 +199,10 @@ const GET_SKILL_TOOL: Tool = {
     "CORE EXECUTION: Reads a specific skill (e.g. 'planning-expert').",
 };
 
+/**
+ * A critical safety and setup check. This tool ensures that the AI is following the project's rules
+ * and has loaded the necessary instructions before it starts making any changes.
+ */
 const VERIFY_MISSION_ALIGNMENT_TOOL: Tool = {
   name: 'verify_mission_alignment',
   description:
@@ -175,6 +220,11 @@ const VERIFY_MISSION_ALIGNMENT_TOOL: Tool = {
   },
 };
 
+/**
+ * Allows the system to view a list of all saved "Knowledge Items" (KIs).
+ * Knowledge Items are pieces of saved context, like project decisions or architecture notes,
+ * helping the AI remember past work and important project details.
+ */
 const LIST_KI_TOOL: Tool = {
   name: 'list_knowledge_items',
   description: 'Lists all available Antigravity Knowledge Items.',
@@ -189,6 +239,10 @@ const LIST_KI_TOOL: Tool = {
   },
 };
 
+/**
+ * Allows the system to read the full contents of a specific Knowledge Item.
+ * This helps the AI retrieve detailed, historical context about a specific topic or decision.
+ */
 const READ_KI_TOOL: Tool = {
   name: 'read_knowledge_item',
   description: 'Reads a specific Knowledge Item and its artifacts.',
@@ -204,6 +258,11 @@ const READ_KI_TOOL: Tool = {
   },
 };
 
+/**
+ * Allows the system to save important new information as a Knowledge Item.
+ * Whenever the AI learns something crucial or makes a key architectural decision,
+ * it uses this tool to document it so it can be remembered later.
+ */
 const CREATE_KI_TOOL: Tool = {
   name: 'create_knowledge_item',
   description: 'Creates or updates a Knowledge Item from the current context.',
@@ -240,6 +299,10 @@ const CREATE_KI_TOOL: Tool = {
   },
 };
 
+/**
+ * Allows the system to change the approval status of a Knowledge Item (e.g., from 'draft' to 'human-approved').
+ * This is used to mark when a human has reviewed and signed off on important documentation.
+ */
 const APPROVE_KI_TOOL: Tool = {
   name: 'approve_knowledge_item',
   description: 'Sets the approval state of a Knowledge Item.',
@@ -264,6 +327,10 @@ const APPROVE_KI_TOOL: Tool = {
   },
 };
 
+/**
+ * Allows the system to figure out the correct sequence of steps (the pipeline) needed to accomplish a task.
+ * Based on what the user wants to do, this tool determines exactly which skills should be used and in what order.
+ */
 const PLAN_PIPELINE_TOOL: Tool = {
   name: 'plan_pipeline',
   description: 'Returns the ordered phase->skill chain for a task.',
@@ -271,13 +338,22 @@ const PLAN_PIPELINE_TOOL: Tool = {
     type: 'object',
     properties: {
       intent: { type: 'string', description: 'The task intent' },
-      targets: { type: 'array', items: { type: 'string' }, description: 'Target platforms or environments' },
+      targets: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Target platforms or environments',
+      },
       domain: { type: 'string', description: 'Domain context' },
     },
     required: ['intent'],
   },
 };
 
+/**
+ * Triggers a powerful self-correction loop where two different AI models work together.
+ * One AI creates a plan, and the other AI grades and critiques it. They bounce the plan back
+ * and forth until it meets a high quality standard.
+ */
 const REFLEXION_LOOP_TOOL: Tool = {
   name: 'reflexion_loop',
   description:
@@ -294,7 +370,10 @@ const REFLEXION_LOOP_TOOL: Tool = {
         description:
           'Optional Phase-0 stack context (e.g. package.json contents) for diagnosis-first planning.',
       },
-      maxRevisions: { type: 'number', description: 'Hard cap on rewrites (default 3).' },
+      maxRevisions: {
+        type: 'number',
+        description: 'Hard cap on rewrites (default 3).',
+      },
       passThreshold: {
         type: 'number',
         description: 'Critic score 0-10 needed to pass early (default 8).',
@@ -321,19 +400,30 @@ const REFLEXION_LOOP_TOOL: Tool = {
   },
 };
 
+/**
+ * A version of the self-correction loop specifically configured for the $100/month subscription tier.
+ * It hardens and tests the plan to ensure it meets strict quality standards.
+ */
 const REFLEXION_LOOP_SUB_MAX_TOOL: Tool = {
   ...REFLEXION_LOOP_TOOL,
   name: 'reflexion_loop_sub_max',
   description: '[DEV-TEAM · SUB-MAX] Plan hardening for $100/mo tier.',
 };
 
+/**
+ * A version of the self-correction loop specifically configured for the $20/month subscription tier.
+ * It hardens and tests the plan to ensure it meets strict quality standards.
+ */
 const REFLEXION_LOOP_SUB_PRO_TOOL: Tool = {
   ...REFLEXION_LOOP_TOOL,
   name: 'reflexion_loop_sub_pro',
   description: '[DEV-TEAM · SUB-PRO] Plan hardening for $20/mo tier.',
 };
 
-
+/**
+ * Allows the system to pick up and continue a self-correction loop that was paused.
+ * This is useful if the system was waiting for human input or was temporarily stopped.
+ */
 const REFLEXION_RESUME_TOOL: Tool = {
   name: 'reflexion_resume',
   description: 'Resumes a parked Reflexion Loop.',
@@ -342,12 +432,16 @@ const REFLEXION_RESUME_TOOL: Tool = {
     properties: {
       runId: { type: 'string' },
       stateDir: { type: 'string' },
-      answers: { type: 'object' }
+      answers: { type: 'object' },
     },
-    required: ['runId', 'answers']
-  }
+    required: ['runId', 'answers'],
+  },
 };
 
+/**
+ * Allows the system to check in on a self-correction loop that is running in the background,
+ * retrieving its current progress and state.
+ */
 const REFLEXION_STATUS_TOOL: Tool = {
   name: 'reflexion_status',
   description: 'Checks the status of an asynchronous Reflexion Loop run.',
@@ -355,36 +449,62 @@ const REFLEXION_STATUS_TOOL: Tool = {
     type: 'object',
     properties: {
       runId: { type: 'string' },
-      stateDir: { type: 'string', description: 'Optional: Directory where state is stored (defaults to .reflexion-out)' },
+      stateDir: {
+        type: 'string',
+        description:
+          'Optional: Directory where state is stored (defaults to .reflexion-out)',
+      },
     },
-    required: ['runId']
-  }
+    required: ['runId'],
+  },
 };
 
+/**
+ * Allows the system to view a high-level map of all the files in the codebase
+ * and see the main components (like functions and classes) inside each file.
+ * This is useful for quickly understanding the overall architecture of the project.
+ */
 const REPO_MAP_TOOL: Tool = {
   name: 'repo_map',
-  description: 'Retrieves a compact map of the repository files and top-level symbol signatures.',
+  description:
+    'Retrieves a compact map of the repository files and top-level symbol signatures.',
   inputSchema: {
     type: 'object',
     properties: {
-      tokenBudget: { type: 'number', description: 'Optional budget to trim the map size.' }
-    }
-  }
+      tokenBudget: {
+        type: 'number',
+        description: 'Optional budget to trim the map size.',
+      },
+    },
+  },
 };
 
+/**
+ * Allows the system to search through the entire codebase using natural language.
+ * Instead of looking for exact words, it understands the meaning of the search query
+ * and finds the most relevant pieces of code.
+ */
 const CODE_SEARCH_TOOL: Tool = {
   name: 'code_search',
-  description: 'Semantic search across the repository code using local embeddings.',
+  description:
+    'Semantic search across the repository code using local embeddings.',
   inputSchema: {
     type: 'object',
     properties: {
       query: { type: 'string', description: 'The search query or keyword.' },
-      k: { type: 'number', description: 'Optional number of top results to return (default 5).' }
+      k: {
+        type: 'number',
+        description: 'Optional number of top results to return (default 5).',
+      },
     },
-    required: ['query']
-  }
+    required: ['query'],
+  },
 };
 
+/**
+ * Allows the system to look at a specific, targeted section of a file (by providing start and end line numbers).
+ * This prevents the system from having to read massive files all at once when it only needs to see a small part.
+ */
 const READ_REGION_TOOL: Tool = {
   name: 'read_region',
   description: 'Reads a specific line range from a file.',
@@ -393,12 +513,29 @@ const READ_REGION_TOOL: Tool = {
     properties: {
       path: { type: 'string', description: 'Relative path to the file.' },
       startLine: { type: 'number', description: '1-indexed starting line.' },
-      endLine: { type: 'number', description: '1-indexed ending line.' }
+      endLine: { type: 'number', description: '1-indexed ending line.' },
     },
-    required: ['path', 'startLine', 'endLine']
-  }
+    required: ['path', 'startLine', 'endLine'],
+  },
 };
 
+/**
+ * Allows the system to edit a file by looking for a specific chunk of existing code and replacing it with new code.
+ * This is significantly faster and more reliable than rewriting the entire file from scratch just to make a small change.
+ */
+const APPLY_PATCH_TOOL: Tool = {
+  name: 'apply_patch',
+  description:
+    'Applies minimal SEARCH/REPLACE blocks to a file instead of rewriting it completely.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      path: { type: 'string', description: 'Relative path to the file.' },
+      patch: { type: 'string', description: 'The SEARCH/REPLACE blocks.' },
+    },
+    required: ['path', 'patch'],
+  },
+};
 
 /**
  * Handlers: Tool Listing
@@ -423,6 +560,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       REPO_MAP_TOOL,
       CODE_SEARCH_TOOL,
       READ_REGION_TOOL,
+      APPLY_PATCH_TOOL,
     ],
   };
 });
@@ -479,11 +617,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 
   if (name === 'reflexion_loop_sub_max') {
-    return await handlers.handleReflexionLoop({ ...(args || {}), tier: 'sub-max' });
+    return await handlers.handleReflexionLoop({
+      ...(args || {}),
+      tier: 'sub-max',
+    });
   }
 
   if (name === 'reflexion_loop_sub_pro') {
-    return await handlers.handleReflexionLoop({ ...(args || {}), tier: 'sub-pro' });
+    return await handlers.handleReflexionLoop({
+      ...(args || {}),
+      tier: 'sub-pro',
+    });
   }
 
   if (name === 'reflexion_resume') {
@@ -504,6 +648,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   if (name === 'read_region') {
     return await handlers.handleReadRegion(args || {});
+  }
+
+  if (name === 'apply_patch') {
+    return await handlers.handleApplyPatch(args || {});
   }
 
   throw new Error(`Unknown tool: ${name}`);

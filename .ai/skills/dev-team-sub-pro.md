@@ -264,3 +264,13 @@ Before advancing to the next phase or gate, you MUST consult `.ai/hooks/`. If a
 guard is triggered and requires human approval (`require-human-approve`), you
 MUST append the question to the human inbox (`.dev-team/inbox.md`) rather than
 proceeding.
+
+## Code Modification Convention
+
+**REQUIREMENT:** When modifying files, you MUST use the `apply_patch` tool with
+minimal SEARCH/REPLACE blocks instead of rewriting whole files.
+
+- Never emit a full-file rewrite.
+- Never restate unchanged code.
+- **Rule:** Include only the lines that change plus minimal surrounding anchor
+  context.
