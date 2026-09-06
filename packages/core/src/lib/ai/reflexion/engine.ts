@@ -9,6 +9,7 @@ import {
   RUBRIC,
   sectionRefinePrompt,
   stackContextBlock,
+  SUMMARIZER_SYSTEM,
 } from './prompts';
 import {
   Answers,
@@ -41,6 +42,7 @@ export interface ReflexionRunner {
   critique(prompt: string, system: string): Promise<Critique>;
   adjudicate(prompt: string, system: string): Promise<string>;
   interview(prompt: string, system: string): Promise<Interview>;
+  summarizeHistory?(prompt: string, system: string): Promise<string>;
   getUsage(): {
     tokens: number;
     promptTokens?: number;
@@ -166,6 +168,9 @@ export async function runReflexion(
   const stackBlock = stackContextBlock(prunedStack);
   const focusBlock = focusPillarsBlock(cfg.focusPillars ?? []);
 
+  const compactAtTokens = Number(process.env.REFLEXION_COMPACT_AT_TOKENS) || 8000;
+  const N_TURNS_TO_KEEP = 3;
+
   let structuralRepairsUsed = 0;
 
   const rounds: ReflexionRound[] = existingState
@@ -215,7 +220,27 @@ export async function runReflexion(
         createdAt: existingState?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         criticDegraded: runner.wasDegraded() || !!existingState?.criticDegraded,
+        historySummary: existingState?.historySummary,
       });
+    }
+  };
+
+  const checkAndCompactHistory = async () => {
+    if (!runner.summarizeHistory) return;
+    const currentSize = Math.floor(JSON.stringify(rounds.map(r => r.critique)).length / 4) + Math.floor((existingState?.historySummary?.length || 0) / 4);
+    if (currentSize > compactAtTokens && rounds.length > N_TURNS_TO_KEEP) {
+      const turnsToCompact = rounds.slice(0, rounds.length - N_TURNS_TO_KEEP);
+      
+      const summaryPrompt = `OLD SUMMARY (if any):\n${existingState?.historySummary || 'None'}\n\nCRITIQUES TO COMPACT:\n${JSON.stringify(turnsToCompact.map(r => r.critique), null, 2)}`;
+      const newSummary = await runner.summarizeHistory(summaryPrompt, SUMMARIZER_SYSTEM);
+      
+      if (existingState) {
+        existingState.historySummary = newSummary;
+      }
+      
+      // We remove the old rounds from the active arrays so they aren't saved in the state or sent back unbounded.
+      rounds.splice(0, rounds.length - N_TURNS_TO_KEEP);
+      // We keep scores intact so the diminishing returns chart still plots the full history.
     }
   };
 
@@ -317,6 +342,7 @@ export async function runReflexion(
         }
       });
 
+      await checkAndCompactHistory();
       await saveState('ADJUDICATING');
 
       // Router: pass OR cap -> stop. Otherwise loop carrying the single fix.

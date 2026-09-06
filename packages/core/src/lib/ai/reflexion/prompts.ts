@@ -3,7 +3,7 @@
  *
  * The single most important rule of a generator-critic loop: the generator and
  * the critic must share ONE definition of "good". So the same Four Pillars
- * rubric is embedded in both — the writer optimises for exactly what the
+ * rubric is embedded in both - the writer optimises for exactly what the
  * grader measures, and the loop converges.
  */
 
@@ -72,6 +72,49 @@ crisp go/no-go in 3-5 plain-English sentences:
     gap is and whether it is worth another loop or a manual override.
 No JSON, no headers - just the verdict.`;
 
+export const SUMMARIZER_SYSTEM = `\
+You compress a reflexion loop's history - earlier plan attempts and the critiques that rejected them - into a short brief of what has been tried and why it failed, so the next attempt never repeats a past mistake.
+
+PRESERVE VERBATIM - never paraphrase, never drop:
+1. File paths, URLs, and repository references.
+2. Knowledge Item (KI) and Artifact slugs.
+3. Exact identifiers: function, type, variable, file, and command names.
+4. Each critique's failing pillar(s), its numeric score, and its actionableFix.
+5. Specific numbers: thresholds, line counts, versions.
+6. Every open question and every unresolved architectural decision.
+7. Decisions already locked in, so they are not reopened.
+
+RULES:
+- NEVER invent, infer, or add anything not in the source. Compress only what is present. A fabricated "already tried X" will wrongly stop the next attempt from trying X.
+- Log each distinct attempt separately with its specific failure reason. Never merge different failures into one vague line.
+- Drop only filler: greetings, restated context, and the prose of drafts (keep the outcome, not the wording).
+- Be clinical and factual - no praise, no hedging, no meta-commentary.
+
+OUTPUT - as short as the content allows; omit any empty section:
+Tried & failed:
+- <approach> <the specific reason it was rejected>
+Locked decisions:
+- <constraint not to revisit>
+Open questions:
+- <unresolved choice>
+References:
+- <paths, KI/artifact slugs>
+
+EXAMPLE
+Source (paraphrased): Attempt 1 rewrote the whole auth flow in one PR - critic scored atomicBatches 3/10, actionableFix "split into independently deployable vertical slices". Attempt 2 built the login endpoint but used document.execCommand for copy - critic flagged modernWeb, actionableFix "use navigator.clipboard.writeText". Team locked Postgres. Still undecided: JWT vs sessions. Touches src/auth/login.ts; KI auth-spec.
+Summary:
+Tried & failed:
+- Whole auth flow in one PR atomicBatches 3/10; split into independently deployable vertical slices.
+- Login endpoint used document.execCommand modernWeb violation; use navigator.clipboard.writeText.
+Locked decisions:
+- Database is Postgres.
+Open questions:
+- JWT vs sessions.
+References:
+- src/auth/login.ts; KI: auth-spec
+
+This brief is handed to the Tech Lead as context for the next attempt.`;
+
 export const INTERVIEWER_SYSTEM = `\
 You are a senior technical interviewer reviewing a drafted implementation plan.
 You will receive the original brief, the latest plan, the latest critique, and the LoopParams.
@@ -132,7 +175,7 @@ worked. Return ONLY the revised plan.`;
 
 /**
  * The advisory hand-off. The web + chat surfaces are READ-ONLY: they never
- * touch code. Their deliverable is this — a portable, copy-paste prompt the
+ * touch code. Their deliverable is this - a portable, copy-paste prompt the
  * developer carries into an IDE agent (Cursor / Continue / Antigravity / Claude Code) to
  * actually implement the reviewed plan. The looping is finished by the time
  * this exists, so the IDE agent receives a hardened plan, not a first draft.
@@ -143,7 +186,7 @@ export function buildIdeHandoffPrompt(
   finalScore: number
 ): string {
   return `\
-# IDE Implementation Prompt (reviewed by the Reflexion Loop — score ${finalScore}/10)
+# IDE Implementation Prompt (reviewed by the Reflexion Loop - score ${finalScore}/10)
 
 You are implementing a plan that has ALREADY been generated and critiqued
 against the Four Pillars (G-Stack / Atomic Batches / Production Ethos / Modern

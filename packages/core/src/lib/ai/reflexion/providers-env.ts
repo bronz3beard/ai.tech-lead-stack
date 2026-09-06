@@ -73,7 +73,9 @@ export function buildRunner(
   fallbackCritic?: LanguageModel,
   createModelFn?: (id: string) => LanguageModel,
   fallbackPlanner?: LanguageModel,
-  fallbackPlannerId?: string
+  fallbackPlannerId?: string,
+  summarizer?: LanguageModel,
+  summarizerId?: string
 ): ReflexionRunner {
   let currentCreator = creator;
   let accumulatedTokens = 0;
@@ -339,6 +341,22 @@ export function buildRunner(
         throw error;
       }
     },
+    async summarizeHistory(prompt, system) {
+      if (!summarizer || !summarizerId) {
+        throw new Error('summarizeHistory called but no summarizer model was provided.');
+      }
+      try {
+        const opts = formatCacheOptions(system, prompt, summarizerId);
+        const { text, usage } = await generateText({
+          model: summarizer,
+          ...opts,
+        });
+        addUsage(usage, summarizerId);
+        return text.trim();
+      } catch (error) {
+        throw error;
+      }
+    },
     getUsage() {
       return {
         tokens: accumulatedTokens,
@@ -434,7 +452,9 @@ export function runnerFromEnv(
     fallbackCritic,
     (id: string) => createModel(id, keyFor(slotForModel(id), ctx)),
     fallbackPlanner,
-    fallbackPlannerId
+    fallbackPlannerId,
+    fallbackCritic || planner.model, // Use fallbackCritic (Flash) as summarizer, fallback to planner if not available
+    fallbackCritic ? MODELS.GEMINI_FALLBACK_CRITIC : planner.id
   );
 
   // If we already fell back during setup due to capabilities, mark the runner as degraded.
