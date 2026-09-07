@@ -1,6 +1,7 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateObject } from 'ai';
+import { execSync } from 'child_process';
 import fs from 'fs';
 import matter from 'gray-matter';
 import path from 'path';
@@ -13,22 +14,38 @@ import { CRITIC_SYSTEM } from '../src/lib/ai/reflexion/prompts';
 import { runnerFromEnv } from '../src/lib/ai/reflexion/providers-env';
 import { CritiqueSchema, type Critique } from '../src/lib/ai/reflexion/schema';
 import { assessTask, enforceTier } from '../src/lib/ai/tier-policy';
-import { execSync } from 'child_process';
+import { findRepoRoot } from '../src/lib/skills/repo-root';
+
+const currentFilePath =
+  typeof __filename !== 'undefined'
+    ? __filename
+    : typeof process !== 'undefined' && process.argv[1]
+      ? path.resolve(process.argv[1])
+      : '';
+const currentDir =
+  typeof __dirname !== 'undefined'
+    ? __dirname
+    : currentFilePath
+      ? path.dirname(currentFilePath)
+      : process.cwd();
 
 // This is the critic side of runnerFromEnv, minimally exported, falling back to Gemini if Claude fails
 function buildCriticRunner() {
   const claudeKey = process.env.ANTHROPIC_API_KEY?.trim();
   const geminiKey = process.env.GEMINI_API_KEY?.trim();
-  
+
   if (!claudeKey && !geminiKey) {
     return null; // Gracefully degrade if no keys
   }
-  
+
   const anthropic = claudeKey ? createAnthropic({ apiKey: claudeKey }) : null;
-  const google = geminiKey ? createGoogleGenerativeAI({ apiKey: geminiKey }) : null;
-  
+  const google = geminiKey
+    ? createGoogleGenerativeAI({ apiKey: geminiKey })
+    : null;
+
   // Default models
-  const criticModelClaude = process.env.REFLEXION_CRITIC_MODEL || 'claude-3-5-sonnet-20240620';
+  const criticModelClaude =
+    process.env.REFLEXION_CRITIC_MODEL || 'claude-3-5-sonnet-20240620';
   const criticModelGemini = 'gemini-3.1-pro-preview';
 
   return {
@@ -220,7 +237,8 @@ async function main() {
     }
   }
 
-  const plansDir = path.join(__dirname, '..', 'defect-library', 'plans');
+  const repoRoot = findRepoRoot(currentDir);
+  const plansDir = path.join(repoRoot, 'defect-library', 'plans');
   const files = fs.readdirSync(plansDir).filter((f) => f.endsWith('.md'));
 
   const cases: EvalCase[] = [];
@@ -259,7 +277,7 @@ async function main() {
     let critique: Critique | undefined;
     let finalPlan = evalCase.plan;
     let llmSkipped = false;
-    
+
     if (criticRunner) {
       try {
         if (autoEscalate) {
@@ -339,20 +357,22 @@ async function main() {
     if (structuralError) {
       errors.push(structuralError);
     }
-    
+
     // Tier check (keyless)
     let tierError = '';
     if (evalCase.frontmatter.expected.expectedTierRefusal !== undefined) {
       // Mock risk signals for the test cases
-      const isRisk2 = finalPlan.toLowerCase().includes('migration') || finalPlan.toLowerCase().includes('billing');
+      const isRisk2 =
+        finalPlan.toLowerCase().includes('migration') ||
+        finalPlan.toLowerCase().includes('billing');
       const assessment = assessTask({
-         sizeScore: finalPlan.length > 5000 ? 10 : 2, // simple mock size
-         riskSignals: isRisk2 ? ['migration', 'billing'] : [],
+        sizeScore: finalPlan.length > 5000 ? 10 : 2, // simple mock size
+        riskSignals: isRisk2 ? ['migration', 'billing'] : [],
       });
       const enforcement = enforceTier('sub-pro', assessment);
       const isRefused = !enforcement.allowed;
       if (isRefused !== evalCase.frontmatter.expected.expectedTierRefusal) {
-         tierError = `Expected tier refusal=${evalCase.frontmatter.expected.expectedTierRefusal}, got ${isRefused} (${enforcement.reason})`;
+        tierError = `Expected tier refusal=${evalCase.frontmatter.expected.expectedTierRefusal}, got ${isRefused} (${enforcement.reason})`;
       }
     }
     if (tierError) {
@@ -366,7 +386,10 @@ async function main() {
         autoEscalate
       );
       errors.push(...evaluation.errors);
-    } else if (!llmSkipped && evalCase.frontmatter.expected.passed !== undefined) {
+    } else if (
+      !llmSkipped &&
+      evalCase.frontmatter.expected.passed !== undefined
+    ) {
       // We expected a critique but it failed/wasn't generated
       errors.push('No critique generated');
     }
@@ -388,12 +411,7 @@ async function main() {
     });
   }
 
-  const reportPath = path.join(
-    __dirname,
-    '..',
-    'defect-library',
-    'report.json'
-  );
+  const reportPath = path.join(repoRoot, 'defect-library', 'report.json');
   fs.writeFileSync(reportPath, JSON.stringify(results, null, 2));
 
   if (jsonOutput) {
@@ -467,7 +485,9 @@ async function main() {
     } else if (!dl007) {
       console.warn('⚠️  Swap Matrix skipped: DL-007 fixture not found.');
     } else if (!criticRunner) {
-      console.warn('⚠️  Swap Matrix skipped: ANTHROPIC_API_KEY is not set (API keys are required to run the LLM).');
+      console.warn(
+        '⚠️  Swap Matrix skipped: ANTHROPIC_API_KEY is not set (API keys are required to run the LLM).'
+      );
     }
   }
 
@@ -475,9 +495,12 @@ async function main() {
   if (process.env.RUN_CONVERGENCE_EVAL && criticRunner && allSuccess) {
     console.log('\n--- Running Full-Loop Convergence ---');
     try {
-      execSync('npx tsx scripts/skill-variance-harness.ts --live --brief-file defect-library/plans/DL-007-golden-pass.md --runs 2', { stdio: 'inherit' });
+      execSync(
+        'npx tsx scripts/skill-variance-harness.ts --live --brief-file defect-library/plans/DL-007-golden-pass.md --runs 2',
+        { stdio: 'inherit' }
+      );
       console.log('✅ Convergence tests completed.');
-    } catch (err) {
+    } catch {
       console.error('❌ Convergence tests failed.');
       allSuccess = false;
     }
@@ -489,7 +512,7 @@ async function main() {
     try {
       execSync('npx tsx scripts/replay-plan-budgets.ts', { stdio: 'inherit' });
       console.log('✅ Cost Regression tests completed.');
-    } catch (err) {
+    } catch {
       console.error('❌ Cost Regression tests failed.');
       allSuccess = false;
     }
@@ -499,7 +522,13 @@ async function main() {
 }
 
 // Only run main if executed directly
-if (require.main === module) {
+const isDirectRun =
+  typeof process !== 'undefined' &&
+  Boolean(process.argv[1]) &&
+  (process.argv[1].endsWith('reflexion-eval.ts') ||
+    process.argv[1].endsWith('reflexion-eval.js'));
+
+if (isDirectRun) {
   main().catch((err) => {
     if (isProviderBillingOrQuotaError(err)) {
       const errorDetail = err instanceof Error ? err.message : String(err);

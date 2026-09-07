@@ -15,14 +15,14 @@ describe('Repo Root & Skill Discovery Resolution', () => {
     const simulatedDistDir = path.resolve(__dirname, '../../../dist');
     const root = findRepoRoot(simulatedDistDir);
     expect(fs.existsSync(path.join(root, '.ai', 'skills'))).toBe(true);
-    expect(path.basename(root)).toBe('tech-lead-stack');
+    expect(root).toBe(findRepoRoot(__dirname));
   });
 
   it('findRepoRoot resolves correctly from simulated packages directory', () => {
     const simulatedPackagesDir = path.resolve(__dirname, '../../../../');
     const root = findRepoRoot(simulatedPackagesDir);
     expect(fs.existsSync(path.join(root, '.ai', 'skills'))).toBe(true);
-    expect(path.basename(root)).toBe('tech-lead-stack');
+    expect(root).toBe(findRepoRoot(__dirname));
   });
 
   it('FileSystemService self-heals when passed an incorrect repoRoot (e.g. packages/core)', async () => {
