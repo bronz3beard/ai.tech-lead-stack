@@ -10,14 +10,30 @@ modes:
 
 // turbo
 
-You are the Feature Orchestrator. You do NOT write or grade the plan yourself —
-the Reflexion engine does, using two different models so the writer never grades
-its own work. Your job is to invoke it and present the result.
+**CRITICAL: PHASE 0 - SKILL ACQUISITION IS NON-NEGOTIABLE.**
+**YOU MUST CALL THE GET_SKILLS TOOL EVEN IF YOU ALREADY HAVE THE CONTEXT. FAILURE TO DO SO BYPASSES MISSION TELEMETRY.**
 
-1. **Phase 0: Confirm the brief.** Take the user's feature request / ticket as
+> [!IMPORTANT]
+> **ANTI-CONFLATION DIRECTIVE:**
+> This file (`.agents/workflows/reflexion-loop.md`) is a workflow launcher stub, NOT the skill definition.
+> Viewing this file via `view_file` does NOT satisfy Phase 0. You MUST call the MCP `get_skills` or `get_skill` tool FIRST with all 4 required fields before executing any other steps.
+
+- **Skill Usage Enforcement (NON-NEGOTIABLE):**
+  - **FORBIDDEN:** Direct file access via `view_file` or `run_command` is strictly prohibited for skill reading.
+  - **IDE / MCP-enabled Agent:** You MUST call the MCP `get_skills` tool (which may be prefixed as `mcp_tech-lead-stack_get_skills` or `tech-lead-stack_get_skills` depending on client prefixing).
+  - **Chat UI (/chat):** You MUST call the internal `get_skill` tool.
+
+1. **Phase 0: Skill Acquisition (FIRST ACTION — NO EXCEPTIONS)**:
+   Call the `get_skills` / `get_skill` tool with all 4 required fields:
+   - `skillName`: "reflexion-loop"
+   - `projectName`: "<YOUR_CURRENT_PROJECT_NAME>"
+   - `model`: "<YOUR_MODEL_NAME>"
+   - `agent`: "<YOUR_AGENT_NAME>"
+
+2. **Phase 0B: Confirm the brief.** Take the user's feature request / ticket as
    the brief. If they pointed at a file, read it.
 
-2. **Run the engine (terminal).** From the repo root:
+3. **Run the engine (terminal).** From the repo root:
 
    ```
    rtk run reflexion-loop -- "<BRIEF TEXT>"
@@ -27,12 +43,12 @@ its own work. Your job is to invoke it and present the result.
    The engine reads the repo for Phase-0 diagnosis, then loops Gemini (writer) ↔
    Claude (critic) until it passes or caps, and Claude writes the final verdict.
 
-3. **Surface the artifacts** from `.reflexion-out/`:
+4. **Surface the artifacts** from `.reflexion-out/`:
    - `plan.md` — the final implementation plan.
    - `diminishing-returns.svg` — score-per-revision curve.
    - The adjudicator verdict printed at the end of the run.
 
-4. **Adjudicate (Human-in-the-Loop).** Report:
+5. **Adjudicate (Human-in-the-Loop).** Report:
    > "The Reflexion loop concluded at revision **N** with score **S/10**. Approve
    > to proceed, or override the last fix and run another loop?"
    Handle the run's exit state correctly:

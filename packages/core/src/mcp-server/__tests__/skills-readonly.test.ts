@@ -102,4 +102,60 @@ describe('MCP Server - skills-readonly', () => {
     // (b) Assert spyOnFsWrites records ZERO writes anywhere
     expect(fsSpy.writes).toHaveLength(0);
   });
+
+  it('supports defensive parameter extraction for names, name, and skillNames', async () => {
+    const fsService = new FileSystemService(repoRoot, fakeClientRepo.root);
+    const telemetry = new Telemetry();
+    jest
+      .spyOn(telemetry, 'withAnalytics')
+      .mockImplementation(
+        async <T>(
+          _s: any,
+          _p: any,
+          _m: any,
+          _a: any,
+          _c: any,
+          fn: () => Promise<T>
+        ): Promise<T> => fn()
+      );
+
+    const alignmentService = new AlignmentService(repoRoot);
+    const kiService = new KiService();
+    const handlers = new Handlers(
+      fsService,
+      telemetry,
+      alignmentService,
+      kiService
+    );
+
+    // 1. Array of names: { names: ['dev-team-sub-max'], projectName: 'test', model: 'test-model', agent: 'test-agent' }
+    const resNames = await handlers.handleGetSkill('get_skills', {
+      names: ['dev-team-sub-max'],
+      projectName: 'test',
+      model: 'test-model',
+      agent: 'test-agent',
+    });
+    expect(resNames.isError).toBe(false);
+    expect(resNames.content[0].text).toContain('Dev Team Orchestrator');
+
+    // 2. Single name alias: { name: 'dev-team-sub-max', projectName: 'test', model: 'test-model', agent: 'test-agent' }
+    const resName = await handlers.handleGetSkill('get_skills', {
+      name: 'dev-team-sub-max',
+      projectName: 'test',
+      model: 'test-model',
+      agent: 'test-agent',
+    });
+    expect(resName.isError).toBe(false);
+    expect(resName.content[0].text).toContain('Dev Team Orchestrator');
+
+    // 3. Array of skillNames: { skillNames: ['dev-team-sub-max'], projectName: 'test', model: 'test-model', agent: 'test-agent' }
+    const resSkillNames = await handlers.handleGetSkill('get_skills', {
+      skillNames: ['dev-team-sub-max'],
+      projectName: 'test',
+      model: 'test-model',
+      agent: 'test-agent',
+    });
+    expect(resSkillNames.isError).toBe(false);
+    expect(resSkillNames.content[0].text).toContain('Dev Team Orchestrator');
+  });
 });

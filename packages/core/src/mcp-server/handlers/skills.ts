@@ -70,7 +70,16 @@ export class SkillHandlers {
    * Logic for 'get_skills' and 'get_skill' tools (and dynamic tool aliases).
    */
   async handleGetSkill(name: string, args: Record<string, unknown>) {
-    const skillName = args.skillName as string | undefined;
+    const rawSkillName =
+      (args.skillName as string | undefined) ||
+      (args.name as string | undefined) ||
+      (Array.isArray(args.names)
+        ? (args.names[0] as string | undefined)
+        : (args.names as string | undefined)) ||
+      (Array.isArray(args.skillNames)
+        ? (args.skillNames[0] as string | undefined)
+        : (args.skillNames as string | undefined));
+    const skillName = rawSkillName;
     const projectName = args.projectName as string | undefined;
     const model = args.model as string | undefined;
     const agent = args.agent as string | undefined;
