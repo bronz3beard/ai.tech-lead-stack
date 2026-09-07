@@ -29,7 +29,8 @@
     "db:generate": "prisma generate",
     "check-types": "tsc --noEmit --skipLibCheck",
     "test": "jest",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "prepare": "pnpm run mcp:build"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.68",
