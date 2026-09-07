@@ -8,6 +8,10 @@ const nextConfig: NextConfig = {
   },
   transpilePackages: ['@zenithfoundry/tech-lead-stack'],
   /**
+   * Required for Vercel to correctly trace files (like Prisma engines) outside this app folder.
+   */
+  outputFileTracingRoot: path.resolve(__dirname, '../../'),
+  /**
    * Pins Turbopack's workspace root to the monorepo root.
    */
   turbopack: {
