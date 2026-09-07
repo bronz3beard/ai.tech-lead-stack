@@ -5,6 +5,18 @@ description:
   circular dependencies and missing technical prerequisites.
 cost: ~650 tokens
 modes: [read-only, mcp]
+surface: public
+phase: maintain
+kind: skill
+domain: product
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+policies:
+  - user-sovereignty
+  - diagnosis-first
 ---
 
 # PM Backlog Auditor (The Logic Gate)

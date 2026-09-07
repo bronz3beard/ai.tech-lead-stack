@@ -57,7 +57,7 @@ Open a Pull Request (PR) against `main`.
 
 ### 5. Review and Merge (Squash and Merge)
 - Address any feedback from code reviews.
-- Once the PR is approved and all CI checks pass, it will be merged into `main`.
+- Once the PR is approved and all CI checks pass, it will be merged into `main`. Note that CI includes the `skills.graph.json` drift gate (`npm run generate:registry -- --check`) and the hooks layer ownership enforcer, which blocks merges if skill metadata or ownership rules are violated.
 - **Merge Strategy:** The PR must be merged using **Squash and Merge**. This will take all commits from `feature/my-awesome-feature` and squash them into a single commit on `main`.
 
 ---

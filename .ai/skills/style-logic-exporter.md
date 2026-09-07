@@ -11,6 +11,18 @@ how:
   typography metrics.'
 useCase:
   'Syncing code-based styling with design systems or external documentation.'
+phase: polish
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Style Logic Exporter (The Design Bridge)

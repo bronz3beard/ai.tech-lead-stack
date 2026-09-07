@@ -10,6 +10,7 @@ import { Octokit } from 'octokit';
 import os from 'os';
 import path from 'path';
 import { promisify } from 'util';
+import { frontmatterSchema } from '@zenithfoundry/tech-lead-stack/skills/frontmatter-schema';
 
 const execFileAsync = promisify(execFile);
 
@@ -23,6 +24,18 @@ async function getGitHubUsername(token: string) {
 }
 
 export async function validateSkill(content: string) {
+  try {
+    const parsed = matter(content);
+    const validated = frontmatterSchema.safeParse(parsed.data);
+    if (!validated.success) {
+      const errMsgs = validated.error.issues.map((e) => e.message).join(', ');
+      return { success: false, message: `Invalid frontmatter: ${errMsgs}` };
+    }
+  } catch (e: unknown) {
+    const err = e as Error;
+    return { success: false, message: `Invalid frontmatter format: ${err.message}` };
+  }
+
   // ... (keeping validateSkill as is)
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
@@ -94,9 +107,13 @@ export async function submitSkill(content: string) {
   let parsedDescription = '';
   try {
     const parsed = matter(content);
-    parsedName = parsed.data.name;
-    parsedDescription = parsed.data.description;
-    if (!parsedName) throw new Error("Missing 'name' in frontmatter");
+    const validated = frontmatterSchema.safeParse(parsed.data);
+    if (!validated.success) {
+      const errMsgs = validated.error.issues.map((e) => e.message).join(', ');
+      return { success: false, message: `Invalid frontmatter: ${errMsgs}` };
+    }
+    parsedName = validated.data.name;
+    parsedDescription = validated.data.description;
   } catch (e: unknown) {
     const err = e as Error;
     return { success: false, message: `Invalid frontmatter: ${err.message}` };

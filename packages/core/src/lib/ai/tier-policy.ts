@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export type Tier = 'byo' | 'sub-max' | 'sub-pro';
+export type Tier = 'byo' | 'sub-max' | 'sub-pro' | 'local';
 export type TaskSize = 'XS' | 'S' | 'M' | 'L' | 'XL';
 export type RiskLevel = 0 | 1 | 2;
 
@@ -10,7 +10,9 @@ export const TierPolicySchema = z.object({
   maxLanes: z.number().int().positive(),
   maxCritiquePasses: z.number().int().positive(),
   escalateTo: z.enum(['byo', 'sub-max', 'sub-pro']).nullable(),
-  isolation: z.enum(['distinct-model', 'distinct-vendor']),
+  isolation: z.enum(['same-model', 'distinct-model', 'distinct-vendor']),
+  maxWallClockMs: z.number().int().positive().optional(),
+  maxTokens: z.number().int().positive().optional(),
 });
 
 export type TierPolicy = z.infer<typeof TierPolicySchema>;
@@ -39,6 +41,15 @@ export const TIER_POLICY: Record<Tier, TierPolicy> = Object.freeze({
     maxCritiquePasses: 99,
     escalateTo: null,
     isolation: 'distinct-vendor',
+  }),
+  local: Object.freeze({
+    maxTaskSize: 'M',
+    maxRiskLevel: 1,
+    maxLanes: 1,
+    maxCritiquePasses: 1,
+    escalateTo: 'sub-pro',
+    isolation: 'same-model',
+    maxWallClockMs: Number(process.env.REFLEXION_MAX_WALLCLOCK_MS) || undefined,
   }),
 });
 

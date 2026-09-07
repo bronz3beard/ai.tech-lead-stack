@@ -14,6 +14,12 @@ export interface KiMetadata {
   projectName?: string;
   /** Optional tags for classification */
   tags?: string[];
+  /** Optional approval state */
+  approval?: {
+    status: 'draft' | 'human-approved' | 'rejected';
+    timestamp?: string;
+    by?: string;
+  };
 }
 
 /**
@@ -44,4 +50,9 @@ export interface UpsertKiInput {
     content: string;
   }[];
   tags?: string[];
+  approval?: {
+    status: 'draft' | 'human-approved' | 'rejected';
+    timestamp?: string;
+    by?: string;
+  };
 }

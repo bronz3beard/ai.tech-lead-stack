@@ -7,6 +7,17 @@ description: >
 cost: ~550 tokens
 modes: [read-only, write, mcp]
 surface: internal
+phase: maintain
+kind: policy
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+suggests: [mission-architect]
+policies:
+  - user-sovereignty
 ---
 
 # Agent Optimizer (The Noise Filter)

@@ -7,6 +7,18 @@ cost: ~1100 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Discover & Define
+phase: maintain
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Codebase Onboarding Intelligence (The Master Discovery)
@@ -16,28 +28,22 @@ category: Discover & Define
 Produces a verifiable onboarding blueprint in read-only chat, and executes +
 verifies the implement phase in an IDE/MCP agent.
 
-> [!IMPORTANT] **Diagnosis before Advice**: Every onboarding begins with **Phase
-> 0: Tech-Stack Discovery**. The auditor must identify the primary engine and
-> configuration patterns before deep-diving into vitals.
->
-> **Methodology Alignment**: This skill strictly adheres to the four core
-> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
-> Guidance**.
-
 ## 🎯 Verification Gates
 
 ### Phase 0: Tech-Stack Discovery (MANDATORY)
 
 - **Skill Usage Enforcement (NON-NEGOTIABLE):**
-  - **FORBIDDEN:** Direct file access via `view_file` or `run_command` is
+  - **FORBIDDEN:** Reading whole files via `view_file` or `cat` for discovery is
     strictly prohibited.
+  - **MANDATORY:** You MUST use `repo_map`, `code_search`, and `read_region`
+    tools to fetch only relevant codebase context. Do not read entire files.
   - **IDE / MCP-enabled Agent:** You MUST call the MCP `get_skills` tool (which
     may be prefixed as `mcp_tech-lead-stack_get_skills` or
     `tech-lead-stack_get_skills` depending on client prefixing).
   - **Chat UI (/chat):** You MUST call the internal `get_skill` tool.
 
-- **Action:** Identify root configuration files (`package.json`,
-  `pyproject.toml`, `csproj`, etc.).
+- **Action:** Identify root configuration files using `repo_map` or
+  `code_search`. `pyproject.toml`, `csproj`, etc.).
 - **Target Files:** Inspect `package.json`, `tsconfig.json`, `pyproject.toml`,
   `csproj`, `go.mod`, or `Cargo.toml`.
 - **MANDATORY Guardrail:** Focus ONLY on technical configuration. Ignore all
@@ -92,10 +98,13 @@ verifies the implement phase in an IDE/MCP agent.
 
 ## 🛠 Execution Workflow
 
-1. **Ecosystem Audit**: `ls -F` and `cat` root config files.
+1. **Ecosystem Audit**: Use `repo_map` to understand the root structure and
+   `read_region` for config files.
 2. **Culture Audit**: `rtk run git-parse` to extract branch/commit trends.
-3. **Local Audit**: Inspect `scripts` or `Taskfile` for entry points.
-4. **Pattern Audit**: `grep` for common imports/abstractions.
+3. **Local Audit**: Inspect `scripts` or `Taskfile` for entry points using
+   `read_region`.
+4. **Pattern Audit**: Use `code_search` for common imports/abstractions instead
+   of grep.
 
 ## 📦 The "Day One" Onboarding Report
 

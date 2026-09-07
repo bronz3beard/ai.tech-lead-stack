@@ -5,8 +5,9 @@ import { Handlers } from '../mcp-server/handlers';
 import { FileSystemService } from '../lib/skills/fs-service';
 
 describe('Skill Posture', () => {
-  const SKILLS_DIR = path.join(process.cwd(), '../../.ai', 'skills');
-  const PM_SKILLS_DIR = path.join(process.cwd(), '../../.ai', 'pm-skills');
+  const REPO_ROOT = path.join(__dirname, '../../../..');
+  const SKILLS_DIR = path.join(REPO_ROOT, '.ai', 'skills');
+  const PM_SKILLS_DIR = path.join(REPO_ROOT, '.ai', 'pm-skills');
 
   function getSkillFiles(dir: string): string[] {
     if (!fs.existsSync(dir)) return [];
@@ -80,7 +81,7 @@ describe('Skill Posture', () => {
     let fsService: FileSystemService;
 
     beforeEach(() => {
-      fsService = new FileSystemService(path.resolve(process.cwd(), '../..'));
+      fsService = new FileSystemService(path.join(__dirname, '../../../..'));
       const dummyTelemetry = {
         withAnalytics: async (
           _s: string,

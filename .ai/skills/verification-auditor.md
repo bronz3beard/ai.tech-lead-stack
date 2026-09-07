@@ -7,6 +7,21 @@ description: >
 cost: ~1500 tokens
 modes: [read-only, mcp]
 surface: internal
+phase: review
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [diff]
+emits: [review-report]
+suggests: [pr-automator, qa-handover-generator, clean-code, security-audit]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Verification Auditor (The Master Auditor)
@@ -15,16 +30,6 @@ surface: internal
 
 Produces a verifiable environment blueprint in read-only chat, and executes +
 verifies the audit phase in an IDE/MCP agent.
-
-> [!IMPORTANT] **Diagnosis before Advice**: Every audit begins with **Tech-Stack
-> Discovery**. The auditor must understand the project's native ecosystem before
-> reviewing with "Extreme Prejudice." There is no reward for completion. The
-> reward comes from persistence on resolving the issue to an extremely high
-> standard.
->
-> **Methodology Alignment**: This skill strictly adheres to the four core
-> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
-> Guidance**.
 
 ## 🎯 Four-Stage Verification Pipeline
 

@@ -23,11 +23,14 @@
     "reflexion": "tsx scripts/reflexion-loop.ts",
     "reflexion:eval": "tsx scripts/reflexion-eval.ts",
     "generate:registry": "tsx scripts/generate-skill-registry.ts",
+    "index:build": "tsx scripts/build-index.ts",
+    "index:update": "tsx scripts/build-index.ts",
     "calibrate-skill-costs": "tsx scripts/calibrate-skill-costs.ts",
     "db:generate": "prisma generate",
     "check-types": "tsc --noEmit --skipLibCheck",
     "test": "jest",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "prepare": "pnpm run mcp:build"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.68",
@@ -43,8 +46,6 @@
     "e2b": "^2.29.1",
     "gray-matter": "^4.0.3",
     "js-yaml": "^5.2.1",
-    "langfuse-core": "^3.38.20",
-    "langfuse-node": "^3.38.20",
     "octokit": "^5.0.5",
     "p-map": "^7.0.4",
     "pg": "^8.20.0",

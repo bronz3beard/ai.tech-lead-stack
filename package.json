@@ -74,7 +74,9 @@
     "format:check": "npx prettier --check \".ai/skills/*.md\" \"scripts/*.{js,mjs}\" \"README.md\"",
     "lint": "npx markdownlint-cli \".ai/skills/*.md\"",
     "lint:fix": "npx markdownlint-cli --fix \".ai/skills/*.md\" && npm run format",
+    "lint:next": "pnpm --filter @bronz3beard/tls-dashboard run lint:next",
     "validate:skills": "bash scripts/validate-skills.sh",
+    "validate:hooks": "node scripts/enforce-hooks.mjs",
     "validate:gherkin": "node scripts/validate-gherkin.mjs",
     "validate:scripts": "bash scripts/validate-scripts.sh",
     "prepare": "husky",
@@ -106,6 +108,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.5",
+    "@eslint/js": "^9.0.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -117,11 +120,10 @@
     "@types/react-dom": "^19.2.3",
     "esbuild": "^0.25.0",
     "eslint": "^9.16.0",
-    "eslint-config-next": "^16.2.3",
+    "globals": "^17.12.0",
     "husky": "^9.1.7",
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^30.3.0",
-    "langfuse": "^3.38.20",
     "lint-staged": "^16.4.0",
     "markdownlint-cli": "^0.48.0",
     "playwright": "latest",
@@ -129,7 +131,8 @@
     "ts-jest": "^29.4.9",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.2",
+    "typescript-eslint": "^8.0.0"
   },
   "keywords": [
     "agentic-dev-team",

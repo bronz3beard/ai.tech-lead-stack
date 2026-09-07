@@ -22,8 +22,6 @@ jobs:
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Get pnpm store directory
         shell: bash
@@ -50,8 +48,17 @@ jobs:
       - name: Lint (Skills)
         run: pnpm run lint
 
+      - name: Check Skill Graph Drift
+        run: pnpm run generate:registry --check
+
+      - name: Validate Skills
+        run: pnpm run validate:skills
+
       - name: Lint (Next.js)
         run: pnpm run lint:next
+
+      - name: Check Hooks
+        run: pnpm run validate:hooks
 
       - name: Check Types
         run: pnpm run check-types
@@ -79,8 +86,6 @@ jobs:
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Get pnpm store directory
         shell: bash

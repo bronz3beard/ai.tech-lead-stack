@@ -11,6 +11,20 @@ how:
   'Ingests `git log`, groups by semantic commit type, filters noise, and formats
   to Markdown.'
 useCase: 'Generating clean release notes for stakeholders.'
+phase: deploy
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [review-report]
+emits: [release]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Changelog Generator (Semantic Processor)

@@ -105,12 +105,14 @@ export class KiService {
     
     await fs.mkdir(artifactsDir, { recursive: true });
     
-    // Check for existing metadata to preserve createdAt
+    // Check for existing metadata to preserve createdAt and approval
     let createdAt = new Date().toISOString();
+    let existingApproval: KiMetadata['approval'] = undefined;
     try {
       const existingRaw = await fs.readFile(path.join(kiPath, 'metadata.json'), 'utf-8');
       const existing: KiMetadata = JSON.parse(existingRaw);
       createdAt = existing.createdAt;
+      existingApproval = existing.approval;
     } catch {
       // New item
     }
@@ -121,7 +123,8 @@ export class KiService {
       updatedAt: new Date().toISOString(),
       projectName: input.projectName,
       references: input.references,
-      tags: input.tags
+      tags: input.tags,
+      approval: input.approval !== undefined ? input.approval : existingApproval
     };
     
     // Write metadata
@@ -137,6 +140,26 @@ export class KiService {
       metadata,
       artifacts: input.artifacts
     };
+  }
+
+  /**
+   * @desc Sets the approval state of a knowledge item
+   */
+  async setApproval(slug: string, status: 'draft' | 'human-approved' | 'rejected', by?: string): Promise<void> {
+    const kiPath = path.join(this.baseDir, slug);
+    const metadataPath = path.join(kiPath, 'metadata.json');
+    
+    const existingRaw = await fs.readFile(metadataPath, 'utf-8');
+    const existing: KiMetadata = JSON.parse(existingRaw);
+    
+    existing.approval = {
+      status,
+      by,
+      timestamp: new Date().toISOString()
+    };
+    existing.updatedAt = new Date().toISOString();
+    
+    await fs.writeFile(metadataPath, JSON.stringify(existing, null, 2));
   }
 
   /**

@@ -27,7 +27,7 @@ the relevant guide in `node_modules/next/dist/docs/` before writing any Next.js
 code. Heed deprecation notices. This is Pillar 1 in practice: ground decisions
 in what's actually installed, not what's familiar.
 
-## MCP tool naming
+## MCP tool naming & skill acquisition contract
 
 If your client connects to the `tech-lead-stack` MCP server (e.g. Cursor,
 Antigravity, or a web chat UI) and a tool call like `get_skills` or
@@ -35,6 +35,16 @@ Antigravity, or a web chat UI) and a tool call like `get_skills` or
 the tool name — check for `mcp_tech-lead-stack_<tool>` or
 `tech-lead-stack_<tool>` in your available tools list and call the resolved
 name. Not applicable if your environment doesn't connect to this MCP server.
+
+**Strict Skill Acquisition Contract (NON-NEGOTIABLE):**
+All calls to `get_skills` or `get_skill` MUST supply the required 4-tuple:
+`{ skillName: string, projectName: string, model: string, agent: string }`.
+Omission of these parameters corrupts telemetry tracking and is strictly prohibited.
+**No Workflow Conflation:** Workflow files in `.agents/workflows/` are launcher
+entry points, NOT skill definitions. Reading a workflow file via `view_file` or
+`cat` does NOT satisfy Phase 0. You MUST execute the MCP `get_skills` tool call
+as your very first action to load the full skill specification and initialize
+mission telemetry.
 
 ## Four Pillars — non-negotiable, and how your output is graded
 
@@ -48,6 +58,16 @@ name. Not applicable if your environment doesn't connect to this MCP server.
    rationalizing a shortcut is the signal to stop and do it properly instead.
 4. **Modern Web Guidance** — UI/web-facing code uses Server Components, Zod
    validation, semantic HTML/ARIA. No legacy workarounds.
+
+## Policies & Execution
+
+Agent policies and constraints are centrally enforced across the entire AI lifecycle. Note these critical architecture changes:
+- **Nine Phases**: All work is categorized into exactly nine phases (intent, specify, plan, build, maintain, review, scale, deploy, polish). Every skill frontmatter and telemetry metadata payload MUST declare a valid phase.
+- **Typed Artifact Handoffs**: Skills no longer pass arbitrary context. Deliverables (spec, plan, diff, etc.) are explicitly typed and handed off via Knowledge Items (KIs).
+- **New MCP Tools**: We've introduced `plan_pipeline` to sequence orchestrators and `approve_knowledge_item` to formalize KI handoffs. Note that `get_skill` now appends a dependency graph footer outlining upstream/downstream connections.
+- **Dynamic Policies (`.ai/policies`)**: Policy documents are loaded dynamically into agent contexts to guide operational decisions without hardcoding logic.
+- **Hooks Layer (`.ai/hooks`)**: Ownership gates and capability boundaries are strictly enforced at MCP call-time and validated in CI via a dedicated hooks enforcer.
+- **Execution Targets**: You operate under one of four execution tiers (`local`, `sub-pro`, `sub-max`, `byo`). Each has specific latency, context, and capability budgets (e.g., `local` enforces single-lane pipeline).
 
 ## Git discipline
 

@@ -23,6 +23,24 @@ CORE DIRECTIVES:
 2. AUGMENTATION OVER REPLACEMENT: Do not replace the user's specific implementation with generic boilerplate. Instead, wrap the existing logic in the G-Stack framework (Phase 0: Diagnosis, Phase 1: Implementation, Verification Gates).
 3. NO PLACEHOLDERS: NEVER use placeholders like 'name: new-skill', 'description: Describe here', or '[insert purpose]'. If the draft has a name and description, USE THEM.
 4. ACTIONABLE OUTPUT: If you identify missing architectural depth, use the 'update_skill_template' tool to propose a COMPLETE, updated version of the SPECIFIC skill as part of your final response.
+5. RIGOROUS FRONTMATTER: Every skill must have valid frontmatter containing the following strictly typed fields:
+  - name: string (kebab-case)
+  - description: string
+  - cost: string (e.g. "~10 tokens")
+  - modes: array (e.g. [read-only, write, mcp])
+  - surface: public | internal
+  - kind: skill | orchestrator | policy | report
+  - domain: eng | product | hiring | shared
+  - ownership: { drive: human | ai | human-ai, approve: human | ai | none }
+  - targets: array of [local, subscription, api]
+  - minModelClass: small | mid | large
+  - consumes: array of artifact types
+  - emits: array of artifact types
+  - requires: array of strings (skill names)
+  - suggests: array of strings (skill names)
+  - policies: array of strings
+  - phase: intent | specify | plan | build | maintain | review | scale | deploy | polish (REQUIRED if kind is 'skill', 'policy', or 'report')
+  - spans: array of phases (REQUIRED if kind is 'orchestrator'. Orchestrators do NOT use 'phase').
 
 ETHOS:
 - G-Stack: Diagnosis before Advice. Mandatory Phase 0 for environment discovery.
@@ -45,6 +63,16 @@ YOUR REFINEMENT:
 name: search-code
 description: High-integrity architectural discovery using pattern matching and grep.
 cost: ~800 tokens
+modes: [read-only, write, mcp]
+surface: public
+phase: build
+kind: skill
+domain: eng
+ownership:
+  drive: ai
+  approve: none
+targets: [local, api]
+minModelClass: mid
 ---
 # search-code
 

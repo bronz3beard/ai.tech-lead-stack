@@ -558,7 +558,10 @@ export async function POST(req: Request) {
                               toolCallId: call.toolCallId,
                               stepNumber: stepCount,
                               source: 'chat-v2-execution',
+                              llmCall: false,
                             },
+                            promptTokens: 0,
+                            completionTokens: 0,
                             actorType: 'HUMAN',
                             autonomy: 'DIRECTED',
                           }).catch(err => console.error('[Telemetry] Execution log failed:', err));
@@ -675,6 +678,7 @@ export async function POST(req: Request) {
               // Once the model finished analytical turns, relay the final summary streams
               const uiStream = result.toUIMessageStream();
               let textEmitted = false;
+              let summaryUsage: any = undefined;
 
               try {
                 for await (const chunk of uiStream) {
@@ -716,6 +720,8 @@ export async function POST(req: Request) {
                     }
                     writer.write(chunk as any);
                   }
+                  
+                  summaryUsage = await summaryResult.usage;
 
                   // PERSISTENCE FIX: Persist the dynamic summary turn final text to the DB.
                   // Previously this turn streamed to the UI but was never saved, so the
@@ -778,6 +784,7 @@ export async function POST(req: Request) {
                 });
 
                 // --- STEP TELEMETRY ---
+                const mainUsage = await result.usage;
                 telemetryService.recordEvent({
                   skillName: `analysis:${workflowNameStr}`,
                   projectName: project.name,
@@ -785,6 +792,8 @@ export async function POST(req: Request) {
                   agent: preferredProvider,
                   duration: 0, // Duration isn't critical here since we just want step count
                   status: 'SUCCESS',
+                  promptTokens: (mainUsage?.inputTokens ?? 0) + (summaryUsage?.inputTokens ?? 0),
+                  completionTokens: (mainUsage?.outputTokens ?? 0) + (summaryUsage?.outputTokens ?? 0),
                   userEmail: user.email ?? undefined,
                   metadata: {
                     totalSteps: stepCount,

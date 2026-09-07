@@ -1,9 +1,20 @@
 ---
 name: Dummy Skill
-description: A dummy skill for testing
-cost: ~0 tokens
+description: A dummy skill for testing purposes.
+phase: build
+cost: ~50 tokens
 modes: [read-only, mcp]
 surface: internal
+kind: skill
+domain: shared
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+policies:
+  - user-sovereignty
+  - diagnosis-first
 ---
 
 # Dummy Skill

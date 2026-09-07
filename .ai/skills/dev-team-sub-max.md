@@ -17,6 +17,27 @@ how:
 useCase:
   'Multi-lane parallel feature orchestration on a high-tier ($100/mo)
   subscription without API keys'
+kind: orchestrator
+domain: eng
+spans: [intent, specify, plan, build, maintain, review, deploy]
+ownership:
+  drive: human-ai
+  approve: human
+targets: [api, subscription]
+minModelClass: large
+suggests:
+  [
+    dev-team-orchestrator,
+    dev-team-sub-pro,
+    mission-architect,
+    reflexion-loop-sub-max,
+    reflexion-loop,
+    visual-verifier,
+  ]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Dev Team Orchestrator — Sub-Max Tier ($100/mo)
@@ -311,3 +332,20 @@ not a weak audit, it is an absent one.
 | "The audit passed anyway, so the notice would just worry them."               | A pass from the author is not a pass; the notice IS the finding. Emit disclosure line as line 1.        |
 | "The model swap was handled automatically, so it's an implementation detail." | Handling it seamlessly is why developer cannot see it, which is exactly why it must be stated.          |
 | "It is already recorded in the provenance table below."                       | A table row is not a disclosure; the first line is.                                                     |
+
+### Hooks (Ownership Gates)
+
+Before advancing to the next phase or gate, you MUST consult `.ai/hooks/`. If a
+guard is triggered and requires human approval (`require-human-approve`), you
+MUST append the question to the human inbox (`.dev-team/inbox.md`) rather than
+proceeding.
+
+## Code Modification Convention
+
+**REQUIREMENT:** When modifying files, you MUST use the `apply_patch` tool with
+minimal SEARCH/REPLACE blocks instead of rewriting whole files.
+
+- Never emit a full-file rewrite.
+- Never restate unchanged code.
+- **Rule:** Include only the lines that change plus minimal surrounding anchor
+  context.

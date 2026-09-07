@@ -15,6 +15,22 @@ how:
   isolation'
 useCase:
   'Plan hardening on a $100/mo subscription without requiring external API keys'
+phase: plan
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [spec]
+emits: [plan]
+suggests:
+  [clean-code, regression-bug-fix, reflexion-loop-sub-pro, reflexion-loop]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Reflexion Loop ($100/mo Tier - No API Keys)

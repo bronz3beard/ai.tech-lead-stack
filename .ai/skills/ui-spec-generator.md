@@ -7,6 +7,21 @@ cost: ~850 tokens
 modes: [read-only, mcp]
 surface: public
 category: Design & UI
+phase: specify
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [intent-brief]
+emits: [spec]
+suggests: [planning-expert, vertical-slice-decomposer]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # UI Spec Generator (The Skeleton Engine)
@@ -15,15 +30,6 @@ category: Design & UI
 
 Produces a verifiable UI spec blueprint in read-only chat, and executes +
 verifies the generation phase in an IDE/MCP agent.
-
-> [!IMPORTANT] **Diagnosis before Advice**: This skill follows the **G-Stack
-> Ethos**. You must resolve the project structure and design system path
-> (Discovery Phase) before generating any code. **MinimumCD** dictates that we
-> generate small, atomic skeletons that are easily verifiable.
->
-> **Methodology Alignment**: This skill strictly adheres to the four core
-> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
-> Guidance**.
 
 ## 🎯 Implementation Loop
 

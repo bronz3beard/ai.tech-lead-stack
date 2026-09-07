@@ -12,6 +12,21 @@ cost: ~800 tokens
 modes: [read-only]
 surface: public
 category: Discover & Define
+phase: specify
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [intent-brief]
+emits: [spec]
+suggests: [planning-expert, vertical-slice-decomposer, ask]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Solutioning Facilitator

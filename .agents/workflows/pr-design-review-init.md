@@ -11,7 +11,9 @@ modes:
 This workflow allows a developer to bypass the code-generation phase and trigger an AI design audit on an existing Pull Request.
 
 ## Objective
-To take a GitHub PR URL, extract the relevant branch and component metadata, create a `DesignReviewSession` in the Tech-Lead Stack, and trigger the `design-system-review` audit.
+> [!IMPORTANT]
+> **ANTI-CONFLATION DIRECTIVE:**
+> This file is a workflow launcher stub. When transitioning to `design-system-review`, you MUST call the MCP `get_skills` tool with all 4 required fields (`skillName`, `projectName`, `model`, `agent`) to initialize mission telemetry.
 
 ---
 

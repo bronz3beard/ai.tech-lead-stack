@@ -12,6 +12,19 @@ how:
   planning via `planning-expert`.'
 useCase:
   'Designing and executing a major architectural change or multi-file feature.'
+kind: orchestrator
+domain: eng
+spans: [intent, specify, plan, build, maintain, review, deploy]
+ownership:
+  drive: human-ai
+  approve: human
+targets: [api, subscription]
+minModelClass: large
+suggests: [planning-expert, regression-bug-fix, verification-auditor]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Mission Architect (The Master Engine)
@@ -20,14 +33,6 @@ useCase:
 
 Produces a verifiable mission blueprint in read-only chat, and executes +
 verifies the strategic phase in an IDE/MCP agent.
-
-> [!IMPORTANT] **User Sovereignty & Persistence**: The reward comes from
-> persistence on resolving the issue to an extremely high standard. We advise;
-> the User Tech-Lead decides.
->
-> **Methodology Alignment**: This skill strictly adheres to the four core
-> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
-> Guidance**.
 
 ## 🎯 Master Orchestration Pipeline
 

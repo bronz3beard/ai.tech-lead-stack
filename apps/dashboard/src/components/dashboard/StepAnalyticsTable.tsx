@@ -11,6 +11,7 @@ import {
 
 export type StepMetric = {
   skillName: string;
+  intentPhase?: string;
   totalExecutions: number;
   averageSteps: number;
   totalSteps: number;
@@ -52,13 +53,20 @@ export function StepAnalyticsTable({ metrics }: StepAnalyticsTableProps) {
         <TableBody>
           {metrics.map((metric) => (
             <TableRow
-              key={metric.skillName}
+              key={`${metric.skillName}-${metric.intentPhase}`}
               className="border-slate-800 hover:bg-slate-800/50 transition-colors"
             >
               <TableCell className="font-medium text-slate-200">
-                <span className="inline-block px-2 py-1 bg-indigo-500/10 text-indigo-400 rounded-md text-xs border border-indigo-500/20">
-                  {metric.skillName}
-                </span>
+                <div className="flex flex-col gap-1">
+                  <span className="inline-block px-2 py-1 bg-indigo-500/10 text-indigo-400 rounded-md text-xs border border-indigo-500/20 self-start">
+                    {metric.skillName}
+                  </span>
+                  {metric.intentPhase && metric.intentPhase !== 'unknown' && (
+                    <span className="text-xs text-slate-400 capitalize">
+                      Phase: {metric.intentPhase}
+                    </span>
+                  )}
+                </div>
               </TableCell>
               <TableCell className="text-slate-300 text-right">
                 {metric.totalExecutions}

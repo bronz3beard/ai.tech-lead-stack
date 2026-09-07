@@ -1,6 +1,6 @@
 # The Lead Stack: Agent-Agnostic Workflows
 
-![CI Status](https://github.com/bronz3beard/tech-lead-stack/actions/workflows/agent-ci.yml/badge.svg)
+![CI Status](https://github.com/bronz3beard/tech-lead-stack/actions/workflows/ci.yml/badge.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 
@@ -11,6 +11,18 @@ automated testing.
 
 Live Web App:
 [https://ai-tech-lead-stack.vercel.app](https://ai-tech-lead-stack.vercel.app)
+
+> [!NOTE] **Related project — **SML Gate** (`small-language-model-gate`, CLI
+> `slm-gate`) — a local AI routing and pre-processing layer that uses a small,
+> free local model via Ollama to intercept, compress, and answer easy or
+> repetitive prompts before they reach your paid subscription or API cloud
+> model, cutting token spend and protecting your monthly quota. Its `mcp-gate`
+> layer can sit in front of this stack's MCP server (`TLS_ADAPTER=on` +
+> `DOWNSTREAM_MCP` pointing at `dist/mcp-server.mjs`) to condense tool and skill
+> payloads before they hit your editor's context window.**
+>
+> <a href="https://github.com/zenithfoundry/sml-gate" target="_blank" rel="noopener noreferrer">Explore
+> SML Gate on GitHub →</a>
 
 ## Table of Contents
 
@@ -133,6 +145,95 @@ orchestrator targets specific isolation levels:
 
 ## 🚀 Quick Start
 
+### Three Ways to Run the Tech-Lead-Stack MCP
+
+The MCP server is built as a **standalone artifact** (`dist/mcp-server.mjs`),
+which is why it can be reached in more than one way. There are three paths. Two
+of them — **Direct** and **`install.sh`** — reach the _same_ MCP server
+(install.sh just automates the setup); the **SLM Gate** path puts a gateway _in
+front_ of it.
+
+**Prerequisite for every path:** build the artifact once.
+
+```bash
+pnpm run mcp:build   # bundles src/mcp-server + src/lib/ai into dist/mcp-server.mjs
+```
+
+(`install.sh` runs this for you — see Path C.)
+
+---
+
+**Path A — Direct MCP** Point your IDE's MCP config straight at the stack's
+`mcp:start`:
+
+```json
+{
+  "mcpServers": {
+    "tech-lead-stack": {
+      "command": "npm",
+      "args": [
+        "--prefix",
+        "/path/to/tech-lead-stack",
+        "--silent",
+        "run",
+        "mcp:start"
+      ]
+    }
+  }
+}
+```
+
+Best when: you use one IDE you configure by hand, working against the stack's
+own repo. The server automatically falls back to the stack's own skills, so
+nothing else is required.
+
+---
+
+**Path B — Through the SLM Gate (`mcp-gate`)** Instead of pointing your IDE at
+the stack directly, run the SLM Gate's `mcp-gate` and set its `DOWNSTREAM_MCP`
+env var to the stack's MCP artifact. The gate becomes the front door and
+forwards tool calls _downstream_ to the tech-lead-stack MCP.
+
+Best when: you want the gate's layer in front of the stack —
+small-language-model / model routing, request filtering, or aggregating several
+MCP servers behind a single endpoint — rather than talking to the stack in
+isolation. The `mcp-gate` configuration (flags beyond `DOWNSTREAM_MCP`) lives in
+the `@zenithfoundry/slm-gate` repo's own docs. (The stack is consumable by other
+tools the same way — e.g. voice-relay via `STACK_REPO` — because it is just a
+standalone artifact.)
+
+---
+
+**Path C — `install.sh` (turnkey setup of Path A + the full dev experience)**
+Run `install.sh` if you want any of the following. It builds the artifact for
+you and then wires the direct MCP config, so it is the automated form of Path A
+plus extras:
+
+1. **Skills on other repos** — symlinks `AGENTS.md` and `.agents/` into the
+   target repo. Crucial for non-MCP agents (Copilot, Jules, simple
+   rules-readers) and per-project skill overrides; also drops in the PR template
+   and GitHub Actions.
+2. **Terminal CLI or CI** — installs the `rtk` CLI, wires your shell alias,
+   checks `gh` auth.
+3. **Multi-IDE setup** — zero-touch MCP merges and workflow symlinking across
+   Cursor, Continue, and Claude Desktop.
+4. **First-time build** — runs `mcp:build` automatically.
+
+---
+
+**How they relate**
+
+- Path A and Path C both give you the **direct** MCP server; Path C is just the
+  turnkey installer (build + config + CLI + CI + cross-repo context) for it.
+- Path B is the only one that changes the **topology**: the SLM Gate sits in
+  front and the stack's MCP runs downstream of it.
+
+> **Bottom line:** Talking to the stack in one IDE against this repo → **Path
+> A**. Want the terminal tools, CI templates, multi-IDE support, or context
+> files in other repos → **Path C** (`install.sh`). Want a gateway in front for
+> routing/filtering/aggregation → **Path B** (SLM Gate). All three run the same
+> built artifact underneath.
+
 ### 1. Installation
 
 Clone this repo and link it globally for easy access:
@@ -173,6 +274,24 @@ routing).
 - **Precedence Chain**: `Project.settings.modelRouting` →
   `User.settings.modelRouting` → `System Default`. Environment variables remain
   available as an optional headless override only.
+
+### Local Execution Tier
+
+To use the fully offline `local` execution tier, set the following environment
+variables:
+
+- `LOCAL_MODEL_ENDPOINT`: The baseURL of the OpenAI-compatible local model
+  server (e.g., `http://localhost:11434/v1` for Ollama).
+- `LOCAL_MODEL_NAME`: The ID of the local model (e.g., `qwen2.5-coder:3b`,
+  `llama-3.1:8b`).
+- `LOCAL_MODEL_CLASS`: (Optional) The class of the local model (`small`, `mid`,
+  `large`) used for filtering skills that require a minimum model size. As a
+  rule of thumb:
+  - `small`: < 10B parameters (e.g., `qwen2.5-coder:3b`, `qwen2.5-coder:7b`)
+  - `mid`: 10B - 35B parameters (e.g., `qwen2.5-coder:32b`)
+  - `large`: > 35B parameters (e.g., `qwen2.5-coder:72b`, `llama-3.1:70b`)
+- `REFLEXION_MAX_WALLCLOCK_MS`: (Optional) The maximum wall-clock time in
+  milliseconds allowed for the Reflexion loop when running locally.
 
 ### 🔌 Consuming the MCP server
 
@@ -519,100 +638,127 @@ copy-paste IDE prompt; only the IDE/MCP surface edits code.
 | [`docs/github-action-example.yml`](./docs/github-action-example.yml)                                                           | Reference for CI automation.                  |
 | [`docs/designs/2026-07-08-agentic-dev-team-design.md`](./docs/designs/2026-07-08-agentic-dev-team-design.md)                   | Design doc for the dev team orchestrator.     |
 | [`docs/designs/2026-07-08-reflexion-loop-v2-interview-gate.md`](./docs/designs/2026-07-08-reflexion-loop-v2-interview-gate.md) | Design doc for the reflexion loop.            |
+| [`docs/decisions/0002-lifecycle-paradigm.md`](./docs/decisions/0002-lifecycle-paradigm.md)                                     | ADR 0002: 9-Phase Lifecycle Paradigm.         |
+| [`docs/decisions/0003-execution-targets.md`](./docs/decisions/0003-execution-targets.md)                                       | ADR 0003: Agent Execution Targets.            |
 
 ## Available Skills
 
 <!-- SKILLS_TABLE:START -->
 
-### Orchestrators
+### Intent
 
-High-level directors that coordinate other skills and drive multi-step
-workflows.
+Strategic alignment, market analysis, and product requirements.
 
-| Skill                       | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | How it works                                                                                                                                        | Use Case                                                                                            | Modes                 | Est. Context Footprint |
-| :-------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------- | :-------------------- | :--------------------- |
-| **`dev-team-orchestrator`** | [DEV-TEAM · FULL · MCP] The flagship orchestration skill: an agent-agnostic "dev team" you manage as a technical product manager. Sizes the crew to the task, runs multiple task lanes in parallel without collision, interviews the human only at gates, and files friction defects automatically on its own repo.                                                                                                                                                                                      | -                                                                                                                                                   | -                                                                                                   | read-only, write, mcp | ~2600 tokens           |
-| **`dev-team-sub-max`**      | [DEV-TEAM · SUB-MAX · NO API KEYS · CROSS-MODEL VERIFY] Subscription-tier ($100/mo) dev team orchestrator. Runs up to 2 parallel lanes with git worktrees, enforces turn budgets and quota ledger checkpoints, hardens plans via reflexion-loop-sub-max, manages multi-vendor model isolation (L0-L3) and exhaustion limits without losing work, and keeps the full visual fidelity gate intact without requiring API keys.                                                                              | Multi-vendor model contract, Quota Ledger with active model tracking, Findings Ledger, and context-firewalled reviewer isolation                    | Multi-lane parallel feature orchestration on a high-tier ($100/mo) subscription without API keys    | read-only, write, mcp | ~3100 tokens           |
-| **`dev-team-sub-pro`**      | [DEV-TEAM · SUB-PRO · NO API KEYS · CROSS-MODEL VERIFY] Subscription-tier ($20/mo) dev pair orchestrator. Single-lane, branch-based execution without worktrees, enforcing turn budgets, builder/checker roles, cross-vendor model isolation, Mode B quota handling, and tier-ceiling enforcement without requiring API keys.                                                                                                                                                                            | Single-lane Builder/Checker model contract, compressed Findings Ledger, Mode B consolidate-and-park, and mandatory three-state end-state disclosure | Frugal single-lane feature orchestration on a standard ($20/mo) subscription without API keys       | read-only, write, mcp | ~2500 tokens           |
-| **`feature-orchestrator`**  | The Three-Phase Engine. Orchestrates the full Research -> Plan -> Implement sequence for a single feature by chaining the specialist skills (feature-design-assistant, planning-expert / vertical-slice-decomposer, verification-auditor) into one governed loop. Runtime-aware: produces a verifiable implementation blueprint in read-only chat, and executes + verifies the implement phase in an IDE/MCP agent. Use from the feature-discovery chat to drive a change end-to-end in the sandbox app. | Chains specialist skills (design assistant, planning expert/decomposer, verification auditor) into a governed, runtime-aware loop.                  | Use from the feature-discovery chat to drive a single-feature change end-to-end in the sandbox app. | read-only, write, mcp | ~1400 tokens           |
-| **`mission-architect`**     | Master Blueprint Engine. Orchestrates Strategy -> Research -> Plan -> Deliver for complex, multi-component features.                                                                                                                                                                                                                                                                                                                                                                                     | Strategic extraction from roadmaps, deep codebase audit, and multi-stage planning via `planning-expert`.                                            | Designing and executing a major architectural change or multi-file feature.                         | read-only, mcp        | ~1300 tokens           |
+| Skill                          | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                       | How it works                                                                                         | Use Case                                                          | Modes                 | Est. Context Footprint |
+| :----------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------- | :-------------------- | :--------------------- |
+| **`ask`**                      | Expert technical advisor providing architectural insights and precise code snippets for MANUAL implementation. STRICTLY READ-ONLY / advisory: it explains, diagnoses, and hands back copy-pasteable snippets, but never edits files, runs mutating commands, or implements changes itself. Use for "how does this work?", "where should this change go?", or "how would I change this?" questions about a codebase, in read-only chat or inside an IDE/MCP agent. | Diagnostic research via Phase 0 discovery, followed by high-density technical advice and snippets.   | Q&A about the codebase or "How would I change this?" queries.     | read-only, mcp        | ~3050 tokens           |
+| **`competitive-analysis`**     | Port of the blog's /competitive-analysis: compare this stack against external sources (blog posts, other agent stacks/plugins, papers, vendor docs), produce a Four-Pillars gap report grounded in OUR actual artifacts, and queue accepted ideas as GitHub issues + reflexion briefs — the self-improvement flywheel.                                                                                                                                            | -                                                                                                    | -                                                                 | read-only, write, mcp | ~850 tokens            |
+| **`feature-design-assistant`** | High-density discovery and architectural design engine. Use to translate vague ideas into methodology-compliant technical specifications.                                                                                                                                                                                                                                                                                                                         | Discovers existing patterns and generates technical specs before the first line of code is written.  | High-level ideation for a new service or module.                  | read-only, write, mcp | ~800 tokens            |
+| **`product-strategist`**       | High-density product strategy and roadmap auditor. Use to validate market positioning, feature prioritization, and GTM strategy against business objectives.                                                                                                                                                                                                                                                                                                      | Scans metrics and positioning to ensure current implementation work maps to high-ROI customer goals. | Auditing a proposed feature list against the core product vision. | read-only, write, mcp | ~850 tokens            |
 
-### Discover & Define
+### Specify
 
-Exploratory agents for codebase onboarding, requirement gathering, and technical
-design.
+Design system, architecture, and technical specifications.
 
-| Skill                                  | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | How it works                                                                                         | Use Case                                                          | Modes                 | Est. Context Footprint |
-| :------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------- | :-------------------- | :--------------------- |
-| **`ask`**                              | Expert technical advisor providing architectural insights and precise code snippets for MANUAL implementation. STRICTLY READ-ONLY / advisory: it explains, diagnoses, and hands back copy-pasteable snippets, but never edits files, runs mutating commands, or implements changes itself. Use for "how does this work?", "where should this change go?", or "how would I change this?" questions about a codebase, in read-only chat or inside an IDE/MCP agent.                  | Diagnostic research via Phase 0 discovery, followed by high-density technical advice and snippets.   | Q&A about the codebase or "How would I change this?" queries.     | read-only, mcp        | ~3050 tokens           |
-| **`codebase-onboarding-intelligence`** | Exhaustive discovery auditor for developer onboarding. Extracts tech stack, environment setup, and implementation patterns.                                                                                                                                                                                                                                                                                                                                                        | -                                                                                                    | -                                                                 | read-only, write, mcp | ~1100 tokens           |
-| **`competitive-analysis`**             | Port of the blog's /competitive-analysis: compare this stack against external sources (blog posts, other agent stacks/plugins, papers, vendor docs), produce a Four-Pillars gap report grounded in OUR actual artifacts, and queue accepted ideas as GitHub issues + reflexion briefs — the self-improvement flywheel.                                                                                                                                                             | -                                                                                                    | -                                                                 | read-only, write, mcp | ~850 tokens            |
-| **`feature-design-assistant`**         | High-density discovery and architectural design engine. Use to translate vague ideas into methodology-compliant technical specifications.                                                                                                                                                                                                                                                                                                                                          | Discovers existing patterns and generates technical specs before the first line of code is written.  | High-level ideation for a new service or module.                  | read-only, write, mcp | ~800 tokens            |
-| **`product-strategist`**               | High-density product strategy and roadmap auditor. Use to validate market positioning, feature prioritization, and GTM strategy against business objectives.                                                                                                                                                                                                                                                                                                                       | Scans metrics and positioning to ensure current implementation work maps to high-ROI customer goals. | Auditing a proposed feature list against the core product vision. | read-only, write, mcp | ~850 tokens            |
-| **`solutioning-facilitator`**          | Facilitates a live, multi-role "solutioning" session (PM, Design, QA, Frontend, Backend) for when a team discovers mid-flight that a feature is missing something and needs to propose, compare, and converge on a fix. Runs inside a code-connected agent (an IDE agent or the Agent Chat), anchors the session on a real user story/task, and keeps a precise, always-current running memory of every option, objection, spike, and decision so nothing is lost or re-litigated. | -                                                                                                    | -                                                                 | read-only             | ~800 tokens            |
+| Skill                         | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | How it works | Use Case | Modes          | Est. Context Footprint |
+| :---------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------- | :------- | :------------- | :--------------------- |
+| **`solutioning-facilitator`** | Facilitates a live, multi-role "solutioning" session (PM, Design, QA, Frontend, Backend) for when a team discovers mid-flight that a feature is missing something and needs to propose, compare, and converge on a fix. Runs inside a code-connected agent (an IDE agent or the Agent Chat), anchors the session on a real user story/task, and keeps a precise, always-current running memory of every option, objection, spike, and decision so nothing is lost or re-litigated. | -            | -        | read-only      | ~800 tokens            |
+| **`ui-spec-generator`**       | Architectural discovery engine for generating base skeleton UI components aligned with G-Stack modularity.                                                                                                                                                                                                                                                                                                                                                                         | -            | -        | read-only, mcp | ~850 tokens            |
 
-### Plan & Harden
+### Plan
 
-Strategic planners that break down work into atomic steps and vertical slices.
+Decomposition, vertical slicing, and execution planning.
 
 | Skill                           | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | How it works                                                                                                                                                                                                        | Use Case                                                                                                            | Modes                 | Est. Context Footprint |
 | :------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------ | :-------------------- | :--------------------- |
 | **`planning-expert`**           | The complete Planning Expert Zenith. Orchestrates deep pattern discovery, vertical slicing, and safe incremental delivery. Now PR-batch aware — it ingests vertical slices handed off from `vertical-slice-decomposer` (the `/plan` target) as well as freeform slices a developer writes by hand, caps every PR batch at <=15-20 changed files, and breaks oversized plans into forward-independent, individually deployable PRs with a blocking hand-off to `pr-automator`. Use for complex or heavy tasks, architectural refactors, multi-file features, or whenever a plan will touch more than ~15 files and must be split into stacked PRs under Trunk-Based Development. | Deep codebase audit followed by an atomic G-Stack blueprint and commit-ready task list.                                                                                                                             | Breaking down complex Jira tickets or architectural refactors into test-driven steps.                               | read-only, write, mcp | ~5900 tokens           |
 | **`planning-expert-quick`**     | Ultra-lean strategic planning. Optimized for speed, token efficiency, and rapid MVC delivery. Now PR-batch aware — it ingests vertical slices handed off from `vertical-slice-decomposer` as well as freeform slices a developer writes by hand, keeps every PR batch <=15-20 changed files, and on reaching that ceiling hands off to `pr-automator` and escalates multi-batch sequencing to `planning-expert`. Use for common, lightweight tasks (1-2 files) where velocity is the priority.                                                                                                                                                                                  | Anchors tech stack followed by a condensed W/W/H blueprint and rapid execution cycle.                                                                                                                               | Common, less complex, lite-weight tasks where velocity is the priority.                                             | read-only, write, mcp | ~2300 tokens           |
 | **`reflexion-loop`**            | [LOOP · DUAL-MODEL · API KEYS] ✨ SPECIAL FEATURE (not agent-agnostic — requires API keys). A self-correcting generator–critic–adjudicator loop that turns a brief into a Four-Pillars-graded implementation plan. Gemini drafts the plan, Claude grades it 0–10 on each pillar and returns ONE actionable fix, the router rewrites or stops, and Claude writes the final verdict. Runs the real two-model loop via `rtk run reflexion-loop` or the `reflexion_loop` MCP tool. Use when you want a plan hardened by an independent critic before committing engineering time. (Note: The stated token cost is per loop/run).                                                    | -                                                                                                                                                                                                                   | -                                                                                                                   | read-only, write, mcp | ~1000 tokens           |
+| **`reflexion-loop-local`**      | [LOOP · LOCAL · SAME-MODEL] Fully offline model loop with same-model sequential self-critique, governed by a token and wall-clock budget.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | -                                                                                                                                                                                                                   | -                                                                                                                   | read-only, write, mcp | ~0 tokens              |
 | **`reflexion-loop-sub-max`**    | [LOOP · SUB-MAX · NO API KEYS · CROSS-MODEL VERIFY] $100/mo tier context-isolated plan hardening loop. Manages multi-vendor model isolation (L0-L3) and exhaustion limits without losing work, delivering cross-model verified plans without requiring API keys. (Note: The stated token cost is per loop/run).                                                                                                                                                                                                                                                                                                                                                                 | Multi-vendor model contract, Findings Ledger, and context-firewalled critic isolation                                                                                                                               | Plan hardening on a $100/mo subscription without requiring external API keys                                        | read-only, write, mcp | ~1400 tokens           |
 | **`reflexion-loop-sub-pro`**    | [LOOP · SUB-PRO · NO API KEYS · CROSS-MODEL VERIFY] $20/mo tier context-isolated loop. Single-pass cross-model plan check enforcing Mode B quota handling and mandatory disclosure without requiring API keys.                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Single-pass Generator/Critic model contract, Mode B consolidate-and-park, and mandatory three-state end-state disclosure                                                                                            | Frugal single-pass plan verification on a standard ($20/mo) subscription without API keys                           | read-only, write, mcp | ~1300 tokens           |
 | **`vertical-slice-decomposer`** | Decomposes one or more user stories — optionally with design screenshots or Figma URLs — into thin, independently deployable vertical slices (<=2 days) and emits ClickUp-ready tasks. Each task carries a technical-details section, a developer technical prompt, a dark-release (beta-flag) decision, and a mock-vs-real-backend decision. Built for greenfield and (primarily) brownfield features under Trunk-Based Development.                                                                                                                                                                                                                                           | Phase 0 stack + domain-boundary + design-input discovery, then a deployability-test + BDD + design-state slicing engine, a persistent Slice Ledger for multi-turn anti-drift, and a fixed Output Contract per task. | Turning brownfield/greenfield stories and designs into 2-day, dark-releasable slices under Trunk-Based Development. | read-only, write, mcp | ~2000 tokens           |
 
-### Build & Fix
+### Build
 
-Implementation engines for fixing bugs and addressing feedback.
+Implementation, refactoring, and feature development.
 
-| Skill                    | Description                                                                               | How it works                                                                                                    | Use Case                                                                 | Modes          | Est. Context Footprint |
-| :----------------------- | :---------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------- | :------------- | :--------------------- |
-| **`regression-bug-fix`** | Unified Remediation Engine for resolving Design Review (DR), QA, and Regression feedback. | Maps feedback to code impact, generates a localized remediation plan, and verifies the fix against regressions. | Fixing "Login button misaligned" or "API returning 500" after a QA pass. | read-only, mcp | ~1350 tokens           |
+| Skill                    | Description                                                                                                                                           | How it works                                                                                                    | Use Case                                                                 | Modes                 | Est. Context Footprint |
+| :----------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------- | :-------------------- | :--------------------- |
+| **`clean-code`**         | High-density architectural auditor. Enforces SOLID as the primary structural framework and pragmatic standards (KISS, DRY, YAGNI) for implementation. | Scans for "God Objects" and tight coupling. Recommends strategy patterns and colocation of code.                | Checking a new feature branch before merging to prevent technical debt.  | read-only, write, mcp | ~950 tokens            |
+| **`regression-bug-fix`** | Unified Remediation Engine for resolving Design Review (DR), QA, and Regression feedback.                                                             | Maps feedback to code impact, generates a localized remediation plan, and verifies the fix against regressions. | Fixing "Login button misaligned" or "API returning 500" after a QA pass. | read-only, mcp        | ~1350 tokens           |
 
-### Review & Verify
+### Review
 
-Quality gatekeepers for code standards, accessibility, and security.
+Quality assurance, code review, accessibility, and security.
 
-| Skill                        | Description                                                                                                                                                                                                                         | How it works                                                                                                  | Use Case                                                                  | Modes                 | Est. Context Footprint |
-| :--------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------ | :------------------------------------------------------------------------ | :-------------------- | :--------------------- |
-| **`accessibility-auditor`**  | Specialized audit for Web Accessibility (A11y). Scans for contrast issues, missing semantics, ARIA debt, and keyboard navigation barriers. Uses static analysis (grep/read) and read-only runtime inspection — no script injection. | Static analysis via `grep`, visual scrutiny of CSS, and read-only runtime DOM inspection.                     | Ensuring WCAG 2.1 compliance and multi-viewport accessibility.            | read-only, write, mcp | ~650 tokens            |
-| **`clean-code`**             | High-density architectural auditor. Enforces SOLID as the primary structural framework and pragmatic standards (KISS, DRY, YAGNI) for implementation.                                                                               | Scans for "God Objects" and tight coupling. Recommends strategy patterns and colocation of code.              | Checking a new feature branch before merging to prevent technical debt.   | read-only, write, mcp | ~950 tokens            |
-| **`code-review-checklist`**  | Lightweight Pre-Commit Review Checklist. Focuses on Spec Compliance and Rapid Verification before GitHub submission.                                                                                                                | Analyzes local diffs against 4 gates (Spec, SOLID, A11y, Evidence), ensuring zero `any` types and compliance. | Rapid local verification before running `rtk run create-pr`.              | read-only, write, mcp | ~650 tokens            |
-| **`security-audit`**         | Cross-platform security scanner for AI Agent configurations to detect malware, prompt injection, and exfiltration.                                                                                                                  | Scans skills, scripts, and inputs for malicious patterns (`curl \| bash`, `eval()`).                          | Running on agent-generated scripts to ensure no backdoors are introduced. | read-only, mcp        | ~550 tokens            |
-| **`technical-debt-auditor`** | High-density structural and technical debt scanner. Produces quantified, prioritized remediation plans based on G-Stack and MinimumCD standards.                                                                                    | Metrics-driven analysis combined with G-Stack methodology to prioritize refactoring tasks.                    | Routine codebase maintenance and pre-refactoring audits.                  | read-only, write, mcp | ~850 tokens            |
+| Skill                       | Description                                                                                                                                                                                                                         | How it works                                                                                                  | Use Case                                                                  | Modes                 | Est. Context Footprint |
+| :-------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------ | :------------------------------------------------------------------------ | :-------------------- | :--------------------- |
+| **`accessibility-auditor`** | Specialized audit for Web Accessibility (A11y). Scans for contrast issues, missing semantics, ARIA debt, and keyboard navigation barriers. Uses static analysis (grep/read) and read-only runtime inspection — no script injection. | Static analysis via `grep`, visual scrutiny of CSS, and read-only runtime DOM inspection.                     | Ensuring WCAG 2.1 compliance and multi-viewport accessibility.            | read-only, write, mcp | ~650 tokens            |
+| **`code-review-checklist`** | Lightweight Pre-Commit Review Checklist. Focuses on Spec Compliance and Rapid Verification before GitHub submission.                                                                                                                | Analyzes local diffs against 4 gates (Spec, SOLID, A11y, Evidence), ensuring zero `any` types and compliance. | Rapid local verification before running `rtk run create-pr`.              | read-only, write, mcp | ~650 tokens            |
+| **`design-system-review`**  | AI-augmented design review with a strict 2-iteration guard, sequential memory persistence, and KI creation. Enforces Shadcn/Radix token alignment, layout fidelity against the Figma frame, and coordinates designer quality gates. | -                                                                                                             | -                                                                         | read-only, write, mcp | ~1400 tokens           |
+| **`security-audit`**        | Cross-platform security scanner for AI Agent configurations to detect malware, prompt injection, and exfiltration.                                                                                                                  | Scans skills, scripts, and inputs for malicious patterns (`curl \| bash`, `eval()`).                          | Running on agent-generated scripts to ensure no backdoors are introduced. | read-only, mcp        | ~550 tokens            |
 
-### Design & UI
+### Deploy
 
-Visual agents focused on UI specs, styling logic, and layout verification.
+Release notes, changelogs, and environment preparation.
 
-| Skill                      | Description                                                                                                                                                                                                                         | How it works                                                                                      | Use Case                                                                  | Modes                 | Est. Context Footprint |
-| :------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------ | :------------------------------------------------------------------------ | :-------------------- | :--------------------- |
-| **`design-system-review`** | AI-augmented design review with a strict 2-iteration guard, sequential memory persistence, and KI creation. Enforces Shadcn/Radix token alignment, layout fidelity against the Figma frame, and coordinates designer quality gates. | -                                                                                                 | -                                                                         | read-only, write, mcp | ~1400 tokens           |
-| **`style-logic-exporter`** | Extracts design tokens and style logic from code for design-to-code alignment.                                                                                                                                                      | Scans style sheets and theme configurations to extract variables, colors, and typography metrics. | Syncing code-based styling with design systems or external documentation. | read-only, mcp        | ~550 tokens            |
-| **`ui-spec-generator`**    | Architectural discovery engine for generating base skeleton UI components aligned with G-Stack modularity.                                                                                                                          | -                                                                                                 | -                                                                         | read-only, mcp        | ~850 tokens            |
-| **`visual-verifier`**      | Performs smoke testing, captures media evidence, and compares renders against the Figma design source for any web environment.                                                                                                      | Runs local app via Playwright and captures Desktop/Mobile screenshots for the PR body.            | Proving that a CSS fix works as intended across different viewports.      | read-only, write, mcp | ~450 tokens            |
+| Skill                       | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | How it works                                                                                                                                                                  | Use Case                                                                                                     | Modes                 | Est. Context Footprint |
+| :-------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------- | :-------------------- | :--------------------- |
+| **`changelog-generator`**   | High-density semantic changelog processor. Transforms Git history into user-facing release notes.                                                                                                                                                                                                                                                                                                                                                                                                                         | Ingests `git log`, groups by semantic commit type, filters noise, and formats to Markdown.                                                                                    | Generating clean release notes for stakeholders.                                                             | read-only, write, mcp | ~750 tokens            |
+| **`pr-automator`**          | Automates the creation of Pull Requests with full context. Use this skill whenever the user wants to open, draft, raise, or "PR" their current branch — including phrasings like "create a PR", "open a draft PR", "raise a pull request", or "PR this branch" — even if they don't name the skill. The skill reviews git commit history, strictly maps changes to the project's PR template, automatically applies repository labels, pushes the branch to remote if unpushed, and creates the draft PR via the gh CLI.  | Reviews commit history, populates project PR templates, automatically infers labels, and creates a draft PR via GitHub CLI.                                                   | Finalizing a feature branch into a professional, template-compliant PR.                                      | read-only, write, mcp | ~6650 tokens           |
+| **`qa-handover-generator`** | Produces a QA handover + universal smoke-test criteria document for a changed feature and delivers it to ClickUp. Splits behaviour by architecture/state pattern, states the single source of truth per pattern (from real code), and emits smoke-test acceptance criteria that are both agent-ingestible (for generating formal acceptance criteria) and directly followable by a human tester. All ClickUp output is rendered through the shared clickup-format module (single source of truth for ClickUp formatting). | Performs Phase 0 G-Stack discovery of state architecture, maps components to server-driven vs client-side patterns, and renders ClickUp markup via the clickup-format module. | Generating high-fidelity QA handovers and smoke test checklists for developers and automated testing agents. | read-only, write, mcp | ~950 tokens            |
 
-### Ship & Communicate
+### Scale
 
-Automation for PRs, changelogs, and team updates.
+Performance budgets, capacity planning, and optimization.
 
-| Skill                          | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | How it works                                                                                                                                                                  | Use Case                                                                                                     | Modes                 | Est. Context Footprint |
-| :----------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------- | :-------------------- | :--------------------- |
-| **`changelog-generator`**      | High-density semantic changelog processor. Transforms Git history into user-facing release notes.                                                                                                                                                                                                                                                                                                                                                                                                                         | Ingests `git log`, groups by semantic commit type, filters noise, and formats to Markdown.                                                                                    | Generating clean release notes for stakeholders.                                                             | read-only, write, mcp | ~750 tokens            |
-| **`daily-standup`**            | Analyzes local git activity and task progress to generate a comprehensive 2-day rolling standup report following a strict template.                                                                                                                                                                                                                                                                                                                                                                                       | Categorizes commits, assess blockers, and generates a rolling report using a professional standup template.                                                                   | Automating your daily update or summarizing work for a sync meeting.                                         | read-only, mcp        | ~550 tokens            |
-| **`pr-automator`**             | Automates the creation of Pull Requests with full context. Use this skill whenever the user wants to open, draft, raise, or "PR" their current branch — including phrasings like "create a PR", "open a draft PR", "raise a pull request", or "PR this branch" — even if they don't name the skill. The skill reviews git commit history, strictly maps changes to the project's PR template, automatically applies repository labels, pushes the branch to remote if unpushed, and creates the draft PR via the gh CLI.  | Reviews commit history, populates project PR templates, automatically infers labels, and creates a draft PR via GitHub CLI.                                                   | Finalizing a feature branch into a professional, template-compliant PR.                                      | read-only, write, mcp | ~6650 tokens           |
-| **`qa-handover-generator`**    | Produces a QA handover + universal smoke-test criteria document for a changed feature and delivers it to ClickUp. Splits behaviour by architecture/state pattern, states the single source of truth per pattern (from real code), and emits smoke-test acceptance criteria that are both agent-ingestible (for generating formal acceptance criteria) and directly followable by a human tester. All ClickUp output is rendered through the shared clickup-format module (single source of truth for ClickUp formatting). | Performs Phase 0 G-Stack discovery of state architecture, maps components to server-driven vs client-side patterns, and renders ClickUp markup via the clickup-format module. | Generating high-fidelity QA handovers and smoke test checklists for developers and automated testing agents. | read-only, write, mcp | ~950 tokens            |
-| **`weekly-leadership-report`** | Extracts technical progress from Git history and ClickUp sprints using browser automation to synthesize high-fidelity leadership reports.                                                                                                                                                                                                                                                                                                                                                                                 | -                                                                                                                                                                             | -                                                                                                            | read-only, write      | ~1200 tokens           |
+| Skill                  | Description                                                                                 | How it works                                                           | Use Case                                                           | Modes     | Est. Context Footprint |
+| :--------------------- | :------------------------------------------------------------------------------------------ | :--------------------------------------------------------------------- | :----------------------------------------------------------------- | :-------- | :--------------------- |
+| **`capacity-planner`** | Evaluates production capacity and defines performance budgets for a newly deployed release. | Analyzes system architecture and load metrics against target capacity. | Planning infrastructure scale-out before a major marketing launch. | read-only | ~750 tokens            |
+
+### Polish
+
+Design tokens extraction and final UI refinements.
+
+| Skill                      | Description                                                                                                                    | How it works                                                                                      | Use Case                                                                  | Modes                 | Est. Context Footprint |
+| :------------------------- | :----------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------ | :------------------------------------------------------------------------ | :-------------------- | :--------------------- |
+| **`style-logic-exporter`** | Extracts design tokens and style logic from code for design-to-code alignment.                                                 | Scans style sheets and theme configurations to extract variables, colors, and typography metrics. | Syncing code-based styling with design systems or external documentation. | read-only, mcp        | ~550 tokens            |
+| **`visual-verifier`**      | Performs smoke testing, captures media evidence, and compares renders against the Figma design source for any web environment. | Runs local app via Playwright and captures Desktop/Mobile screenshots for the PR body.            | Proving that a CSS fix works as intended across different viewports.      | read-only, write, mcp | ~450 tokens            |
+
+### Maintain
+
+Technical debt auditing, onboarding, and repo intelligence.
+
+| Skill                                  | Description                                                                                                                                      | How it works                                                                               | Use Case                                                 | Modes                 | Est. Context Footprint |
+| :------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------- | :------------------------------------------------------- | :-------------------- | :--------------------- |
+| **`codebase-onboarding-intelligence`** | Exhaustive discovery auditor for developer onboarding. Extracts tech stack, environment setup, and implementation patterns.                      | -                                                                                          | -                                                        | read-only, write, mcp | ~1100 tokens           |
+| **`technical-debt-auditor`**           | High-density structural and technical debt scanner. Produces quantified, prioritized remediation plans based on G-Stack and MinimumCD standards. | Metrics-driven analysis combined with G-Stack methodology to prioritize refactoring tasks. | Routine codebase maintenance and pre-refactoring audits. | read-only, write, mcp | ~850 tokens            |
+
+### Orchestrators
+
+| Skill                       | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | How it works                                                                                                                                        | Use Case                                                                                            | Modes                 | Est. Context Footprint |
+| :-------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------- | :-------------------- | :--------------------- |
+| **`dev-team-local`**        | [DEV-TEAM · LOCAL] Orchestrator for fully offline, single-lane execution.                                                                                                                                                                                                                                                                                                                                                                                                                                | -                                                                                                                                                   | -                                                                                                   | read-only, write, mcp | ~0 tokens              |
+| **`dev-team-orchestrator`** | [DEV-TEAM · FULL · MCP] The flagship orchestration skill: an agent-agnostic "dev team" you manage as a technical product manager. Sizes the crew to the task, runs multiple task lanes in parallel without collision, interviews the human only at gates, and files friction defects automatically on its own repo.                                                                                                                                                                                      | -                                                                                                                                                   | -                                                                                                   | read-only, write, mcp | ~2600 tokens           |
+| **`dev-team-sub-max`**      | [DEV-TEAM · SUB-MAX · NO API KEYS · CROSS-MODEL VERIFY] Subscription-tier ($100/mo) dev team orchestrator. Runs up to 2 parallel lanes with git worktrees, enforces turn budgets and quota ledger checkpoints, hardens plans via reflexion-loop-sub-max, manages multi-vendor model isolation (L0-L3) and exhaustion limits without losing work, and keeps the full visual fidelity gate intact without requiring API keys.                                                                              | Multi-vendor model contract, Quota Ledger with active model tracking, Findings Ledger, and context-firewalled reviewer isolation                    | Multi-lane parallel feature orchestration on a high-tier ($100/mo) subscription without API keys    | read-only, write, mcp | ~3100 tokens           |
+| **`dev-team-sub-pro`**      | [DEV-TEAM · SUB-PRO · NO API KEYS · CROSS-MODEL VERIFY] Subscription-tier ($20/mo) dev pair orchestrator. Single-lane, branch-based execution without worktrees, enforcing turn budgets, builder/checker roles, cross-vendor model isolation, Mode B quota handling, and tier-ceiling enforcement without requiring API keys.                                                                                                                                                                            | Single-lane Builder/Checker model contract, compressed Findings Ledger, Mode B consolidate-and-park, and mandatory three-state end-state disclosure | Frugal single-lane feature orchestration on a standard ($20/mo) subscription without API keys       | read-only, write, mcp | ~2500 tokens           |
+| **`feature-orchestrator`**  | The Three-Phase Engine. Orchestrates the full Research -> Plan -> Implement sequence for a single feature by chaining the specialist skills (feature-design-assistant, planning-expert / vertical-slice-decomposer, verification-auditor) into one governed loop. Runtime-aware: produces a verifiable implementation blueprint in read-only chat, and executes + verifies the implement phase in an IDE/MCP agent. Use from the feature-discovery chat to drive a change end-to-end in the sandbox app. | Chains specialist skills (design assistant, planning expert/decomposer, verification auditor) into a governed, runtime-aware loop.                  | Use from the feature-discovery chat to drive a single-feature change end-to-end in the sandbox app. | read-only, write, mcp | ~1400 tokens           |
+| **`mission-architect`**     | Master Blueprint Engine. Orchestrates Strategy -> Research -> Plan -> Deliver for complex, multi-component features.                                                                                                                                                                                                                                                                                                                                                                                     | Strategic extraction from roadmaps, deep codebase audit, and multi-stage planning via `planning-expert`.                                            | Designing and executing a major architectural change or multi-file feature.                         | read-only, mcp        | ~1300 tokens           |
+
+### Reports
+
+| Skill                          | Description                                                                                                                               | How it works                                                                                                | Use Case                                                             | Modes            | Est. Context Footprint |
+| :----------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------- | :--------------- | :--------------------- |
+| **`daily-standup`**            | Analyzes local git activity and task progress to generate a comprehensive 2-day rolling standup report following a strict template.       | Categorizes commits, assess blockers, and generates a rolling report using a professional standup template. | Automating your daily update or summarizing work for a sync meeting. | read-only, mcp   | ~550 tokens            |
+| **`weekly-leadership-report`** | Extracts technical progress from Git history and ClickUp sprints using browser automation to synthesize high-fidelity leadership reports. | -                                                                                                           | -                                                                    | read-only, write | ~1200 tokens           |
 
 ### Internal Skills
 
 | Skill                        | Description                                                                                                                                      | Modes                 | Est. Context Footprint |
 | :--------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------- | :--------------------- |
 | **`agent-optimizer`**        | Precision tool for Token-Efficiency, Context Density Management, and Noise Reduction. Enforces the RTK (Rust Token Killer) methodology.          | read-only, write, mcp | ~550 tokens            |
-| **`Dummy Skill`**            | A dummy skill for testing                                                                                                                        | read-only, mcp        | ~0 tokens              |
+| **`Dummy Skill`**            | A dummy skill for testing purposes.                                                                                                              | read-only, mcp        | ~50 tokens             |
 | **`knowledge-manager`**      | Manage project-specific knowledge items to maintain persistent context and architectural memory.                                                 | read-only, write, mcp | ~450 tokens            |
 | **`mission-control`**        | High-integrity pre-flight diagnostic to verify environment, tools, and skill dependencies.                                                       | read-only, write, mcp | ~650 tokens            |
 | **`operational-boundaries`** | Global behavioral guardrails to prevent agent deviation and context hijacking.                                                                   | read-only, mcp        | ~400 tokens            |
@@ -672,20 +818,45 @@ agents default to high-discipline engineering rather than the shortest path:
 > robust verification. It is designed to work seamlessly with C#, Python,
 > JavaScript, Java, Go, and any other ecosystem.
 
-> [!NOTE] **🧭 The Three-Phase Engine** The **Feature Orchestrator** governs a
-> single feature's lifecycle through a disciplined three-phase loop:
->
-> 1. **Research (Research Phase)**: Prototypes domain models, data structures,
->    and contract boundaries using `feature-design-assistant` (optionally
->    chaining `ui-spec-generator` and `design-system-review` when design inputs
->    are available).
-> 2. **Plan (Planning Phase)**: Decomposes the requirements into thin,
->    independently deployable vertical slices using `vertical-slice-decomposer`
->    (or `planning-expert` for backend/architectural tasks).
-> 3. **Implement (Implementation Phase)**: Sandbox execution and continuous
->    verification using `verification-auditor` and `regression-bug-fix` to
->    ensure that every slice satisfies all compilation, type-safety, and visual
->    design requirements.
+> [!NOTE] **🧭 The 9-Phase Lifecycle** The orchestrators govern features through
+> a strict 9-phase lifecycle (Intent, Specify, Plan, Build, Review, Deploy,
+> Scale, Polish, Maintain). Under the "nine-in-metadata" rule, a skill's phase
+> lives strictly in its extended markdown frontmatter contract and the compiled
+> `skills.graph.json`, never in its directory structure.
+
+### Skill Orchestration & Handoffs
+
+Skills are classified along **kind**, **domain**, and **ownership** axes.
+Orchestrator skills use `spans` to run sub-agents. Handoffs between skills are
+strictly typed and backed by Knowledge Items. A skill's `consumes` and `emits`
+properties map directly to KI slugs, ensuring that a skill only runs when its
+prerequisite artifacts exist. The MCP server uses `plan_pipeline` and a
+graph-aware `get_skill` tool (which injects requires/suggests footers) to
+enforce this graph. The compiled `skills.graph.json` acts as the source of truth
+for these relationships; any undocumented drift is blocked in CI by the drift
+gate (`npm run generate:registry -- --check`).
+
+### Policies & CI Hooks Enforcer
+
+Dynamic operational rules are injected via `.ai/policies` (e.g., four-pillars,
+user-sovereignty, diagnosis-first). The hooks layer (`.ai/hooks`) enforces
+ownership gates at MCP call-time and in CI via a dedicated hooks enforcer.
+
+### Execution Targets
+
+Agent tasks are governed by four distinct execution targets depending on budget
+and capability constraints:
+
+- **`local`**: Offline execution using the local model tier.
+- **`sub-pro`**: Baseline subscription tier ($20/mo) execution.
+- **`sub-max`**: Advanced subscription tier ($100/mo) execution.
+- **`byo`**: Bring-Your-Own API key execution for full capabilities.
+
+### Analytics
+
+We capture per-phase measurement metrics using Langfuse telemetry, which
+includes recent accuracy fixes (PROMPTS A and B) to better track agent
+progression.
 
 ### ✨ Special Feature: The Reflexion Loop
 
@@ -760,7 +931,7 @@ through the **MCP Server**, which enforces a strict priority of discovery:
 ### Priority Logic Snippet:
 
 ```typescript
-// src/mcp-server/fs-service.ts
+// src/lib/skills/fs-service.ts
 
 async readSkill(safeSkillName: string) {
   // Define Search Paths: Local Project has priority over Global Repo

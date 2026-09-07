@@ -11,6 +11,19 @@ how:
   'Metrics-driven analysis combined with G-Stack methodology to prioritize
   refactoring tasks.'
 useCase: 'Routine codebase maintenance and pre-refactoring audits.'
+phase: maintain
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+suggests: [clean-code]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Technical Debt Auditor (Health Scanner)
@@ -19,14 +32,6 @@ useCase: 'Routine codebase maintenance and pre-refactoring audits.'
 
 Produces a verifiable technical debt blueprint in read-only chat, and executes +
 verifies the audit phase in an IDE/MCP agent.
-
-> [!IMPORTANT] **Diagnosis before Advice**: Every audit begins with **Tech-Stack
-> Discovery**. The auditor must understand the project's native maintenance
-> standards before identifying debt.
->
-> **Methodology Alignment**: This skill strictly adheres to the four core
-> pillars: **G-Stack Ethos**, **MinimumCD**, **Agent Skills**, and **Modern Web
-> Guidance**.
 
 ## 🎯 Verification Gates
 

@@ -1,0 +1,11 @@
+{
+  "id": "deploy-requires-review",
+  "description": "Block deploy unless a review-report KI exists and passed",
+  "appliesToPhase": ["deploy"],
+  "condition": {
+    "requireKi": "review-report",
+    "requireKiStatus": "passed"
+  },
+  "action": "block",
+  "message": "Deployment requires a passing review-report KI."
+}

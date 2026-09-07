@@ -9,6 +9,33 @@ cost: ~2600 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Orchestrators
+kind: orchestrator
+domain: eng
+spans: [intent, specify, plan, build, maintain, review, deploy]
+ownership:
+  drive: human-ai
+  approve: human
+targets: [api, subscription]
+minModelClass: large
+requires: [design-system-review, reflexion-loop]
+suggests:
+  [
+    accessibility-auditor,
+    ask,
+    code-review-checklist,
+    dev-team-sub-max,
+    dev-team-sub-pro,
+    feature-design-assistant,
+    mission-architect,
+    planning-expert,
+    verification-auditor,
+    vertical-slice-decomposer,
+    visual-verifier,
+  ]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Dev Team Orchestrator (The Agentic Crew)
@@ -243,3 +270,20 @@ role actions:
 Pass `{ teamRole: "<ROLE>", loopRunId: "<MISSION_ID>", actorType: "AGENT" }`
 when invoking skills to ensure the activity is correctly attributed on the
 Agentic Health dashboard.
+
+### Hooks (Ownership Gates)
+
+Before advancing to the next phase or gate, you MUST consult `.ai/hooks/`. If a
+guard is triggered and requires human approval (`require-human-approve`), you
+MUST append the question to the human inbox (`.dev-team/inbox.md`) rather than
+proceeding.
+
+## Code Modification Convention
+
+**REQUIREMENT:** When modifying files, you MUST use the `apply_patch` tool with
+minimal SEARCH/REPLACE blocks instead of rewriting whole files.
+
+- Never emit a full-file rewrite.
+- Never restate unchanged code.
+- **Rule:** Include only the lines that change plus minimal surrounding anchor
+  context.

@@ -8,6 +8,22 @@ cost: ~1400 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Design & UI
+phase: review
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [diff]
+emits: [review-report]
+requires: [accessibility-auditor, style-logic-exporter]
+suggests: [pr-automator, qa-handover-generator, visual-verifier]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Design System Review (Iteration Guard)

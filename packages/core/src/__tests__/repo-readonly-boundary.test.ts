@@ -27,9 +27,6 @@ import { FileStateStore } from '../lib/ai/reflexion/state-store';
  */
 
 // Mock langfuse & prisma to prevent external network or DB calls
-jest.mock('langfuse', () => ({
-  Langfuse: jest.fn().mockImplementation(() => ({})),
-}));
 
 jest.mock('../lib/prisma', () => ({
   prisma: {

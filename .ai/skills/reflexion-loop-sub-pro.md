@@ -14,6 +14,22 @@ how:
 useCase:
   'Frugal single-pass plan verification on a standard ($20/mo) subscription
   without API keys'
+phase: plan
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [spec]
+emits: [plan]
+suggests:
+  [clean-code, regression-bug-fix, reflexion-loop-sub-max, reflexion-loop]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Reflexion Loop ($20/mo Tier - No API Keys)

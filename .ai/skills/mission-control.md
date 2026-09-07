@@ -8,6 +8,18 @@ capabilities: [filesystem_access, rtk_execution, shell_access]
 cost: ~650 tokens
 modes: [read-only, write, mcp]
 surface: internal
+kind: orchestrator
+domain: eng
+spans: [intent, specify, plan, build, maintain, review, deploy]
+ownership:
+  drive: human-ai
+  approve: human
+targets: [api, subscription]
+minModelClass: large
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Mission Control (Pre-Flight Check)

@@ -17,6 +17,22 @@ how:
   labels, and creates a draft PR via GitHub CLI.'
 useCase:
   'Finalizing a feature branch into a professional, template-compliant PR.'
+phase: deploy
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [review-report]
+emits: [release]
+requires: [visual-verifier]
+suggests: [ask]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # PR Automator

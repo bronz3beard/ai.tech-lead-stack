@@ -1,7 +1,19 @@
-import { Langfuse } from 'langfuse';
+import crypto from 'node:crypto';
+import { langfuseSink } from './langfuse-sink';
 import { langfuseLabel } from './langfuse-labels';
 import { prisma } from './prisma';
 import { normalizeProjectName, normalizeSkillName } from './trace-utils';
+import { MODEL_CATALOG } from './ai/model-registry';
+
+// NOTE: Adding a new routable model (e.g. claude-opus-4-8, gemini-3.7-flash) requires an entry in BOTH PRICING_MAP and MODEL_CATALOG (in model-registry.ts).
+const PRICING_MAP: Record<string, { input: number; output: number }> = {
+  'claude-opus-4-6': { input: 5, output: 25 },
+  'claude-sonnet-4-6': { input: 3, output: 15 },
+  'claude-haiku-4-5': { input: 1, output: 5 },
+  'gemini-3.6-flash': { input: 0.75, output: 3.75 },
+  'gemini-3.1-pro': { input: 2, output: 12 },
+};
+const DEFAULT_PRICING = { input: 3, output: 15 };
 
 export interface TelemetryMetadata {
   skillName: string;
@@ -18,7 +30,6 @@ export interface TelemetryMetadata {
 
 export class TelemetryService {
   private static instance: TelemetryService;
-  private langfuse: Langfuse | null = null;
   private isConfigured = false;
   private publicKey: string | undefined = '';
   private secretKey: string | undefined = '';
@@ -36,7 +47,7 @@ export class TelemetryService {
   private configure(): boolean {
     // Only skip re-initialization if the Langfuse client is already instantiated.
     // Do NOT gate on isConfigured alone — env vars may arrive after the first configure() call.
-    if (this.langfuse) return true;
+    if (this.isConfigured) return true;
 
     this.publicKey = process.env.LANGFUSE_PUBLIC_KEY;
     this.secretKey = process.env.LANGFUSE_SECRET_KEY;
@@ -50,11 +61,6 @@ export class TelemetryService {
       this.secretKey !== 'placeholder'
     ) {
       try {
-        this.langfuse = new Langfuse({
-          publicKey: this.publicKey,
-          secretKey: this.secretKey,
-          baseUrl: this.baseUrl,
-        });
         this.isConfigured = true;
         const projectShort = this.publicKey.split('-')[1] || 'unknown';
         console.error(
@@ -62,7 +68,7 @@ export class TelemetryService {
         );
         return true;
       } catch (err) {
-        console.error('[Telemetry] Failed to initialize Langfuse client:', err);
+        console.error('[Telemetry] Failed to initialize telemetry config:', err);
         return false;
       }
     }
@@ -112,54 +118,98 @@ export class TelemetryService {
 
     const normalizedSkill = normalizeSkillName(params.skillName);
     const normalizedProject = normalizeProjectName(params.projectName);
-    const resolvedModel = langfuseLabel(params.model || 'unknown-model');
-    const resolvedAgent = langfuseLabel(params.agent || 'unknown-agent');
+
+    // Validate Model against Catalog
+    const originalModel = params.model || 'unknown-model';
+    let validatedModel = originalModel;
+    let validatedAgent = params.agent || 'unknown-agent';
+    let invalidModelValue: string | undefined;
+    let isRecognizedModel = false;
+
+    // 1. First try exact catalog id match (or label match)
+    const exactMatch = MODEL_CATALOG.find(m => m.id === originalModel || m.label === originalModel);
+    
+    if (exactMatch) {
+      validatedModel = exactMatch.id;
+      isRecognizedModel = true;
+    } else if (originalModel !== 'unknown-model') {
+      // 2. Normalize: lowercase, trim, strip trailing date/version suffix (e.g. -20260101, @preview)
+      const normalized = originalModel.toLowerCase().trim().replace(/(-[0-9]{8}|@preview)$/, '');
+      const normalizedMatch = MODEL_CATALOG.find(m => m.id === normalized || m.label.toLowerCase() === normalized);
+      
+      if (normalizedMatch) {
+        validatedModel = normalizedMatch.id;
+        isRecognizedModel = true;
+      } else {
+        // 3. Accept it as a REAL model id if it matches a known provider prefix
+        const isProviderPrefix = /^(claude-|gemini-|gpt-|o[1-9])/i.test(originalModel);
+        const isLocalModel = process.env.LOCAL_MODEL_NAME && originalModel === process.env.LOCAL_MODEL_NAME;
+        
+        if (isProviderPrefix || isLocalModel) {
+          validatedModel = originalModel;
+          isRecognizedModel = true;
+        }
+      }
+    }
+
+    if (!isRecognizedModel && originalModel !== 'unknown-model') {
+      // Only route to the agent field values that are clearly NOT model ids
+      // Re-route agents like "Antigravity", "Jules", "Cursor" to agent field if agent is missing
+      if (!params.agent || params.agent === 'unknown-agent' || params.agent === 'unknown') {
+         validatedAgent = originalModel;
+      }
+      invalidModelValue = originalModel;
+      validatedModel = 'unknown-model';
+    }
+
+    const resolvedModel = langfuseLabel(validatedModel);
+    const resolvedAgent = langfuseLabel(validatedAgent);
 
     const promptTokens = params.promptTokens || 0;
     const completionTokens = params.completionTokens || 0;
 
-    // Estimate total cost based on GPT-4o pricing
-    const inputCost = (promptTokens / 1_000_000) * 5.0;
-    const outputCost = (completionTokens / 1_000_000) * 15.0;
+    // Estimate total cost based on pricing map
+    let inputRate = DEFAULT_PRICING.input;
+    let outputRate = DEFAULT_PRICING.output;
+    let pricingFallback = false;
+
+    if (PRICING_MAP[validatedModel]) {
+      inputRate = PRICING_MAP[validatedModel].input;
+      outputRate = PRICING_MAP[validatedModel].output;
+    } else if (validatedModel !== 'unknown-model') {
+      // Look up closest family rate before falling back
+      const familyRates: Array<{ match: RegExp, rate: { input: number; output: number } }> = [
+        { match: /gemini-.*-flash/i, rate: PRICING_MAP['gemini-3.6-flash'] },
+        { match: /gemini-.*-pro/i, rate: PRICING_MAP['gemini-3.1-pro'] },
+        { match: /claude-.*-opus/i, rate: PRICING_MAP['claude-opus-4-6'] },
+        { match: /claude-.*-sonnet/i, rate: PRICING_MAP['claude-sonnet-4-6'] },
+        { match: /claude-.*-haiku/i, rate: PRICING_MAP['claude-haiku-4-5'] },
+      ];
+      
+      const matchedFamily = familyRates.find(f => f.match.test(validatedModel));
+      if (matchedFamily) {
+        inputRate = matchedFamily.rate.input;
+        outputRate = matchedFamily.rate.output;
+      } else if (promptTokens > 0 || completionTokens > 0) {
+        pricingFallback = true;
+      }
+    } else if (promptTokens > 0 || completionTokens > 0) {
+      pricingFallback = true;
+    }
+
+    const inputCost = (promptTokens / 1_000_000) * inputRate;
+    const outputCost = (completionTokens / 1_000_000) * outputRate;
     const totalCost = Number((inputCost + outputCost).toFixed(6));
 
-    // 1. Log to Langfuse (Async)
-    let langfuseTraceId: string | null = null;
-    if (this.isConfigured && this.langfuse) {
-      try {
-        const trace = this.langfuse.trace({
-          name: `skill:${normalizedSkill}`,
-          userId: params.userEmail,
-          metadata: {
-            ...params.metadata,
-            projectName: normalizedProject,
-            model: resolvedModel,
-            agent: resolvedAgent,
-          },
-          tags: [normalizedProject, resolvedModel, normalizedSkill],
-        });
+    const finalMetadata = {
+      ...params.metadata,
+      ...(invalidModelValue && { invalidModel: invalidModelValue }),
+      ...(pricingFallback && { pricingFallback: true }),
+      llmCall: params.metadata?.llmCall !== undefined ? params.metadata.llmCall : true,
+    };
 
-        langfuseTraceId = trace.id;
-
-        trace.generation({
-          name:
-            params.status === 'ERROR'
-              ? `error:${normalizedSkill}`
-              : `generation:${normalizedSkill}`,
-          model: resolvedModel,
-          statusMessage: params.error,
-          usage: {
-            promptTokens,
-            completionTokens,
-          },
-          metadata: params.metadata,
-        });
-
-        this.langfuse.flushAsync().catch(() => {});
-      } catch (err) {
-        console.error('[Telemetry] Langfuse logging failed:', err);
-      }
-    }
+    // 1. Generate Langfuse Trace ID (for deterministic association)
+    const langfuseTraceId = crypto.randomUUID();
 
     // 2. Log to Postgres
     try {
@@ -212,7 +262,7 @@ export class TelemetryService {
         totalCost: totalCost,
         langfuseTraceId,
         metadata: {
-          ...params.metadata,
+          ...finalMetadata,
           userEmail: params.userEmail,
           projectName: normalizedProject,
           estimatedCost: totalCost,
@@ -229,31 +279,63 @@ export class TelemetryService {
         JSON.stringify(eventData, null, 2)
       );
 
-      const event = await prisma.analyticsEvent.create({
-        data: eventData,
-      });
+      // Make the Postgres write resilient with a retry
+      let event: any;
+      let lastError: any;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          event = await prisma.analyticsEvent.create({
+            data: eventData,
+          });
+          break; // Success
+        } catch (err) {
+          lastError = err;
+          console.warn(`[Telemetry] Postgres create attempt ${attempt} failed: ${String(err)}`);
+          if (attempt < 3) {
+            await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 100)); // exponential backoff
+          }
+        }
+      }
+
+      if (!event) {
+        throw lastError || new Error('Failed to create AnalyticsEvent after retries');
+      }
 
       console.error(
         `[Telemetry] Successfully recorded event to DB: ${normalizedSkill} (ID: ${event.id}, Status: ${params.status})`
       );
 
-      // Async enrichment: Fetch actual usage from Langfuse if possible
-      if (langfuseTraceId) {
-        console.error(
-          `[Telemetry] Triggering async enrichment for trace ${langfuseTraceId}...`
-        );
-        this.enrichEvent(event.id, langfuseTraceId).catch((err) => {
-          console.error('[Telemetry] Enrichment failed:', err);
+      // Async enqueue to Langfuse sink
+      try {
+        langfuseSink.enqueue({
+          traceId: langfuseTraceId,
+          skillName: normalizedSkill,
+          projectName: normalizedProject,
+          model: resolvedModel,
+          agent: resolvedAgent,
+          duration: params.duration,
+          status: params.status,
+          error: params.error,
+          promptTokens,
+          completionTokens,
+          totalCost: totalCost,
+          userEmail: params.userEmail,
+          metadata: finalMetadata,
+          loopPhase: params.loopPhase,
+          actorType: params.actorType,
+          autonomy: params.autonomy,
+          loopRunId: params.loopRunId,
+          teamRole: params.teamRole,
         });
+      } catch (sinkErr) {
+        console.error('[Telemetry] Failed to enqueue to langfuse sink:', sinkErr);
       }
-
       return event;
     } catch (dbError: any) {
       console.error(
         '[Telemetry] CRITICAL: Failed to log to Postgres:',
         dbError
       );
-      // Log more details if it's a Prisma error
       if (dbError.code) {
         console.error(`[Telemetry] Prisma Error Code: ${dbError.code}`);
       }
@@ -261,68 +343,6 @@ export class TelemetryService {
     }
   }
 
-  /**
-   * Fetches supplemental data from Langfuse API and updates the Postgres record.
-   * Falling back to previous estimation if Langfuse provides empty counts.
-   */
-  private async enrichEvent(eventId: string, traceId: string) {
-    if (!this.isConfigured || !this.publicKey || !this.secretKey) return;
-
-    try {
-      // Small delay to allow Langfuse processing (though most usage is sent in generation)
-      await new Promise((r) => setTimeout(r, 2000));
-
-      const authHeader = `Basic ${Buffer.from(`${this.publicKey}:${this.secretKey}`).toString('base64')}`;
-      const response = await fetch(
-        `${this.baseUrl}/api/public/traces/${traceId}`,
-        {
-          headers: { Authorization: authHeader },
-        }
-      );
-
-      if (!response.ok) return;
-
-      const traceDetails = await response.json();
-
-      // Attempt to extract usage from any of the generations associated with this trace
-      // In a more complex scenario, we'd sum all generations, but for a skill trace, there's usually one primary.
-      const generations =
-        traceDetails.observations?.filter(
-          (o: any) => o.type === 'GENERATION'
-        ) || [];
-
-      let enrichedPromptTokens = 0;
-      let enrichedCompletionTokens = 0;
-      let enrichedTotalCost = 0;
-
-      for (const gen of generations) {
-        enrichedPromptTokens += gen.usage?.promptTokens || 0;
-        enrichedCompletionTokens += gen.usage?.completionTokens || 0;
-        enrichedTotalCost += gen.usage?.totalCost || 0;
-      }
-
-      if (enrichedPromptTokens > 0 || enrichedCompletionTokens > 0) {
-        await prisma.analyticsEvent.update({
-          where: { id: eventId },
-          data: {
-            promptTokens: enrichedPromptTokens,
-            completionTokens: enrichedCompletionTokens,
-            totalTokens: enrichedPromptTokens + enrichedCompletionTokens,
-            totalCost: enrichedTotalCost > 0 ? enrichedTotalCost : undefined,
-            metadata: {
-              enrichedAt: new Date().toISOString(),
-              langfuseCost: enrichedTotalCost,
-            },
-          },
-        });
-        console.error(
-          `[Telemetry] Enriched event ${eventId} with actual Langfuse data.`
-        );
-      }
-    } catch (err) {
-      console.warn('[Telemetry] Enrichment suppressed:', err);
-    }
-  }
 }
 
 /**

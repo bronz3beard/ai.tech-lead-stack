@@ -1,0 +1,10 @@
+{
+  "id": "build-requires-approved-spec",
+  "description": "Block build skills if upstream spec KI is unapproved",
+  "appliesToPhase": ["build"],
+  "condition": {
+    "consumesApprovedKi": true
+  },
+  "action": "block",
+  "message": "Cannot build: upstream spec is not human-approved."
+}

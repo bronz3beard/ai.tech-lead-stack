@@ -73,10 +73,14 @@ export function buildRunner(
   fallbackCritic?: LanguageModel,
   createModelFn?: (id: string) => LanguageModel,
   fallbackPlanner?: LanguageModel,
-  fallbackPlannerId?: string
+  fallbackPlannerId?: string,
+  summarizer?: LanguageModel,
+  summarizerId?: string
 ): ReflexionRunner {
   let currentCreator = creator;
   let accumulatedTokens = 0;
+  let accumulatedPromptTokens = 0;
+  let accumulatedCompletionTokens = 0;
   let accumulatedCacheReadTokens = 0;
   let accumulatedCacheWriteTokens = 0;
   let totalCostUsd = 0;
@@ -107,6 +111,9 @@ export function buildRunner(
     
     const rawInputTokens = usageFallback.promptTokens ?? usage.inputTokens ?? 0;
     const outputTokens = usageFallback.completionTokens ?? usage.outputTokens ?? 0;
+    
+    accumulatedPromptTokens += rawInputTokens;
+    accumulatedCompletionTokens += outputTokens;
     
     const providerMetadata = (usage as any).providerMetadata;
     const anthropicRead = Number(providerMetadata?.anthropic?.cacheReadInputTokens || 0);
@@ -334,9 +341,27 @@ export function buildRunner(
         throw error;
       }
     },
+    async summarizeHistory(prompt, system) {
+      if (!summarizer || !summarizerId) {
+        throw new Error('summarizeHistory called but no summarizer model was provided.');
+      }
+      try {
+        const opts = formatCacheOptions(system, prompt, summarizerId);
+        const { text, usage } = await generateText({
+          model: summarizer,
+          ...opts,
+        });
+        addUsage(usage, summarizerId);
+        return text.trim();
+      } catch (error) {
+        throw error;
+      }
+    },
     getUsage() {
       return {
         tokens: accumulatedTokens,
+        promptTokens: accumulatedPromptTokens,
+        completionTokens: accumulatedCompletionTokens,
         costUsd: Number(totalCostUsd.toFixed(6)),
         cachedReadTokens: accumulatedCacheReadTokens,
         cacheWriteTokens: accumulatedCacheWriteTokens,
@@ -427,7 +452,9 @@ export function runnerFromEnv(
     fallbackCritic,
     (id: string) => createModel(id, keyFor(slotForModel(id), ctx)),
     fallbackPlanner,
-    fallbackPlannerId
+    fallbackPlannerId,
+    fallbackCritic || planner.model, // Use fallbackCritic (Flash) as summarizer, fallback to planner if not available
+    fallbackCritic ? MODELS.GEMINI_FALLBACK_CRITIC : planner.id
   );
 
   // If we already fell back during setup due to capabilities, mark the runner as degraded.

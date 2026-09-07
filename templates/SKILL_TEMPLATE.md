@@ -4,6 +4,30 @@ description: Describe the skill here.
 cost: ~10 tokens
 modes: [read-only, write, mcp]
 surface: public
+# phase: intent | specify | plan | build | maintain | review | scale | deploy | polish
+phase: build
+# kind: skill | orchestrator | policy | report
+kind: skill
+# domain: eng | product | hiring | shared
+domain: eng
+# ownership:
+ownership:
+  drive: human # human | ai | human-ai
+  approve: none # human | ai | none
+# targets: local | subscription | api
+targets: [local, subscription, api]
+# minModelClass: small | mid | large
+minModelClass: mid
+# consumes: [artifact-types]
+consumes: []
+# emits: [artifact-types]
+emits: []
+# requires: [skill-names]
+requires: []
+# suggests: [skill-names]
+suggests: []
+# policies: [policy-names]
+policies: []
 ---
 
 # New Skill

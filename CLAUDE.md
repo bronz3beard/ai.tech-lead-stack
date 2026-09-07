@@ -141,6 +141,15 @@ For any linked project, use the localized runner for stack-specific skills:
 ./.ai/rtk-run run <tool>    # Execute a stack tool (e.g., visual-verifier)
 ```
 
+### Agent Awareness & Enforcement
+
+- **Nine Phases & Metadata Rule**: The lifecycle relies on exactly nine phases (intent, specify, plan, build, maintain, review, scale, deploy, polish). Every skill frontmatter and telemetry metadata payload MUST declare a valid phase.
+- **Typed Artifact Handoffs**: Arbitrary context passing between agents is replaced by explicit deliverables (spec, plan, diff, etc.) handled as typed Knowledge Items (KIs).
+- **New MCP Tools**: Use `plan_pipeline` to sequence orchestrators and `approve_knowledge_item` to complete KI handoffs. Note that `get_skill` returns a dependency graph footer outlining upstream and downstream connections.
+- **Dynamic Policies**: Policy documents from `.ai/policies` are injected dynamically into contexts, removing the need for hardcoded logic.
+- **Hooks Layer**: Enforcements from `.ai/hooks` validate ownership and capability boundaries both during MCP tool calls and via CI steps.
+- **Execution Tiers**: Execution logic respects capability tiers (`local`, `sub-pro`, `sub-max`, `byo`). For example, the `local` tier enforces single-lane pipelines and degrades gracefully for offline execution.
+
 ## Token Savings Overview
 
 | Category         | Commands                       | Typical Savings |

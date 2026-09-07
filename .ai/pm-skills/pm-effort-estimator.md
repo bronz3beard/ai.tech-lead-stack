@@ -5,6 +5,21 @@ description:
   historical churn to provide data-driven velocity predictions.
 cost: ~650 tokens
 modes: [read-only, mcp]
+surface: public
+phase: plan
+kind: skill
+domain: product
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [spec]
+emits: [plan]
+suggests: [clean-code, regression-bug-fix]
+policies:
+  - user-sovereignty
+  - diagnosis-first
 ---
 
 # PM Effort Estimator (The Historical Oracle)

@@ -6,9 +6,6 @@ import { AlignmentService } from '../../lib/skills/alignment-service';
 import { prisma } from '../../lib/prisma';
 import { runnerFromEnv } from '../../lib/ai/reflexion/providers-env';
 
-jest.mock('langfuse', () => ({
-  Langfuse: jest.fn().mockImplementation(() => ({})),
-}));
 
 jest.mock('../telemetry');
 jest.mock('../../lib/skills/fs-service');
@@ -140,5 +137,173 @@ describe('Handlers.handleReflexionLoop project model routing', () => {
       expect(parsedContent.escalateTo).toBe('sub-max');
       expect(parsedContent.reason).toContain('risk level 2');
     });
+  });
+
+  describe('get_skill and plan_pipeline', () => {
+    it('appends graph footer to get_skill', async () => {
+      const mockFsService = new FileSystemService('root') as jest.Mocked<FileSystemService>;
+      const mockTelemetry = new Telemetry() as jest.Mocked<Telemetry>;
+      const mockKiService = new KiService() as jest.Mocked<KiService>;
+      const mockAlignmentService = new AlignmentService('root') as jest.Mocked<AlignmentService>;
+
+      mockFsService.readSkill.mockResolvedValue({
+        content: 'description: Test\ncost: 0\n---\nSkill content',
+        path: '/test.md'
+      });
+      mockFsService.loadGraph.mockResolvedValue({
+        nodes: [{ id: 'test-skill', phase: 'plan', kind: 'skill', domain: 'eng', targets: ['api'] }],
+        edges: [
+          { from: 'test-skill', to: 'next-skill', type: 'suggests' },
+          { from: 'test-skill', to: 'req-skill', type: 'requires' }
+        ],
+        artifactFlow: [
+          { type: 'spec', consumedBy: ['plan'] },
+          { type: 'plan-doc', emittedBy: ['plan'] }
+        ]
+      });
+
+      mockTelemetry.withAnalytics.mockImplementation(async (a, b, c, d, e, cb) => cb());
+
+      const handlers = new Handlers(mockFsService, mockTelemetry, mockAlignmentService, mockKiService);
+      const res = await handlers.handleGetSkill('get_test_skill', { skillName: 'test-skill' });
+      
+      expect(res.isError).toBeFalsy();
+      const text = res.content[0].text;
+      expect(text).toContain('[GRAPH] phase=plan kind=skill domain=eng');
+      expect(text).toContain('requires=[req-skill]');
+      expect(text).toContain('suggests=[next-skill]');
+      expect(text).toContain('consumes=[spec]');
+      expect(text).toContain('emits=[plan-doc]');
+      expect(text).toContain('targets=[api]');
+    });
+
+    it('appends injected policies when present in frontmatter', async () => {
+      const mockFsService = new FileSystemService('root') as jest.Mocked<FileSystemService>;
+      const mockTelemetry = new Telemetry() as jest.Mocked<Telemetry>;
+      const mockKiService = new KiService() as jest.Mocked<KiService>;
+      const mockAlignmentService = new AlignmentService('root') as jest.Mocked<AlignmentService>;
+
+      mockFsService.readSkill.mockResolvedValue({
+        content: '---\npolicies: [four-pillars]\n---\nSkill content',
+        path: '/test.md'
+      });
+      mockFsService.loadGraph.mockResolvedValue({ nodes: [] });
+      mockFsService.resolvePolicies.mockResolvedValue('> **Methodology Alignment**: test pillars');
+
+      mockTelemetry.withAnalytics.mockImplementation(async (a, b, c, d, e, cb) => cb());
+
+      const handlers = new Handlers(mockFsService, mockTelemetry, mockAlignmentService, mockKiService);
+      const res = await handlers.handleGetSkill('get_test_skill', { skillName: 'test-skill' });
+      
+      expect(res.isError).toBeFalsy();
+      const text = res.content[0].text;
+      expect(text).toContain('## Injected policies');
+      expect(text).toContain('> **Methodology Alignment**: test pillars');
+      expect(mockFsService.resolvePolicies).toHaveBeenCalledWith(['four-pillars']);
+    });
+
+    it('returns ordered phases from plan_pipeline', async () => {
+      const mockFsService = new FileSystemService('root') as jest.Mocked<FileSystemService>;
+      const mockTelemetry = new Telemetry() as jest.Mocked<Telemetry>;
+      const mockKiService = new KiService() as jest.Mocked<KiService>;
+      const mockAlignmentService = new AlignmentService('root') as jest.Mocked<AlignmentService>;
+
+      mockFsService.loadGraph.mockResolvedValue({
+        nodes: [
+          { id: 'spec-skill', phase: 'specify' },
+          { id: 'plan-skill', phase: 'plan' },
+          { id: 'build-skill', phase: 'build' }
+        ],
+        edges: [],
+        artifactFlow: [
+          { type: 'spec', emittedBy: ['specify'] },
+          { type: 'plan-doc', emittedBy: ['plan'] }
+        ]
+      });
+
+      mockTelemetry.withAnalytics.mockImplementation(async (a, b, c, d, e, cb) => cb());
+
+      const handlers = new Handlers(mockFsService, mockTelemetry, mockAlignmentService, mockKiService);
+      const res = await handlers.handlePlanPipeline({ intent: 'test' });
+      
+      expect(res.isError).toBeFalsy();
+      const text = res.content[0].text;
+      expect(text).toContain('Phase specify: [spec-skill] -> emits [spec]');
+      expect(text).toContain('Phase plan: [plan-skill] -> emits [plan-doc]');
+      expect(text).toContain('Phase build: [build-skill] -> emits [none]');
+      
+      // Check order
+      const idxSpecify = text.indexOf('Phase specify');
+      const idxPlan = text.indexOf('Phase plan');
+      const idxBuild = text.indexOf('Phase build');
+      expect(idxSpecify).toBeLessThan(idxPlan);
+      expect(idxPlan).toBeLessThan(idxBuild);
+    });
+  });
+});
+
+describe('Handlers.evaluateHooks', () => {
+  const originalCwd = process.cwd;
+  let tmpDir = '';
+
+  beforeAll(() => {
+    const os = require('os');
+    const fsSync = require('fs');
+    const path = require('path');
+    tmpDir = fsSync.mkdtempSync(path.join(os.tmpdir(), 'hooks-test-'));
+    fsSync.mkdirSync(path.join(tmpDir, '.ai', 'hooks'), { recursive: true });
+    fsSync.writeFileSync(path.join(tmpDir, '.ai', 'hooks', 'no-ai-approve-deploy.json'), JSON.stringify({
+      id: 'no-ai-approve-deploy',
+      appliesToPhase: ['deploy'],
+      condition: { actorTypeNot: 'USER' },
+      action: 'block',
+      message: 'AI blocked'
+    }));
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    process.cwd = jest.fn().mockReturnValue(tmpDir);
+  });
+
+  afterAll(() => {
+    process.cwd = originalCwd;
+  });
+
+  it('blocks AI actor for deploy phase skills', async () => {
+    const mockFsService = new FileSystemService('root') as jest.Mocked<FileSystemService>;
+    const mockTelemetry = new Telemetry() as jest.Mocked<Telemetry>;
+    const mockKiService = new KiService() as jest.Mocked<KiService>;
+    const mockAlignmentService = new AlignmentService('root') as jest.Mocked<AlignmentService>;
+
+    mockFsService.loadGraph.mockResolvedValue({
+      nodes: [{ id: 'deploy-skill', phase: 'deploy', kind: 'skill' }]
+    });
+
+    const handlers = new Handlers(mockFsService, mockTelemetry, mockAlignmentService, mockKiService);
+    
+    const result = await handlers.evaluateHooks('get_skill', { skillName: 'deploy-skill', actorType: 'AGENT' });
+    
+    expect(result.allowed).toBe(false);
+    expect(result.refusalPayload).toBeDefined();
+    expect(result.refusalPayload.content[0].text).toContain('AI blocked');
+  });
+
+  it('allows USER actor for deploy phase skills', async () => {
+    const mockFsService = new FileSystemService('root') as jest.Mocked<FileSystemService>;
+    const mockTelemetry = new Telemetry() as jest.Mocked<Telemetry>;
+    const mockKiService = new KiService() as jest.Mocked<KiService>;
+    const mockAlignmentService = new AlignmentService('root') as jest.Mocked<AlignmentService>;
+
+    mockFsService.loadGraph.mockResolvedValue({
+      nodes: [{ id: 'deploy-skill', phase: 'deploy', kind: 'skill' }]
+    });
+
+    const handlers = new Handlers(mockFsService, mockTelemetry, mockAlignmentService, mockKiService);
+    
+    const result = await handlers.evaluateHooks('get_skill', { skillName: 'deploy-skill', actorType: 'USER' });
+    
+    expect(result.allowed).toBe(true);
+    expect(result.refusalPayload).toBeUndefined();
   });
 });

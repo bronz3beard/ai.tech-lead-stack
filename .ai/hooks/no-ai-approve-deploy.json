@@ -1,0 +1,10 @@
+{
+  "id": "no-ai-approve-deploy",
+  "description": "AI may never self-approve a ship/scale action",
+  "appliesToPhase": ["deploy", "scale"],
+  "condition": {
+    "actorTypeNot": "USER"
+  },
+  "action": "block",
+  "message": "AI is not permitted to self-approve deployment or scale actions."
+}

@@ -30,7 +30,7 @@ export function getOrchestratorModels(
 }
 
 export function validateDistinctModels(creator: string, auditor: string, tier: Tier): void {
-  if (creator === auditor) {
+  if (TIER_POLICY[tier].isolation !== 'same-model' && creator === auditor) {
     throw new Error(
       `Orchestration Validation Failed: The Creator model (${creator}) and the Auditor model (${auditor}) must be distinct to ensure objective code review.`
     );

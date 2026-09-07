@@ -12,6 +12,18 @@ how:
   'Categorizes commits, assess blockers, and generates a rolling report using a
   professional standup template.'
 useCase: 'Automating your daily update or summarizing work for a sync meeting.'
+phase: deploy
+kind: report
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [review-report]
+emits: [release]
+policies:
+  - user-sovereignty
 ---
 
 # Daily Standup Report

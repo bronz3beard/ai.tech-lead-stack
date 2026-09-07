@@ -48,8 +48,9 @@ const mockRun = (overrides: Partial<ReflexionRun>): ReflexionRun => ({
   costUsd: 0.1,
   createdAt: new Date(),
   updatedAt: new Date(),
+  intentPhase: null,
   ...overrides,
-});
+} as ReflexionRun);
 
 describe('Agentic Metrics', () => {
   describe('autonomousWorkRatio', () => {

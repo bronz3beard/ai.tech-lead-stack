@@ -5,6 +5,20 @@ description:
   Conventional Commits to track feature narrative.
 cost: ~650 tokens
 modes: [read-only, mcp]
+surface: public
+phase: deploy
+kind: skill
+domain: product
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [review-report]
+emits: [release]
+policies:
+  - user-sovereignty
+  - diagnosis-first
 ---
 
 # PM Newsletter Generator (The Narrative Architect)

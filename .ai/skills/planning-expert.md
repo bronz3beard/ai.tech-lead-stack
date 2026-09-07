@@ -20,6 +20,29 @@ how:
 useCase:
   'Breaking down complex Jira tickets or architectural refactors into
   test-driven steps.'
+phase: plan
+kind: skill
+domain: eng
+ownership:
+  drive: human-ai
+  approve: human
+targets: [local, api, subscription]
+minModelClass: small
+consumes: [spec]
+emits: [plan]
+requires: [pr-automator]
+suggests:
+  [
+    clean-code,
+    regression-bug-fix,
+    ask,
+    feature-orchestrator,
+    vertical-slice-decomposer,
+  ]
+policies:
+  - user-sovereignty
+  - diagnosis-first
+  - four-pillars
 ---
 
 # Planning Expert (The Sovereign Zenith)
@@ -165,11 +188,12 @@ backend-first, and state those assumptions back.)
 
 - **Stack ID:** Call `get_skills` (which may be prefixed as
   `mcp_tech-lead-stack_get_skills` or `tech-lead-stack_get_skills` depending on
-  client prefixing). Inspect manifest files AND directory structures to identify
-  framework conventions (e.g., `/controllers`, `/hooks`).
+  client prefixing). Inspect manifest files AND directory structures using
+  `repo_map` to identify framework conventions (e.g., `/controllers`, `/hooks`).
 - **Pattern & Principle ID:** Identify naming conventions, error-handling
-  styles, and architectural patterns (e.g., SOLID, MVC). Use `grep` to find
-  existing implementations of similar features.
+  styles, and architectural patterns (e.g., SOLID, MVC). Use `code_search` and
+  `read_region` MCP tools to find existing implementations of similar features.
+  INSTEAD of reading whole files, fetch only exact required lines.
 - **Release & flag infra:** Locate the dark-release gate (e.g. Next.js
   middleware, `beta_*` cookies / `x-beta-flags` header) so an incomplete batch
   can be hidden behind a flag rather than deferred.
