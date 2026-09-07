@@ -45,7 +45,7 @@ function buildCriticRunner() {
 
   // Default models
   const criticModelClaude =
-    process.env.REFLEXION_CRITIC_MODEL || 'claude-3-5-sonnet-20240620';
+    process.env.REFLEXION_CRITIC_MODEL || 'claude-3-5-sonnet-20241022';
   const criticModelGemini = 'gemini-3.1-pro-preview';
 
   return {
@@ -208,14 +208,24 @@ function isProviderBillingOrQuotaError(err: unknown): boolean {
       : '';
 
   return (
+    statusCode === 400 ||
+    statusCode === 401 ||
     statusCode === 402 ||
+    statusCode === 403 ||
+    statusCode === 404 ||
+    statusCode === 429 ||
+    (typeof statusCode === 'number' && statusCode >= 500) ||
     msg.includes('credit balance') ||
     msg.includes('too low to access') ||
     msg.includes('plans & billing') ||
     msg.includes('insufficient_quota') ||
+    msg.includes('not_found') ||
+    msg.includes('rate_limit') ||
     dataMsg.includes('credit balance') ||
     dataMsg.includes('too low to access') ||
-    dataMsg.includes('plans & billing')
+    dataMsg.includes('plans & billing') ||
+    dataMsg.includes('not_found') ||
+    dataMsg.includes('rate_limit')
   );
 }
 
@@ -310,8 +320,9 @@ async function main() {
         }
       } catch (err: unknown) {
         if (isProviderBillingOrQuotaError(err)) {
+          const errMsg = err instanceof Error ? err.message : String(err);
           console.warn(
-            `\n⚠️  [reflexion-eval] API error on ${evalCase.frontmatter.id}. Skipping LLM eval.`
+            `\n⚠️  [reflexion-eval] API error on ${evalCase.frontmatter.id} (${errMsg}). Skipping LLM eval.`
           );
           llmSkipped = true;
         } else {
