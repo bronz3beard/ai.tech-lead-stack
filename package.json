@@ -74,6 +74,7 @@
     "format:check": "npx prettier --check \".ai/skills/*.md\" \"scripts/*.{js,mjs}\" \"README.md\"",
     "lint": "npx markdownlint-cli \".ai/skills/*.md\"",
     "lint:fix": "npx markdownlint-cli --fix \".ai/skills/*.md\" && npm run format",
+    "lint:next": "pnpm --filter @bronz3beard/tls-dashboard run lint:next",
     "validate:skills": "bash scripts/validate-skills.sh",
     "validate:hooks": "node scripts/enforce-hooks.mjs",
     "validate:gherkin": "node scripts/validate-gherkin.mjs",

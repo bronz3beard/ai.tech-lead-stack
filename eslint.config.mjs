@@ -3,7 +3,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 /** @type {import('eslint').Linter.Config[]} */
-const eslintConfig = tseslint.defineConfig(
+const eslintConfig = tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -18,6 +18,11 @@ const eslintConfig = tseslint.defineConfig(
     files: ['src/**/*.{ts,tsx}'],
     rules: {
       '@typescript-eslint/no-unused-vars': 'warn',
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-require-imports': 'warn',
+      'no-useless-escape': 'warn',
+      'prefer-const': 'warn',
+      'react/no-unescaped-entities': 'warn',
     },
   },
   {

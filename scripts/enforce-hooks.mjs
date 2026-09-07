@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-import fs from 'fs/promises';
-import path from 'path';
 import { execSync } from 'child_process';
+import fs from 'fs/promises';
 import os from 'os';
+import path from 'path';
 
 async function main() {
   const hooksDir = path.join(process.cwd(), '.ai', 'hooks');
@@ -22,27 +22,20 @@ async function main() {
         guards.push(JSON.parse(content));
       }
     }
-  } catch (e) {
+  } catch {
     // no hooks dir, silently pass
     return;
   }
 
-  // Determine current context for pre-commit (e.g. is this a deploy commit?)
-  // In a real environment, deploy checks might run in CI or be triggered by specific branches.
-  // Here, we check all guards if applicable.
-  const isCI = process.env.CI === 'true';
-  const hookPhase = process.env.HOOK_PHASE || (isCI ? 'deploy' : 'commit');
-  // If we want to simulate "a commit that would deploy", we can set HOOK_PHASE=deploy or check branch.
-
-  // For the sake of the test "a commit that would deploy... is blocked", we'll always evaluate deploy guards
-  // if HOOK_PHASE is not explicitly something else, or just evaluate all guards.
-  // Actually, let's evaluate all guards that have diffContains, OR if their phase matches hookPhase,
-  // OR if they enforce KIs and we just evaluate them globally for safety.
-  // Let's just evaluate all guards that don't depend on actorType (since a commit is assumed human unless stated).
+  // Determine current context (e.g. commit, build, deploy)
+  // In CI validation or local pre-commit, default to 'commit' unless explicitly specified via HOOK_PHASE.
+  const hookPhase = process.env.HOOK_PHASE || 'commit';
 
   let stagedFiles = [];
   try {
-    const diffOut = execSync('git diff --cached --name-only').toString();
+    const diffOut = execSync('git diff --cached --name-only', {
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).toString();
     stagedFiles = diffOut.split('\n').filter(Boolean);
   } catch {
     // ignore
@@ -51,7 +44,15 @@ async function main() {
   let blocked = false;
 
   for (const guard of guards) {
+    // Filter guards: only evaluate if the guard applies to the active phase or evaluates staged diffs
     const cond = guard.condition || {};
+    if (
+      guard.appliesToPhase &&
+      !guard.appliesToPhase.includes(hookPhase) &&
+      !cond.diffContains
+    ) {
+      continue;
+    }
     let triggered = false;
 
     if (cond.diffContains) {
