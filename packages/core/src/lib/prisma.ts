@@ -6,8 +6,8 @@ import pg from 'pg';
 
 /**
  * Prisma Client with PostgreSQL adapter.
- * Uses robust environment variable loading to ensure connectivity
- * across different entry points (Next.js, MCP server, CLI scripts).
+ * Uses robust environment variable loading and a lazy proxy pattern to ensure
+ * zero-overhead, crash-free cold starts across serverless, edge, MCP, and CLI environments.
  */
 
 const loadEnv = () => {
@@ -34,36 +34,56 @@ const loadEnv = () => {
   }
 };
 
-loadEnv();
-
 const globalForPrisma = global as unknown as {
   prisma?: PrismaClient;
   pool?: pg.Pool;
 };
 
-const rawUrl = process.env.DATABASE_URL || '';
-const isSsl =
-  Boolean(rawUrl) &&
-  (rawUrl.includes('rlwy.net') ||
-    rawUrl.includes('neon.tech') ||
-    rawUrl.includes('supabase.co') ||
-    rawUrl.includes('sslmode=require') ||
-    (process.env.NODE_ENV === 'production' &&
-      !rawUrl.includes('localhost') &&
-      !rawUrl.includes('127.0.0.1')));
+/**
+ * Lazily initializes and returns the PostgreSQL connection pool.
+ */
+export function getPool(): pg.Pool {
+  if (globalForPrisma.pool) {
+    return globalForPrisma.pool;
+  }
+  loadEnv();
 
-export const pool =
-  globalForPrisma.pool ||
-  new pg.Pool({
-    connectionString: rawUrl || undefined,
+  const rawUrl = process.env.DATABASE_URL || '';
+
+  const isSsl =
+    Boolean(rawUrl) &&
+    (rawUrl.includes('rlwy.net') ||
+      rawUrl.includes('neon.tech') ||
+      rawUrl.includes('supabase.co') ||
+      rawUrl.includes('sslmode=require') ||
+      (process.env.NODE_ENV === 'production' &&
+        !rawUrl.includes('localhost') &&
+        !rawUrl.includes('127.0.0.1')));
+
+  const newPool = new pg.Pool({
+    connectionString: rawUrl && rawUrl !== 'undefined' ? rawUrl : undefined,
     ssl: isSsl ? { rejectUnauthorized: false } : false,
     connectionTimeoutMillis: 5000,
   });
-const adapter = new PrismaPg(pool);
 
-export const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({
+  if (process.env.NODE_ENV !== 'production') {
+    globalForPrisma.pool = newPool;
+  }
+  return newPool;
+}
+
+/**
+ * Lazily initializes and returns the PrismaClient instance with PostgreSQL driver adapter.
+ */
+export function getPrismaClient(): PrismaClient {
+  if (globalForPrisma.prisma) {
+    return globalForPrisma.prisma;
+  }
+  loadEnv();
+
+  const activePool = getPool();
+  const adapter = new PrismaPg(activePool);
+  const client = new PrismaClient({
     adapter,
     log:
       process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'test'
@@ -71,10 +91,34 @@ export const prisma =
         : ['query'],
   });
 
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma;
-  globalForPrisma.pool = pool;
+  if (process.env.NODE_ENV !== 'production') {
+    globalForPrisma.prisma = client;
+  }
+  return client;
 }
+
+/**
+ * Transparent proxy for pg.Pool so existing imports like `import { pool }` continue to work.
+ */
+export const pool = new Proxy({} as pg.Pool, {
+  get(target, prop, receiver) {
+    const activePool = getPool();
+    const value = Reflect.get(activePool, prop, receiver);
+    return typeof value === 'function' ? value.bind(activePool) : value;
+  },
+});
+
+/**
+ * Transparent proxy for PrismaClient so existing imports like `import { prisma }` continue to work,
+ * deferring client and connection pool instantiation until the first actual query execution.
+ */
+export const prisma = new Proxy({} as PrismaClient, {
+  get(target, prop, receiver) {
+    const client = getPrismaClient();
+    const value = Reflect.get(client, prop, receiver);
+    return typeof value === 'function' ? value.bind(client) : value;
+  },
+});
 
 export async function disconnectPrisma(): Promise<void> {
   try {

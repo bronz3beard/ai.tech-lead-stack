@@ -17,6 +17,12 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname, '../../'),
   },
+  serverExternalPackages: [
+    '@prisma/client',
+    '@prisma/adapter-pg',
+    'pg',
+    'bcryptjs',
+  ],
   images: {
     remotePatterns: [
       {

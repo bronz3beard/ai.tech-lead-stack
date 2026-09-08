@@ -276,39 +276,47 @@ export async function getAnalytics(filters: {
     filters.limit
   );
 
-  const events = await prisma.analyticsEvent.findMany({
-    where,
-    orderBy: { createdAt: 'desc' },
-    take: filters.limit === -1 ? undefined : filters.limit || 1000, // Default to 1000 if not specified, -1 for all
-  });
+  try {
+    const events = await prisma.analyticsEvent.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: filters.limit === -1 ? undefined : filters.limit || 1000, // Default to 1000 if not specified, -1 for all
+    });
 
-  console.log(`[AnalyticsService] Found ${events.length} events`);
+    console.log(`[AnalyticsService] Found ${events.length} events`);
 
-  return events.map((event) => {
-    const metadata = (event.metadata as Record<string, any>) || {};
+    return events.map((event) => {
+      const metadata = (event.metadata as Record<string, any>) || {};
 
-    // Attribution Fallback Hierarchy: root projectName -> metadata.projectName -> metadata.projectId -> tag (none here) -> fallback
-    const projectName =
-      event.projectName ||
-      metadata.projectName ||
-      metadata.projectId ||
-      'tech-lead-stack';
+      // Attribution Fallback Hierarchy: root projectName -> metadata.projectName -> metadata.projectId -> tag (none here) -> fallback
+      const projectName =
+        event.projectName ||
+        metadata.projectName ||
+        metadata.projectId ||
+        'tech-lead-stack';
 
-    return {
-      id: event.id,
-      name: event.skillName || 'unnamed-trace',
-      timestamp: event.createdAt.toISOString(),
-      sessionId: event.langfuseTraceId || undefined,
-      projectName: projectName,
-      model: event.model || 'unknown',
-      agent: event.agent || 'unknown',
-      duration: event.duration || undefined,
-      status: event.status || undefined,
-      metadata: metadata,
-      totalCost: event.totalCost || 0,
-      totalTokens: event.totalTokens || 0,
-      inputTokens: event.promptTokens || 0,
-      outputTokens: event.completionTokens || 0,
-    };
-  });
+      return {
+        id: event.id,
+        name: event.skillName || 'unnamed-trace',
+        timestamp: event.createdAt.toISOString(),
+        sessionId: event.langfuseTraceId || undefined,
+        projectName: projectName,
+        model: event.model || 'unknown',
+        agent: event.agent || 'unknown',
+        duration: event.duration || undefined,
+        status: event.status || undefined,
+        metadata: metadata,
+        totalCost: event.totalCost || 0,
+        totalTokens: event.totalTokens || 0,
+        inputTokens: event.promptTokens || 0,
+        outputTokens: event.completionTokens || 0,
+      };
+    });
+  } catch (error) {
+    console.error(
+      '[AnalyticsService] Error fetching events from database:',
+      error
+    );
+    return [];
+  }
 }
