@@ -192,25 +192,48 @@ interface PageProps {
 }
 
 export default async function PublicDashboard({ searchParams }: PageProps) {
-  const { projectId = 'all' } = await searchParams;
-  const session = await getServerSession(authOptions);
+  const resolvedParams = searchParams ? await searchParams : {};
+  const projectId = resolvedParams?.projectId || 'all';
+
+  let session = null;
+  try {
+    session = await getServerSession(authOptions);
+  } catch (error) {
+    console.warn(
+      '[PublicDashboard] Unable to retrieve server session, continuing in anonymous mode:',
+      error
+    );
+  }
+
   const metrics = await getGlobalMetrics(projectId, session);
 
+  const defaultProject: Project = { id: 'all', name: 'All Projects' };
+  const projects =
+    metrics?.projects && metrics.projects.length > 0
+      ? metrics.projects
+      : [defaultProject];
   const selectedProject =
-    metrics.projects.find((p) => p.id === projectId) || metrics.projects[0];
+    projects.find((p) => p.id === projectId) || projects[0] || defaultProject;
 
-  const totalCost = metrics.traces.reduce(
+  const traces = metrics?.traces || [];
+  const topSkills = metrics?.topSkills || [];
+  const tracesByTime = metrics?.tracesByTime || [];
+  const stepMetrics = metrics?.stepMetrics || [];
+  const totalExecutions = metrics?.totalExecutions || 0;
+  const activeWorkflows = metrics?.activeWorkflows || 0;
+
+  const totalCost = traces.reduce(
     (sum, t) => sum + (t.totalCost || 0),
     0
   );
 
   // Calculate average accuracy
-  const successfulTraces = metrics.traces.filter(
+  const successfulTraces = traces.filter(
     (t) => !t.metadata?.error && t.status !== 'ERROR'
   ).length;
   const averageAccuracy =
-    metrics.totalExecutions > 0
-      ? (successfulTraces / metrics.totalExecutions) * 100
+    totalExecutions > 0
+      ? (successfulTraces / totalExecutions) * 100
       : 100;
 
   return (
@@ -225,14 +248,14 @@ export default async function PublicDashboard({ searchParams }: PageProps) {
             <p className="text-slate-400 mt-3 text-xl font-medium">
               Viewing telemetry data for:{' '}
               <span className="text-indigo-400 font-bold border-b-2 border-indigo-400/30 pb-1">
-                {selectedProject.name}
+                {selectedProject?.name ?? 'All Projects'}
               </span>
             </p>
           </div>
 
           <div className="flex items-center">
             <ProjectSelect
-              projects={metrics.projects}
+              projects={projects}
               selectedProjectId={projectId}
             />
           </div>
@@ -242,12 +265,12 @@ export default async function PublicDashboard({ searchParams }: PageProps) {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <KPICard
             title="Total Skills Run"
-            value={metrics.totalExecutions}
+            value={totalExecutions}
             subtitle="Cumulative across all runs"
           />
           <KPICard
             title="Active Workflows"
-            value={metrics.activeWorkflows}
+            value={activeWorkflows}
             subtitle="Unique session activities"
           />
           <KPICard
@@ -271,7 +294,7 @@ export default async function PublicDashboard({ searchParams }: PageProps) {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
-              <BarChart data={metrics.topSkills} />
+              <BarChart data={topSkills} />
             </CardContent>
           </Card>
 
@@ -285,7 +308,7 @@ export default async function PublicDashboard({ searchParams }: PageProps) {
               </p>
             </CardHeader>
             <CardContent className="pt-6">
-              <LineChart data={metrics.tracesByTime} />
+              <LineChart data={tracesByTime} />
             </CardContent>
           </Card>
         </div>
@@ -301,7 +324,7 @@ export default async function PublicDashboard({ searchParams }: PageProps) {
             </p>
           </CardHeader>
           <CardContent>
-            <InsightsTable traces={metrics.traces} />
+            <InsightsTable traces={traces} />
           </CardContent>
         </Card>
 
@@ -316,12 +339,12 @@ export default async function PublicDashboard({ searchParams }: PageProps) {
             </p>
           </CardHeader>
           <CardContent>
-            <StepAnalyticsTable metrics={metrics.stepMetrics} />
+            <StepAnalyticsTable metrics={stepMetrics} />
           </CardContent>
         </Card>
 
         {/* Phase Cost Panel */}
-        <PhaseCostPanel traces={metrics.traces as any} />
+        <PhaseCostPanel traces={traces as any} />
 
         {/* Disclaimer Section */}
         <DashboardDisclaimer />

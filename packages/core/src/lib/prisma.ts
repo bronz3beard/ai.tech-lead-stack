@@ -41,14 +41,23 @@ const globalForPrisma = global as unknown as {
   pool?: pg.Pool;
 };
 
-const connectionString = `${process.env.DATABASE_URL}`;
+const rawUrl = process.env.DATABASE_URL || '';
+const isSsl =
+  Boolean(rawUrl) &&
+  (rawUrl.includes('rlwy.net') ||
+    rawUrl.includes('neon.tech') ||
+    rawUrl.includes('supabase.co') ||
+    rawUrl.includes('sslmode=require') ||
+    (process.env.NODE_ENV === 'production' &&
+      !rawUrl.includes('localhost') &&
+      !rawUrl.includes('127.0.0.1')));
+
 export const pool =
   globalForPrisma.pool ||
   new pg.Pool({
-    connectionString,
-    ssl: connectionString.includes('rlwy.net')
-      ? { rejectUnauthorized: false }
-      : false,
+    connectionString: rawUrl || undefined,
+    ssl: isSsl ? { rejectUnauthorized: false } : false,
+    connectionTimeoutMillis: 5000,
   });
 const adapter = new PrismaPg(pool);
 
