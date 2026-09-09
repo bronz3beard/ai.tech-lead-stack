@@ -1,4 +1,5 @@
 # The Lead Stack: Agent-Agnostic Workflows
+### `intent-brief → spec → plan → diff → review-report → release`
 
 ![CI Status](https://github.com/bronz3beard/tech-lead-stack/actions/workflows/ci.yml/badge.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
