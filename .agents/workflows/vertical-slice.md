@@ -20,6 +20,9 @@ modes:
   - **IDE / MCP-enabled Agent:** You MUST call the MCP `get_skills` tool (which may be prefixed as `mcp_tech-lead-stack_get_skills` or `tech-lead-stack_get_skills` depending on client prefixing).
   - **Chat UI (/chat):** You MUST call the internal `get_skill` tool.
 
+**Precondition:** Requires a formalized spec. If you receive a raw story, run the `specify` phase (e.g., `solutioning-facilitator`) first.
+**Multi-Repo Grounding:** Expect and enumerate multiple workspace roots; do not guess across unmounted repositories.
+
 1. **Phase 0: Skill Acquisition**: Call the `get_skills` / `get_skill` tool:
    - skillName: "vertical-slice-decomposer"
    - projectName: "<YOUR_CURRENT_PROJECT_NAME>"
