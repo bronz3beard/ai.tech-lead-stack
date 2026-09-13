@@ -87,6 +87,92 @@ not get a `.cursor/` folder. Example:
 The installer also merges the **tech-lead-stack** MCP server into
 **`~/.cursor/mcp.json`**.
 
+#### Claude Code
+
+If you use **Claude Code**, copy and run this from the root of the project you
+want to work in. Replace the path with wherever you cloned `tech-lead-stack`:
+
+```bash
+# From your project directory
+git clone https://github.com/bronz3beard/tech-lead-stack.git ~/tech-lead-stack
+~/tech-lead-stack/install.sh --link . --ide claude-code
+```
+
+Already cloned it? Then just:
+
+```bash
+~/tech-lead-stack/install.sh --link . --ide claude-code
+```
+
+That generates one slash command per skill under `~/.claude/commands/tls/` and
+registers the MCP server at user scope in `~/.claude.json`. Your app repository
+is not touched.
+
+Reload Claude Code and type `/tls:` to see them.
+
+**Already linked this project?** You do not need to re-link it. The Claude Code
+surface is entirely global, so a single run from any directory enables it
+everywhere. Add `--ide-only` to skip project linking, dependency installs, and
+the GitHub CLI auth check:
+
+```bash
+/path/to/tech-lead-stack/install.sh --link . --ide claude-code --ide-only
+```
+
+Running the stack alongside another gate (such as `slm-gate`)? Pass
+`--mcp-name <name>` so the two register separately and neither shadows the
+other. See the [Claude Code Setup](README.md#claude-code-setup) section for the
+full reference, including exactly which files are written outside your project.
+
+#### Cline
+
+Cline is MCP-only, so there is no command picker. Register the server and ask
+the agent for `get_skill`:
+
+```bash
+/path/to/tech-lead-stack/install.sh --link . --ide cline
+```
+
+Writes to Cline's settings in VS Code's global storage. Also covers Code -
+Insiders, VSCodium and Cursor if Cline is installed there.
+
+#### Gemini CLI & Gemini Desktop
+
+Both share one config file, so one install covers them:
+
+```bash
+/path/to/tech-lead-stack/install.sh --link . --ide gemini
+```
+
+Merges into `~/.gemini/settings.json` and leaves your auth block alone. Also
+MCP-only. Note that Antigravity is a different product and still needs manual
+registration through Agent Manager.
+
+#### Installing without touching your project
+
+Every editor setup above is global. If you only want the skills in your editor
+and no files written into the repository, add `--ide-only`:
+
+```bash
+/path/to/tech-lead-stack/install.sh --link . --ide <mode> --ide-only
+```
+
+This skips the symlinks, the dependency install and the GitHub CLI auth check.
+It is also the fast way to add a second editor to a project you linked earlier.
+
+#### Uninstalling
+
+```bash
+lead-clean                    # unlink this project; editor setup untouched
+lead-clean --global           # preview removing the editor setup from this machine
+lead-clean --global --apply   # actually remove it, all platforms at once
+```
+
+Cleanup is project-only by default because one editor setup serves every project
+you have linked. See the README section
+[Install, Link & Uninstall](README.md#install-link--uninstall) for the full
+reference.
+
 **Updating an Existing Installation:** If you are pulling new updates for the
 `tech-lead-stack`, you don't need to re-run `install.sh` across your projects.
 Just update the MCP server bundle by running the following in the

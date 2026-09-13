@@ -66,6 +66,12 @@ jobs:
       - name: Run Tests
         run: pnpm test
 
+      - name: Test Installer (IDE surfaces)
+        run: pnpm run test:install
+
+      - name: Test Cleanup (uninstall round-trip)
+        run: pnpm run test:cleanup
+
       - name: Build Project
         run: pnpm run build
 

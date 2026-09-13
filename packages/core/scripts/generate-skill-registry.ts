@@ -1,8 +1,8 @@
 import * as fs from 'fs';
-import * as path from 'path';
 import matter from 'gray-matter';
-import { z } from 'zod';
+import * as path from 'path';
 import * as prettier from 'prettier';
+import { z } from 'zod';
 
 import { fileURLToPath } from 'url';
 
@@ -15,6 +15,18 @@ const workflowsDir = path.join(rootDir, '.agents/workflows');
 const manifestFile = path.join(rootDir, '.ai/cursor-skills.manifest');
 const readmeFile = path.join(rootDir, 'README.md');
 const graphFile = path.join(rootDir, '.ai/skills.graph.json');
+const surfacesFile = path.join(rootDir, '.ai/agent-surfaces.json');
+
+/**
+ * The three skill/workflow domains this repo ships. Keyed by the short name
+ * used by installer `--domains` flags; `domain` is the frontmatter value.
+ * Agent-agnostic: no client ever appears here, only source locations.
+ */
+const DOMAINS = [
+  { key: 'eng', skills: '.ai/skills', workflows: '.agents/workflows' },
+  { key: 'pm', skills: '.ai/pm-skills', workflows: '.agents/pm-workflows' },
+  { key: 'hr', skills: '.ai/hr-skills', workflows: '.agents/hr-workflows' },
+] as const;
 
 const artifactTypeEnum = z.enum([
   'intent-brief',
@@ -29,7 +41,7 @@ const artifactTypeEnum = z.enum([
   'release',
   'design-tokens',
   'screenshot-set',
-  'kb-item'
+  'kb-item',
 ]);
 
 const phaseEnum = z.enum([
@@ -41,7 +53,7 @@ const phaseEnum = z.enum([
   'review',
   'scale',
   'deploy',
-  'polish'
+  'polish',
 ]);
 
 const frontmatterSchema = z.object({
@@ -57,11 +69,13 @@ const frontmatterSchema = z.object({
   kind: z.enum(['skill', 'orchestrator', 'policy', 'report']),
   domain: z.enum(['eng', 'product', 'hiring', 'shared']).optional(),
   spans: z.array(phaseEnum).optional(),
-  ownership: z.object({
-    drive: z.enum(['human', 'ai', 'human-ai']),
-    approve: z.enum(['human', 'ai', 'none']),
-    escalate: z.enum(['human', 'ai', 'none']).optional(),
-  }).optional(),
+  ownership: z
+    .object({
+      drive: z.enum(['human', 'ai', 'human-ai']),
+      approve: z.enum(['human', 'ai', 'none']),
+      escalate: z.enum(['human', 'ai', 'none']).optional(),
+    })
+    .optional(),
   targets: z.array(z.enum(['local', 'subscription', 'api'])).optional(),
   minModelClass: z.enum(['small', 'mid', 'large']).optional(),
   consumes: z.array(artifactTypeEnum).optional(),
@@ -251,7 +265,6 @@ function buildGraph(skills: Skill[]) {
   };
 }
 
-
 // Extract the original table rows from README.md to preserve Description, How it works, Use Case text
 // For simplicity and since we overwrote the file with a placeholder, I'll hardcode the known original rows
 // to ensure we don't lose the "How it works" and "Use Case" columns which aren't in frontmatter.
@@ -367,7 +380,7 @@ const PHASE_ORDER = [
   'deploy',
   'scale',
   'polish',
-  'maintain'
+  'maintain',
 ];
 
 const PHASE_DESCRIPTIONS: Record<string, string> = {
@@ -392,7 +405,8 @@ function generateReadmeTable(skills: Skill[]): string {
 
   for (const s of publicSkills) {
     if (s.kind === 'orchestrator') {
-      if (!categorized.has('Orchestrators')) categorized.set('Orchestrators', []);
+      if (!categorized.has('Orchestrators'))
+        categorized.set('Orchestrators', []);
       categorized.get('Orchestrators')!.push(s);
     } else if (s.kind === 'policy') {
       if (!categorized.has('Policies')) categorized.set('Policies', []);
@@ -409,11 +423,7 @@ function generateReadmeTable(skills: Skill[]): string {
       uncategorized.push(s);
       if (s.phase) {
         console.error(
-          'ERROR: Skill ' +
-            s.name +
-            " has unrecognised phase '" +
-            s.phase +
-            "'"
+          'ERROR: Skill ' + s.name + " has unrecognised phase '" + s.phase + "'"
         );
       } else {
         console.error('ERROR: Skill ' + s.name + ' has no phase');
@@ -431,12 +441,16 @@ function generateReadmeTable(skills: Skill[]): string {
   console.log('✅ Uncategorised group is EMPTY for all public skills.');
 
   const getRow = (s: Skill) => {
-    let description = s.description.replace(/\n/g, ' ');
+    const description = s.description.replace(/\n/g, ' ');
     let how = s.how || '-';
     let useCase = s.useCase || '-';
     if (originalRows[s.name]) {
-      if (how === '-') how = originalRows[s.name][1];
-      if (useCase === '-') useCase = originalRows[s.name][2];
+      if (how === '-') {
+        how = originalRows[s.name][1];
+      }
+      if (useCase === '-') {
+        useCase = originalRows[s.name][2];
+      }
     }
     const modesStr = s.modes.join(', ');
     return `| **\`${s.name}\`** | ${description} | ${how} | ${useCase} | ${modesStr} | ${s.cost} |\n`;
@@ -462,7 +476,7 @@ function generateReadmeTable(skills: Skill[]): string {
     const phaseSkills = categorized.get(phase) || [];
     table += renderCategory(phase, phaseSkills);
   }
-  
+
   if (categorized.has('Orchestrators')) {
     table += renderCategory('Orchestrators', categorized.get('Orchestrators')!);
   }
@@ -511,6 +525,196 @@ function injectTable(readmeContent: string, newTable: string): string {
   return readmeContent;
 }
 
+/**
+ * Compare a generated JSON artifact against what is on disk, ignoring the
+ * `generatedAt` timestamp so a regeneration with no content change is a no-op.
+ */
+function isJsonDifferent(file: string, nextJson: string): boolean {
+  let current = '';
+  try {
+    current = fs.readFileSync(file, 'utf8');
+  } catch {
+    return true;
+  }
+  if (!current) return true;
+  try {
+    const a = JSON.parse(current);
+    const b = JSON.parse(nextJson);
+    a.generatedAt = '';
+    b.generatedAt = '';
+    return JSON.stringify(a) !== JSON.stringify(b);
+  } catch {
+    return true;
+  }
+}
+
+type SurfaceEntry = {
+  name: string;
+  skill: string;
+  domain: string;
+  domainKey: string;
+  description: string;
+  skillPath: string;
+  workflowPath: string | null;
+  surface: string;
+  modes: string[];
+  kind: string;
+  mcpCallable: boolean;
+  ideEligible: boolean;
+};
+
+/**
+ * Read every skill in a domain directory. Unlike parseSkills(), this is lenient:
+ * the strict Zod gate already guards `.ai/skills`, and pm/hr skills only need
+ * the handful of fields the surface index consumes.
+ */
+function readDomainSkills(dir: string) {
+  const abs = path.join(rootDir, dir);
+  if (!fs.existsSync(abs)) return [];
+  return fs
+    .readdirSync(abs)
+    .filter((f: string) => f.endsWith('.md'))
+    .sort()
+    .map((file: string) => {
+      const { data } = matter(fs.readFileSync(path.join(abs, file), 'utf8'));
+      return {
+        // `name` is what get_skill expects; `slug` is the on-disk identifier and
+        // the only safe basis for generating command files.
+        name: String(data.name ?? file.replace(/\.md$/, '')),
+        slug: file.replace(/\.md$/, ''),
+        description: String(data.description ?? '')
+          .trim()
+          .replace(/\s+/g, ' '),
+        surface: String(data.surface ?? 'public'),
+        modes: Array.isArray(data.modes) ? data.modes.map(String) : [],
+        kind: String(data.kind ?? 'skill'),
+        domain: String(data.domain ?? ''),
+        relPath: `${dir}/${file}`,
+      };
+    });
+}
+
+/**
+ * Resolve which skill a workflow launcher actually invokes. Workflow file names
+ * routinely differ from the skill they call (e.g. `plan` -> `planning-expert`),
+ * so the mapping is read from the body rather than assumed from the filename.
+ * Candidates containing `$` are template artifacts and are discarded.
+ */
+function resolveWorkflowSkill(
+  body: string,
+  known: Set<string>
+): { skill: string | null; reason?: string } {
+  const candidates = Array.from(
+    body.matchAll(/`?skillName`?:\s*"([^"]*)"/g),
+    (m) => m[1].trim()
+  ).filter((c) => c.length > 0 && !c.includes('$'));
+
+  const valid = candidates.filter((c) => known.has(c));
+  if (valid.length > 0) return { skill: valid[0] };
+  if (candidates.length > 0)
+    return { skill: null, reason: `names unknown skill "${candidates[0]}"` };
+  return { skill: null, reason: 'declares no usable skillName' };
+}
+
+/**
+ * Build the agent-agnostic surface index consumed by every installer adapter.
+ * Eligibility rule: an item is offered to an IDE when a workflow launcher
+ * exists for it (explicit intent), or when it is a public, MCP-callable skill.
+ */
+function buildAgentSurfaces(): { entries: SurfaceEntry[]; errors: string[] } {
+  const entries: SurfaceEntry[] = [];
+  const errors: string[] = [];
+
+  // Skills resolve across domains: a PM workflow may legitimately launch an
+  // engineering skill, so the lookup is global while ownership stays per-domain.
+  const byName = new Map<string, ReturnType<typeof readDomainSkills>[number]>();
+  for (const domain of DOMAINS) {
+    for (const skill of readDomainSkills(domain.skills)) {
+      if (!byName.has(skill.name)) byName.set(skill.name, skill);
+    }
+  }
+  const known = new Set(byName.keys());
+  const claimed = new Set<string>();
+
+  // Pass 1: every workflow launcher, across all domains, so a cross-domain
+  // claim is registered before standalone skills are considered.
+  for (const domain of DOMAINS) {
+    const wfDir = path.join(rootDir, domain.workflows);
+    const workflows = fs.existsSync(wfDir)
+      ? fs
+          .readdirSync(wfDir)
+          .filter((f: string) => f.endsWith('.md'))
+          .sort()
+      : [];
+
+    for (const file of workflows) {
+      const name = file.replace(/\.md$/, '');
+      const relPath = `${domain.workflows}/${file}`;
+      const body = fs.readFileSync(path.join(wfDir, file), 'utf8');
+      const { skill, reason } = resolveWorkflowSkill(body, known);
+
+      if (!skill) {
+        errors.push(`${relPath}: ${reason}`);
+        continue;
+      }
+
+      const meta = byName.get(skill)!;
+      claimed.add(skill);
+      const { data } = matter(body);
+      entries.push({
+        name,
+        skill,
+        domain: meta.domain || domain.key,
+        domainKey: domain.key,
+        description: String(data.description ?? meta.description)
+          .trim()
+          .replace(/\s+/g, ' '),
+        skillPath: meta.relPath,
+        workflowPath: relPath,
+        surface: meta.surface,
+        modes: meta.modes,
+        kind: meta.kind,
+        mcpCallable: meta.modes.includes('mcp'),
+        ideEligible: true,
+      });
+    }
+  }
+
+  // Pass 2: skills that no workflow launches, offered on their own merits.
+  for (const domain of DOMAINS) {
+    for (const skill of readDomainSkills(domain.skills)) {
+      if (claimed.has(skill.name)) continue;
+      const mcpCallable = skill.modes.includes('mcp');
+      entries.push({
+        name: skill.slug,
+        skill: skill.name,
+        domain: skill.domain || domain.key,
+        domainKey: domain.key,
+        description: skill.description,
+        skillPath: skill.relPath,
+        workflowPath: null,
+        surface: skill.surface,
+        modes: skill.modes,
+        kind: skill.kind,
+        mcpCallable,
+        ideEligible: skill.surface === 'public' && mcpCallable,
+      });
+    }
+  }
+
+  entries.sort((a, b) => a.name.localeCompare(b.name));
+
+  for (const e of entries) {
+    if (e.ideEligible && !e.mcpCallable) {
+      errors.push(
+        `${e.name}: offered to IDEs but skill "${e.skill}" does not declare mode "mcp"`
+      );
+    }
+  }
+
+  return { entries, errors };
+}
+
 async function main() {
   const isCheck = process.argv.includes('--check');
   let outputDest = '';
@@ -532,6 +736,24 @@ async function main() {
   const newManifest = generateManifest(skills);
   const newTable = generateReadmeTable(skills);
 
+  const { entries: surfaceEntries, errors: surfaceErrors } =
+    buildAgentSurfaces();
+  if (surfaceErrors.length > 0) {
+    console.error('Agent surface index is invalid:');
+    for (const err of surfaceErrors) console.error(`  - ${err}`);
+    process.exit(1);
+  }
+  const newSurfacesJson =
+    JSON.stringify(
+      {
+        version: 1,
+        generatedAt: new Date().toISOString(),
+        entries: surfaceEntries,
+      },
+      null,
+      2
+    ) + '\n';
+
   const currentReadme = fs.readFileSync(readmeFile, 'utf8');
   const rawReadme = injectTable(currentReadme, newTable);
   const prettierConfig = await prettier.resolveConfig(readmeFile);
@@ -545,6 +767,10 @@ async function main() {
       fs.writeFileSync(`${outputDest}/manifest.tmp`, newManifest);
       fs.writeFileSync(`${outputDest}/readme.tmp`, newReadme);
       fs.writeFileSync(`${outputDest}/skills.graph.json.tmp`, newGraphJson);
+      fs.writeFileSync(
+        `${outputDest}/agent-surfaces.json.tmp`,
+        newSurfacesJson
+      );
     } else {
       const currentManifest = fs.readFileSync(manifestFile, 'utf8');
       if (currentManifest !== newManifest) {
@@ -556,14 +782,14 @@ async function main() {
         console.error('README skills table is out of date.');
         process.exit(1);
       }
-      
+
       let currentGraph = '';
       try {
         currentGraph = fs.readFileSync(graphFile, 'utf8');
-      } catch (e) {
+      } catch {
         // file doesn't exist
       }
-      
+
       let isGraphDifferent = false;
       if (!currentGraph) {
         isGraphDifferent = true;
@@ -571,28 +797,40 @@ async function main() {
         try {
           const parsedCurrent = JSON.parse(currentGraph);
           const parsedNew = JSON.parse(newGraphJson);
-          parsedCurrent.generatedAt = "";
-          parsedNew.generatedAt = "";
+          parsedCurrent.generatedAt = '';
+          parsedNew.generatedAt = '';
           if (JSON.stringify(parsedCurrent) !== JSON.stringify(parsedNew)) {
             isGraphDifferent = true;
           }
-        } catch (e) {
+        } catch {
           isGraphDifferent = true;
         }
       }
 
       if (isGraphDifferent) {
-        console.error('Skill graph is out of date. Run npm run generate:registry to update.');
+        console.error(
+          'Skill graph is out of date. Run npm run generate:registry to update.'
+        );
         process.exit(1);
       }
-      
+
+      if (isJsonDifferent(surfacesFile, newSurfacesJson)) {
+        console.error(
+          'Agent surface index is out of date. Run npm run generate:registry to update.'
+        );
+        process.exit(1);
+      }
+
       console.log('Registry check passed.');
     }
   } else {
     fs.writeFileSync(manifestFile, newManifest);
     fs.writeFileSync(readmeFile, newReadme);
     fs.writeFileSync(graphFile, newGraphJson);
-    console.log('Generated skill registry successfully.');
+    fs.writeFileSync(surfacesFile, newSurfacesJson);
+    console.log(
+      `Generated skill registry successfully (${surfaceEntries.length} agent surface entries).`
+    );
   }
 }
 

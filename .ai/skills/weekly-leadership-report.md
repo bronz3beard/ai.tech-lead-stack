@@ -4,7 +4,7 @@ description: >
   Extracts technical progress from Git history and ClickUp sprints using browser
   automation to synthesize high-fidelity leadership reports.
 cost: ~1200 tokens
-modes: [read-only, write]
+modes: [read-only, write, mcp]
 surface: public
 category: Ship & Communicate
 phase: deploy

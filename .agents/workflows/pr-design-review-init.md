@@ -19,6 +19,13 @@ This workflow allows a developer to bypass the code-generation phase and trigger
 
 ## 🛠 Execution Steps
 
+### Step 0: Skill Acquisition (NON-NEGOTIABLE)
+Call the `get_skills` tool before anything else:
+   - skillName: "design-system-review"
+   - projectName: "<YOUR_CURRENT_PROJECT_NAME>"
+   - model: "<YOUR_MODEL_NAME>"
+   - agent: "<YOUR_AGENT_NAME>"
+
 ### Step 1: PR Metadata Discovery
 1. **Analyze the URL**: Scrape the provided GitHub PR URL using `firecrawl_scrape`.
 2. **Extract Key Info**:

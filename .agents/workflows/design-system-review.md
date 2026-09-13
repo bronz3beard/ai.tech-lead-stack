@@ -23,10 +23,10 @@ modes:
   - **Chat UI (/chat):** You MUST call the internal `get_skill` tool.
 
 1. **Phase 0: Skill Acquisition**: Call the `get_skills` tool (which may be prefixed as `mcp_tech-lead-stack_get_skills` or `tech-lead-stack_get_skills` depending on client prefixing):
-   - skillName: ""
+   - skillName: "design-system-review"
    - projectName: "<YOUR_CURRENT_PROJECT_NAME>"
    - model: "<YOUR_MODEL_NAME>"
-   - agent: "<YOUR_AGENT_NAME>"<YOUR_AGENT_NAME>"`
+   - agent: "<YOUR_AGENT_NAME>"
 
 ---
 

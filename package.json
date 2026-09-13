@@ -7,6 +7,7 @@
   "description": "RTK-powered agent skills for Tech Leads.",
   "bin": {
     "lead-init": "./install.sh",
+    "lead-clean": "./scripts/cleanup.sh",
     "lead-run": "./scripts/rtk-run.sh",
     "tech-lead-clean": "./scripts/cleanup.sh"
   },
@@ -68,6 +69,7 @@
     "generate:registry": "pnpm --filter @zenithfoundry/tech-lead-stack run generate:registry",
     "test": "pnpm -r test",
     "test:gherkin": "node --test scripts/__tests__/validate-gherkin.test.mjs",
+    "test:install": "node --test scripts/__tests__/install-*.test.mjs",
     "setup-browsers": "npx playwright install chromium",
     "postinstall": "pnpm --filter @zenithfoundry/tech-lead-stack run db:generate",
     "format": "npx prettier --write \".ai/skills/*.md\" \"scripts/*.{js,mjs}\" \"README.md\"",
@@ -87,7 +89,8 @@
     "check-types": "pnpm -r check-types",
     "reflexion:eval": "pnpm --filter @zenithfoundry/tech-lead-stack run reflexion:eval",
     "calibrate-skill-costs": "pnpm --filter @zenithfoundry/tech-lead-stack run calibrate-skill-costs",
-    "db:generate": "pnpm --filter @zenithfoundry/tech-lead-stack run db:generate"
+    "db:generate": "pnpm --filter @zenithfoundry/tech-lead-stack run db:generate",
+    "test:cleanup": "node --test scripts/__tests__/cleanup.test.mjs"
   },
   "dependencies": {
     "@next-auth/prisma-adapter": "^1.0.7",

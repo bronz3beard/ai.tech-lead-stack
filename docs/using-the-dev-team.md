@@ -180,7 +180,7 @@ hit — but executes nothing. This is the mode to use when you want to see the
 plan and sanity-check the sizing before committing real work. It is safe:
 nothing changes on disk.
 
-**IDE / MCP-enabled agent (Antigravity, Cursor, VS Code with the MCP server):**
+**IDE / MCP-enabled agent (Antigravity, Claude Code, Cline, Cursor, VS Code with the MCP server):**
 The team has full write access, creates git worktrees, runs the `rtk` tools,
 executes the plan, and produces real diffs. This is where actual work happens.
 

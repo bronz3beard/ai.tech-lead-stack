@@ -1,0 +1,1055 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-13T14:55:27.061Z",
+  "entries": [
+    {
+      "name": "accessibility-audit",
+      "skill": "accessibility-auditor",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Specialized audit for Web Accessibility (A11y).",
+      "skillPath": ".ai/skills/accessibility-auditor.md",
+      "workflowPath": ".agents/workflows/accessibility-audit.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "agent-optimizer",
+      "skill": "agent-optimizer",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Precision tool for Token-Efficiency, Context Density Management, and Noise Reduction. Enforces the RTK (Rust Token Killer) methodology.",
+      "skillPath": ".ai/skills/agent-optimizer.md",
+      "workflowPath": null,
+      "surface": "internal",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "policy",
+      "mcpCallable": true,
+      "ideEligible": false
+    },
+    {
+      "name": "ask",
+      "skill": "ask",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "A Q&A workflow to chat with the Agent about the codebase.",
+      "skillPath": ".ai/skills/ask.md",
+      "workflowPath": ".agents/workflows/ask.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "audit-tech-debt",
+      "skill": "technical-debt-auditor",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Technical Debt Audit",
+      "skillPath": ".ai/skills/technical-debt-auditor.md",
+      "workflowPath": ".agents/workflows/audit-tech-debt.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "capacity-planner",
+      "skill": "capacity-planner",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Evaluates production capacity and defines performance budgets for a newly deployed release.",
+      "skillPath": ".ai/skills/capacity-planner.md",
+      "workflowPath": null,
+      "surface": "public",
+      "modes": [
+        "read-only"
+      ],
+      "kind": "skill",
+      "mcpCallable": false,
+      "ideEligible": false
+    },
+    {
+      "name": "changelog",
+      "skill": "changelog-generator",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Generate Changelog",
+      "skillPath": ".ai/skills/changelog-generator.md",
+      "workflowPath": ".agents/workflows/changelog.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "clean-code-audit",
+      "skill": "clean-code",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Clean Code Audit",
+      "skillPath": ".ai/skills/clean-code.md",
+      "workflowPath": ".agents/workflows/clean-code-audit.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "code-review",
+      "skill": "code-review-checklist",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Pre-PR Quality Gatekeeper Code Review",
+      "skillPath": ".ai/skills/code-review-checklist.md",
+      "workflowPath": ".agents/workflows/code-review.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "competitive-analysis",
+      "skill": "competitive-analysis",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Port of the blog's /competitive-analysis - compare this stack against external sources and queue accepted ideas.",
+      "skillPath": ".ai/skills/competitive-analysis.md",
+      "workflowPath": ".agents/workflows/competitive-analysis.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "design-requirements-to-architecture",
+      "skill": "feature-design-assistant",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Feature Design Assistant",
+      "skillPath": ".ai/skills/feature-design-assistant.md",
+      "workflowPath": ".agents/workflows/design-requirements-to-architecture.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "design-system-review",
+      "skill": "design-system-review",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "AI-augmented design review with a 2-iteration guard, sequential memory, and KI persistence.",
+      "skillPath": ".ai/skills/design-system-review.md",
+      "workflowPath": ".agents/workflows/design-system-review.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "dev-team",
+      "skill": "dev-team-orchestrator",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "[DEV-TEAM · FULL · MCP] The flagship orchestration workflow for an agentic dev team",
+      "skillPath": ".ai/skills/dev-team-orchestrator.md",
+      "workflowPath": ".agents/workflows/dev-team.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "orchestrator",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "dev-team-local",
+      "skill": "dev-team-local",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "[DEV-TEAM · LOCAL] Orchestrator for fully offline, single-lane execution.",
+      "skillPath": ".ai/skills/dev-team-local.md",
+      "workflowPath": null,
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "orchestrator",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "dev-team-sub-max",
+      "skill": "dev-team-sub-max",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "[DEV-TEAM · SUB-MAX · NO API KEYS · CROSS-MODEL VERIFY] Subscription-tier ($100/mo) dev team orchestrator workflow (up to 2 lanes, reflexion-loop-sub-max, cross-model verify, visual fidelity gate)",
+      "skillPath": ".ai/skills/dev-team-sub-max.md",
+      "workflowPath": ".agents/workflows/dev-team-sub-max.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "orchestrator",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "dev-team-sub-pro",
+      "skill": "dev-team-sub-pro",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "[DEV-TEAM · SUB-PRO · NO API KEYS · CROSS-MODEL VERIFY] Subscription-tier ($20/mo) dev pair orchestrator workflow (1 lane, no worktrees, builder/checker, cross-model verify, tier ceiling)",
+      "skillPath": ".ai/skills/dev-team-sub-pro.md",
+      "workflowPath": ".agents/workflows/dev-team-sub-pro.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "orchestrator",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "dummy-skill",
+      "skill": "Dummy Skill",
+      "domain": "shared",
+      "domainKey": "eng",
+      "description": "A dummy skill for testing purposes.",
+      "skillPath": ".ai/skills/dummy-skill.md",
+      "workflowPath": null,
+      "surface": "internal",
+      "modes": [
+        "read-only",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": false
+    },
+    {
+      "name": "feature-orchestrator",
+      "skill": "feature-orchestrator",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Three-Phase Feature Engine (Research -> Plan -> Implement)",
+      "skillPath": ".ai/skills/feature-orchestrator.md",
+      "workflowPath": ".agents/workflows/feature-orchestrator.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "orchestrator",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "hr-ad-distributor",
+      "skill": "hr-ad-distributor",
+      "domain": "hiring",
+      "domainKey": "hr",
+      "description": "Multi-Channel Job Ad Distributor",
+      "skillPath": ".ai/hr-skills/hr-ad-distributor.md",
+      "workflowPath": ".agents/hr-workflows/hr-ad-distributor.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "hr-candidate-sourcer",
+      "skill": "hr-candidate-sourcer",
+      "domain": "hiring",
+      "domainKey": "hr",
+      "description": "Passive Candidate Sourcer",
+      "skillPath": ".ai/hr-skills/hr-candidate-sourcer.md",
+      "workflowPath": ".agents/hr-workflows/hr-candidate-sourcer.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "hr-endorsement-synthesizer",
+      "skill": "hr-endorsement-synthesizer",
+      "domain": "hiring",
+      "domainKey": "hr",
+      "description": "Evidence-Traceable Endorsement Synthesizer",
+      "skillPath": ".ai/hr-skills/hr-endorsement-synthesizer.md",
+      "workflowPath": ".agents/hr-workflows/hr-endorsement-synthesizer.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "hr-intake-specifier",
+      "skill": "hr-intake-specifier",
+      "domain": "hiring",
+      "domainKey": "hr",
+      "description": "Requisition Intake Brief Specifier",
+      "skillPath": ".ai/hr-skills/hr-intake-specifier.md",
+      "workflowPath": ".agents/hr-workflows/hr-intake-specifier.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "hr-interview-auditor",
+      "skill": "hr-interview-auditor",
+      "domain": "hiring",
+      "domainKey": "hr",
+      "description": "Structured Interview Evaluator",
+      "skillPath": ".ai/hr-skills/hr-interview-auditor.md",
+      "workflowPath": ".agents/hr-workflows/hr-interview-auditor.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "hr-jd-drafter",
+      "skill": "hr-jd-drafter",
+      "domain": "hiring",
+      "domainKey": "hr",
+      "description": "Inclusive Job Description Drafter",
+      "skillPath": ".ai/hr-skills/hr-jd-drafter.md",
+      "workflowPath": ".agents/hr-workflows/hr-jd-drafter.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "hr-pipeline-translator",
+      "skill": "hr-pipeline-translator",
+      "domain": "hiring",
+      "domainKey": "hr",
+      "description": "Client-Facing Pipeline Status Translator",
+      "skillPath": ".ai/hr-skills/hr-pipeline-translator.md",
+      "workflowPath": ".agents/hr-workflows/hr-pipeline-translator.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "init",
+      "skill": "mission-control",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Master Setup",
+      "skillPath": ".ai/skills/mission-control.md",
+      "workflowPath": ".agents/workflows/init.md",
+      "surface": "internal",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "orchestrator",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "knowledge-manager",
+      "skill": "knowledge-manager",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Manage project-specific knowledge items to maintain persistent context and architectural memory.",
+      "skillPath": ".ai/skills/knowledge-manager.md",
+      "workflowPath": null,
+      "surface": "internal",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "policy",
+      "mcpCallable": true,
+      "ideEligible": false
+    },
+    {
+      "name": "mission-architect",
+      "skill": "mission-architect",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Master Feature Orchestration",
+      "skillPath": ".ai/skills/mission-architect.md",
+      "workflowPath": ".agents/workflows/mission-architect.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "mcp"
+      ],
+      "kind": "orchestrator",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "onboard-dev",
+      "skill": "codebase-onboarding-intelligence",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Codebase Onboarding Intelligence",
+      "skillPath": ".ai/skills/codebase-onboarding-intelligence.md",
+      "workflowPath": ".agents/workflows/onboard-dev.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "operational-boundaries",
+      "skill": "operational-boundaries",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Global behavioral guardrails to prevent agent deviation and context hijacking.",
+      "skillPath": ".ai/skills/operational-boundaries.md",
+      "workflowPath": null,
+      "surface": "internal",
+      "modes": [
+        "read-only",
+        "mcp"
+      ],
+      "kind": "policy",
+      "mcpCallable": true,
+      "ideEligible": false
+    },
+    {
+      "name": "plan",
+      "skill": "planning-expert",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Implementation & Bug Planning",
+      "skillPath": ".ai/skills/planning-expert.md",
+      "workflowPath": ".agents/workflows/plan.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "plan-quick",
+      "skill": "planning-expert-quick",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Ultra-lean strategic planning. Optimized for speed, token efficiency, and rapid MVC delivery.",
+      "skillPath": ".ai/skills/planning-expert-quick.md",
+      "workflowPath": ".agents/workflows/plan-quick.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "pm-action-item-mapper",
+      "skill": "pm-action-item-mapper",
+      "domain": "product",
+      "domainKey": "pm",
+      "description": "Meeting Note Technical Action-Item Mapper",
+      "skillPath": ".ai/pm-skills/pm-action-item-mapper.md",
+      "workflowPath": ".agents/pm-workflows/pm-action-item-mapper.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "pm-backlog-auditor",
+      "skill": "pm-backlog-auditor",
+      "domain": "product",
+      "domainKey": "pm",
+      "description": "Backlog Sufficiency & Logic Auditor",
+      "skillPath": ".ai/pm-skills/pm-backlog-auditor.md",
+      "workflowPath": ".agents/pm-workflows/pm-backlog-auditor.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "pm-context-summarizer",
+      "skill": "pm-context-summarizer",
+      "domain": "product",
+      "domainKey": "pm",
+      "description": "Pre-Meeting Development Context Summarizer",
+      "skillPath": ".ai/pm-skills/pm-context-summarizer.md",
+      "workflowPath": ".agents/pm-workflows/pm-context-summarizer.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "pm-design-system-auditor",
+      "skill": "design-system-review",
+      "domain": "eng",
+      "domainKey": "pm",
+      "description": "Design System Implementation Auditor",
+      "skillPath": ".ai/skills/design-system-review.md",
+      "workflowPath": ".agents/pm-workflows/pm-design-system-auditor.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "pm-effort-estimator",
+      "skill": "pm-effort-estimator",
+      "domain": "product",
+      "domainKey": "pm",
+      "description": "Historical Complexity & Effort Estimator",
+      "skillPath": ".ai/pm-skills/pm-effort-estimator.md",
+      "workflowPath": ".agents/pm-workflows/pm-effort-estimator.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "pm-newsletter-generator",
+      "skill": "pm-newsletter-generator",
+      "domain": "product",
+      "domainKey": "pm",
+      "description": "Commit-to-Newsletter Content Summarizer",
+      "skillPath": ".ai/pm-skills/pm-newsletter-generator.md",
+      "workflowPath": ".agents/pm-workflows/pm-newsletter-generator.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "pm-progress-translator",
+      "skill": "pm-progress-translator",
+      "domain": "product",
+      "domainKey": "pm",
+      "description": "Client-Facing Technical Progress Translator",
+      "skillPath": ".ai/pm-skills/pm-progress-translator.md",
+      "workflowPath": ".agents/pm-workflows/pm-progress-translator.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "pm-release-note-drafter",
+      "skill": "pm-release-note-drafter",
+      "domain": "product",
+      "domainKey": "pm",
+      "description": "Automated Feature Release Note Drafter",
+      "skillPath": ".ai/pm-skills/pm-release-note-drafter.md",
+      "workflowPath": ".agents/pm-workflows/pm-release-note-drafter.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "pm-risk-detector",
+      "skill": "pm-risk-detector",
+      "domain": "product",
+      "domainKey": "pm",
+      "description": "Code-Based Milestone Risk Detector",
+      "skillPath": ".ai/pm-skills/pm-risk-detector.md",
+      "workflowPath": ".agents/pm-workflows/pm-risk-detector.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "pm-story-augmenter",
+      "skill": "pm-story-augmenter",
+      "domain": "product",
+      "domainKey": "pm",
+      "description": "Technical User Story Detail Augmenter",
+      "skillPath": ".ai/pm-skills/pm-story-augmenter.md",
+      "workflowPath": ".agents/pm-workflows/pm-story-augmenter.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "pm-task-specifier",
+      "skill": "pm-task-specifier",
+      "domain": "product",
+      "domainKey": "pm",
+      "description": "Auto-Draft Technical Task Specifier",
+      "skillPath": ".ai/pm-skills/pm-task-specifier.md",
+      "workflowPath": ".agents/pm-workflows/pm-task-specifier.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "pr-automator",
+      "skill": "pr-automator",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "PR Automator (with Mandatory Dynamic Template Adherence, Commit History Review, Label Matching, & Draft Mode)",
+      "skillPath": ".ai/skills/pr-automator.md",
+      "workflowPath": ".agents/workflows/pr-automator.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "pr-design-review-init",
+      "skill": "design-system-review",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Start an AI-powered design review from an existing GitHub PR URL.",
+      "skillPath": ".ai/skills/design-system-review.md",
+      "workflowPath": ".agents/workflows/pr-design-review-init.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "qa-handover",
+      "skill": "qa-handover-generator",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Generate a QA handover + universal smoke-test criteria document and deliver it to ClickUp",
+      "skillPath": ".ai/skills/qa-handover-generator.md",
+      "workflowPath": ".agents/workflows/qa-handover.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "reflexion-loop",
+      "skill": "reflexion-loop",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "[LOOP · DUAL-MODEL · API KEYS] ✨ Special feature — run the two-model self-correcting plan loop (Gemini drafts, Claude grades). Requires GEMINI_API_KEY + ANTHROPIC_API_KEY.",
+      "skillPath": ".ai/skills/reflexion-loop.md",
+      "workflowPath": ".agents/workflows/reflexion-loop.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "reflexion-loop-local",
+      "skill": "reflexion-loop-local",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "[LOOP · LOCAL · SAME-MODEL] Fully offline model loop with same-model sequential self-critique, governed by a token and wall-clock budget.",
+      "skillPath": ".ai/skills/reflexion-loop-local.md",
+      "workflowPath": null,
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "reflexion-loop-sub-max",
+      "skill": "reflexion-loop-sub-max",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "[LOOP · SUB-MAX · NO API KEYS · CROSS-MODEL VERIFY] $100/mo tier context-isolated plan hardening loop with multi-vendor cross-model verification.",
+      "skillPath": ".ai/skills/reflexion-loop-sub-max.md",
+      "workflowPath": ".agents/workflows/reflexion-loop-sub-max.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "reflexion-loop-sub-pro",
+      "skill": "reflexion-loop-sub-pro",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "[LOOP · SUB-PRO · NO API KEYS · CROSS-MODEL VERIFY] $20/mo tier context-isolated loop with single-pass cross-model plan check.",
+      "skillPath": ".ai/skills/reflexion-loop-sub-pro.md",
+      "workflowPath": ".agents/workflows/reflexion-loop-sub-pro.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "regression-bug-fix",
+      "skill": "regression-bug-fix",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Unified Feedback & Regression Fix",
+      "skillPath": ".ai/skills/regression-bug-fix.md",
+      "workflowPath": ".agents/workflows/regression-bug-fix.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "security-audit",
+      "skill": "security-audit",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Security Audit",
+      "skillPath": ".ai/skills/security-audit.md",
+      "workflowPath": ".agents/workflows/security-audit.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "solutioning-facilitator",
+      "skill": "solutioning-facilitator",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Facilitates a live, multi-role \"solutioning\" session (PM, Design, QA, Frontend, Backend) for when a team discovers mid-flight that a feature is missing something and needs to propose, compare, and converge on a fix. Runs inside a code-connected agent (an IDE agent or the Agent Chat), anchors the session on a real user story/task, and keeps a precise, always-current running memory of every option, objection, spike, and decision so nothing is lost or re-litigated.",
+      "skillPath": ".ai/skills/solutioning-facilitator.md",
+      "workflowPath": null,
+      "surface": "public",
+      "modes": [
+        "read-only"
+      ],
+      "kind": "skill",
+      "mcpCallable": false,
+      "ideEligible": false
+    },
+    {
+      "name": "standup-daily-summary",
+      "skill": "daily-standup",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Daily Standup Report",
+      "skillPath": ".ai/skills/daily-standup.md",
+      "workflowPath": ".agents/workflows/standup-daily-summary.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "mcp"
+      ],
+      "kind": "report",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "strategy-target-evaluation",
+      "skill": "product-strategist",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Product Strategy Audit",
+      "skillPath": ".ai/skills/product-strategist.md",
+      "workflowPath": ".agents/workflows/strategy-target-evaluation.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "style-logic-exporter",
+      "skill": "style-logic-exporter",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Export Tailwind v3.4 design tokens to Figma (Tokens Studio format)",
+      "skillPath": ".ai/skills/style-logic-exporter.md",
+      "workflowPath": ".agents/workflows/style-logic-exporter.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "ui-spec-generator",
+      "skill": "ui-spec-generator",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "AI-Powered UI Spec Generator",
+      "skillPath": ".ai/skills/ui-spec-generator.md",
+      "workflowPath": ".agents/workflows/ui-spec-generator.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "verification-auditor",
+      "skill": "verification-auditor",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Internal support logic for verifying local environments and evidence capture. Security, Performance, and Accessibility with \"Extreme Prejudice.\"",
+      "skillPath": ".ai/skills/verification-auditor.md",
+      "workflowPath": null,
+      "surface": "internal",
+      "modes": [
+        "read-only",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": false
+    },
+    {
+      "name": "verify-changes",
+      "skill": "visual-verifier",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Visual Smoke Test",
+      "skillPath": ".ai/skills/visual-verifier.md",
+      "workflowPath": ".agents/workflows/verify-changes.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "vertical-slice",
+      "skill": "vertical-slice-decomposer",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Decompose user stories into ClickUp-ready vertical slices",
+      "skillPath": ".ai/skills/vertical-slice-decomposer.md",
+      "workflowPath": ".agents/workflows/vertical-slice.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "weekly-leadership-report",
+      "skill": "weekly-leadership-report",
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Weekly Leadership Status Report (Team-Wide)",
+      "skillPath": ".ai/skills/weekly-leadership-report.md",
+      "workflowPath": ".agents/workflows/weekly-leadership-report.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "report",
+      "mcpCallable": true,
+      "ideEligible": true
+    }
+  ]
+}

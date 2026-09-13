@@ -28,8 +28,8 @@
 Before this PR, the skill discovery situation was broken in three different ways
 depending on where you were working:
 
-**In an MCP-connected IDE** (Antigravity, Cursor, Continue, VS Code with the
-tech-lead-stack MCP server): the server globs `.ai/skills/*.md` on every call to
+**In an MCP-connected IDE** (Antigravity, Claude Code, Cline, Cursor, Continue,
+VS Code with the tech-lead-stack MCP server): the server globs `.ai/skills/*.md` on every call to
 `get_skills` or `list_skills`, so the agent could see all 29 skills. This
 worked.
 
@@ -112,10 +112,15 @@ table. `internal` skills appear in a separate smaller table at the bottom of the
 README. This means Cursor's skill picker stays clean — it shows the skills a
 developer would invoke deliberately, not the plumbing.
 
-The seven internal skills after this PR are: `agent-optimizer`,
-`codebase-onboarding-intelligence`, `knowledge-manager`, `mission-control`,
-`operational-boundaries`, `verification-auditor`, and
-`weekly-leadership-report`.
+The internal skills are: `agent-optimizer`, `dummy-skill`,
+`knowledge-manager`, `mission-control`, `operational-boundaries`, and
+`verification-auditor`.
+
+> [!NOTE]
+> `codebase-onboarding-intelligence` and `weekly-leadership-report` were listed
+> here as internal in an earlier revision. Both are `surface: public` now and
+> appear in the main skill table and the web app browser. The generated
+> `.ai/agent-surfaces.json` is the authoritative list; this prose is a summary.
 
 ### `cost`
 
@@ -183,7 +188,7 @@ files disagree with each other.
 ### What it does
 
 The script reads every `.md` file in `.ai/skills/`, parses the YAML frontmatter
-using `gray-matter`, validates it against a Zod schema, and then generates two
+using `gray-matter`, validates it against a Zod schema, and then generates four
 outputs:
 
 **1. `.ai/cursor-skills.manifest`** — regenerated completely from frontmatter.
@@ -198,6 +203,55 @@ The table now has a Modes column. Public skills get the full five-column table
 (Skill, Description, How it works, Use Case, Modes, Est. Context Footprint).
 Internal skills get a smaller table underneath with four columns (no How it
 works or Use Case).
+
+**3. `.ai/skills.graph.json`** — the dependency graph consumed by the web app,
+containing one node per skill with its phase, kind, ownership, targets, and the
+`requires` / `suggests` edges between skills.
+
+**4. `.ai/agent-surfaces.json`** — the agent-agnostic surface index that every
+installer adapter reads. See the next section.
+
+### The agent surface index
+
+`.ai/agent-surfaces.json` answers one question that no other file could answer
+without guessing: **for a given IDE command, which skill does it actually
+invoke?**
+
+Workflow launchers and the skills they call frequently have different names.
+`plan.md` calls `planning-expert`. `init.md` calls `mission-control`.
+`verify-changes.md` calls `visual-verifier`. Roughly half of the engineering
+workflows diverge this way. Before this index existed, every installer had to
+re-derive the mapping by parsing prose out of the workflow body, and each one
+would have got it slightly wrong in a different way.
+
+The index covers all three domains (`.ai/skills`, `.ai/pm-skills`,
+`.ai/hr-skills` with their matching workflow directories) and records, per
+entry: the command name, the resolved skill, both source paths, the domain, the
+`surface` and `modes` of the skill, and two derived booleans.
+
+**The eligibility rule.** An entry is offered to an IDE (`ideEligible: true`)
+when either:
+
+1. A workflow launcher exists for it, which is an explicit statement of intent
+   that this belongs in an IDE; or
+2. It is `surface: public` **and** its `modes` include `mcp`.
+
+This keeps the gate in frontmatter, where it is agent-agnostic, rather than in
+any one client's installer. `surface: internal` skills stay out of command
+pickers unless a workflow deliberately exposes them, and a skill that never
+declared itself MCP-callable is never offered through an MCP-backed command.
+
+**Build-time validation.** Generation fails if a workflow names a skill that
+does not exist, names nothing usable, or if an entry would be offered to an IDE
+without declaring `mcp`. That last check is what surfaces contradictions between
+a skill's declared modes and where it is actually exposed. Adding this validation
+caught four real defects on its first run: two workflows with an empty or
+missing `skillName`, one pointing at a skill that was never written, and one
+skill exposed to IDEs without declaring `mcp`.
+
+**Consumers.** `install.sh` reads it for `--ide claude-code`. It is the intended
+source for the Cursor and Continue adapters too, which still parse their own
+inputs today.
 
 ### Why this approach
 

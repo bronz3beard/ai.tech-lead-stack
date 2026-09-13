@@ -1,4 +1,5 @@
 # The Lead Stack: Agent-Agnostic Workflows
+
 ### `intent-brief → spec → plan → diff → review-report → release`
 
 ![CI Status](https://github.com/bronz3beard/tech-lead-stack/actions/workflows/ci.yml/badge.svg)
@@ -32,9 +33,14 @@ Live Web App:
   - [Tier Decision Guide](#tier-decision-guide)
   - [Architecture: Harness Independence vs. Model Separation](#architecture-harness-independence-vs-model-separation)
 - [🚀 Quick Start](#-quick-start)
+- [Install, Link & Uninstall](#install-link--uninstall)
+- [Supported Editors & Agents](#supported-editors--agents)
 - [Antigravity Setup](#antigravity-setup)
 - [Cursor Setup](#cursor-setup)
 - [Continue Setup](#continue-setup)
+- [Claude Code Setup](#claude-code-setup)
+- [Cline Setup](#cline-setup)
+- [Gemini CLI & Gemini Desktop Setup](#gemini-cli--gemini-desktop-setup)
 - [Workflow Catalogue](#workflow-catalogue)
 - [The Web App](#the-web-app)
 - [Docs](#docs)
@@ -241,7 +247,13 @@ Clone this repo and link it globally for easy access:
 
 ```bash
 
-# Add this to your ~/.zshrc
+# Recommended: link the repo's own commands once, no hardcoded paths.
+# Run this inside the tech-lead-stack checkout:
+#   npm link
+# That gives you `lead-init`, `lead-clean` and `lead-run` everywhere.
+
+# Alternative: shell aliases, if you would rather not link globally.
+# Add these to your ~/.zshrc, replacing the path with your checkout.
 alias lead-init='bash /path/to/tech-lead-stack/install.sh --link .'
 
 # Cursor: register skills globally (~/.cursor/skills/) without touching your app repo
@@ -249,6 +261,12 @@ alias lead-init-cursor='bash /path/to/tech-lead-stack/install.sh --link . --ide 
 
 # Continue: register skills and MCP globally (~/.continue/config.yaml) without touching your app repo
 alias lead-init-continue='bash /path/to/tech-lead-stack/install.sh --link . --ide continue'
+
+# Claude Code: generate /tls:<name> slash commands + user-scope MCP, globally
+alias lead-init-claude='bash /path/to/tech-lead-stack/install.sh --link . --ide claude-code'
+
+# Add an IDE to a project you already linked, without re-running the full install
+alias lead-ide-only='bash /path/to/tech-lead-stack/install.sh --link . --ide-only --ide'
 
 ```
 
@@ -306,6 +324,144 @@ pnpm run mcp:build
 
 This will bundle the core logic (`src/mcp-server` and `src/lib/ai`) into
 `dist/mcp-server.mjs`.
+
+## Install, Link & Uninstall
+
+One reference for every platform. The per-editor sections below go deeper; this
+is the part that applies to all of them.
+
+### The two halves of an install
+
+`install.sh` writes to two places, and they have different lifetimes:
+
+| Half             | Where                                                                                                       | Lifetime                                    | Removed by                    |
+| :--------------- | :---------------------------------------------------------------------------------------------------------- | :------------------------------------------ | :---------------------------- |
+| **Project link** | Inside the repo you point at: `.ai`, `.agents`, `AGENTS.md` symlinks plus two copied GitHub files           | Per project                                 | `lead-clean` (default)        |
+| **Editor setup** | Your home directory: MCP registrations, generated slash commands, symlinked skills and prompts, shell alias | Per machine, shared by every linked project | `lead-clean --global --apply` |
+
+This split is why cleanup is project-only by default. One editor setup serves
+every project you link, so unlinking one project must never unregister the rest.
+
+### Symlinking is optional
+
+The project link uses symlinks so a `git pull` in the stack updates every linked
+project at once. You can skip it entirely:
+
+```bash
+./install.sh --link . --ide claude-code --ide-only   # editor setup only, no project files
+```
+
+Use `--ide-only` when you only want the skills available in your editor, when
+adding an editor to a project you linked previously, or when you cannot write
+into the target repo. Nothing is created inside the project.
+
+If a real `AGENTS.md` already exists in your project, the installer leaves it
+alone rather than replacing it with a symlink.
+
+### Command reference
+
+**Installing**
+
+| Command                                   | What it does                                      |
+| :---------------------------------------- | :------------------------------------------------ |
+| `./install.sh --link .`                   | Link the current project, auto-detect editors     |
+| `./install.sh --link . --ide <mode>`      | Target one editor explicitly                      |
+| `./install.sh --link . --ide-only`        | Editor setup only, write nothing into the project |
+| `./install.sh --link . --mcp-name <name>` | Register the MCP server under a different name    |
+| `./install.sh --link . --domains eng`     | Limit generated commands to certain skill domains |
+| `./install.sh --link /path/to/project`    | Link a project other than the current directory   |
+| `./install.sh --help`                     | Show all flags                                    |
+
+`--ide` accepts `auto`, `cursor`, `continue`, `claude-code`, `cline`, `gemini`,
+or `none`. `--domains` accepts any comma-separated mix of `eng`, `pm`, `hr`
+(default: all three).
+
+**Uninstalling**
+
+| Command                       | What it does                                       |
+| :---------------------------- | :------------------------------------------------- |
+| `lead-clean`                  | Unlink the current project. Editor setup untouched |
+| `lead-clean /path/to/project` | Unlink a different project                         |
+| `lead-clean --dry-run`        | Preview the project unlink, delete nothing         |
+| `lead-clean --global`         | Preview what a full editor removal would delete    |
+| `lead-clean --global --apply` | Actually remove the editor setup from this machine |
+
+**Shorthand**
+
+Run `npm link` once inside the tech-lead-stack checkout and you get `lead-init`,
+`lead-clean` and `lead-run` on your PATH, with no hardcoded paths in your shell
+config. Every `./install.sh --link .` above can then be written `lead-init`.
+
+### What each platform gets, and how to remove it
+
+| Platform             | Install flag        | What it writes                                              | Slash commands?        |
+| :------------------- | :------------------ | :---------------------------------------------------------- | :--------------------- |
+| Claude Code          | `--ide claude-code` | `~/.claude/commands/tls/`, `~/.claude.json`                 | Yes, `/tls:<name>`     |
+| Cursor               | `--ide cursor`      | `~/.cursor/skills/`, `~/.cursor/mcp.json`                   | Skills UI              |
+| Continue             | `--ide continue`    | `~/.continue/config.yaml`, `~/.continue/prompts/`           | Prompt menu            |
+| Cline                | `--ide cline`       | Cline's `cline_mcp_settings.json` in VS Code global storage | No, MCP only           |
+| Gemini CLI / Desktop | `--ide gemini`      | `~/.gemini/settings.json`                                   | No, MCP only           |
+| Claude Desktop       | auto-detected       | `claude_desktop_config.json`                                | No, MCP only           |
+| Antigravity          | manual              | Workflows pasted into Agent Manager                         | Yes, via Agent Manager |
+
+Cline and Gemini are MCP-only. Skills reach them through `get_skill`, not a
+picker, which is why they have no generated command files to remove.
+
+Antigravity stores its state as protobuf rather than JSON, so it cannot be
+configured or cleaned automatically. Remove its workflows through Agent Manager.
+
+### Removing the editor setup, on every platform
+
+One command covers all of them:
+
+```bash
+lead-clean --global           # preview
+lead-clean --global --apply   # remove
+```
+
+It walks every platform in the table above and removes only what points at your
+checkout. Specifically:
+
+- **MCP registrations** are matched by the path they reference, not by name, so
+  a server you renamed with `--mcp-name` is still found. Other servers in the
+  same config file are left untouched, as are your account and session state.
+- **Generated command directories** are deleted outright, since the installer
+  owns them completely.
+- **Symlinked skills and prompts** are removed only when the link actually
+  points into your checkout. Anything else in those directories stays.
+- **The `rtk` shell alias** is stripped from `~/.zshrc` and `~/.bashrc`.
+
+Every JSON file it edits is backed up to `<file>.bak` first, and the preview is
+the default so you always see the list before anything is deleted.
+
+Afterwards, restart your editor so it drops the removed MCP servers, and open a
+new terminal so the removed alias disappears.
+
+### Safety
+
+`lead-clean` refuses to run against your home directory, the filesystem root, or
+the tech-lead-stack repository itself. A copied file you have since edited, such
+as a customised pull request template, is kept and reported rather than deleted.
+Only symlinks that actually point into your checkout are removed, so a real
+`.ai` directory of your own is never touched.
+
+## Supported Editors & Agents
+
+| Client               | Installer flag      | Verified                  | Notes                                                                                                    |
+| :------------------- | :------------------ | :------------------------ | :------------------------------------------------------------------------------------------------------- |
+| Antigravity          | manual registration | ✅ Tested                 | Workflows registered through Agent Manager. Protobuf state, so not automatable.                          |
+| Claude Code          | `--ide claude-code` | ✅ Tested                 | Generates `/tls:<name>` slash commands plus user-scope MCP. See [Claude Code Setup](#claude-code-setup). |
+| Cline                | `--ide cline`       | ✅ Tested                 | MCP-only. Also reads `AGENTS.md`. See [Cline Setup](#cline-setup).                                       |
+| Claude Desktop       | auto-detected       | ⚠️ Configured, unverified | MCP-only. Configured when its config file is found.                                                      |
+| Continue             | `--ide continue`    | ⚠️ Configured, unverified | Writes `~/.continue/config.yaml` and prompts; not yet smoke-tested end to end.                           |
+| Cursor               | `--ide cursor`      | ⚠️ Configured, unverified | Writes `~/.cursor/skills/` and `~/.cursor/mcp.json`; not yet smoke-tested end to end.                    |
+| Gemini CLI / Desktop | `--ide gemini`      | ⚠️ Configured, unverified | MCP-only. Merges into `~/.gemini/settings.json`. See [Gemini Setup](#gemini-cli--gemini-desktop-setup).  |
+
+Every row above is removed by the same command: `lead-clean --global --apply`.
+
+"Verified" means a real session invoked a skill through that client and the MCP
+`get_skill` call succeeded. Anything marked unverified is wired up and expected
+to work, but has not been confirmed by hand. Reports welcome.
 
 ## Antigravity Setup
 
@@ -529,11 +685,156 @@ see the newly imported workflows (e.g. `/plan-quick`). By putting the IDE agent
 in "Agent" mode, it will have access to the Stack's MCP tools to execute
 commands like `get_skills` natively!
 
+## Claude Code Setup
+
+Claude Code (the VS Code extension, desktop app, and CLI) is supported natively.
+The installer generates one slash command per skill and registers the MCP server
+at user scope, so the stack behaves the same way it does in Antigravity or
+Cursor.
+
+### What gets installed, and where
+
+This is the only integration that writes to **two locations outside your
+project**. Both are in your home directory, not in your app repository:
+
+| Path                      | What it holds                                                                                                | Safe to delete?                                              |
+| :------------------------ | :----------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------- |
+| `~/.claude/commands/tls/` | One generated `.md` file per skill. These are build artifacts and are regenerated from scratch on every run. | Yes. Re-run the installer to restore.                        |
+| `~/.claude.json`          | Your Claude Code config. The installer adds one key under `mcpServers` and touches nothing else.             | **No.** This file also holds your account and session state. |
+
+> [!IMPORTANT] `~/.claude.json` is a live file that Claude Code rewrites while
+> it runs. The installer prefers the `claude` CLI
+> (`claude mcp add-json ... --scope user`) and only edits the file directly when
+> that CLI is unavailable. In the fallback path it writes a backup to
+> `~/.claude.json.bak` first and replaces the file atomically. Nothing inside
+> your project is modified either way.
+
+### Step 1: Clone the Repository
+
+```bash
+git clone https://github.com/bronz3beard/tech-lead-stack.git
+cd tech-lead-stack
+```
+
+### Step 2: Run the Installer with the Claude Code Flag
+
+```bash
+./install.sh --link . --ide claude-code
+```
+
+**Already linked this project with a previous `install.sh` run?** You do not
+need to re-link anything. The Claude Code surface is entirely global, so one run
+from any directory enables it for every project you have linked, past and
+future. Use `--ide-only` to skip project linking, dependency installs, and the
+GitHub CLI auth check:
+
+```bash
+./install.sh --link . --ide claude-code --ide-only
+```
+
+### Step 3: Verify
+
+```bash
+# The MCP server is registered at user scope
+jq '.mcpServers["tech-lead-stack"]' ~/.claude.json
+
+# The slash commands were generated
+ls ~/.claude/commands/tls/ | head
+```
+
+### Step 4: Use It
+
+Reload Claude Code, then type `/tls:` in the chat. The picker lists every
+generated command, for example `/tls:ask`, `/tls:plan`, or
+`/tls:vertical-slice`. Each command carries its workflow's full instructions, so
+Phase 0 skill acquisition and every downstream gate behave exactly as they do in
+other clients. Anything you type after the command name is passed through as
+extra context.
+
+```text
+/tls:vertical-slice decompose the checkout refactor into slices
+```
+
+### Options
+
+| Flag                | Default           | Why you would change it                                                                                                                                                                                                                                                                   |
+| :------------------ | :---------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--ide-only`        | off               | Configure the IDE surface and stop. No project files are written, no dependencies installed, no `gh auth` wait.                                                                                                                                                                           |
+| `--mcp-name <name>` | `tech-lead-stack` | Register the MCP server under a different name. Use this when you run the stack behind a separate gate (for example `slm-gate`) so the two can coexist without colliding. The name is propagated into the generated commands, so the tool calls always match what is actually registered. |
+| `--domains <list>`  | `eng,pm,hr`       | Restrict generated commands to certain skill domains. `--domains eng` gives you engineering skills only.                                                                                                                                                                                  |
+
+### Which skills become commands
+
+A skill is offered to Claude Code when **either** of these is true:
+
+1. A workflow launcher exists for it in `.agents/workflows/`,
+   `.agents/pm-workflows/`, or `.agents/hr-workflows/`.
+2. It is `surface: public` **and** its `modes` include `mcp`.
+
+This is the same agent-agnostic rule every installer adapter uses, read from
+`.ai/agent-surfaces.json`. It means `surface: internal` skills stay out of your
+command picker unless a workflow deliberately exposes them, and skills that
+never declared themselves MCP-callable are never offered through an MCP-backed
+command. See [Skill Readiness](docs/skill-readiness.md) for how the gating
+fields work.
+
+### Uninstalling
+
+```bash
+rm -rf ~/.claude/commands/tls
+claude mcp remove tech-lead-stack --scope user
+```
+
+## Cline Setup
+
+Cline is MCP-only: there is no slash command picker, so skills arrive through
+the `get_skill` tool once the server is registered.
+
+```bash
+git clone https://github.com/bronz3beard/tech-lead-stack.git ~/tech-lead-stack
+~/tech-lead-stack/install.sh --link . --ide cline
+```
+
+The installer writes to Cline's settings inside VS Code's global storage:
+
+```text
+macOS: ~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json
+Linux: ~/.config/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json
+```
+
+It also checks `Code - Insiders`, `VSCodium` and `Cursor`, so a Cline install in
+any of those is configured too. Reload the window afterwards, then ask the agent
+to call `get_skill` with the skill you want. Cline also reads the root
+`AGENTS.md` that the project link creates, so it picks up the conventions
+automatically.
+
+Remove it with `lead-clean --global --apply`.
+
+## Gemini CLI & Gemini Desktop Setup
+
+Both read the same config file, so one install covers them.
+
+```bash
+~/tech-lead-stack/install.sh --link . --ide gemini
+```
+
+This merges an `mcpServers` entry into `~/.gemini/settings.json` and leaves your
+existing authentication block untouched. Like Cline, this is MCP-only: invoke
+skills by asking for `get_skill` rather than through a picker.
+
+> [!NOTE] Antigravity is a separate product from Gemini CLI. It stores its state
+> as protobuf under `~/.gemini/antigravity/`, not JSON, so the installer cannot
+> configure or clean it. Register its workflows through Agent Manager by hand,
+> as described in the Antigravity section above.
+
+Remove it with `lead-clean --global --apply`.
+
 ## Workflow Catalogue
 
-There are 45 workflows available. Note that `pm-` and `hr-` workflows are
-currently NOT symlinked by `install.sh` (only `.agents/workflows/` is). For
-these suites, you will need to copy-paste or manually register them.
+There are 51 workflows available across three domains. `--ide claude-code`
+installs all three by default (narrow it with `--domains`). The Cursor and
+Continue adapters still cover `.agents/workflows/` only, so for those clients
+the `pm-` and `hr-` suites must be copy-pasted or registered manually.
 
 ### Engineering (`.agents/workflows/`)
 
@@ -749,10 +1050,10 @@ Technical debt auditing, onboarding, and repo intelligence.
 
 ### Reports
 
-| Skill                          | Description                                                                                                                               | How it works                                                                                                | Use Case                                                             | Modes            | Est. Context Footprint |
-| :----------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------- | :--------------- | :--------------------- |
-| **`daily-standup`**            | Analyzes local git activity and task progress to generate a comprehensive 2-day rolling standup report following a strict template.       | Categorizes commits, assess blockers, and generates a rolling report using a professional standup template. | Automating your daily update or summarizing work for a sync meeting. | read-only, mcp   | ~550 tokens            |
-| **`weekly-leadership-report`** | Extracts technical progress from Git history and ClickUp sprints using browser automation to synthesize high-fidelity leadership reports. | -                                                                                                           | -                                                                    | read-only, write | ~1200 tokens           |
+| Skill                          | Description                                                                                                                               | How it works                                                                                                | Use Case                                                             | Modes                 | Est. Context Footprint |
+| :----------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------- | :-------------------- | :--------------------- |
+| **`daily-standup`**            | Analyzes local git activity and task progress to generate a comprehensive 2-day rolling standup report following a strict template.       | Categorizes commits, assess blockers, and generates a rolling report using a professional standup template. | Automating your daily update or summarizing work for a sync meeting. | read-only, mcp        | ~550 tokens            |
+| **`weekly-leadership-report`** | Extracts technical progress from Git history and ClickUp sprints using browser automation to synthesize high-fidelity leadership reports. | -                                                                                                           | -                                                                    | read-only, write, mcp | ~1200 tokens           |
 
 ### Internal Skills
 
@@ -965,7 +1266,7 @@ without workspace access:
 > Lead Agent equipped with these workflows. Use `rtk run <tool>` for all tool
 > executions."
 
-#### Option B: The Symlink (Best for Antigravity/Cursor/Continue/Claude Code)
+#### Option B: The Symlink (Antigravity, Claude Code, Cline, Continue, Cursor, Gemini)
 
 Since lead-init has already linked the instructions to your project, simply
 prompt the agent in your workspace:
@@ -1008,21 +1309,41 @@ AI agents, please refer to the
 
 ## 🧹 Resetting a Project
 
-# Tech-Lead Stack Cleanup Alias
+Full detail lives in [Install, Link & Uninstall](#install-link--uninstall). This
+is the short version.
+
+**Unlink one project.** The default. Removes the `.ai`, `.agents` and
+`AGENTS.md` symlinks and the two copied GitHub files. Your editor setup keeps
+working for every other project you have linked.
 
 ```bash
-
-# Add this to your ~/.zshrc
-alias lead-clean='bash /path/to/tech-lead-stack/scripts/cleanup.sh .'
-
+lead-clean                    # the current directory
+lead-clean ../other-project   # somewhere else
+lead-clean --dry-run          # preview, delete nothing
 ```
 
-If you want to remove the AI workflows and symlinks from a repository:
+**Remove the editor setup from this machine.** Opt-in, and previews unless you
+add `--apply`. Covers every platform at once: Claude Code, Cursor, Continue,
+Cline, Gemini and Claude Desktop.
 
 ```bash
+lead-clean --global           # show exactly what would go
+lead-clean --global --apply   # remove it
+```
 
-lead-clean
+It deletes only what points at your checkout. An unrelated MCP server in the
+same config file survives, as do your account and session state. Every JSON file
+it edits is backed up to `<file>.bak` first.
 
+**Safety.** Cleanup refuses to run against your home directory, the filesystem
+root, or the tech-lead-stack repository itself. A copied file you have since
+edited, such as a customised pull request template, is kept and reported rather
+than deleted.
+
+**Without `npm link`**, call the script directly:
+
+```bash
+bash /path/to/tech-lead-stack/scripts/cleanup.sh .
 ```
 
 ## 🧪 CI/CD
@@ -1108,6 +1429,8 @@ tech-lead-stack/
 ### IDE & Agent Surfaces
 
 - [Claude Code Skills](https://code.claude.com/docs/en/skills)
+- [Claude Code Slash Commands](https://code.claude.com/docs/en/slash-commands)
+- [Claude Code MCP](https://code.claude.com/docs/en/mcp)
 - [Cursor Documentation](https://docs.cursor.com/)
 - [Continue Documentation](https://docs.continue.dev/)
 

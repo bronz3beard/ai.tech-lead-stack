@@ -7,7 +7,8 @@
 > [AGENTS.md](https://agents.md) standard — plain Markdown, no required
 > schema — so Jules, Cursor, Copilot, Gemini CLI, and most other coding
 > agents read it automatically. Claude Code reads it via a `@AGENTS.md`
-> import in each project's own `CLAUDE.md`.
+> import in each project's own `CLAUDE.md`, and gains the stack's skills as
+> `/tls:<name>` slash commands via `install.sh --ide claude-code`.
 >
 > **Because this file is shared (symlinked), every project reads the
 > identical content** — nothing below may assume a specific stack, name, or
