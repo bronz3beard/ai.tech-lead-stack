@@ -57,6 +57,7 @@ dev_server.log
 .dev-team/
 .reflexion-out/
 .tmp/*
+.ai/output
 
 /auth/
 .ai/tmp/
@@ -73,3 +74,6 @@ defect-library/report.json
 
 
 packages/*/dist/
+
+# Python virtualenv created by install.sh for requirements.txt
+.venv/

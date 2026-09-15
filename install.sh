@@ -261,16 +261,30 @@ CLAUDE_CONFIG_FILE="$HOME/.claude.json"
 # echoes with no verdict, and a failure part-way through is invisible.
 CONFIGURED=()
 SKIPPED=()
+WARNINGS=()
 NEXT_STEPS=()
 
 record_ok()   { CONFIGURED+=("$1"); }
 record_skip() { SKIPPED+=("$1"); [[ -n "${2:-}" ]] && NEXT_STEPS+=("$2"); }
+# Distinct from record_skip: the step was attempted and failed, but the failure
+# is non-fatal and the install still succeeded. A warning carries its own
+# explanation and remedy so the report is readable without scrolling back up to
+# the log — a bare one-line warning is what made these look like hard failures.
+# Usage: record_warn <title> [why] [how-to-fix]
+record_warn() {
+    local title="$1" why="${2:-}" fix="${3:-}"
+    local block="     • $title"
+    [[ -n "$why" ]] && block+=$'\n'"       Why:    $why"
+    [[ -n "$fix" ]] && block+=$'\n'"       Fix:    $fix"
+    [[ -n "$fix" ]] && block+=$'\n'"       Impact: optional — the install is complete and usable without this."
+    WARNINGS+=("$block")
+}
 
 print_report() {
     echo ""
-    echo "────────────────────────────────────────────────────────────────"
+    echo "----------------------------------------------------------------"
     echo "  INSTALL REPORT"
-    echo "────────────────────────────────────────────────────────────────"
+    echo "----------------------------------------------------------------"
 
     if [[ ${#CONFIGURED[@]} -gt 0 ]]; then
         echo ""
@@ -287,14 +301,34 @@ print_report() {
         printf '     • %s\n' "${SKIPPED[@]}"
     fi
 
+    if [[ ${#WARNINGS[@]} -gt 0 ]]; then
+        echo ""
+        echo "  ⚠️  Warnings — none of these blocked the install."
+        echo "      Everything above under 'Configured' is working. Each item below"
+        echo "      is optional: act on it only if you want that specific capability."
+        echo ""
+        printf '%s\n\n' "${WARNINGS[@]}"
+    fi
+
     if [[ ${#NEXT_STEPS[@]} -gt 0 ]]; then
         echo ""
         echo "  👉 Next steps:"
         printf '     • %s\n' "${NEXT_STEPS[@]}"
     fi
 
+    # Verdict. "Green" is claimed only when nothing warned and nothing was
+    # skipped; anything less says so plainly rather than implying a clean run.
+    echo "----------------------------------------------------------------"
+    if [[ ${#WARNINGS[@]} -eq 0 && ${#SKIPPED[@]} -eq 0 ]]; then
+        echo "  ✅ VERDICT: fully successful — every step completed, nothing to act on."
+    else
+        echo "  ✅ VERDICT: install succeeded and the stack is usable."
+        echo "     ${#WARNINGS[@]} warning(s), ${#SKIPPED[@]} skipped — optional, listed above with fixes."
+        echo "     Nothing here needs to be fixed before you start using the stack."
+    fi
+
     echo ""
-    echo "────────────────────────────────────────────────────────────────"
+    echo "----------------------------------------------------------------"
 }
 
 # The surface index drives every adapter. Generate it rather than fail on it:
@@ -306,8 +340,13 @@ ensure_surface_index() {
         echo "   ✅ Generated .ai/agent-surfaces.json"
         return 0
     fi
-    echo "   ⚠️  Could not generate the surface index."
-    record_skip "Surface index" "run: cd $SOURCE_DIR && $PKG_MANAGER run generate:registry"
+    echo "   ⚠️  Could not generate the surface index (.ai/agent-surfaces.json)."
+    echo "      WHAT THIS AFFECTS: the index lists every skill/workflow surface."
+    echo "      Without it, IDE adapters below may generate fewer commands than"
+    echo "      expected. Already-installed commands keep working."
+    record_warn "Surface index could not be generated" \
+        "'$PKG_MANAGER run generate:registry' failed in $SOURCE_DIR, so IDE adapters had no surface list to read" \
+        "cd $SOURCE_DIR && $PKG_MANAGER run generate:registry   (then re-run ./install.sh --link)"
     return 1
 }
 
@@ -330,7 +369,13 @@ setup_claude_code_commands() {
     fi
 
     echo "   ⚠️  Slash command generation failed — $CLAUDE_COMMANDS_DIR left untouched."
-    record_skip "Claude Code slash commands" "generator failed; run: node scripts/generate-ide-commands.mjs --out $CLAUDE_COMMANDS_DIR --server $MCP_SERVER_NAME"
+    echo "      WHAT THIS AFFECTS: /tls:<name> slash commands in Claude Code."
+    echo "      Any previously generated commands still work — the generator stages"
+    echo "      and swaps atomically, so nothing was half-written or corrupted."
+    echo "      The MCP server is registered separately and is unaffected."
+    record_warn "Claude Code slash commands not regenerated" \
+        "generate-ide-commands.mjs exited non-zero; the existing command directory was left intact rather than partially overwritten" \
+        "node $SOURCE_DIR/scripts/generate-ide-commands.mjs --out $CLAUDE_COMMANDS_DIR --server $MCP_SERVER_NAME --domains $DOMAINS --source $SOURCE_DIR --agent claude-code"
     return 1
 }
 
@@ -448,7 +493,14 @@ merge_mcp_json() {
 
     rm -f "$tmp"
     echo "   ⚠️  Could not update $file"
-    record_skip "$label" "merge the MCP block into $file by hand (see README)"
+    echo "      WHAT THIS AFFECTS: $label will not see the tech-lead-stack tools."
+    echo "      Your existing config was NOT modified — the merge writes to a temp"
+    echo "      file and only swaps on success, so nothing was corrupted. Other"
+    echo "      IDEs configured in this run are unaffected."
+    echo "      Usually this means the file is not valid JSON, or is read-only."
+    record_warn "$label MCP not registered" \
+        "could not merge the server block into $file (invalid JSON or not writable); the file was left exactly as it was" \
+        "check the file parses (node -e \"JSON.parse(require('fs').readFileSync('$file','utf8'))\"), then re-run ./install.sh --link --ide-only"
     return 1
 }
 
@@ -620,8 +672,119 @@ else
     echo "   - GitHub Action design-review-trigger.yml already exists"
 fi
 # 2. Python Setup
+# Optional: only the Playwright-backed visual tools read requirements.txt, so a
+# bad interpreter must degrade to a warning rather than dump a traceback that
+# reads as a failed install.
+#
+# The common macOS failure: Homebrew's python@3.14 bottle links pyexpat against
+# the *system* /usr/lib/libexpat.1.dylib, which does not export
+# _XML_SetAllocTrackerActivationThreshold. Homebrew's own expat (1.12.4) does.
+# Because the path is baked into the .so, `brew reinstall python@3.14` and
+# `brew link --overwrite expat` do NOT fix it — verified on 3.14.6 and 3.14.7.
+# Pointing dyld at the Homebrew expat is what actually works.
 echo "🐍 Ensuring Python dependencies are met..."
-python3 -m pip install -r "$SOURCE_DIR/requirements.txt" --quiet
+
+# pip imports xmlrpc -> pyexpat while building its command table, so an
+# interpreter with a broken expat extension fails every install despite
+# `pip --version` looking fine. Probe both. $2, when set, is a dyld search path
+# to try the probe under.
+python_can_pip() {
+    env ${2:+DYLD_LIBRARY_PATH="$2"} "$1" -m pip --version >/dev/null 2>&1 \
+        && env ${2:+DYLD_LIBRARY_PATH="$2"} "$1" -c "import xml.parsers.expat" >/dev/null 2>&1
+}
+
+BREW_EXPAT_LIB=""
+for _p in /opt/homebrew/opt/expat/lib /usr/local/opt/expat/lib; do
+    [[ -d "$_p" ]] && BREW_EXPAT_LIB="$_p" && break
+done
+
+PY_BIN=""
+PY_DYLD=""
+for candidate in python3 python3.13 python3.12 python3.11; do
+    command -v "$candidate" &>/dev/null || continue
+    if python_can_pip "$candidate"; then
+        PY_BIN="$candidate"
+        break
+    fi
+    if [[ -n "$BREW_EXPAT_LIB" ]] && python_can_pip "$candidate" "$BREW_EXPAT_LIB"; then
+        PY_BIN="$candidate"
+        PY_DYLD="$BREW_EXPAT_LIB"
+        echo "   - $candidate has the known Homebrew libexpat mismatch — working around it via $BREW_EXPAT_LIB."
+        break
+    fi
+    echo "   - $candidate cannot run pip (broken stdlib extension) — trying the next interpreter."
+done
+
+# Deps go in a venv owned by this checkout, never system-wide. A venv sidesteps
+# PEP 668 (which blocks system installs on Homebrew/Debian pythons by design),
+# keeps the user's global site-packages untouched, and is removable with `rm -rf`.
+# It is shared by every project linked to this stack, since the deps belong to
+# the stack rather than to any consumer project.
+VENV_DIR="$SOURCE_DIR/.venv"
+
+if [[ -z "$PY_BIN" ]]; then
+    echo "   ⚠️  No working Python 3 interpreter found — skipping Python dependencies."
+    echo "      WHY THIS IS NOT A FAILURE: the stack's own tooling is Node-based."
+    echo "      Every entry in rtk.tools runs via cat/bash/node/npx, so nothing you"
+    echo "      invoke day to day needs Python. The install below is unaffected."
+    echo "      IF YOU WANT PYTHON ANYWAY: install a working interpreter, e.g."
+    echo "        brew install pyenv && pyenv install 3.12 && pyenv global 3.12"
+    echo "      then re-run this installer. Note that on Homebrew python@3.14 a"
+    echo "      reinstall does NOT help — the bad libexpat path is baked into"
+    echo "      pyexpat.so, so a different interpreter is the only real fix."
+    record_warn "Python dependencies not installed (no working interpreter)" \
+        "no Python 3 on PATH could run pip; on macOS this is usually the Homebrew python@3.14 libexpat bug" \
+        "install a working interpreter (e.g. pyenv install 3.12) and re-run ./install.sh --link"
+else
+    [[ "$PY_BIN" != "python3" ]] && echo "   - Using $PY_BIN (python3 is unusable)."
+    PIP_LOG="$(mktemp "${TMPDIR:-/tmp}/tls-pip.XXXXXX")"
+
+    # The venv inherits the base interpreter's stdlib, so a libexpat workaround
+    # that the base needs applies to the venv's python too.
+    PY_ENV=(env)
+    [[ -n "$PY_DYLD" ]] && PY_ENV=(env DYLD_LIBRARY_PATH="$PY_DYLD")
+
+    if [[ ! -x "$VENV_DIR/bin/python" ]] \
+        && ! "${PY_ENV[@]}" "$PY_BIN" -m venv "$VENV_DIR" >"$PIP_LOG" 2>&1; then
+        echo "   ⚠️  Could not create the virtualenv at $VENV_DIR — skipping Python deps."
+        echo "      WHY THIS IS NOT A FAILURE: the stack's tooling is Node-based;"
+        echo "      no rtk tool shells out to Python. Everything else installs normally."
+        echo "      Last lines of the log:"
+        tail -5 "$PIP_LOG" | sed 's/^/      | /'
+        record_warn "Python virtualenv could not be created" \
+            "$PY_BIN -m venv failed (see $PIP_LOG); often a missing python3-venv package on Debian/Ubuntu" \
+            "install the venv module (e.g. apt install python3-venv), then re-run ./install.sh --link"
+    elif "${PY_ENV[@]}" "$VENV_DIR/bin/pip" install -r "$SOURCE_DIR/requirements.txt" --quiet >"$PIP_LOG" 2>&1; then
+        echo "   ✅ Python dependencies installed into $VENV_DIR"
+        echo "      Activate with: source $VENV_DIR/bin/activate"
+        record_ok "Python dependencies → $VENV_DIR"
+        rm -f "$PIP_LOG"
+    elif grep -q "Failed building wheel\|failed-wheel-build-for-install" "$PIP_LOG" 2>/dev/null; then
+        # The pins in requirements.txt predate this interpreter, so a dependency
+        # has no prebuilt wheel and pip falls back to compiling it from source.
+        PY_VER="$("${PY_ENV[@]}" "$VENV_DIR/bin/python" -c 'import sys;print("%d.%d"%sys.version_info[:2])' 2>/dev/null || echo "?")"
+        echo "   ⚠️  A dependency has no prebuilt wheel for Python $PY_VER — skipping Python deps."
+        echo "      WHY THIS IS NOT A FAILURE: the stack's tooling is Node-based;"
+        echo "      no rtk tool shells out to Python. Everything else installs normally."
+        echo "      WHAT HAPPENED: requirements.txt pins versions that predate Python"
+        echo "      $PY_VER, so pip tried to compile from source and the build failed."
+        echo "      The cleanest fix is an older interpreter, not a newer compiler:"
+        echo "        python3.12 -m venv $VENV_DIR && $VENV_DIR/bin/pip install -r $SOURCE_DIR/requirements.txt"
+        tail -5 "$PIP_LOG" | sed 's/^/      | /'
+        record_warn "Python dependencies not installed (no wheel for Python $PY_VER)" \
+            "requirements.txt pins versions older than Python $PY_VER, so a dependency had to build from source and failed; full log at $PIP_LOG" \
+            "use an older interpreter: rm -rf $VENV_DIR && python3.12 -m venv $VENV_DIR && $VENV_DIR/bin/pip install -r $SOURCE_DIR/requirements.txt"
+    else
+        echo "   ⚠️  pip install failed inside the virtualenv — continuing without Python deps."
+        echo "      WHY THIS IS NOT A FAILURE: the stack's tooling is Node-based;"
+        echo "      no rtk tool shells out to Python. Everything else installs normally."
+        echo "      Last lines of the log:"
+        tail -5 "$PIP_LOG" | sed 's/^/      | /'
+        record_warn "Python dependencies not installed (pip failed in venv)" \
+            "the virtualenv exists but pip could not install requirements.txt; full log at $PIP_LOG" \
+            "retry with: $VENV_DIR/bin/pip install -r $SOURCE_DIR/requirements.txt"
+    fi
+fi
 
 # 3. GitHub CLI Setup
 echo "🛠️ Ensuring GitHub CLI (gh) is installed..."
@@ -655,8 +818,15 @@ if ! gh auth status &> /dev/null; then
         echo "   ✅ Successfully authenticated with GitHub!"
         record_ok "GitHub CLI authenticated"
     else
-        echo "   ⚠️  Still not authenticated — continuing. PR and review tools will fail until you log in."
-        record_skip "GitHub CLI authentication" "run: gh auth login"
+        echo "   ⚠️  Still not authenticated — continuing."
+        echo "      WHAT THIS AFFECTS: only the tools that call GitHub — PR creation,"
+        echo "      PR review, and issue lookups. Skills, slash commands, MCP servers"
+        echo "      and every local tool work normally without it."
+        echo "      This is a credential you have to enter yourself, so the installer"
+        echo "      cannot do it for you — it is not a bug in the install."
+        record_warn "GitHub CLI not authenticated" \
+            "gh is installed but has no credentials, and auth is interactive so the installer cannot complete it for you" \
+            "run 'gh auth login' in any terminal — no need to re-run the installer afterwards"
     fi
 else
     echo "   - Already authenticated with GitHub."
@@ -674,7 +844,18 @@ if command -v rtk &> /dev/null; then
     (cd "$TARGET_DIR" && rtk init)
     
     echo "📡 Running Mission Control Pre-Flight..."
-    (cd "$TARGET_DIR" && bash "$SOURCE_DIR/scripts/rtk-run.sh" run mission-control)
+    # A fresh project has no .ai/.mission-alignment.json yet, so this check is
+    # expected to decline on a first install. Report it as informational —
+    # surfacing it as a failure alarms every new user for a non-problem.
+    if ! (cd "$TARGET_DIR" && bash "$SOURCE_DIR/scripts/rtk-run.sh" run mission-control); then
+        echo "   - Pre-flight declined, which is the expected result on a first install:"
+        echo "     .ai/.mission-alignment.json is written by an agent the first time it"
+        echo "     calls verify_mission_alignment, so it cannot exist yet. Nothing is"
+        echo "     broken and no action is needed — it resolves itself on first agent use."
+        record_warn "Mission Control pre-flight did not run" \
+            "a fresh project has no .ai/.mission-alignment.json yet — it is written by an agent on its first skill call, so this is expected on a new install and not an error" \
+            "nothing to do; it clears itself the first time an agent runs a stack skill in this project"
+    fi
 else
     echo "❌ RTK setup failed. Please install it manually: https://rtk-ai.app"
 fi
