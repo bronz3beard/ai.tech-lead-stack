@@ -72,6 +72,9 @@ jobs:
       - name: Test Cleanup (uninstall round-trip)
         run: pnpm run test:cleanup
 
+      - name: Test Critic Resolution Ladder
+        run: pnpm run test:critic
+
       - name: Build Project
         run: pnpm run build
 
