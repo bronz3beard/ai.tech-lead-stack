@@ -29,7 +29,7 @@ modes:
    - `model`: "<YOUR_MODEL_NAME>"
    - `agent`: "<YOUR_AGENT_NAME>"
 
-2. **Pre-Flight Model Contract**: Print model assignments and isolation levels (L0-L3). Check `CLAUDE_CODE_SUBAGENT_MODEL` (warn and cap at L2 if overridden).
+2. **Pre-Flight Model Contract**: Print model assignments and isolation levels (L0-L3). Check `CLAUDE_CODE_SUBAGENT_MODEL` (warn and cap at L2 if overridden). Resolve the critic with `./.ai/rtk-run run resolve-critic --writer <vendor>` (enterprise `gemini` -> `agy` -> another model -> same model + STRONG `criticAdvisory`); record `criticResolution` in `.loop-out/<runId>/state.json`.
 3. **Phase 0B: Discovery**: Run scoped discovery, write Findings Ledger to `.loop-out/<runId>/loop.md`, and establish stack diagnosis.
 4. **Phase 1-3: Generate & Single-Pass Critique**: Execute single-pass generator and critic. On Mode B quota limit, consolidate into `.loop-out/<runId>/loop.md`, mark status `PARKED`, and report reset window.
 5. **Mandatory Disclosure Output**: Emit disclosure status (`Model separation held` vs `MODEL SEPARATION LOST`) as the VERY FIRST line of `.loop-out/<runId>/loop.md` and chat output, followed by Provenance Table.

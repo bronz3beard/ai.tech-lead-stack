@@ -117,6 +117,16 @@ Claim the level ACHIEVED based on runtime model selection:
   diff + criteria + commands.
 - **L3 (Fresh Session)**: Same model, work pasted into a new session cold.
 
+### Reviewer / QA Resolution Ladder
+
+Resolve reviewer and QA models with the Critic Resolution Ladder defined in
+`reflexion-loop-sub-max` (`./.ai/rtk-run run resolve-critic --writer <vendor>`):
+enterprise `gemini` -> `agy` -> another harness model -> same model. Never guess
+a CLI: the standalone `gemini` CLI no longer serves personal Google accounts
+(since 18 June 2026), and its `GOOGLE_CLOUD_PROJECT` error means unsupported
+account type. On the same-model rung the slice is `PROVISIONAL` and the lane
+state file MUST carry the STRONG `Critic Advisory` line.
+
 ## Phase 0A — Cold Resume Protocol (MANDATORY FIRST STEP)
 
 On invocation, before performing any codebase search or stack discovery:
@@ -202,6 +212,11 @@ code policy.)_
 - Phase: <current-phase-number>
 - Active Model: <model-name>
 - Isolation Level: <L0-L3>
+- Critic Rung: <enterprise-gemini | agy | harness-model | same-model>
+  (<skipped rungs: reasons>)
+- Critic Advisory: <none | STRONG — SAME_MODEL_CRITIC: review ran on the
+  writer's model and is NOT independent; install/sign in to agy or enterprise
+  gemini and re-review>
 - Turns Used: <turns-count> / 25
 - Last Checkpoint: <timestamp>
 - Resume Instruction:

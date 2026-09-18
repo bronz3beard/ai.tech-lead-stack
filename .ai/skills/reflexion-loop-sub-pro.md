@@ -77,6 +77,18 @@ sub-agent). Never claim L0 or L1 when overridden by environment variables.
 - **L0 (Cross-Vendor)**: Different vendor models. **L1**: Cross-family, same
   vendor. **L2**: Fresh sub-agent. **L3**: Cold paste.
 
+### Critic Resolution Ladder (COMPRESSED — full mechanics in `reflexion-loop-sub-max`)
+
+- Resolve the critic with `./.ai/rtk-run run resolve-critic --writer <vendor>`,
+  never by guessing a CLI. Order: enterprise `gemini` -> `agy` -> another
+  harness model -> same model.
+- The standalone `gemini` CLI no longer serves personal Google accounts (since
+  18 June 2026); its `GOOGLE_CLOUD_PROJECT` error means unsupported account type
+  — move on to `agy`.
+- Record `criticResolution` in `.loop-out/<runId>/state.json`. On the same-model
+  rung, verdict is `PROVISIONAL` and `state.json` MUST carry the STRONG
+  `criticAdvisory` defined in `reflexion-loop-sub-max`.
+
 ## Single-Pass Mechanics & Quota Discipline
 
 _(Note: The limits below are generated/derived — see `TIER_POLICY['sub-pro']` in

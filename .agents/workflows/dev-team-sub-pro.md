@@ -32,7 +32,7 @@ modes:
    - `model`: "<YOUR_MODEL_NAME>"
    - `agent`: "<YOUR_AGENT_NAME>"
 
-2. **Pre-Flight Model Contract**: Print model assignments and isolation levels (L0-L3). Check `CLAUDE_CODE_SUBAGENT_MODEL` (warn and cap at L2 if overridden).
+2. **Pre-Flight Model Contract**: Print model assignments and isolation levels (L0-L3). Check `CLAUDE_CODE_SUBAGENT_MODEL` (warn and cap at L2 if overridden). Resolve the Checker model with `./.ai/rtk-run run resolve-critic --writer <vendor>` (enterprise `gemini` -> `agy` -> another model -> same model + STRONG `Critic Advisory` in the lane state file).
 3. **Phase 0A: Cold Resume Check**: Inspect `.dev-team/lanes/lane-1.md`. If incomplete, print Quota Ledger, read state file and Findings Ledger (`.dev-team/analysis/lane-1.md`), and resume directly from recorded Phase without re-running Phase 0 discovery.
 4. **Phase 0B: Discovery & Mission Frame**: Run scoped discovery (excluding build/dependency dirs), create Findings Ledger, and establish Mission Frame.
 5. **Phase 1: Crew Sizing & Tier Ceiling Gate**: Score the five signals (0-2). Score ≥ 6 (L/XL) or Risk signal = 2 -> REFUSE and escalate immediately. Print scores first regardless.

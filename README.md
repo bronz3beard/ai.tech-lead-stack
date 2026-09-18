@@ -149,6 +149,13 @@ orchestrator targets specific isolation levels:
 > cross-vendor model pairing (L0), verify available models via your agent
 > harness model picker (e.g. Antigravity Agent Manager, Cursor Composer model
 > dropdown, or Claude Code sub-agent configuration).
+>
+> The subscription tiers resolve their critic with
+> `./.ai/rtk-run run resolve-critic --writer <anthropic|google|openai>`, which
+> walks enterprise `gemini` (needs `GOOGLE_CLOUD_PROJECT`) -> `agy` -> another
+> harness model -> same model. The last rung forces `PROVISIONAL` and writes a
+> STRONG `criticAdvisory` into `state.json`. Set `TLS_CRITIC_MODEL` to pin the
+> `agy` model.
 
 ## 🚀 Quick Start
 

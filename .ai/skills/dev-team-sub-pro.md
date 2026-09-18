@@ -103,6 +103,15 @@ sub-agent). Never claim L0 or L1 when overridden by environment variables.
 - **Fallback Rungs:** Rung 1 (same class, different vendor) -> Rung 2 (same
   vendor lower class, claim drops to L2 if lands on writer) -> Rung 3
   (small/fast, throughput roles only; assurance roles PARK).
+- **Checker Resolution (COMPRESSED — full ladder in `reflexion-loop-sub-max`):**
+  run `./.ai/rtk-run run resolve-critic --writer <vendor>`; order is enterprise
+  `gemini` -> `agy` -> another harness model -> same model. The standalone
+  `gemini` CLI no longer serves personal Google accounts (since 18 June 2026) —
+  a `GOOGLE_CLOUD_PROJECT` error means move on to `agy`. Record `Critic Rung:`
+  in `.dev-team/lanes/lane-1.md`; on the same-model rung the slice is
+  `PROVISIONAL` and the file MUST carry a STRONG `Critic Advisory:` line
+  (SAME_MODEL_CRITIC — review not independent, re-review once `agy` or
+  enterprise `gemini` works).
 
 ## Phase 0A — Cold Resume Protocol (MANDATORY FIRST STEP)
 

@@ -58,6 +58,7 @@ dev_server.log
 .reflexion-out/
 .tmp/*
 .ai/output
+.loop-out
 
 /auth/
 .ai/tmp/

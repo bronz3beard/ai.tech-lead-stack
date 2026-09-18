@@ -72,6 +72,49 @@ sub-agent). Never claim L0 or L1 when overridden by environment variables.
 **Rule:** Critic is FORBIDDEN from seeing writer's drafting conversation or
 rationale.
 
+### Critic Resolution Ladder (MANDATORY, BEFORE PHASE 1)
+
+Resolve the critic with the probe, never by guessing a CLI:
+
+```bash
+./.ai/rtk-run run resolve-critic --writer <anthropic|google|openai>
+# in the stack repo itself: node scripts/resolve-critic.mjs --writer <vendor>
+```
+
+The probe is the single source of truth for the CLI rungs and prints JSON. Walk
+the rungs in order and stop at the first that works:
+
+1. **Rung E — Enterprise Gemini CLI** (`rung: "enterprise-gemini"`, L0).
+2. **Rung A — Antigravity CLI `agy`** (`rung: "agy"`, L0/L1): run the critic
+   with the probe's `command` array, prompt = plan + rubric + diagnosis only.
+3. **Rung H — Another harness model** (probe returned `rung: "harness"`, or the
+   probe could not run): pick a different vendor (L0) or family (L1) in the
+   harness / sub-agent model setting.
+4. **Rung S — Same model** (nothing else available): fresh sub-agent (L2) or
+   fresh session (L3). Verdict is forced to `PROVISIONAL` and `state.json` MUST
+   carry `criticAdvisory` (below). Use STATE 2, with its second line naming the
+   unavailable rungs instead of a usage limit.
+
+> [!WARNING] The standalone `gemini` CLI stopped serving personal Google
+> accounts (AI Pro/Ultra, free Code Assist) on 18 June 2026. A
+> `GOOGLE_CLOUD_PROJECT` error from it means **unsupported account type**, not a
+> missing setting — move on to `agy`. Never ask the user to set
+> `GOOGLE_CLOUD_PROJECT` unless they confirm an enterprise Code Assist licence.
+
+Record the probe output plus the final rung as `criticResolution` in
+`state.json` (on probe failure, set `probeError` and start at Rung H). On Rung S
+also write:
+
+```json
+"criticAdvisory": {
+  "level": "STRONG",
+  "code": "SAME_MODEL_CRITIC",
+  "message": "The critic ran on the writer's model. This audit is NOT independent; treat the score as self-assessment.",
+  "rungsTried": ["<criticResolution.skipped[].rung: reason>", "harness: <why no other model>"],
+  "remediation": "Install and sign in to agy, or use enterprise gemini with GOOGLE_CLOUD_PROJECT, then re-run the critic."
+}
+```
+
 ## Quota Discipline & Findings Ledger
 
 - **Turn Budget:** 12 agent turns per run. Print
@@ -80,7 +123,8 @@ rationale.
   paths, domain boundaries, decisions taken, and **OPTIONS REJECTED WITH
   REASONS** (mandatory) to survive model swaps without re-discovery.
 - **State File (`.loop-out/<runId>/state.json`):** Checkpoint after EVERY phase.
-  Include `generatorModel`, `criticModel`, `activeIsolationLevel`, and `status`.
+  Include `generatorModel`, `criticModel`, `activeIsolationLevel`,
+  `criticResolution`, `criticAdvisory` (null unless Rung S), and `status`.
 - **Cold Resume Protocol:** If `.loop-out/<runId>/state.json` exists, read it
   and Findings Ledger, then resume from recorded phase. **Never re-run Phase 0
   discovery on resume.**
@@ -90,7 +134,9 @@ rationale.
 ### Exhaustion Modes A/B/C & Fallback Ladder
 
 - **Mode A (MODEL-SCOPED):** Quota spent on one model. Try Rung 1 (cross-vendor
-  frontier) -> Rung 2 (same vendor lower class). Recompute isolation level.
+  frontier) -> Rung 2 (same vendor lower class). Recompute isolation level. If
+  the critic is exhausted, continue the Critic Resolution Ladder from the NEXT
+  rung and update `criticResolution`.
 - **Mode B (ACCOUNT-WIDE):** Consolidate into Findings Ledger, checkpoint state
   as `PARKED`, report reset window. State 3 disclosure applies.
 - **Mode C (SILENT DOWNGRADE):** Poll model identity at every phase boundary.
