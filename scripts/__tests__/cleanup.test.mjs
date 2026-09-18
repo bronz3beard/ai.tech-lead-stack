@@ -26,14 +26,10 @@ function seedProject(target) {
   fs.symlinkSync(path.join(repoRoot, '.ai'), path.join(target, '.ai'));
   fs.symlinkSync(path.join(repoRoot, '.agents'), path.join(target, '.agents'));
   fs.symlinkSync(path.join(repoRoot, '.ai/agents.md'), path.join(target, 'AGENTS.md'));
-  fs.mkdirSync(path.join(target, '.github/workflows'), { recursive: true });
+  fs.mkdirSync(path.join(target, '.github'), { recursive: true });
   fs.copyFileSync(
     path.join(repoRoot, 'templates/PULL_REQUEST_TEMPLATE.md'),
     path.join(target, '.github/PULL_REQUEST_TEMPLATE.md')
-  );
-  fs.copyFileSync(
-    path.join(repoRoot, 'docs/github-action-example.yml'),
-    path.join(target, '.github/workflows/design-review-trigger.yml')
   );
 }
 

@@ -135,13 +135,6 @@ export const projectTargets = [
     path: '.github/PULL_REQUEST_TEMPLATE.md',
     source: 'templates/PULL_REQUEST_TEMPLATE.md',
   },
-  {
-    id: 'design-review-workflow',
-    label: '.github/workflows/design-review-trigger.yml',
-    kind: 'copy',
-    path: '.github/workflows/design-review-trigger.yml',
-    source: 'docs/github-action-example.yml',
-  },
 ];
 
 /** Directories that should be removed only once they are empty. */

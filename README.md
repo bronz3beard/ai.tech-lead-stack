@@ -944,7 +944,6 @@ copy-paste IDE prompt; only the IDE/MCP surface edits code.
 | [`docs/using-the-dev-team.md`](./docs/using-the-dev-team.md)                                                                   | Guide to operating the dev-team orchestrator. |
 | [`docs/skill-readiness.md`](./docs/skill-readiness.md)                                                                         | Status of skill readiness.                    |
 | [`docs/reflexion-issue-runner.md`](./docs/reflexion-issue-runner.md)                                                           | Running reflexion as a GitHub issue loop.     |
-| [`docs/github-action-example.yml`](./docs/github-action-example.yml)                                                           | Reference for CI automation.                  |
 | [`docs/designs/2026-07-08-agentic-dev-team-design.md`](./docs/designs/2026-07-08-agentic-dev-team-design.md)                   | Design doc for the dev team orchestrator.     |
 | [`docs/designs/2026-07-08-reflexion-loop-v2-interview-gate.md`](./docs/designs/2026-07-08-reflexion-loop-v2-interview-gate.md) | Design doc for the reflexion loop.            |
 | [`docs/decisions/0002-lifecycle-paradigm.md`](./docs/decisions/0002-lifecycle-paradigm.md)                                     | ADR 0002: 9-Phase Lifecycle Paradigm.         |
