@@ -14,7 +14,15 @@ Options:
                      dependency installs, gh auth, and the RTK pre-flight.
                      Use this to add an IDE to an already-linked project.
   --mcp-name <name>  Name to register the MCP server under (default: tech-lead-stack).
-                     Set this if you run the stack behind a different gate.
+                     Also forces the name baked into Claude Code slash commands
+                     as mcp__<name>__<tool>, disabling the auto-detection below.
+
+                     You rarely need this. If a proxy (slm-gate, or any gateway
+                     that forwards to this checkout) is already registered with
+                     Claude Code, the installer detects it and names the proxy
+                     in the generated slash commands, because that is where the
+                     tools actually appear. Pass --mcp-name only to override
+                     that, or to register a second, deliberately-named server.
   --domains <list>   Comma-separated skill domains to expose: eng,pm,hr
                      (default: all three).
 USAGE
@@ -28,7 +36,22 @@ shift
 
 IDE_MODE="auto"
 IDE_ONLY=false
-MCP_SERVER_NAME="tech-lead-stack"
+# The name TLS REGISTERS ITSELF under. Correct for a standalone install and
+# never auto-changed: a user installing the stack on its own gets tools called
+# mcp__tech-lead-stack__*. The name slash commands must NAME is a separate
+# question when a proxy fronts the stack — see resolve_command_server_name().
+#
+# MCP_NAME_EXPLICIT tracks whether the name was CHOSEN or merely defaulted. A
+# chosen name is never second-guessed by the proxy auto-detection further down;
+# a defaulted one is. An exported MCP_SERVER_NAME counts as chosen, so a proxy
+# setup can be scripted without repeating the flag. Note install.sh does not
+# read .env — export it in your shell, or pass --mcp-name.
+if [[ -n "${MCP_SERVER_NAME:-}" ]]; then
+    MCP_NAME_EXPLICIT=true
+else
+    MCP_SERVER_NAME="tech-lead-stack"
+    MCP_NAME_EXPLICIT=false
+fi
 DOMAINS="eng,pm,hr"
 TARGET_DIR=""
 
@@ -52,6 +75,7 @@ while [[ $# -gt 0 ]]; do
                 exit 1
             fi
             MCP_SERVER_NAME="$2"
+            MCP_NAME_EXPLICIT=true
             shift 2
             ;;
         --domains)
@@ -350,6 +374,114 @@ ensure_surface_index() {
     return 1
 }
 
+# The name slash commands must NAME. Defaults to the registration name and is
+# re-resolved by resolve_command_server_name() before commands are generated.
+COMMAND_SERVER_NAME="$MCP_SERVER_NAME"
+
+# -----------------------------------------------------------------------------
+# Why the command name is resolved separately from the registration name.
+#
+# A generated slash command does not call this stack. It instructs the agent to
+# call a TOOL, by its fully-qualified MCP name: `mcp__<server>__get_skills`.
+# That `<server>` is the name the CLIENT knows the server by — which is not
+# always the name this stack registers itself under.
+#
+# Two topologies:
+#
+#   Direct (the default, and what most installs get). The client launches this
+#   stack itself under `tech-lead-stack`, so tools appear as
+#   `mcp__tech-lead-stack__get_skills`. Registration name and tool name agree
+#   and this function changes nothing.
+#
+#   Behind a proxy. A gateway process is registered with the client instead,
+#   and reaches this checkout downstream. The client never sees a server called
+#   `tech-lead-stack` at all — the stack's tools are re-exported under the
+#   PROXY's name, e.g. `mcp__slm-gate__get_skills`. Baking the default in that
+#   topology writes 50+ commands naming a tool that exists in no session, and
+#   the failure is silent: the agent simply cannot find the tool it was told to
+#   call, and the command appears to do nothing.
+#
+# This is deliberately proxy-agnostic. Nothing here knows the string
+# "slm-gate". The rule is "a registered server whose definition mentions THIS
+# CHECKOUT'S PATH is serving this stack", which holds for any gateway that
+# spawns or forwards to `dist/mcp-server.mjs` however it is configured —
+# slm-gate does it through a DOWNSTREAM_MCP env var, another proxy might do it
+# through argv or its own config file, and both are matched the same way.
+#
+# setup_claude_code_mcp() below already performs this exact detection to avoid
+# registering a duplicate server. It computed the answer and discarded it; this
+# function is that same fact, used for the other half of the install.
+#
+# Scope rule: only USER-scope servers count. Slash commands live in
+# ~/.claude/commands/tls and apply to every project, so a gate registered for
+# one project cannot be baked in globally without breaking the others. That
+# case warns and keeps the default rather than guessing.
+# -----------------------------------------------------------------------------
+resolve_command_server_name() {
+    COMMAND_SERVER_NAME="$MCP_SERVER_NAME"
+
+    # An explicit --mcp-name is a decision, not a guess to be improved on.
+    [[ "$MCP_NAME_EXPLICIT" == true ]] && return 0
+    [[ -f "$CLAUDE_CONFIG_FILE" ]] || return 0
+
+    # Prints one of: "" | "global <name>" | "ambiguous <a,b>" | "project <name>"
+    local verdict scope name
+    verdict=$(node -e "
+        const fs = require('fs');
+        try {
+          const cfg = JSON.parse(fs.readFileSync(process.argv[1], 'utf8') || '{}');
+          const checkout = process.argv[2];
+          const serves = (server) => JSON.stringify(server).includes(checkout);
+
+          const user = Object.entries(cfg.mcpServers || {})
+            .filter(([, v]) => serves(v))
+            .map(([k]) => k);
+
+          if (user.length === 1) { console.log('global ' + user[0]); }
+          else if (user.length > 1) { console.log('ambiguous ' + user.join(',')); }
+          else {
+            // Nothing at user scope. Look for a project-scoped gate purely so we
+            // can explain why we are not using it.
+            for (const project of Object.values(cfg.projects || {})) {
+              const hit = Object.entries(project.mcpServers || {})
+                .filter(([, v]) => serves(v))
+                .map(([k]) => k);
+              if (hit.length > 0) { console.log('project ' + hit[0]); break; }
+            }
+          }
+        } catch { /* unreadable config: fall through to the default */ }
+    " "$CLAUDE_CONFIG_FILE" "$SOURCE_DIR" 2>/dev/null)
+
+    scope="${verdict%% *}"
+    name="${verdict#* }"
+    [[ -z "$scope" ]] && return 0
+
+    case "$scope" in
+        global)
+            [[ "$name" == "$COMMAND_SERVER_NAME" ]] && return 0
+            COMMAND_SERVER_NAME="$name"
+            echo "   - '$name' is already registered with Claude Code and reaches this checkout."
+            echo "     Slash commands will call mcp__${name}__<tool>, which is where this"
+            echo "     stack's tools actually appear. Pass --mcp-name to override."
+            ;;
+        ambiguous)
+            echo "   ⚠️  More than one registered server reaches this checkout: $name"
+            echo "      Not guessing which one exports the tools; using the default."
+            record_warn "Slash commands named mcp__${COMMAND_SERVER_NAME}__ by default" \
+                "several user-scope MCP servers ($name) reach $SOURCE_DIR, so the installer cannot tell which one re-exports its tools" \
+                "./install.sh --link --ide-only --mcp-name <the server your client actually lists>"
+            ;;
+        project)
+            echo "   ⚠️  '$name' reaches this checkout but is registered for one project only."
+            echo "      Slash commands are global, so the default is used instead."
+            record_warn "Slash commands named mcp__${COMMAND_SERVER_NAME}__ by default" \
+                "'$name' serves this checkout but is project-scoped, and ~/.claude/commands/tls applies to every project" \
+                "register '$name' at user scope (claude mcp add-json $name '<json>' --scope user), then re-run ./install.sh --link --ide-only"
+            ;;
+    esac
+    return 0
+}
+
 setup_claude_code_commands() {
     # Generation lives in Node, not jq + perl: Node 22 is already a hard
     # requirement of this repo, so the adapter has no extra dependencies to
@@ -359,12 +491,13 @@ setup_claude_code_commands() {
     local count
     if count=$(node "$SOURCE_DIR/scripts/generate-ide-commands.mjs" \
         --out "$CLAUDE_COMMANDS_DIR" \
-        --server "$MCP_SERVER_NAME" \
+        --server "$COMMAND_SERVER_NAME" \
         --domains "$DOMAINS" \
         --source "$SOURCE_DIR" \
         --agent claude-code); then
-        echo "   ✅ Generated $count slash command(s). Invoke them as /tls:<name>."
-        record_ok "Claude Code slash commands ($count) → $CLAUDE_COMMANDS_DIR"
+        echo "   ✅ Generated $count slash command(s) calling mcp__${COMMAND_SERVER_NAME}__<tool>."
+        echo "      Invoke them as /tls:<name>."
+        record_ok "Claude Code slash commands ($count, tools: mcp__${COMMAND_SERVER_NAME}__) → $CLAUDE_COMMANDS_DIR"
         return 0
     fi
 
@@ -375,7 +508,7 @@ setup_claude_code_commands() {
     echo "      The MCP server is registered separately and is unaffected."
     record_warn "Claude Code slash commands not regenerated" \
         "generate-ide-commands.mjs exited non-zero; the existing command directory was left intact rather than partially overwritten" \
-        "node $SOURCE_DIR/scripts/generate-ide-commands.mjs --out $CLAUDE_COMMANDS_DIR --server $MCP_SERVER_NAME --domains $DOMAINS --source $SOURCE_DIR --agent claude-code"
+        "node $SOURCE_DIR/scripts/generate-ide-commands.mjs --out $CLAUDE_COMMANDS_DIR --server $COMMAND_SERVER_NAME --domains $DOMAINS --source $SOURCE_DIR --agent claude-code"
     return 1
 }
 
@@ -422,6 +555,9 @@ setup_claude_code_mcp() {
 }
 
 setup_claude_code() {
+    # Order matters: commands must know whether a proxy fronts this checkout
+    # before they are written, or they bake a tool name that does not exist.
+    resolve_command_server_name
     setup_claude_code_commands
     setup_claude_code_mcp
 }
@@ -596,7 +732,9 @@ run_ide_adapters() {
 # add an IDE to a project that was linked previously.
 if [[ "$IDE_ONLY" == true ]]; then
     echo "🚀 Tech-Lead Stack: IDE surface only."
-    echo "   IDE mode: $IDE_MODE | MCP name: $MCP_SERVER_NAME | Domains: $DOMAINS"
+    # The registration name. The name slash commands call is resolved per-client
+    # and reported by resolve_command_server_name() when it differs.
+    echo "   IDE mode: $IDE_MODE | MCP registration name: $MCP_SERVER_NAME | Domains: $DOMAINS"
     run_ide_adapters
     print_report
     echo "✨ IDE configuration complete. No project files were modified."

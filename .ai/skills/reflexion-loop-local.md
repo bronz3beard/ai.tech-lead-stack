@@ -12,7 +12,7 @@ ownership:
 targets:
   - local
 minModelClass: small
-cost: ~0 tokens
+cost: ~250 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Plan & Harden

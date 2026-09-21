@@ -4,7 +4,7 @@ description:
   Publish and manage job advertisements across external platforms and the
   internal ATS. Focuses on cross-channel listing parity and verified live
   postings.
-cost: ~700 tokens
+cost: ~500 tokens
 modes: [read-only, mcp]
 surface: public
 phase: deploy

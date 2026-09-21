@@ -3,7 +3,7 @@ name: security-audit
 description: >
   Cross-platform security scanner for AI Agent configurations to detect malware,
   prompt injection, and exfiltration.
-cost: ~550 tokens
+cost: ~900 tokens
 modes: [read-only, mcp]
 surface: public
 category: Review & Verify

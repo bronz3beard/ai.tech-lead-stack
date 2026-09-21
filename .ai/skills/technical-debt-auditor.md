@@ -3,7 +3,7 @@ name: technical-debt-auditor
 description: >
   High-density structural and technical debt scanner. Produces quantified,
   prioritized remediation plans based on G-Stack and MinimumCD standards.
-cost: ~850 tokens
+cost: ~1150 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Review & Verify

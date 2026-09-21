@@ -3,7 +3,7 @@ name: visual-verifier
 description: >
   Performs smoke testing, captures media evidence, and compares renders against
   the Figma design source for any web environment.
-cost: ~450 tokens
+cost: ~1450 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Design & UI

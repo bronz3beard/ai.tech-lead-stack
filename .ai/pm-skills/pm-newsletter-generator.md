@@ -3,7 +3,7 @@ name: pm-newsletter-generator
 description:
   Generate product-focused updates and highlights from recent code changes. Uses
   Conventional Commits to track feature narrative.
-cost: ~650 tokens
+cost: ~500 tokens
 modes: [read-only, mcp]
 surface: public
 phase: deploy

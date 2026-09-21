@@ -6,18 +6,98 @@ import { FileSystemService } from '../../lib/skills/fs-service.js';
 import { isSkillTrace } from '../../lib/trace-utils.js';
 import { Telemetry } from '../telemetry.js';
 
+/**
+ * One row of `.ai/agent-surfaces.json`. `name` is the workflow launcher name a
+ * caller is likely to type; `fetchName` is the on-disk filename `readSkill()`
+ * resolves by. The two diverge for every launcher whose file name differs from
+ * the skill it invokes (vertical-slice -> vertical-slice-decomposer).
+ */
+type SurfaceEntry = {
+  name: string;
+  fetchName: string;
+  skill: string;
+  cost: string;
+  costTokens: number;
+  modes: string[];
+};
+
 export class SkillHandlers {
+  /**
+   * Memoised read of the generated surface index. The index is CI drift-gated,
+   * so it is authoritative - but it is optional at runtime: a client project
+   * without it must still get today's behaviour rather than an error.
+   */
+  private surfaceIndex: Promise<SurfaceEntry[] | null> | null = null;
+
   constructor(
     private fsService: FileSystemService,
     private telemetry: Telemetry,
     private kiService: KiService
   ) {}
 
+  private loadSurfaceIndex(): Promise<SurfaceEntry[] | null> {
+    this.surfaceIndex ??= (async () => {
+      // Everything below is inside the try: an unresolvable repo root is just
+      // another reason the index is unavailable, not a reason to fail the call.
+      try {
+        const file = path.join(
+          this.fsService.getRepoRoot(),
+          '.ai',
+          'agent-surfaces.json'
+        );
+        const parsed = JSON.parse(await fs.readFile(file, 'utf-8'));
+        if (!Array.isArray(parsed?.entries)) {
+          throw new Error('missing "entries" array');
+        }
+        return parsed.entries as SurfaceEntry[];
+      } catch (err) {
+        console.error(
+          `[SkillHandlers] Could not read .ai/agent-surfaces.json (${err instanceof Error ? err.message : String(err)}). ` +
+            'Falling back to direct filename resolution; workflow launcher names will not resolve.'
+        );
+        return null;
+      }
+    })();
+    return this.surfaceIndex;
+  }
+
   /**
    * Logic for the 'list_skills' tool.
    */
   async handleListSkills() {
     const searchDirs = this.fsService.getSearchDirs();
+
+    // Prefer the surface index: a raw directory scan advertises workflow
+    // launcher file names, which get_skills cannot fetch. The index knows the
+    // fetchable name for each, so nothing listed here is unfetchable.
+    const index = await this.loadSurfaceIndex();
+    if (index) {
+      const listed = index
+        .filter(
+          (e) =>
+            !isSkillTrace(undefined, e.fetchName) &&
+            !e.fetchName.startsWith('pm-') &&
+            !e.name.startsWith('pm-')
+        )
+        .map((e) => {
+          const modes =
+            e.modes?.length > 0 ? ` [modes: ${e.modes.join(', ')}]` : '';
+          const alias = e.name !== e.fetchName ? `  (also: ${e.name})` : '';
+          return `- ${e.fetchName}${modes} [cost: ~${e.costTokens} tokens]${alias}`;
+        })
+        .sort();
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Available skills (found in ${searchDirs.join(', ')}):\n${listed.join('\n')}`,
+          },
+        ],
+        isError: false,
+      };
+    }
+
     const allSkills = new Set<string>();
 
     await Promise.all(
@@ -97,7 +177,26 @@ export class SkillHandlers {
       : path.basename(skillName || 'unknown', '.md');
     const safeSkillName = path.basename(effectiveSkillName, '.md');
 
-    const skill = await this.fsService.readSkill(safeSkillName);
+    // Literal filename first - the common case, and the only one that needs no
+    // index. Only a miss consults the surface index, so an alias can never
+    // shadow a real file of the same name.
+    let skill = await this.fsService.readSkill(safeSkillName);
+    let resolvedName = safeSkillName;
+    let resolutionNotice = '';
+
+    if (!skill) {
+      const entry = (await this.loadSurfaceIndex())?.find(
+        (e) => e.name === safeSkillName
+      );
+      if (entry && entry.fetchName !== safeSkillName) {
+        const aliased = await this.fsService.readSkill(entry.fetchName);
+        if (aliased) {
+          skill = aliased;
+          resolvedName = entry.fetchName;
+          resolutionNotice = `[resolved] ${safeSkillName} -> ${entry.fetchName} (workflow launcher name)\n`;
+        }
+      }
+    }
 
     if (skill) {
       const { content: rawContent } = skill;
@@ -155,19 +254,19 @@ export class SkillHandlers {
       let fileContent = rawContent;
       const graph = await this.fsService.loadGraph();
       if (graph && graph.nodes) {
-        const node = graph.nodes.find((n: any) => n.id === safeSkillName);
+        const node = graph.nodes.find((n: any) => n.id === resolvedName);
         if (node) {
           const requires = graph.edges
             ? graph.edges
                 .filter(
-                  (e: any) => e.from === safeSkillName && e.type === 'requires'
+                  (e: any) => e.from === resolvedName && e.type === 'requires'
                 )
                 .map((e: any) => e.to)
             : [];
           const suggests = graph.edges
             ? graph.edges
                 .filter(
-                  (e: any) => e.from === safeSkillName && e.type === 'suggests'
+                  (e: any) => e.from === resolvedName && e.type === 'suggests'
                 )
                 .map((e: any) => e.to)
             : [];
@@ -198,7 +297,7 @@ export class SkillHandlers {
         }
       }
 
-      const shouldSkipAnalytics = isSkillTrace(undefined, safeSkillName);
+      const shouldSkipAnalytics = isSkillTrace(undefined, resolvedName);
 
       let skillCost = 'unknown';
       const metaMatch = rawContent.match(/cost:\s*(.*)/);
@@ -221,7 +320,7 @@ export class SkillHandlers {
         overrides.loopPhase = args.loopPhase;
       if (typeof args.teamRole === 'string') overrides.teamRole = args.teamRole;
 
-      if (safeSkillName === 'qa-handover-generator') {
+      if (resolvedName === 'qa-handover-generator') {
         if (overrides.teamRole === undefined) {
           overrides.teamRole = 'qa';
         }
@@ -233,7 +332,7 @@ export class SkillHandlers {
       const trackedContent = shouldSkipAnalytics
         ? fileContent
         : await this.telemetry.withAnalytics(
-            safeSkillName,
+            resolvedName,
             actualProjectName,
             model,
             agent,
@@ -243,16 +342,26 @@ export class SkillHandlers {
           );
 
       return {
-        content: [{ type: 'text', text: trackedContent }],
+        content: [{ type: 'text', text: resolutionNotice + trackedContent }],
         isError: false,
       };
     }
+
+    // A known launcher name that still failed to resolve means the index and
+    // the files disagree - say which name to try rather than sending the caller
+    // back to a list that already contains the one they typed.
+    const known = (await this.loadSurfaceIndex())?.find(
+      (e) => e.name === safeSkillName
+    );
+    const hint = known
+      ? `"${safeSkillName}" is a workflow launcher name; call get_skills with "${known.fetchName}" instead.`
+      : 'Use list_skills to see available skills.';
 
     return {
       content: [
         {
           type: 'text',
-          text: `Error: Skill file "${safeSkillName}" not found. Use list_skills to see available skills.`,
+          text: `Error: Skill file "${safeSkillName}" not found. ${hint}`,
         },
       ],
       isError: true,

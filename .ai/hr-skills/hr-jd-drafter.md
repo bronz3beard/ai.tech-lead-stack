@@ -4,7 +4,7 @@ description:
   Transform intake notes or a client-provided draft into a finalized,
   market-ready Job Description. Focuses on requirement fidelity and inclusive,
   compliant language.
-cost: ~700 tokens
+cost: ~500 tokens
 modes: [read-only, mcp]
 surface: public
 phase: specify

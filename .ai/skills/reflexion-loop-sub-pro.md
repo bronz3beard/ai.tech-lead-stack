@@ -4,7 +4,7 @@ description: >
   [LOOP · SUB-PRO · NO API KEYS · CROSS-MODEL VERIFY] $20/mo tier
   context-isolated loop. Single-pass cross-model plan check enforcing Mode B
   quota handling and mandatory disclosure without requiring API keys.
-cost: ~1300 tokens
+cost: ~1850 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Plan & Harden

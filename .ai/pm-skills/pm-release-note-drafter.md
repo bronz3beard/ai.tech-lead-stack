@@ -3,7 +3,7 @@ name: pm-release-note-drafter
 description:
   Automatically draft user-centric release notes from merged features.
   Celebrates shipping while maintaining technical accuracy.
-cost: ~650 tokens
+cost: ~450 tokens
 modes: [read-only, mcp]
 surface: public
 phase: deploy

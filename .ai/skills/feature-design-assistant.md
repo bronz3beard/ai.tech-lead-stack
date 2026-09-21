@@ -3,7 +3,7 @@ name: feature-design-assistant
 description: >
   High-density discovery and architectural design engine. Use to translate vague
   ideas into methodology-compliant technical specifications.
-cost: ~800 tokens
+cost: ~1300 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Discover & Define

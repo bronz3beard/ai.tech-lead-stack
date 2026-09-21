@@ -3,7 +3,7 @@ name: ui-spec-generator
 description: >
   Architectural discovery engine for generating base skeleton UI components
   aligned with G-Stack modularity.
-cost: ~850 tokens
+cost: ~650 tokens
 modes: [read-only, mcp]
 surface: public
 category: Design & UI

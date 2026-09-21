@@ -6,7 +6,7 @@ description: >
   worktrees, enforcing turn budgets, builder/checker roles, cross-vendor model
   isolation, Mode B quota handling, and tier-ceiling enforcement without
   requiring API keys.
-cost: ~2500 tokens
+cost: ~3500 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Orchestrators

@@ -8,7 +8,7 @@ description: >
   generating formal acceptance criteria) and directly followable by a human
   tester. All ClickUp output is rendered through the shared clickup-format
   module (single source of truth for ClickUp formatting).
-cost: ~950 tokens
+cost: ~2100 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Ship & Communicate

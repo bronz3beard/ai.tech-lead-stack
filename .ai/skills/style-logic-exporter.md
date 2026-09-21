@@ -2,7 +2,7 @@
 name: style-logic-exporter
 description: >
   Extracts design tokens and style logic from code for design-to-code alignment.
-cost: ~550 tokens
+cost: ~1100 tokens
 modes: [read-only, mcp]
 surface: public
 category: Design & UI

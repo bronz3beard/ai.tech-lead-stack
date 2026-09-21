@@ -3,7 +3,7 @@ name: knowledge-manager
 description: >
   Manage project-specific knowledge items to maintain persistent context and
   architectural memory.
-cost: ~450 tokens
+cost: ~850 tokens
 modes: [read-only, write, mcp]
 surface: internal
 internal: true

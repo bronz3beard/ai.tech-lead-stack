@@ -61,6 +61,11 @@ export class FileSystemService implements CodeProvider {
     this.clientProjectRoot = root;
   }
 
+  /** The tech-lead-stack checkout root, after constructor self-healing. */
+  getRepoRoot(): string {
+    return this.repoRoot;
+  }
+
   async loadGraph(): Promise<any> {
     if (this.graph) return this.graph;
 

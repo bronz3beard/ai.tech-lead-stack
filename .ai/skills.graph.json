@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "generatedAt": "2026-09-18T17:15:15.061Z",
+  "generatedAt": "2026-09-21T20:51:10.158Z",
   "nodes": [
     {
       "name": "accessibility-auditor",
@@ -24,7 +24,7 @@
         "review-report"
       ],
       "surface": "public",
-      "cost": "~650 tokens"
+      "cost": "~1000 tokens"
     },
     {
       "name": "agent-optimizer",
@@ -44,7 +44,7 @@
       "consumes": [],
       "emits": [],
       "surface": "internal",
-      "cost": "~550 tokens"
+      "cost": "~950 tokens"
     },
     {
       "name": "ask",
@@ -92,7 +92,7 @@
         "review-report"
       ],
       "surface": "public",
-      "cost": "~750 tokens"
+      "cost": "~400 tokens"
     },
     {
       "name": "changelog-generator",
@@ -116,7 +116,7 @@
         "release"
       ],
       "surface": "public",
-      "cost": "~750 tokens"
+      "cost": "~1050 tokens"
     },
     {
       "name": "clean-code",
@@ -140,7 +140,7 @@
         "diff"
       ],
       "surface": "public",
-      "cost": "~950 tokens"
+      "cost": "~1350 tokens"
     },
     {
       "name": "code-review-checklist",
@@ -164,7 +164,7 @@
         "review-report"
       ],
       "surface": "public",
-      "cost": "~650 tokens"
+      "cost": "~950 tokens"
     },
     {
       "name": "codebase-onboarding-intelligence",
@@ -208,7 +208,7 @@
         "intent-brief"
       ],
       "surface": "public",
-      "cost": "~850 tokens"
+      "cost": "~1150 tokens"
     },
     {
       "name": "daily-standup",
@@ -232,7 +232,7 @@
         "release"
       ],
       "surface": "public",
-      "cost": "~550 tokens"
+      "cost": "~1000 tokens"
     },
     {
       "name": "design-system-review",
@@ -256,7 +256,7 @@
         "review-report"
       ],
       "surface": "public",
-      "cost": "~1400 tokens"
+      "cost": "~3400 tokens"
     },
     {
       "name": "dev-team-local",
@@ -274,7 +274,7 @@
       "consumes": [],
       "emits": [],
       "surface": "public",
-      "cost": "~0 tokens"
+      "cost": "~350 tokens"
     },
     {
       "name": "dev-team-orchestrator",
@@ -310,7 +310,7 @@
       "consumes": [],
       "emits": [],
       "surface": "public",
-      "cost": "~3100 tokens"
+      "cost": "~4300 tokens"
     },
     {
       "name": "dev-team-sub-pro",
@@ -328,7 +328,7 @@
       "consumes": [],
       "emits": [],
       "surface": "public",
-      "cost": "~2500 tokens"
+      "cost": "~3500 tokens"
     },
     {
       "name": "Dummy Skill",
@@ -348,7 +348,7 @@
       "consumes": [],
       "emits": [],
       "surface": "internal",
-      "cost": "~50 tokens"
+      "cost": "~200 tokens"
     },
     {
       "name": "feature-design-assistant",
@@ -372,7 +372,7 @@
         "intent-brief"
       ],
       "surface": "public",
-      "cost": "~800 tokens"
+      "cost": "~1300 tokens"
     },
     {
       "name": "feature-orchestrator",
@@ -390,7 +390,7 @@
       "consumes": [],
       "emits": [],
       "surface": "public",
-      "cost": "~1400 tokens"
+      "cost": "~2050 tokens"
     },
     {
       "name": "knowledge-manager",
@@ -410,7 +410,7 @@
       "consumes": [],
       "emits": [],
       "surface": "internal",
-      "cost": "~450 tokens"
+      "cost": "~850 tokens"
     },
     {
       "name": "mission-architect",
@@ -428,7 +428,7 @@
       "consumes": [],
       "emits": [],
       "surface": "public",
-      "cost": "~1300 tokens"
+      "cost": "~800 tokens"
     },
     {
       "name": "mission-control",
@@ -466,7 +466,7 @@
       "consumes": [],
       "emits": [],
       "surface": "internal",
-      "cost": "~400 tokens"
+      "cost": "~1100 tokens"
     },
     {
       "name": "planning-expert",
@@ -586,7 +586,7 @@
         "release"
       ],
       "surface": "public",
-      "cost": "~950 tokens"
+      "cost": "~2100 tokens"
     },
     {
       "name": "reflexion-loop",
@@ -610,7 +610,7 @@
         "plan"
       ],
       "surface": "public",
-      "cost": "~1000 tokens"
+      "cost": "~1350 tokens"
     },
     {
       "name": "reflexion-loop-local",
@@ -628,7 +628,7 @@
       "consumes": [],
       "emits": [],
       "surface": "public",
-      "cost": "~0 tokens"
+      "cost": "~250 tokens"
     },
     {
       "name": "reflexion-loop-sub-max",
@@ -652,7 +652,7 @@
         "plan"
       ],
       "surface": "public",
-      "cost": "~1400 tokens"
+      "cost": "~2400 tokens"
     },
     {
       "name": "reflexion-loop-sub-pro",
@@ -676,7 +676,7 @@
         "plan"
       ],
       "surface": "public",
-      "cost": "~1300 tokens"
+      "cost": "~1850 tokens"
     },
     {
       "name": "regression-bug-fix",
@@ -700,7 +700,7 @@
         "diff"
       ],
       "surface": "public",
-      "cost": "~1350 tokens"
+      "cost": "~800 tokens"
     },
     {
       "name": "security-audit",
@@ -724,7 +724,7 @@
         "review-report"
       ],
       "surface": "public",
-      "cost": "~550 tokens"
+      "cost": "~900 tokens"
     },
     {
       "name": "solutioning-facilitator",
@@ -748,7 +748,7 @@
         "spec"
       ],
       "surface": "public",
-      "cost": "~800 tokens"
+      "cost": "~3750 tokens"
     },
     {
       "name": "style-logic-exporter",
@@ -768,7 +768,7 @@
       "consumes": [],
       "emits": [],
       "surface": "public",
-      "cost": "~550 tokens"
+      "cost": "~1100 tokens"
     },
     {
       "name": "technical-debt-auditor",
@@ -788,7 +788,7 @@
       "consumes": [],
       "emits": [],
       "surface": "public",
-      "cost": "~850 tokens"
+      "cost": "~1150 tokens"
     },
     {
       "name": "ui-spec-generator",
@@ -812,7 +812,7 @@
         "spec"
       ],
       "surface": "public",
-      "cost": "~850 tokens"
+      "cost": "~650 tokens"
     },
     {
       "name": "verification-auditor",
@@ -836,7 +836,7 @@
         "review-report"
       ],
       "surface": "internal",
-      "cost": "~1500 tokens"
+      "cost": "~1000 tokens"
     },
     {
       "name": "vertical-slice-decomposer",
@@ -860,7 +860,7 @@
         "plan"
       ],
       "surface": "public",
-      "cost": "~2000 tokens"
+      "cost": "~4450 tokens"
     },
     {
       "name": "visual-verifier",
@@ -880,7 +880,7 @@
       "consumes": [],
       "emits": [],
       "surface": "public",
-      "cost": "~450 tokens"
+      "cost": "~1450 tokens"
     },
     {
       "name": "weekly-leadership-report",
@@ -904,7 +904,7 @@
         "release"
       ],
       "surface": "public",
-      "cost": "~1200 tokens"
+      "cost": "~2400 tokens"
     }
   ],
   "edges": [

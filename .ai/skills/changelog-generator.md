@@ -3,7 +3,7 @@ name: changelog-generator
 description: >
   High-density semantic changelog processor. Transforms Git history into
   user-facing release notes.
-cost: ~750 tokens
+cost: ~1050 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Ship & Communicate

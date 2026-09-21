@@ -3,7 +3,7 @@ name: hr-intake-specifier
 description:
   Draft high-fidelity requisition intake briefs from new-client kickoff calls.
   Focuses on requirement completeness, role viability, and account context.
-cost: ~800 tokens
+cost: ~600 tokens
 modes: [read-only, mcp]
 surface: public
 phase: specify

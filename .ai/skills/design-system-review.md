@@ -4,7 +4,7 @@ description: >
   AI-augmented design review with a strict 2-iteration guard, sequential memory
   persistence, and KI creation. Enforces Shadcn/Radix token alignment, layout
   fidelity against the Figma frame, and coordinates designer quality gates.
-cost: ~1400 tokens
+cost: ~3400 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Design & UI

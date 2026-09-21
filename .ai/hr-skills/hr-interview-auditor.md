@@ -3,7 +3,7 @@ name: hr-interview-auditor
 description:
   Evaluate applicants against the requisition scorecard with evidence-backed
   ratings. Focuses on rubric coverage, evidence capture, and bias control.
-cost: ~700 tokens
+cost: ~500 tokens
 modes: [read-only, mcp]
 surface: public
 phase: review

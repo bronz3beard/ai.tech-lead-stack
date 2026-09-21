@@ -3,7 +3,7 @@ name: regression-bug-fix
 description: >
   Unified Remediation Engine for resolving Design Review (DR), QA, and
   Regression feedback.
-cost: ~1350 tokens
+cost: ~800 tokens
 modes: [read-only, mcp]
 surface: public
 category: Build & Fix

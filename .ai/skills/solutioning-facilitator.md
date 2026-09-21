@@ -8,7 +8,7 @@ description: >
   session on a real user story/task, and keeps a precise, always-current running
   memory of every option, objection, spike, and decision so nothing is lost or
   re-litigated.
-cost: ~800 tokens
+cost: ~3750 tokens
 modes: [read-only]
 surface: public
 category: Discover & Define

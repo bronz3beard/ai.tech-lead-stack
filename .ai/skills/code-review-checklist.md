@@ -3,7 +3,7 @@ name: code-review-checklist
 description: >
   Lightweight Pre-Commit Review Checklist. Focuses on Spec Compliance and Rapid
   Verification before GitHub submission.
-cost: ~650 tokens
+cost: ~950 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Review & Verify

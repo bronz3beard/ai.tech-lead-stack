@@ -8,7 +8,7 @@ description: >
   verifiable implementation blueprint in read-only chat, and executes + verifies
   the implement phase in an IDE/MCP agent. Use from the feature-discovery chat
   to drive a change end-to-end in the sandbox app.
-cost: ~1400 tokens
+cost: ~2050 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Orchestrators

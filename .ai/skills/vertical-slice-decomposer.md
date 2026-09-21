@@ -7,7 +7,7 @@ description: >
   a developer technical prompt, a dark-release (beta-flag) decision, and a
   mock-vs-real-backend decision. Built for greenfield and (primarily) brownfield
   features under Trunk-Based Development.
-cost: ~2000 tokens
+cost: ~4450 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Plan & Harden

@@ -17,7 +17,7 @@ minModelClass: small
 ownership:
   drive: ai
   approve: human
-cost: ~0 tokens
+cost: ~350 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Orchestrators

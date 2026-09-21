@@ -14,6 +14,15 @@
  * Usage:
  *   node scripts/generate-ide-commands.mjs --out <dir> --server <name> \
  *        [--domains eng,pm,hr] [--source <repo root>] [--agent claude-code]
+ *
+ * --server is the name the CLIENT knows the MCP server by, not the name this
+ * stack registers itself under. The two differ whenever a proxy fronts the
+ * stack: the gateway is what the client has registered, and the stack's tools
+ * are re-exported under the gateway's name, so the correct value is the
+ * gateway's (e.g. `slm-gate`, giving `mcp__slm-gate__get_skills`). Any proxy
+ * behaves this way — nothing here is specific to one. install.sh resolves this
+ * automatically via resolve_command_server_name(); when calling this script by
+ * hand, pass the name your client actually lists under /mcp.
  */
 
 import fs from 'node:fs';

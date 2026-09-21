@@ -3,7 +3,7 @@ name: pm-backlog-auditor
 description:
   Validate project backlog for logical consistency and feasibility. Detects
   circular dependencies and missing technical prerequisites.
-cost: ~650 tokens
+cost: ~450 tokens
 modes: [read-only, mcp]
 surface: public
 phase: maintain

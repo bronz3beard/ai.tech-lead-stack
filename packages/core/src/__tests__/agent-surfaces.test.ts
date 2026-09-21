@@ -2,6 +2,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import matter from 'gray-matter';
 
+import { FileSystemService } from '../lib/skills/fs-service';
+import { SkillHandlers } from '../mcp-server/handlers/skills';
+
 /**
  * Guards the agent-agnostic surface index that every installer adapter reads.
  *
@@ -16,7 +19,10 @@ const surfacesFile = path.join(repoRoot, '.ai/agent-surfaces.json');
 
 type SurfaceEntry = {
   name: string;
+  fetchName: string;
   skill: string;
+  cost: string;
+  costTokens: number;
   domain: string;
   domainKey: string;
   description: string;
@@ -28,6 +34,37 @@ type SurfaceEntry = {
   mcpCallable: boolean;
   ideEligible: boolean;
 };
+
+/**
+ * Builds the real handlers against the real repo. Only telemetry and KI
+ * persistence are stubbed - resolution is exactly what the MCP server does,
+ * which is the whole point of the round-trip tests below.
+ */
+function buildHandlers() {
+  const fsService = new FileSystemService(repoRoot, null);
+  const telemetry = {
+    withAnalytics: <T>(
+      _skill: string,
+      _project: string | undefined,
+      _model: string | undefined,
+      _agent: string | undefined,
+      _cost: string | undefined,
+      run: () => Promise<T>
+    ) => run(),
+  };
+  const kiService = { upsertKnowledgeItem: async () => undefined };
+
+  return new SkillHandlers(
+    fsService,
+    // Structurally an ITelemetry/KiService; cast because the handler declares
+    // the concrete classes, which drag Prisma into the test process.
+    telemetry as unknown as ConstructorParameters<typeof SkillHandlers>[1],
+    kiService as unknown as ConstructorParameters<typeof SkillHandlers>[2]
+  );
+}
+
+const textOf = (result: { content: { text: string }[] }) =>
+  result.content.map((c) => c.text).join('\n');
 
 describe('agent surface index', () => {
   let entries: SurfaceEntry[];
@@ -57,6 +94,40 @@ describe('agent surface index', () => {
       .map((e) => e.name)
       .filter((name) => !/^[a-z0-9][a-z0-9-]*$/.test(name));
     expect(invalid).toEqual([]);
+  });
+
+  it('gives every entry the filename get_skills resolves by', () => {
+    const wrong = entries
+      .filter((e) => e.fetchName !== path.basename(e.skillPath, '.md'))
+      .map((e) => `${e.name}: fetchName ${e.fetchName}, file ${e.skillPath}`);
+    expect(wrong).toEqual([]);
+  });
+
+  it('uses fetch names that are safe as filenames and slash commands', () => {
+    const invalid = entries
+      .map((e) => e.fetchName)
+      .filter((fetchName) => !/^[a-z0-9][a-z0-9-]*$/.test(fetchName));
+    expect(invalid).toEqual([]);
+  });
+
+  it('declares every cost in the format the skill validator enforces', () => {
+    const malformed = entries
+      .filter((e) => !/^~[0-9]+\s+tokens$/.test(e.cost))
+      .map((e) => `${e.name}: "${e.cost}"`);
+    expect(malformed).toEqual([]);
+  });
+
+  it('keeps every declared cost within 25% of the measured file size', () => {
+    const drifted = entries
+      .filter((e) => {
+        const declared = Number(e.cost.match(/[0-9]+/)?.[0] ?? NaN);
+        return (
+          !Number.isFinite(declared) ||
+          Math.abs(declared - e.costTokens) / e.costTokens > 0.25
+        );
+      })
+      .map((e) => `${e.name}: declared ${e.cost}, measured ~${e.costTokens}`);
+    expect(drifted).toEqual([]);
   });
 
   it('resolves every entry to a skill file that exists on disk', () => {
@@ -140,5 +211,71 @@ describe('agent surface index', () => {
       }
     }
     expect(uncovered).toEqual([]);
+  });
+});
+
+/**
+ * The index is only worth having if the MCP tools honour it. These drive the
+ * real handlers: before aliasing existed, every launcher name whose file name
+ * differs from its skill (vertical-slice -> vertical-slice-decomposer) failed
+ * here, while the index happily advertised it.
+ */
+describe('MCP skill surface honours the index', () => {
+  let entries: SurfaceEntry[];
+  let handlers: ReturnType<typeof buildHandlers>;
+
+  beforeAll(() => {
+    entries = JSON.parse(fs.readFileSync(surfacesFile, 'utf8')).entries;
+    handlers = buildHandlers();
+  });
+
+  it('fetches every indexed entry by the name the index advertises', async () => {
+    const failed: string[] = [];
+    for (const entry of entries) {
+      const result = await handlers.handleGetSkill('get_skills', {
+        skillName: entry.name,
+        projectName: 'agent-surfaces-test',
+        model: 'test',
+        agent: 'test',
+      });
+      if (result.isError) failed.push(`${entry.name}: ${textOf(result)}`);
+    }
+    expect(failed).toEqual([]);
+  });
+
+  it('flags an aliased fetch so the caller sees which skill answered', async () => {
+    const aliased = entries.find((e) => e.name !== e.fetchName)!;
+    const result = await handlers.handleGetSkill('get_skills', {
+      skillName: aliased.name,
+      projectName: 'agent-surfaces-test',
+      model: 'test',
+      agent: 'test',
+    });
+
+    expect(result.isError).toBe(false);
+    expect(textOf(result).split('\n')[0]).toBe(
+      `[resolved] ${aliased.name} -> ${aliased.fetchName} (workflow launcher name)`
+    );
+  });
+
+  it('never lists an identifier that get_skills rejects', async () => {
+    const listed = textOf(await handlers.handleListSkills())
+      .split('\n')
+      .map((line) => line.match(/^- (\S+)/)?.[1])
+      .filter((id): id is string => !!id);
+
+    expect(listed.length).toBeGreaterThan(0);
+
+    const rejected: string[] = [];
+    for (const id of Array.from(new Set(listed))) {
+      const result = await handlers.handleGetSkill('get_skills', {
+        skillName: id,
+        projectName: 'agent-surfaces-test',
+        model: 'test',
+        agent: 'test',
+      });
+      if (result.isError) rejected.push(id);
+    }
+    expect(rejected).toEqual([]);
   });
 });

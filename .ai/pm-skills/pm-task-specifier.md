@@ -3,7 +3,7 @@ name: pm-task-specifier
 description:
   Draft high-fidelity technical specifications for new features. Focuses on data
   models, API contracts, and schema integrity.
-cost: ~750 tokens
+cost: ~550 tokens
 modes: [read-only, mcp]
 surface: public
 phase: specify

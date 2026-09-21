@@ -6,7 +6,7 @@ description: >
   (L0-L3) and exhaustion limits without losing work, delivering cross-model
   verified plans without requiring API keys. (Note: The stated token cost is per
   loop/run).
-cost: ~1400 tokens
+cost: ~2400 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Plan & Harden

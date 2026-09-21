@@ -4,7 +4,7 @@ internal: true
 description: >
   Precision tool for Token-Efficiency, Context Density Management, and Noise
   Reduction. Enforces the RTK (Rust Token Killer) methodology.
-cost: ~550 tokens
+cost: ~950 tokens
 modes: [read-only, write, mcp]
 surface: internal
 phase: maintain

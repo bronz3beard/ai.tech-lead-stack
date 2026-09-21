@@ -7,7 +7,7 @@ description: >
   via reflexion-loop-sub-max, manages multi-vendor model isolation (L0-L3) and
   exhaustion limits without losing work, and keeps the full visual fidelity gate
   intact without requiring API keys.
-cost: ~3100 tokens
+cost: ~4300 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Orchestrators

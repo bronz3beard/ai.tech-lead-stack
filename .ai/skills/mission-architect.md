@@ -3,7 +3,7 @@ name: mission-architect
 description: >
   Master Blueprint Engine. Orchestrates Strategy -> Research -> Plan -> Deliver
   for complex, multi-component features.
-cost: ~1300 tokens
+cost: ~800 tokens
 modes: [read-only, mcp]
 surface: public
 category: Orchestrators

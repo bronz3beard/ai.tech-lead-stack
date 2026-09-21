@@ -4,7 +4,7 @@ description: >
   Specialized audit for Web Accessibility (A11y). Scans for contrast issues,
   missing semantics, ARIA debt, and keyboard navigation barriers. Uses static
   analysis (grep/read) and read-only runtime inspection — no script injection.
-cost: ~650 tokens
+cost: ~1000 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Review & Verify

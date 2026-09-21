@@ -3,7 +3,7 @@ name: capacity-planner
 description:
   'Evaluates production capacity and defines performance budgets for a newly
   deployed release.'
-cost: ~750 tokens
+cost: ~400 tokens
 modes: [read-only]
 surface: public
 how: 'Analyzes system architecture and load metrics against target capacity.'

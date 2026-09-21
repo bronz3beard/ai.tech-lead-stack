@@ -550,7 +550,18 @@ function isJsonDifferent(file: string, nextJson: string): boolean {
 
 type SurfaceEntry = {
   name: string;
+  /**
+   * The identifier `get_skills` actually accepts. `readSkill()` resolves by
+   * FILENAME, while `skill` is the frontmatter `name` and is not always a
+   * filename (dummy-skill declares `name: Dummy Skill`), so launcher names must
+   * be resolved through this field rather than through `skill`.
+   */
+  fetchName: string;
   skill: string;
+  /** Declared frontmatter estimate, e.g. "~2000 tokens". */
+  cost: string;
+  /** Measured size of the skill file in tokens (bytes / 4). */
+  costTokens: number;
   domain: string;
   domainKey: string;
   description: string;
@@ -576,7 +587,8 @@ function readDomainSkills(dir: string) {
     .filter((f: string) => f.endsWith('.md'))
     .sort()
     .map((file: string) => {
-      const { data } = matter(fs.readFileSync(path.join(abs, file), 'utf8'));
+      const raw = fs.readFileSync(path.join(abs, file));
+      const { data } = matter(raw.toString('utf8'));
       return {
         // `name` is what get_skill expects; `slug` is the on-disk identifier and
         // the only safe basis for generating command files.
@@ -589,6 +601,10 @@ function readDomainSkills(dir: string) {
         modes: Array.isArray(data.modes) ? data.modes.map(String) : [],
         kind: String(data.kind ?? 'skill'),
         domain: String(data.domain ?? ''),
+        cost: String(data.cost ?? '').trim(),
+        // Measured, not declared: the drift gate below compares the two so a
+        // stale hand-authored estimate cannot silently mislead callers.
+        costTokens: Math.ceil(raw.length / 4),
         relPath: `${dir}/${file}`,
       };
     });
@@ -663,7 +679,10 @@ function buildAgentSurfaces(): { entries: SurfaceEntry[]; errors: string[] } {
       const { data } = matter(body);
       entries.push({
         name,
+        fetchName: meta.slug,
         skill,
+        cost: meta.cost,
+        costTokens: meta.costTokens,
         domain: meta.domain || domain.key,
         domainKey: domain.key,
         description: String(data.description ?? meta.description)
@@ -687,7 +706,10 @@ function buildAgentSurfaces(): { entries: SurfaceEntry[]; errors: string[] } {
       const mcpCallable = skill.modes.includes('mcp');
       entries.push({
         name: skill.slug,
+        fetchName: skill.slug,
         skill: skill.name,
+        cost: skill.cost,
+        costTokens: skill.costTokens,
         domain: skill.domain || domain.key,
         domainKey: domain.key,
         description: skill.description,
@@ -763,6 +785,32 @@ async function main() {
   });
 
   if (isCheck) {
+    // A declared `cost:` that has drifted from the file it describes is worse
+    // than no estimate: callers budget against it. 25% is wide enough to
+    // survive ordinary edits and narrow enough to catch a stale number.
+    const COST_DRIFT_TOLERANCE = 0.25;
+    const drifted = surfaceEntries
+      .map((e) => ({
+        entry: e,
+        declared: Number(e.cost.match(/[0-9]+/)?.[0] ?? NaN),
+      }))
+      .filter(
+        ({ entry, declared }) =>
+          Number.isFinite(declared) &&
+          Math.abs(declared - entry.costTokens) / entry.costTokens >
+            COST_DRIFT_TOLERANCE
+      );
+
+    if (drifted.length > 0) {
+      console.error('Declared skill costs have drifted from the skill files:');
+      for (const { entry, declared } of drifted) {
+        console.error(
+          `  - ${entry.name}: declared ~${declared}, measured ~${entry.costTokens}`
+        );
+      }
+      process.exit(1);
+    }
+
     if (outputDest) {
       fs.writeFileSync(`${outputDest}/manifest.tmp`, newManifest);
       fs.writeFileSync(`${outputDest}/readme.tmp`, newReadme);

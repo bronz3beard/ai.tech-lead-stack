@@ -5,7 +5,7 @@ description: >
   sources (blog posts, other agent stacks/plugins, papers, vendor docs), produce
   a Four-Pillars gap report grounded in OUR actual artifacts, and queue accepted
   ideas as GitHub issues + reflexion briefs — the self-improvement flywheel.
-cost: ~850 tokens
+cost: ~1150 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Discover & Define

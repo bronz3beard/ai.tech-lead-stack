@@ -3,7 +3,7 @@ name: pm-action-item-mapper
 description:
   Translate meeting notes into actionable technical tasks linked to code.
   Ensures full traceability from product intent to technical footprint.
-cost: ~650 tokens
+cost: ~500 tokens
 modes: [read-only, mcp]
 surface: public
 phase: build

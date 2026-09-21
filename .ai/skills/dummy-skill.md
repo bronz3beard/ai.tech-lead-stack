@@ -2,7 +2,7 @@
 name: Dummy Skill
 description: A dummy skill for testing purposes.
 phase: build
-cost: ~50 tokens
+cost: ~200 tokens
 modes: [read-only, mcp]
 surface: internal
 kind: skill

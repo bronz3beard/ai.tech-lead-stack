@@ -4,7 +4,7 @@ internal: true
 description: >
   Internal support logic for verifying local environments and evidence capture.
   Security, Performance, and Accessibility with "Extreme Prejudice."
-cost: ~1500 tokens
+cost: ~1000 tokens
 modes: [read-only, mcp]
 surface: internal
 phase: review

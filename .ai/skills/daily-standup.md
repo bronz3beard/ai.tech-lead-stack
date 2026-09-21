@@ -4,7 +4,7 @@ description: >
   Analyzes local git activity and task progress to generate a comprehensive
   2-day rolling standup report following a strict template.
 capabilities: [filesystem_access, shell_access]
-cost: ~550 tokens
+cost: ~1000 tokens
 modes: [read-only, mcp]
 surface: public
 category: Ship & Communicate

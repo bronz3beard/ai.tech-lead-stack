@@ -3,7 +3,7 @@ name: clean-code
 description: >
   High-density architectural auditor. Enforces SOLID as the primary structural
   framework and pragmatic standards (KISS, DRY, YAGNI) for implementation.
-cost: ~950 tokens
+cost: ~1350 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Review & Verify

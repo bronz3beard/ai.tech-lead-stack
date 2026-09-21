@@ -3,7 +3,7 @@ name: operational-boundaries
 description: >
   Global behavioral guardrails to prevent agent deviation and context hijacking.
 internal: true
-cost: ~400 tokens
+cost: ~1100 tokens
 modes: [read-only, mcp]
 surface: internal
 phase: maintain
