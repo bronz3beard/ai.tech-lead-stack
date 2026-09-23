@@ -1191,6 +1191,26 @@ We capture per-phase measurement metrics using Langfuse telemetry, which
 includes recent accuracy fixes (PROMPTS A and B) to better track agent
 progression.
 
+Every skill run is recorded in Postgres (`AnalyticsEvent`). If Langfuse is
+configured, it is also sent there as a trace with environment `tls` and tag
+`source:tls`. Langfuse is configured with `TLS_`-prefixed variables only:
+
+```bash
+TLS_LANGFUSE_PUBLIC_KEY="pk-lf-..."
+TLS_LANGFUSE_SECRET_KEY="sk-lf-..."
+TLS_LANGFUSE_BASE_URL="https://us.cloud.langfuse.com"
+```
+
+The generic `LANGFUSE_*` names are ignored on purpose. A gateway that spawns
+this stack (see [Running behind an upstream MCP proxy](docs/mcp-proxy-setup.md))
+passes its own environment down, and reading those names sent every run into the
+gateway's Langfuse project as a duplicate trace. See
+[CHANGELOG.md](CHANGELOG.md) for the migration.
+
+The web dashboard reads Postgres, not Langfuse. Each card states its source and
+window (`Source: TLS store · Latest 1,000 runs`, or the date range you picked),
+so its figures should not be compared directly with Langfuse's.
+
 ### ✨ Special Feature: The Reflexion Loop
 
 The Reflexion Loop is a self-correcting plan loop that leverages Gemini as the

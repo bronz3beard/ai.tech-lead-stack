@@ -8,6 +8,10 @@
 
 import crypto from 'node:crypto';
 
+// Marks every record as TLS's own, so a project shared with another emitter can filter it out.
+const LANGFUSE_ENVIRONMENT = 'tls';
+const SOURCE_TAG = 'source:tls';
+
 /**
  * Parameters for enqueuing a new telemetry event.
  * Contains both trace-level metadata and generation-level usage metrics.
@@ -59,9 +63,12 @@ export class LangfuseSink {
   private isFlushing = false;
   private droppedCounter = 0; // Tracks events dropped due to full queue or max retries
   
-  private publicKey: string | undefined = process.env.LANGFUSE_PUBLIC_KEY;
-  private secretKey: string | undefined = process.env.LANGFUSE_SECRET_KEY;
-  private baseUrl: string = process.env.LANGFUSE_BASE_URL || 'https://us.cloud.langfuse.com';
+  // Namespaced on purpose: a gateway that spawns this server (e.g. slm-gate) passes its own
+  // process.env down, and dotenv never overrides an inherited var. Reading the generic
+  // LANGFUSE_* names made every skill run land in the gateway's project as a duplicate trace.
+  private publicKey: string | undefined = process.env.TLS_LANGFUSE_PUBLIC_KEY;
+  private secretKey: string | undefined = process.env.TLS_LANGFUSE_SECRET_KEY;
+  private baseUrl: string = process.env.TLS_LANGFUSE_BASE_URL || 'https://us.cloud.langfuse.com';
 
   constructor() {
     this.startTimer();
@@ -102,6 +109,7 @@ export class LangfuseSink {
     const trace = {
       id: params.traceId,
       name: `skill:${params.skillName}`,
+      environment: LANGFUSE_ENVIRONMENT,
       userId: params.userEmail,
       metadata: {
         ...params.metadata,
@@ -114,7 +122,7 @@ export class LangfuseSink {
         loopRunId: params.loopRunId,
         teamRole: params.teamRole,
       },
-      tags: [params.projectName, params.model, params.skillName].filter(Boolean) as string[],
+      tags: [SOURCE_TAG, params.projectName, params.model, params.skillName].filter(Boolean) as string[],
     };
 
     // Construct the generation object (representing the LLM call)
@@ -122,6 +130,7 @@ export class LangfuseSink {
       id: `${params.traceId}_gen`,
       name: params.status === 'ERROR' ? `error:${params.skillName}` : `generation:${params.skillName}`,
       model: params.model,
+      environment: LANGFUSE_ENVIRONMENT,
       statusMessage: params.error,
       startTime: startTime.toISOString(),
       endTime: endTime.toISOString(),

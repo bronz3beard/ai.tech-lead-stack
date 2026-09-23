@@ -42,9 +42,10 @@ interface LangfuseObservation {
 }
 
 async function main() {
-  const publicKey = process.env.LANGFUSE_PUBLIC_KEY;
-  const secretKey = process.env.LANGFUSE_SECRET_KEY;
-  const baseUrl = process.env.LANGFUSE_BASE_URL || 'https://cloud.langfuse.com';
+  const publicKey = process.env.TLS_LANGFUSE_PUBLIC_KEY;
+  const secretKey = process.env.TLS_LANGFUSE_SECRET_KEY;
+  const baseUrl =
+    process.env.TLS_LANGFUSE_BASE_URL || 'https://cloud.langfuse.com';
 
   if (!publicKey || !secretKey || publicKey === 'placeholder') {
     console.warn('Langfuse API keys are not configured or still placeholders');

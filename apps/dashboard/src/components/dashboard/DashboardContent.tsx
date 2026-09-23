@@ -38,12 +38,17 @@ export function DashboardContent({
   projects,
   titlePrefix,
   agenticHealth,
+  dataWindow,
 }: {
   traces: TraceData[];
   projects: { id: string; name: string; ownerId: string | null }[];
   titlePrefix: string;
   agenticHealth?: AgenticHealthSummary;
+  /** Which rows were loaded, e.g. "Latest 1,000 runs". */
+  dataWindow: string;
 }) {
+  // Every card reads the TLS Postgres store, not Langfuse, so its numbers are not comparable to Langfuse's.
+  const scopeLabel = `Source: TLS store · ${dataWindow}`;
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -284,9 +289,7 @@ export function DashboardContent({
               <div className="text-3xl font-bold">
                 {metrics.totalExecutions.toLocaleString()}
               </div>
-              <p className="text-xs text-muted mt-1">
-                Cumulative across all runs
-              </p>
+              <p className="text-xs text-muted mt-1">{scopeLabel}</p>
             </CardContent>
           </Card>
           <Card className="bg-card">
@@ -302,6 +305,7 @@ export function DashboardContent({
               <p className="text-xs text-muted mt-1">
                 Unique session activities
               </p>
+              <p className="text-xs text-muted mt-1">{scopeLabel}</p>
             </CardContent>
           </Card>
           <Card className="bg-card">
@@ -317,6 +321,7 @@ export function DashboardContent({
               <p className="text-xs text-muted mt-1">
                 Calculated from LLM usage
               </p>
+              <p className="text-xs text-muted mt-1">{scopeLabel}</p>
             </CardContent>
           </Card>
           <Card className="bg-card">
@@ -330,6 +335,7 @@ export function DashboardContent({
                 {Math.round(metrics.averageAccuracy)}%
               </div>
               <p className="text-xs text-muted mt-1">Success rate average</p>
+              <p className="text-xs text-muted mt-1">{scopeLabel}</p>
             </CardContent>
           </Card>
         </div>
@@ -340,6 +346,7 @@ export function DashboardContent({
               <CardTitle className="text-lg font-semibold">
                 Top Performing Skills
               </CardTitle>
+              <p className="text-sm text-muted">{scopeLabel}</p>
             </CardHeader>
             <CardContent className="pl-2 pb-6">
               <BarChart data={metrics.topSkills} />
@@ -352,8 +359,7 @@ export function DashboardContent({
                 Activity Timeline
               </CardTitle>
               <p className="text-base text-muted">
-                Trend of agent executions over the{' '}
-                {currentLimit === 'all' ? 'entire history' : `last ${currentLimit} traces`}.
+                Trend of agent executions. {scopeLabel}
               </p>
             </CardHeader>
             <CardContent className="pl-2 pb-6">
@@ -367,7 +373,8 @@ export function DashboardContent({
                 Detailed Trace Analytics
               </CardTitle>
               <p className="text-sm text-muted">
-                Granular performance and token cost metrics for each execution.
+                Granular performance and token cost metrics for each execution.{' '}
+                {scopeLabel}
               </p>
             </CardHeader>
             <CardContent className="p-0">

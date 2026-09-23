@@ -1,5 +1,6 @@
 import { prisma } from '@zenithfoundry/tech-lead-stack/db';
 import { normalizeActorTelemetry } from './actor-telemetry';
+import type { DateRange } from './date-range';
 import { fetchAllPages } from './langfuse-api';
 import { normalizeProjectName, normalizeSkillName } from '@zenithfoundry/tech-lead-stack/trace-utils';
 
@@ -20,6 +21,12 @@ export interface TraceData {
   outputTokens?: number;
 }
 
+/** Rows getAnalytics returns when no limit is given. The dashboard labels its window with this. */
+export const DEFAULT_ANALYTICS_LIMIT = 1000;
+
+/** Timeframe values getAnalytics applies; anything else is ignored. */
+export const TIMEFRAME_PRESETS = ['1yr', '6mo', '3mo', '1mo', 'week', 'day', 'today'];
+
 /**
  * Syncs the latest traces from Langfuse API into the Postgres database.
  * This runs periodically or on-demand to ensure the DB stays updated even if
@@ -34,9 +41,9 @@ export async function syncTracesFromLangfuse(limit?: number, force = false) {
     return { count: 0, status: 'SKIPPED_COOLDOWN' };
   }
 
-  const publicKey = process.env.LANGFUSE_PUBLIC_KEY;
-  const secretKey = process.env.LANGFUSE_SECRET_KEY;
-  const baseUrl = process.env.LANGFUSE_BASE_URL || 'https://cloud.langfuse.com';
+  const publicKey = process.env.TLS_LANGFUSE_PUBLIC_KEY;
+  const secretKey = process.env.TLS_LANGFUSE_SECRET_KEY;
+  const baseUrl = process.env.TLS_LANGFUSE_BASE_URL || 'https://cloud.langfuse.com';
 
   if (!publicKey || !secretKey || publicKey === 'placeholder') {
     console.warn(
@@ -194,6 +201,8 @@ export async function getAnalytics(filters: {
   userId?: string;
   userEmail?: string;
   timeframe?: string;
+  /** Explicit date-picker range; takes precedence over `timeframe`. */
+  dateRange?: DateRange;
   projectName?: string;
   limit?: number;
 }): Promise<TraceData[]> {
@@ -228,7 +237,13 @@ export async function getAnalytics(filters: {
     where.projectName = normalizeProjectName(filters.projectName);
   }
 
-  if (filters.timeframe && filters.timeframe !== 'all') {
+  const { from, to } = filters.dateRange ?? {};
+  if (from || to) {
+    where.createdAt = {
+      ...(from && { gte: from }),
+      ...(to && { lte: to }),
+    };
+  } else if (filters.timeframe && filters.timeframe !== 'all') {
     const now = new Date();
     const fromDate = new Date();
 
@@ -259,12 +274,7 @@ export async function getAnalytics(filters: {
     }
 
     // Only apply timeframe filter if it was a valid preset
-    if (
-      filters.timeframe &&
-      ['1yr', '6mo', '3mo', '1mo', 'week', 'day', 'today'].includes(
-        filters.timeframe
-      )
-    ) {
+    if (filters.timeframe && TIMEFRAME_PRESETS.includes(filters.timeframe)) {
       where.createdAt = { gte: fromDate };
     }
   }
@@ -280,7 +290,7 @@ export async function getAnalytics(filters: {
     const events = await prisma.analyticsEvent.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      take: filters.limit === -1 ? undefined : filters.limit || 1000, // Default to 1000 if not specified, -1 for all
+      take: filters.limit === -1 ? undefined : filters.limit || DEFAULT_ANALYTICS_LIMIT, // -1 for all
     });
 
     console.log(`[AnalyticsService] Found ${events.length} events`);

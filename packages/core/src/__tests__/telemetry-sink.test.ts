@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { langfuseSink } from '../lib/langfuse-sink';
+import { LangfuseSink, langfuseSink } from '../lib/langfuse-sink';
 import { prisma } from '../lib/prisma';
 import { telemetryService } from '../lib/telemetry-service';
 
@@ -161,5 +161,41 @@ describe('Langfuse Sink & Telemetry Service', () => {
       (b: any) => b.type === 'trace-create'
     );
     expect(traceCreate.body.id).toBe(traceId);
+  });
+
+  it('marks the trace and generation with the tls environment and a source:tls tag', async () => {
+    fetchMock.mockResolvedValue({ status: 200, ok: true });
+
+    langfuseSink.enqueue({
+      traceId: 'env-trace',
+      skillName: 'ask',
+      duration: 1,
+      status: 'SUCCESS',
+    });
+    await langfuseSink.flush();
+
+    const payload = JSON.parse(fetchMock.mock.calls[0][1].body);
+    const trace = payload.batch.find((b: any) => b.type === 'trace-create');
+    const generation = payload.batch.find((b: any) => b.type === 'generation-create');
+    expect(trace.body.environment).toBe('tls');
+    expect(trace.body.tags).toContain('source:tls');
+    expect(generation.body.environment).toBe('tls');
+  });
+
+  it('ignores generic LANGFUSE_* keys inherited from a parent gateway process', () => {
+    const saved = { ...process.env };
+    process.env.LANGFUSE_PUBLIC_KEY = 'pk-parent-gateway';
+    process.env.LANGFUSE_SECRET_KEY = 'sk-parent-gateway';
+    delete process.env.TLS_LANGFUSE_PUBLIC_KEY;
+    delete process.env.TLS_LANGFUSE_SECRET_KEY;
+    const sink = new LangfuseSink();
+
+    try {
+      sink.enqueue({ traceId: 'leak', skillName: 'ask', duration: 1, status: 'SUCCESS' });
+      expect((sink as any).queue).toHaveLength(0);
+    } finally {
+      sink.shutdown();
+      process.env = saved;
+    }
   });
 });

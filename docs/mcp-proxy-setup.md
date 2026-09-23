@@ -53,6 +53,13 @@ mcp__slm-gate__list_skills
 
 Substitute any other proxy's registered name and the shape is identical.
 
+**The gateway's environment reaches this stack.** A gateway that spawns the
+stack usually passes its own environment down, and dotenv never overrides a
+variable that is already set. That is why the stack reads Langfuse credentials
+from `TLS_LANGFUSE_*` rather than `LANGFUSE_*`: the gateway's keys cannot
+redirect the stack's traces into the gateway's project. See §7 if you see paired
+traces.
+
 ---
 
 ## 2. Why this matters for slash commands
@@ -276,6 +283,14 @@ has not been restarted since the change.
 The gateway's definition does not mention this checkout's path, so neither the
 duplicate-registration guard nor the command-name detection can see it. Point
 the gateway at this checkout by absolute path, or use `--mcp-name`.
+
+**Symptom: every skill run shows two traces in the gateway's Langfuse project.**
+
+For example, `skill:ask` from this stack next to `ask` from the gateway. The
+stack is running a build from before the `TLS_LANGFUSE_*` rename and has picked
+up the gateway's `LANGFUSE_*` keys. Rename the stack's variables (see
+`CHANGELOG.md`), run `npm run mcp:build`, and restart the client. The stack's
+traces then go to its own project with environment `tls` and tag `source:tls`.
 
 **Symptom: `list_skills` works but `get_skills` fails on a name it listed.**
 

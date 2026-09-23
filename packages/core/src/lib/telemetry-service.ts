@@ -49,10 +49,11 @@ export class TelemetryService {
     // Do NOT gate on isConfigured alone — env vars may arrive after the first configure() call.
     if (this.isConfigured) return true;
 
-    this.publicKey = process.env.LANGFUSE_PUBLIC_KEY;
-    this.secretKey = process.env.LANGFUSE_SECRET_KEY;
+    // TLS_-prefixed so keys inherited from a parent gateway process are ignored (see langfuse-sink.ts).
+    this.publicKey = process.env.TLS_LANGFUSE_PUBLIC_KEY;
+    this.secretKey = process.env.TLS_LANGFUSE_SECRET_KEY;
     this.baseUrl =
-      process.env.LANGFUSE_BASE_URL || 'https://us.cloud.langfuse.com';
+      process.env.TLS_LANGFUSE_BASE_URL || 'https://us.cloud.langfuse.com';
 
     if (
       this.publicKey &&

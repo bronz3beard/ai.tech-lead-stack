@@ -44,8 +44,8 @@ export default function ConfigGuide() {
       required: true,
     },
     {
-      name: 'LANGFUSE_SECRET_KEY',
-      desc: 'For AI observability and tracing.',
+      name: 'TLS_LANGFUSE_SECRET_KEY',
+      desc: 'For AI observability and tracing (with TLS_LANGFUSE_PUBLIC_KEY).',
       required: false,
     },
     {

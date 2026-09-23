@@ -25,9 +25,11 @@ routing UI/MCP work depends on Phase B.
 
 - Skill estimates live in frontmatter as `cost: ~N tokens`, regex-enforced in
   `scripts/generate-skill-registry.ts` and `scripts/validate-skills.sh`.
-- `src/lib/telemetry-service.ts` logs every skill run to Langfuse **and**
-  Postgres (`AnalyticsEvent`), then `enrichEvent()` pulls real Langfuse usage
-  back into the row.
+- `src/lib/telemetry-service.ts` logs every skill run to Postgres
+  (`AnalyticsEvent`) and, when configured, queues it to Langfuse via
+  `langfuse-sink.ts`. Langfuse credentials are read from `TLS_LANGFUSE_*` only,
+  so a parent gateway's `LANGFUSE_*` keys cannot redirect traces (see
+  `CHANGELOG.md`).
 - `src/lib/ai/reflexion/pricing.ts` (`PRICE_PER_MTOK`) is the only per-model
   $/MTok table.
 - `src/components/dashboard/InsightsTable.tsx` shows
