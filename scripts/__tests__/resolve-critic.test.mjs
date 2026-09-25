@@ -1,107 +1,179 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import { pickAgyModel, resolveCritic } from '../resolve-critic.mjs';
+import {
+  claudeCriticModel,
+  pickAgyModel,
+  resolveCritic,
+} from '../resolve-critic.mjs';
 
 const AGY_MODELS = [
   'Fetching available models...',
+  'claude-opus-4-6-thinking\tClaude Opus 4.6 (Thinking)',
   'gemini-3.8-flash-high\tGemini 3.8 Flash (High)',
   'gemini-3.1-pro-high\tGemini 3.1 Pro (High)',
-  'claude-opus-4-6-thinking\tClaude Opus 4.6 (Thinking)',
 ].join('\n');
 
-/** `failing` holds "<bin> <first-arg>" keys whose run() should fail. */
+const ALL_CLIS = ['gemini', 'agy', 'codex', 'claude'];
+
+/** `failing` maps a binary to the stderr its smoke call fails with. */
 const fakeProbe = ({
   installed = [],
-  failing = [],
+  failing = {},
   models = AGY_MODELS,
 } = {}) => ({
   which: (bin) => installed.includes(bin),
   run: (bin, args) => {
     if (bin === 'agy' && args[0] === 'models')
-      return { ok: true, stdout: models, detail: '' };
-    const ok = !failing.includes(`${bin} ${args[0]}`);
-    return { ok, stdout: ok ? 'OK' : '', detail: ok ? '' : 'boom' };
+      return { ok: true, stdout: models, stderr: '', detail: '' };
+    const stderr = failing[bin];
+    return stderr === undefined
+      ? { ok: true, stdout: 'OK', stderr: '', detail: '' }
+      : { ok: false, stdout: '', stderr, detail: stderr };
   },
 });
 
-const ENTERPRISE_ENV = { GOOGLE_CLOUD_PROJECT: 'acme-prod' };
+const skippedRungs = (result) => result.skipped.map((s) => s.rung);
 
 describe('resolveCritic', () => {
-  it('uses the enterprise gemini CLI when installed, configured and responsive', () => {
-    const result = resolveCritic({
-      env: ENTERPRISE_ENV,
-      probe: fakeProbe({ installed: ['gemini', 'agy'] }),
-      writerVendor: 'anthropic',
-    });
-    assert.strictEqual(result.rung, 'enterprise-gemini');
-    assert.strictEqual(result.isolation, 'L0');
-  });
-
-  it('falls back to agy and explains the personal-account cause when GOOGLE_CLOUD_PROJECT is unset', () => {
+  it('uses the gemini CLI first when it answers (API key, Vertex or enterprise)', () => {
     const result = resolveCritic({
       env: {},
-      probe: fakeProbe({ installed: ['gemini', 'agy'] }),
+      probe: fakeProbe({ installed: ALL_CLIS }),
       writerVendor: 'anthropic',
+      writerModel: 'claude-opus-5-5',
+    });
+    assert.strictEqual(result.rung, 'gemini-cli');
+    assert.strictEqual(result.isolation, 'L0');
+    assert.deepStrictEqual(result.command, ['gemini', '--skip-trust', '-p']);
+  });
+
+  it('falls back to agy with a Gemini model when the gemini CLI rejects a personal login', () => {
+    const result = resolveCritic({
+      env: {},
+      probe: fakeProbe({
+        installed: ALL_CLIS,
+        failing: { gemini: 'Error: set GOOGLE_CLOUD_PROJECT to continue' },
+      }),
+      writerVendor: 'anthropic',
+      writerModel: 'claude-opus-5-5',
     });
     assert.strictEqual(result.rung, 'agy');
-    assert.match(
-      result.skipped[0].reason,
-      /^no-GOOGLE_CLOUD_PROJECT: personal Google accounts/
+    assert.strictEqual(result.model, 'gemini-3.1-pro-high');
+    assert.match(result.skipped[0].reason, /^personal-google-login-unsupported/);
+  });
+
+  it('puts -p last in the agy command so the appended prompt is not swallowed by --model', () => {
+    const result = resolveCritic({
+      env: {},
+      probe: fakeProbe({ installed: ['agy'] }),
+      writerVendor: 'anthropic',
+      writerModel: 'claude-opus-5-5',
+    });
+    assert.deepStrictEqual(result.command, [
+      'agy',
+      '--model',
+      'gemini-3.1-pro-high',
+      '--mode',
+      'plan',
+      '-p',
+    ]);
+  });
+
+  it('falls back to codex when no Gemini rung answers', () => {
+    const result = resolveCritic({
+      env: {},
+      probe: fakeProbe({ installed: ['agy', 'codex'], failing: { agy: 'boom' } }),
+      writerVendor: 'anthropic',
+      writerModel: 'claude-opus-5-5',
+    });
+    assert.strictEqual(result.rung, 'codex');
+    assert.strictEqual(result.isolation, 'L0');
+    assert.deepStrictEqual(result.skipped, [
+      { rung: 'gemini-cli', reason: 'not-installed' },
+      { rung: 'agy', reason: 'smoke-failed: boom' },
+    ]);
+  });
+
+  it('skips both Gemini rungs for a Google writer', () => {
+    const result = resolveCritic({
+      env: {},
+      probe: fakeProbe({ installed: ALL_CLIS }),
+      writerVendor: 'google',
+    });
+    assert.strictEqual(result.rung, 'codex');
+    assert.deepStrictEqual(
+      result.skipped.map((s) => s.reason),
+      ['same-vendor-as-writer', 'same-vendor-as-writer']
     );
   });
 
-  it('falls back to agy with a cannot-start reason when gemini is installed but broken', () => {
+  it('skips codex for an OpenAI writer and falls through to the claude CLI', () => {
     const result = resolveCritic({
-      env: ENTERPRISE_ENV,
-      probe: fakeProbe({
-        installed: ['gemini', 'agy'],
-        failing: ['gemini --version'],
-      }),
+      env: {},
+      probe: fakeProbe({ installed: ['codex', 'claude'] }),
+      writerVendor: 'openai',
+    });
+    assert.strictEqual(result.rung, 'claude-cli');
+    assert.strictEqual(result.model, 'opus');
+    assert.strictEqual(result.isolation, 'L0');
+    assert.deepStrictEqual(skippedRungs(result), [
+      'gemini-cli',
+      'agy',
+      'codex',
+      'claude-subagent',
+    ]);
+  });
+
+  it('spins up a Claude Code sub-agent on a different Claude model when running inside Claude Code', () => {
+    const result = resolveCritic({
+      env: { CLAUDECODE: '1' },
+      probe: fakeProbe(),
       writerVendor: 'anthropic',
+      writerModel: 'claude-opus-5-5',
     });
-    assert.strictEqual(result.rung, 'agy');
-    assert.strictEqual(result.skipped[0].reason, 'cannot-start: boom');
+    assert.strictEqual(result.rung, 'claude-subagent');
+    assert.strictEqual(result.command, null);
+    assert.strictEqual(result.model, 'sonnet');
+    assert.strictEqual(result.isolation, 'L1');
   });
 
-  it('skips enterprise gemini for a Google writer because it would not be cross-vendor', () => {
+  it('uses the claude CLI with a different Claude model outside Claude Code', () => {
     const result = resolveCritic({
-      env: ENTERPRISE_ENV,
-      probe: fakeProbe({ installed: ['gemini', 'agy'] }),
-      writerVendor: 'google',
+      env: {},
+      probe: fakeProbe({ installed: ['claude'] }),
+      writerVendor: 'anthropic',
+      writerModel: 'claude-fable-5-1',
     });
-    assert.strictEqual(result.skipped[0].reason, 'same-vendor-as-writer');
-    assert.strictEqual(result.model, 'claude-opus-4-6-thinking');
+    assert.strictEqual(result.rung, 'claude-cli');
+    assert.strictEqual(result.model, 'opus');
+    assert.strictEqual(result.isolation, 'L1');
+    assert.strictEqual(result.command.at(-1), '-p');
   });
 
-  it('hands off to the harness rungs when neither CLI is available', () => {
+  it('hands off to the harness rungs when no critic is available', () => {
     const result = resolveCritic({
       env: {},
       probe: fakeProbe(),
       writerVendor: 'anthropic',
+      writerModel: 'claude-opus-5-5',
     });
     assert.strictEqual(result.rung, 'harness');
     assert.strictEqual(result.command, null);
-    assert.deepStrictEqual(
-      result.skipped.map((s) => s.rung),
-      ['enterprise-gemini', 'agy']
-    );
+    assert.deepStrictEqual(skippedRungs(result), [
+      'gemini-cli',
+      'agy',
+      'codex',
+      'claude-subagent',
+      'claude-cli',
+    ]);
   });
 
-  it('hands off to the harness rungs when the agy smoke call fails', () => {
-    const result = resolveCritic({
-      env: {},
-      probe: fakeProbe({ installed: ['agy'], failing: ['agy -p'] }),
-      writerVendor: 'anthropic',
-    });
-    assert.strictEqual(result.rung, 'harness');
-    assert.strictEqual(result.skipped[1].reason, 'smoke-failed: boom');
-  });
-
-  it('honours TLS_CRITIC_MODEL and reports L1 when it shares the writer vendor', () => {
+  it('honours TLS_CRITIC_MODEL for agy and reports L1 when it shares the writer vendor', () => {
     const result = resolveCritic({
       env: { TLS_CRITIC_MODEL: 'claude-sonnet-4-6' },
       probe: fakeProbe({ installed: ['agy'] }),
       writerVendor: 'anthropic',
+      writerModel: 'claude-opus-5-5',
     });
     assert.strictEqual(result.model, 'claude-sonnet-4-6');
     assert.strictEqual(result.isolation, 'L1');
@@ -109,20 +181,19 @@ describe('resolveCritic', () => {
 });
 
 describe('pickAgyModel', () => {
-  it('prefers a pro model from a vendor other than the writer and ignores non-model lines', () => {
-    assert.strictEqual(
-      pickAgyModel({ modelList: AGY_MODELS, writerVendor: 'anthropic' }),
-      'gemini-3.1-pro-high'
-    );
+  it('prefers a Gemini pro model and ignores other vendors and non-model lines', () => {
+    assert.strictEqual(pickAgyModel(AGY_MODELS), 'gemini-3.1-pro-high');
   });
 
-  it('returns null when every listed model shares the writer vendor', () => {
-    assert.strictEqual(
-      pickAgyModel({
-        modelList: 'claude-sonnet-4-6\tSonnet',
-        writerVendor: 'anthropic',
-      }),
-      null
-    );
+  it('returns null when no Gemini model is listed', () => {
+    assert.strictEqual(pickAgyModel('claude-sonnet-4-6\tSonnet'), null);
+  });
+});
+
+describe('claudeCriticModel', () => {
+  it('gives an Opus writer a Sonnet critic and every other writer Opus', () => {
+    assert.strictEqual(claudeCriticModel('claude-opus-5-5'), 'sonnet');
+    assert.strictEqual(claudeCriticModel('claude-fable-5-1'), 'opus');
+    assert.strictEqual(claudeCriticModel(undefined), 'opus');
   });
 });

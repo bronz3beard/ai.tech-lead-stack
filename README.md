@@ -151,9 +151,13 @@ orchestrator targets specific isolation levels:
 > dropdown, or Claude Code sub-agent configuration).
 >
 > The subscription tiers resolve their critic with
-> `./.ai/rtk-run run resolve-critic --writer <anthropic|google|openai>`, which
-> walks enterprise `gemini` (needs `GOOGLE_CLOUD_PROJECT`) -> `agy` -> another
-> harness model -> same model. The last rung forces `PROVISIONAL` and writes a
+> `./.ai/rtk-run run resolve-critic --writer <anthropic|google|openai> --writer-model <id>`,
+> which smoke-tests and walks: Gemini (`gemini` CLI with `GEMINI_API_KEY`,
+> Vertex AI or enterprise Code Assist, then `agy` for consumer Google plans) ->
+> `codex` (ChatGPT plan or OpenAI API key) -> Claude (a Claude Code sub-agent,
+> else `claude -p` on a Claude plan or `ANTHROPIC_API_KEY`) -> another harness
+> model -> same model. The writer's own vendor is skipped, and a Claude writer
+> gets a different Claude model. The last rung forces `PROVISIONAL` and writes a
 > STRONG `criticAdvisory` into `state.json`. Set `TLS_CRITIC_MODEL` to pin the
 > `agy` model.
 

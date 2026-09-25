@@ -120,12 +120,15 @@ Claim the level ACHIEVED based on runtime model selection:
 ### Reviewer / QA Resolution Ladder
 
 Resolve reviewer and QA models with the Critic Resolution Ladder defined in
-`reflexion-loop-sub-max` (`./.ai/rtk-run run resolve-critic --writer <vendor>`):
-enterprise `gemini` -> `agy` -> another harness model -> same model. Never guess
-a CLI: the standalone `gemini` CLI no longer serves personal Google accounts
-(since 18 June 2026), and its `GOOGLE_CLOUD_PROJECT` error means unsupported
-account type. On the same-model rung the slice is `PROVISIONAL` and the lane
-state file MUST carry the STRONG `Critic Advisory` line.
+`reflexion-loop-sub-max`
+(`./.ai/rtk-run run resolve-critic --writer <vendor> --writer-model <planner-model>`):
+Gemini (`gemini-cli`, then `agy`) -> `codex` -> Claude (`claude-subagent` inside
+Claude Code, else `claude-cli`) -> another harness model -> same model. Each
+rung works on a subscription or an API key. Never guess a CLI: the standalone
+`gemini` CLI no longer serves personal Google logins (since 18 June 2026), and
+its `GOOGLE_CLOUD_PROJECT` error means unsupported account type. On the
+same-model rung the slice is `PROVISIONAL` and the lane state file MUST carry
+the STRONG `Critic Advisory` line.
 
 ## Phase 0A — Cold Resume Protocol (MANDATORY FIRST STEP)
 
@@ -212,11 +215,11 @@ code policy.)_
 - Phase: <current-phase-number>
 - Active Model: <model-name>
 - Isolation Level: <L0-L3>
-- Critic Rung: <enterprise-gemini | agy | harness-model | same-model>
-  (<skipped rungs: reasons>)
+- Critic Rung: <gemini-cli | agy | codex | claude-subagent | claude-cli |
+  harness-model | same-model> (<skipped rungs: reasons>)
 - Critic Advisory: <none | STRONG — SAME_MODEL_CRITIC: review ran on the
-  writer's model and is NOT independent; install/sign in to agy or enterprise
-  gemini and re-review>
+  writer's model and is NOT independent; deep-review before merge, then set up
+  gemini/agy, codex or claude and re-review>
 - Turns Used: <turns-count> / 25
 - Last Checkpoint: <timestamp>
 - Resume Instruction:

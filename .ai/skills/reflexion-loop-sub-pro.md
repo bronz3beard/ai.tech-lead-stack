@@ -79,12 +79,16 @@ sub-agent). Never claim L0 or L1 when overridden by environment variables.
 
 ### Critic Resolution Ladder (COMPRESSED — full mechanics in `reflexion-loop-sub-max`)
 
-- Resolve the critic with `./.ai/rtk-run run resolve-critic --writer <vendor>`,
-  never by guessing a CLI. Order: enterprise `gemini` -> `agy` -> another
-  harness model -> same model.
-- The standalone `gemini` CLI no longer serves personal Google accounts (since
-  18 June 2026); its `GOOGLE_CLOUD_PROJECT` error means unsupported account type
-  — move on to `agy`.
+- Resolve the critic with
+  `./.ai/rtk-run run resolve-critic --writer <vendor> --writer-model <generator-model>`,
+  never by guessing a CLI. Order: Gemini (`gemini-cli`, then `agy`) -> `codex`
+  -> Claude (`claude-subagent` inside Claude Code, else `claude-cli`) -> another
+  harness model -> same model. Each rung works on a subscription or an API key.
+- Run a CLI rung's `command` with the critic prompt as its final argument; on
+  `claude-subagent`, spawn a fresh sub-agent on exactly the probe's `model`.
+- The standalone `gemini` CLI no longer serves personal Google logins (since 18
+  June 2026); its `GOOGLE_CLOUD_PROJECT` error means unsupported account type —
+  the probe moves on to `agy`.
 - Record `criticResolution` in `.loop-out/<runId>/state.json`. On the same-model
   rung, verdict is `PROVISIONAL` and `state.json` MUST carry the STRONG
   `criticAdvisory` defined in `reflexion-loop-sub-max`.

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-21T20:51:10.171Z",
+  "generatedAt": "2026-09-25T12:15:41.520Z",
   "entries": [
     {
       "name": "accessibility-audit",
@@ -277,7 +277,7 @@
       "fetchName": "dev-team-sub-max",
       "skill": "dev-team-sub-max",
       "cost": "~4300 tokens",
-      "costTokens": 4310,
+      "costTokens": 4364,
       "domain": "eng",
       "domainKey": "eng",
       "description": "[DEV-TEAM · SUB-MAX · NO API KEYS · CROSS-MODEL VERIFY] Subscription-tier ($100/mo) dev team orchestrator workflow (up to 2 lanes, reflexion-loop-sub-max, cross-model verify, visual fidelity gate)",
@@ -298,7 +298,7 @@
       "fetchName": "dev-team-sub-pro",
       "skill": "dev-team-sub-pro",
       "cost": "~3500 tokens",
-      "costTokens": 3481,
+      "costTokens": 3532,
       "domain": "eng",
       "domainKey": "eng",
       "description": "[DEV-TEAM · SUB-PRO · NO API KEYS · CROSS-MODEL VERIFY] Subscription-tier ($20/mo) dev pair orchestrator workflow (1 lane, no worktrees, builder/checker, cross-model verify, tier ceiling)",
@@ -971,7 +971,7 @@
       "fetchName": "reflexion-loop-sub-max",
       "skill": "reflexion-loop-sub-max",
       "cost": "~2400 tokens",
-      "costTokens": 2422,
+      "costTokens": 2672,
       "domain": "eng",
       "domainKey": "eng",
       "description": "[LOOP · SUB-MAX · NO API KEYS · CROSS-MODEL VERIFY] $100/mo tier context-isolated plan hardening loop with multi-vendor cross-model verification.",
@@ -992,7 +992,7 @@
       "fetchName": "reflexion-loop-sub-pro",
       "skill": "reflexion-loop-sub-pro",
       "cost": "~1850 tokens",
-      "costTokens": 1873,
+      "costTokens": 1957,
       "domain": "eng",
       "domainKey": "eng",
       "description": "[LOOP · SUB-PRO · NO API KEYS · CROSS-MODEL VERIFY] $20/mo tier context-isolated loop with single-pass cross-model plan check.",

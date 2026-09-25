@@ -32,7 +32,7 @@ modes:
    - `model`: "<YOUR_MODEL_NAME>"
    - `agent`: "<YOUR_AGENT_NAME>"
 
-2. **Pre-Flight Model Contract**: Formulate and print model assignments and isolation levels (L0-L3). Check `CLAUDE_CODE_SUBAGENT_MODEL` (warn and cap at L2 if overridden). Resolve reviewer/QA models with `./.ai/rtk-run run resolve-critic --writer <vendor>` (enterprise `gemini` -> `agy` -> another model -> same model + STRONG `Critic Advisory` in the lane state file).
+2. **Pre-Flight Model Contract**: Formulate and print model assignments and isolation levels (L0-L3). Check `CLAUDE_CODE_SUBAGENT_MODEL` (warn and cap at L2 if overridden). Resolve reviewer/QA models with `./.ai/rtk-run run resolve-critic --writer <vendor> --writer-model <planner-model>` (Gemini `gemini-cli`/`agy` -> `codex` -> Claude sub-agent/`claude-cli` -> another model -> same model + STRONG `Critic Advisory` in the lane state file).
 3. **Phase 0A: Cold Resume Check**: Inspect `.dev-team/lanes/*.md`. If incomplete lanes exist, print Quota Ledger, read state files and Findings Ledger (`.dev-team/analysis/<lane-id>.md`), and resume directly from recorded Phase without re-running Phase 0 discovery.
 4. **Phase 0B: Discovery & Mission Frame**: Run scoped discovery (excluding build/dependency dirs), create Findings Ledger, and establish Mission Frame.
 5. **Phase 1: Crew Sizing Gate**: Score the five signals (0-2). Max 2 parallel lanes. If score = XL, open Tech-Lead confirmation gate stating expected turn cost (~60 turns) before worktree creation. Print scores first.

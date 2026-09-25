@@ -77,29 +77,43 @@ rationale.
 Resolve the critic with the probe, never by guessing a CLI:
 
 ```bash
-./.ai/rtk-run run resolve-critic --writer <anthropic|google|openai>
-# in the stack repo itself: node scripts/resolve-critic.mjs --writer <vendor>
+./.ai/rtk-run run resolve-critic --writer <anthropic|google|openai> --writer-model <generator-model>
+# in the stack repo itself: node scripts/resolve-critic.mjs --writer <vendor> --writer-model <id>
 ```
 
-The probe is the single source of truth for the CLI rungs and prints JSON. Walk
-the rungs in order and stop at the first that works:
+`--writer-model` is required for a Claude writer so the Claude rung picks a
+different model. The probe is the single source of truth: it smoke-tests each
+CLI rung in order and prints JSON for the first that answers. Every rung works
+on a subscription login or a pay-as-you-go API key:
 
-1. **Rung E — Enterprise Gemini CLI** (`rung: "enterprise-gemini"`, L0).
-2. **Rung A — Antigravity CLI `agy`** (`rung: "agy"`, L0/L1): run the critic
-   with the probe's `command` array, prompt = plan + rubric + diagnosis only.
-3. **Rung H — Another harness model** (probe returned `rung: "harness"`, or the
+1. **Rung G — Gemini** (L0; skipped for a Google writer): `rung: "gemini-cli"`
+   (standalone `gemini` with `GEMINI_API_KEY`, Vertex AI or enterprise Code
+   Assist), else `rung: "agy"` (Antigravity CLI, consumer Google plans).
+2. **Rung X — Codex** (`rung: "codex"`, L0; skipped for an OpenAI writer):
+   `codex exec` on a ChatGPT plan or an OpenAI API key.
+3. **Rung C — Claude** (L0, or L1 for a Claude writer):
+   `rung: "claude-subagent"` inside Claude Code — spawn a fresh sub-agent on
+   exactly the probe's `model`, never the writer's; otherwise
+   `rung: "claude-cli"` (`claude -p` on a Claude plan or `ANTHROPIC_API_KEY`).
+4. **Rung H — Another harness model** (probe returned `rung: "harness"`, or the
    probe could not run): pick a different vendor (L0) or family (L1) in the
-   harness / sub-agent model setting.
-4. **Rung S — Same model** (nothing else available): fresh sub-agent (L2) or
+   harness / sub-agent model setting, preferring Claude.
+5. **Rung S — Same model** (nothing else available): fresh sub-agent (L2) or
    fresh session (L3). Verdict is forced to `PROVISIONAL` and `state.json` MUST
    carry `criticAdvisory` (below). Use STATE 2, with its second line naming the
    unavailable rungs instead of a usage limit.
 
-> [!WARNING] The standalone `gemini` CLI stopped serving personal Google
-> accounts (AI Pro/Ultra, free Code Assist) on 18 June 2026. A
-> `GOOGLE_CLOUD_PROJECT` error from it means **unsupported account type**, not a
-> missing setting — move on to `agy`. Never ask the user to set
-> `GOOGLE_CLOUD_PROJECT` unless they confirm an enterprise Code Assist licence.
+For a CLI rung, run the probe's `command` array with the critic prompt (plan +
+rubric + diagnosis only) appended as its **final argument**, e.g.
+`<command...> "$(cat .loop-out/<runId>/critic-prompt-r1.txt)"`. Never pipe the
+prompt on stdin — `agy` ignores stdin.
+
+> [!WARNING] The standalone `gemini` CLI stopped serving personal Google logins
+> (AI Pro/Ultra, free Code Assist) on 18 June 2026; a pay-as-you-go
+> `GEMINI_API_KEY` still works. A `GOOGLE_CLOUD_PROJECT` error from it means
+> **unsupported account type**, not a missing setting — the probe moves on to
+> `agy`. Never ask the user to set `GOOGLE_CLOUD_PROJECT` unless they confirm an
+> enterprise Code Assist licence.
 
 Record the probe output plus the final rung as `criticResolution` in
 `state.json` (on probe failure, set `probeError` and start at Rung H). On Rung S
@@ -111,7 +125,7 @@ also write:
   "code": "SAME_MODEL_CRITIC",
   "message": "The critic ran on the writer's model. This audit is NOT independent; treat the score as self-assessment.",
   "rungsTried": ["<criticResolution.skipped[].rung: reason>", "harness: <why no other model>"],
-  "remediation": "Install and sign in to agy, or use enterprise gemini with GOOGLE_CLOUD_PROJECT, then re-run the critic."
+  "remediation": "Set GEMINI_API_KEY or sign in to agy, sign in to codex, or install the claude CLI, then re-run the critic and deep-review this output before use."
 }
 ```
 

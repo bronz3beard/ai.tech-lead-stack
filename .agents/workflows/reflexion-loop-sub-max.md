@@ -30,7 +30,7 @@ modes:
    - `model`: "<YOUR_MODEL_NAME>"
    - `agent`: "<YOUR_AGENT_NAME>"
 
-2. **Pre-Flight Model Contract**: Formulate and print generator and critic model assignments and isolation levels (L0-L3). Check `CLAUDE_CODE_SUBAGENT_MODEL` (warn and cap at L2 if overridden). Resolve the critic with `./.ai/rtk-run run resolve-critic --writer <vendor>` (enterprise `gemini` -> `agy` -> another model -> same model + STRONG `criticAdvisory`); record `criticResolution` in `state.json`. Never ask for `GOOGLE_CLOUD_PROJECT` — for personal Google accounts it means use `agy`.
+2. **Pre-Flight Model Contract**: Formulate and print generator and critic model assignments and isolation levels (L0-L3). Check `CLAUDE_CODE_SUBAGENT_MODEL` (warn and cap at L2 if overridden). Resolve the critic with `./.ai/rtk-run run resolve-critic --writer <vendor> --writer-model <generator-model>` (Gemini `gemini-cli`/`agy` -> `codex` -> Claude sub-agent/`claude-cli` -> another model -> same model + STRONG `criticAdvisory`); record `criticResolution` in `state.json`. Never ask for `GOOGLE_CLOUD_PROJECT` — for personal Google logins the probe uses `agy`.
 3. **Phase 0B: Discovery**: Run scoped discovery, write Findings Ledger (`.loop-out/<runId>/findings.md`), and establish stack diagnosis.
 4. **Phase 1-3: Generate, Critique & Adjudicate**: Execute plan generation and critic passes. Track models in state file (`.loop-out/<runId>/state.json`). Handle exhaustion Modes A/B/C via fallback ladder; mark degraded critic pass as PROVISIONAL.
 5. **Mandatory Disclosure Verdict**: Emit disclosure status (`Model separation held` vs `MODEL SEPARATION LOST`) as the VERY FIRST line of `.loop-out/<runId>/verdict.md` and chat output, followed by Provenance Table.
