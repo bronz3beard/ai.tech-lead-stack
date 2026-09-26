@@ -2,11 +2,12 @@
 # `pnpm release:tag`, see docs/releasing.md) verifies the tag, re-runs the CI
 # quality gate on the tagged commit, and publishes a GitHub Release with the
 # CHANGELOG notes, an SBOM, the npm tarball, and a signed build-provenance
-# attestation. It then publishes that same attested tarball to npm as
-# `tech-lead-stack`, after the maintainer approves the npm-publish environment.
+# attestation. It then stages that same attested tarball on npm as
+# `tech-lead-stack`; it goes live only when the maintainer approves the staged
+# version on npmjs.com or with `npm stage approve`, with 2FA.
 # Running it by hand (workflow_dispatch) is a rehearsal: it builds and
 # smoke-tests the release assets for the current version but creates no
-# release, signs nothing and publishes nothing.
+# release, signs nothing and stages nothing.
 name: Release
 
 on:
@@ -154,11 +155,11 @@ jobs:
             --verify-tag --title "$TAG" --notes-file release-notes.md "$PRERELEASE_FLAG"
 
   npm-publish:
-    name: Publish to npm
+    name: Stage on npm
     needs: [verify, release]
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    # Requires the maintainer's approval, and only accepts v* tags.
+    # npm's trusted publisher only trusts this environment, which only v* tags can use.
     environment: npm-publish
     permissions:
       contents: read # download the release asset
@@ -168,17 +169,16 @@ jobs:
       VERSION: ${{ needs.verify.outputs.version }}
       PRERELEASE: ${{ needs.verify.outputs.prerelease }}
     steps:
-      # registry-url writes the .npmrc that npm publish authenticates with.
+      # registry-url writes the .npmrc that npm authenticates with.
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: npm must support trusted publishing (11.5.1 or later)
-        run: |
-          npm --version
-          node -e 'const [a,b,c]=process.argv[1].split(".").map(Number); process.exit(a>11||(a===11&&(b>5||(b===5&&c>=1)))?0:1)' "$(npm --version)"
+      # `npm stage` needs npm 11.15.0 or later; pinned so staging behaves the same every release.
+      - name: Install npm 11.20.0
+        run: npm install --global npm@11.20.0 && npm --version
 
       # Publish the exact tarball that was smoke-tested and attested, not a rebuild.
       - name: Download the attested tarball
@@ -187,9 +187,11 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: gh release download "$TAG" --pattern "tech-lead-stack-$VERSION.tgz"
 
-      # Authenticates with npm trusted publishing (OIDC): no token exists. npm
-      # attaches a provenance statement linking the package to this run.
-      - name: Publish
+      # Authenticates with npm trusted publishing (OIDC): no token exists. The
+      # version is only staged; npm attaches a provenance statement linking it
+      # to this run, and it goes live when the maintainer approves it with 2FA.
+      - name: Stage
         run: |
           if [ "$PRERELEASE" = "true" ]; then DIST_TAG=next; else DIST_TAG=latest; fi
-          npm publish "tech-lead-stack-$VERSION.tgz" --access public --provenance --tag "$DIST_TAG"
+          npm stage publish "tech-lead-stack-$VERSION.tgz" --access public --provenance --tag "$DIST_TAG"
+          echo "::notice::tech-lead-stack@$VERSION is staged. Approve it at https://www.npmjs.com/package/tech-lead-stack (Staged Packages tab) or with: npm stage approve <stage-id>"

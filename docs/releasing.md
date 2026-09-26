@@ -2,9 +2,10 @@
 
 A release is a version tag, such as `v1.2.0`, on a commit in `main`. Pushing the
 tag starts the [Release workflow](../.github/workflows/release.yml), which
-publishes the GitHub Release and the npm package
-[`tech-lead-stack`](https://www.npmjs.com/package/tech-lead-stack). You never
-create a release or publish to npm by hand.
+publishes the GitHub Release and stages the npm package
+[`tech-lead-stack`](https://www.npmjs.com/package/tech-lead-stack). The npm
+version goes live only when you approve it on npm, with 2FA. You never build a
+release or upload a package by hand.
 
 The npm package is built from `packages/core`, which is called
 `@zenithfoundry/tech-lead-stack` inside this repository. Only the published
@@ -92,8 +93,7 @@ Open the **Actions** tab and follow the **Release** run. It:
 4. signs all of them with a build-provenance attestation,
 5. creates the GitHub Release with the changelog notes and all of the above
    attached, and
-6. waits for you to approve the **npm-publish** step (a yellow "Review
-   deployments" button on the run), then publishes that same package to npm.
+6. stages that same package on npm. It is not live yet.
 
 If any check fails before the npm step, nothing is published. Fix the problem,
 then delete the tag and the GitHub Release before tagging again:
@@ -102,8 +102,27 @@ then delete the tag and the GitHub Release before tagging again:
 gh release delete v1.3.0 --yes 2>/dev/null; git tag -d v1.3.0 && git push origin :refs/tags/v1.3.0
 ```
 
-If the package already reached npm, that version number is used up for good: fix
-the problem and release the next patch version instead.
+### 4. Approve the npm release
+
+When the **Stage on npm** job is green, the version is waiting on npm. Approve
+it in either place; both ask for your 2FA:
+
+- **On npmjs.com:** open
+  [the package](https://www.npmjs.com/package/tech-lead-stack), go to the
+  **Staged Packages** tab, review the version, and click **Approve**.
+- **In a terminal** (npm 11.15.0 or later, e.g. `npx npm@11.20.0 …`):
+
+  ```bash
+  npx npm@11.20.0 stage list tech-lead-stack         # shows the stage-id
+  npx npm@11.20.0 stage approve <stage-id>
+  ```
+
+Then check it is live: `npm view tech-lead-stack version`.
+
+If you spot a problem before approving, reject it instead
+(`npx npm@11.20.0 stage reject <stage-id>`), fix the problem, and release the
+next patch version. npm does not accept a version number that is already staged
+or published, so never try to reuse one.
 
 ## Rehearsing without releasing
 
@@ -137,11 +156,13 @@ npm audit signatures
 
 ## How npm publishing is set up
 
-The Release workflow publishes to npm with
-[trusted publishing](https://docs.npmjs.com/trusted-publishers): npm trusts this
-repository's `release.yml`, running in the `npm-publish` environment, and no npm
-token exists anywhere. npm adds a provenance statement to every version
-published this way.
+The Release workflow stages each version on npm with
+[trusted publishing](https://docs.npmjs.com/trusted-publishers) and
+[staged publishing](https://docs.npmjs.com/staged-publishing/): npm trusts this
+repository's `release.yml`, running in the `npm-publish` environment, to _stage_
+a version, and only the maintainer can make it live, with 2FA. No npm token
+exists anywhere. npm adds a provenance statement to every version staged this
+way.
 
 The package's settings on npmjs.com (**Settings** → **Trusted Publisher**) must
 stay as:
@@ -149,10 +170,17 @@ stay as:
 - publisher: GitHub Actions
 - user: `bronz3beard`, repository: `ai.tech-lead-stack`
 - workflow: `release.yml`, environment: `npm-publish`
+- allowed actions: **only `npm stage publish`**; leave `npm publish` unticked,
+  so CI can never make a version live on its own
 - publishing access: "Require two-factor authentication and disallow tokens"
 
-If you rename the workflow file or the environment, update these settings first,
-or the publish step fails.
+npm does not let you edit a connection. To change any of these, delete it and
+add a new one with every value above. If you rename the workflow file or the
+environment, update the connection first, or the stage step fails with
+`403 … OIDC permission denied for this action`.
+
+The `npm-publish` environment on GitHub only lets `v*` tags use it and has no
+required reviewers: the approval that matters happens on npm.
 
 **Why v1.0.1 was published by hand.** npm only accepts trusted publishing for a
 package that already exists, and it no longer lets a token that skips 2FA
@@ -167,4 +195,8 @@ npm publish tech-lead-stack-1.0.1.tgz --access public
 ```
 
 That version has no npm provenance statement, but its GitHub attestation proves
-where it was built. Every later version is published by the workflow.
+where it was built. Every later version is staged by the workflow and approved
+by the maintainer.
+
+v1.0.2 is on GitHub but was never published to npm: its publish step ran before
+the switch to staged publishing and was refused. npm goes from 1.0.1 to 1.0.3.
