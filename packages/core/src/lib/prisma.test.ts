@@ -1,4 +1,32 @@
+import fc from 'fast-check';
 import { shouldUseSsl } from './prisma';
+
+describe('shouldUseSsl (property-based)', () => {
+  const label = fc.stringMatching(/^[a-z0-9]{1,12}$/);
+  const managed = fc.constantFrom(
+    'rlwy.net',
+    'neon.tech',
+    'supabase.co',
+    'supabase.com'
+  );
+
+  it('ignores managed domains that appear outside the hostname', () => {
+    fc.assert(
+      fc.property(label, managed, fc.webPath(), (host, domain, path) => {
+        const url = `postgresql://u:p@${host}.example/${domain}${path}?q=${domain}`;
+        expect(shouldUseSsl(url)).toBe(false);
+      })
+    );
+  });
+
+  it('accepts any subdomain of a managed host', () => {
+    fc.assert(
+      fc.property(label, managed, (sub, domain) => {
+        expect(shouldUseSsl(`postgresql://u:p@${sub}.${domain}/db`)).toBe(true);
+      })
+    );
+  });
+});
 
 describe('shouldUseSsl', () => {
   it.each([

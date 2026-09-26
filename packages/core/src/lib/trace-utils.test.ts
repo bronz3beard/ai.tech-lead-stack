@@ -1,9 +1,41 @@
+import fc from 'fast-check';
 import {
   isSkillTrace,
   isActiveSkill,
   normalizeProjectName,
   normalizeSkillName,
 } from './trace-utils';
+
+describe('name normalization (property-based)', () => {
+  // The pre-ReDoS-fix implementation, kept as the behavioural reference.
+  const legacySkillName = (name: string) =>
+    name
+      .toLowerCase()
+      .trim()
+      .replace(/\.md$/, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+  it('matches the legacy normalization for any non-blank input', () => {
+    fc.assert(
+      fc.property(fc.string(), (name) => {
+        fc.pre(name.trim() !== '');
+        expect(normalizeSkillName(name)).toBe(legacySkillName(name));
+      })
+    );
+  });
+
+  it('always yields a kebab-case slug', () => {
+    fc.assert(
+      fc.property(fc.string(), (name) => {
+        expect(normalizeSkillName(name)).toMatch(/^([a-z0-9]+(-[a-z0-9]+)*)?$/);
+        expect(normalizeProjectName(name)).toMatch(
+          /^([a-z0-9]+(-[a-z0-9]+)*)?$/
+        );
+      })
+    );
+  });
+});
 
 describe('name normalization', () => {
   it('collapses separators and trims surrounding dashes', () => {

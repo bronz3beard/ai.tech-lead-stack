@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import path from 'path';
 
 test('enforce-hooks.mjs blocks deploy without review-report', (t) => {
@@ -11,7 +11,10 @@ test('enforce-hooks.mjs blocks deploy without review-report', (t) => {
   // Simulation: We use HOOK_PHASE=deploy, and assume review-report is missing
   let failed = false;
   try {
-    execSync(`HOOK_PHASE=deploy node ${script}`, { stdio: 'pipe' });
+    execFileSync('node', [script], {
+      stdio: 'pipe',
+      env: { ...process.env, HOOK_PHASE: 'deploy' },
+    });
   } catch (err) {
     failed = true;
     assert.match(err.stderr.toString(), /\[HOOK BLOCKED\] Deployment requires a passing review-report KI/);
@@ -27,7 +30,15 @@ test('enforce-hooks.mjs blocks build on unapproved spec', (t) => {
   
   let failed = false;
   try {
-    execSync(`HOOK_PHASE=build SKILL_CONTEXT=build MOCK_UNAPPROVED_SPEC=true node ${script}`, { stdio: 'pipe' });
+    execFileSync('node', [script], {
+      stdio: 'pipe',
+      env: {
+        ...process.env,
+        HOOK_PHASE: 'build',
+        SKILL_CONTEXT: 'build',
+        MOCK_UNAPPROVED_SPEC: 'true',
+      },
+    });
   } catch (err) {
     failed = true;
     assert.match(err.stderr.toString(), /\[HOOK BLOCKED\] Cannot build: upstream spec is not human-approved/);

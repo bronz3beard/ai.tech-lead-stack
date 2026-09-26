@@ -962,9 +962,30 @@ else
 fi
 
 # 4. RTK Setup & Immediate Pre-Flight Check
+# The RTK installer is pinned to the v0.50.0 tag's commit and hash-checked before
+# it runs; RTK_VERSION pins the binary it downloads, which it checksum-verifies
+# itself. To upgrade RTK, bump all three values together.
+RTK_VERSION="v0.50.0"
+RTK_INSTALLER_URL="https://raw.githubusercontent.com/rtk-ai/rtk/1d87b8e719ce0a50c223cd93ca64dd16921f9aec/install.sh"
+RTK_INSTALLER_SHA256="d6eb73a772903e13ff34ee1be8a8b24e896ba9a978f20d2279a08b4083ea6f77"
 if ! command -v rtk &> /dev/null; then
-    echo "🛠️ Installing RTK via curl..."
-    curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh
+    echo "🛠️ Installing RTK ${RTK_VERSION}..."
+    RTK_INSTALLER="$(mktemp "${TMPDIR:-/tmp}/rtk-install.XXXXXX")"
+    if curl -fsSL "$RTK_INSTALLER_URL" -o "$RTK_INSTALLER"; then
+        if command -v sha256sum &> /dev/null; then
+            RTK_INSTALLER_ACTUAL="$(sha256sum "$RTK_INSTALLER" | awk '{print $1}')"
+        else
+            RTK_INSTALLER_ACTUAL="$(shasum -a 256 "$RTK_INSTALLER" | awk '{print $1}')"
+        fi
+        if [ "$RTK_INSTALLER_ACTUAL" = "$RTK_INSTALLER_SHA256" ]; then
+            RTK_VERSION="$RTK_VERSION" sh "$RTK_INSTALLER"
+        else
+            echo "❌ RTK installer checksum mismatch (expected $RTK_INSTALLER_SHA256, got $RTK_INSTALLER_ACTUAL) — not running it."
+        fi
+    else
+        echo "❌ Could not download the RTK installer."
+    fi
+    rm -f "$RTK_INSTALLER"
 fi
 
 if command -v rtk &> /dev/null; then
