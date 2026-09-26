@@ -71,6 +71,11 @@ npm run format:check && npm run lint
 - Changes to skill files (`.ai/skills/*.md`) must pass
   `npm run validate:skills`.
 
+## Releases
+
+Maintainers publish releases by pushing a version tag. The steps are in
+[docs/releasing.md](docs/releasing.md).
+
 ## Licence
 
 By contributing, you agree that your contributions are licensed under the

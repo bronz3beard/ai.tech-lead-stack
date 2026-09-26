@@ -1,0 +1,129 @@
+# Tag-driven release. Pushing a v<major>.<minor>.<patch> tag (created with
+# `pnpm release:tag`, see docs/releasing.md) verifies the tag, re-runs the CI
+# quality gate on the tagged commit, and publishes a GitHub Release with the
+# CHANGELOG notes, an SBOM, and a signed build-provenance attestation.
+# Running it by hand (workflow_dispatch) is a rehearsal: it builds the release
+# assets for the current version but creates no release and signs nothing.
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Verify tag
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+
+      # The tag name is read from the environment, never interpolated into the
+      # script, and release.mjs rejects anything that is not strict semver.
+      - name: Tag must be semver and match packages/core
+        id: version
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            TAG="$GITHUB_REF_NAME"
+          else
+            TAG="v$(node -p "require('./packages/core/package.json').version")"
+          fi
+          node scripts/release.mjs verify "$TAG"
+
+      - name: Tagged commit must be on main
+        if: github.event_name == 'push'
+        run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+
+      - name: CHANGELOG must have notes for this version
+        if: github.event_name == 'push'
+        run: node scripts/release.mjs notes "$GITHUB_REF_NAME"
+
+  ci:
+    name: Quality gate
+    needs: verify
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
+  release:
+    name: Publish GitHub Release
+    needs: [verify, ci]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the release and upload its assets
+      id-token: write # request a Sigstore signing certificate
+      attestations: write # store the attestation
+      artifact-metadata: write # record the attested artifacts
+    env:
+      TAG: ${{ needs.verify.outputs.tag }}
+      VERSION: ${{ needs.verify.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Create assets folder
+        run: mkdir -p release-assets
+
+      # Before the archive exists, so the SBOM lists the lockfiles' dependencies only.
+      - name: Generate SBOM
+        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+        with:
+          path: .
+          format: spdx-json
+          output-file: release-assets/tech-lead-stack-${{ needs.verify.outputs.version }}.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Build source archive
+        run: |
+          git archive --format=tar.gz --prefix="tech-lead-stack-$VERSION/" \
+            -o "release-assets/tech-lead-stack-$VERSION-source.tar.gz" HEAD
+          ls -l release-assets
+
+      - name: Attest build provenance
+        id: attest
+        if: github.event_name == 'push'
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: release-assets/*
+
+      # The signed bundle is attached as *.sigstore.json so users (and the
+      # OpenSSF Scorecard Signed-Releases check) can find it next to the assets.
+      - name: Create GitHub Release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+          PRERELEASE: ${{ needs.verify.outputs.prerelease }}
+        run: |
+          cp "$BUNDLE" "release-assets/tech-lead-stack-$VERSION.sigstore.json"
+          node scripts/release.mjs notes "$TAG" > release-notes.md
+          if [ "$PRERELEASE" = "true" ]; then
+            PRERELEASE_FLAG="--prerelease"
+          else
+            PRERELEASE_FLAG="--latest"
+          fi
+          gh release create "$TAG" release-assets/* \
+            --verify-tag --title "$TAG" --notes-file release-notes.md "$PRERELEASE_FLAG"
