@@ -5,6 +5,7 @@
 [![CI](https://github.com/bronz3beard/ai.tech-lead-stack/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/bronz3beard/ai.tech-lead-stack/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/bronz3beard/ai.tech-lead-stack/actions/workflows/codeql.yml/badge.svg)](https://github.com/bronz3beard/ai.tech-lead-stack/actions/workflows/codeql.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/bronz3beard/ai.tech-lead-stack/badge)](https://scorecard.dev/viewer/?uri=github.com/bronz3beard/ai.tech-lead-stack)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14956/badge)](https://www.bestpractices.dev/projects/14956)
 [![License: MIT](https://img.shields.io/github/license/bronz3beard/ai.tech-lead-stack)](LICENSE)
 [![Node](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fbronz3beard%2Fai.tech-lead-stack%2Fmain%2Fpackage.json&query=%24.engines.node&label=node&logo=nodedotjs&logoColor=white&color=339933)](package.json)
 [![Agent surfaces](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fbronz3beard%2Fai.tech-lead-stack%2Fmain%2F.github%2Fbadges%2Fagent-surfaces.json)](docs/skills.md)
@@ -35,6 +36,7 @@ Live Web App:
   catalogues, methodology and architecture
 - [Peripherals & Sibling Apps](#peripherals--sibling-apps)
 - [Branching Strategy](#branching-strategy)
+- [Support, Contributing & Security](#support-contributing--security)
 
 <br />
 
@@ -676,13 +678,18 @@ bash /path/to/tech-lead-stack/scripts/cleanup.sh .
 
 ## Peripherals & Sibling Apps
 
-- **[Voice Relay Service](peripherals/voice-relay/README.md)**: A local node
-  service that parses spoken transcripts and executes them via keyless agent
-  CLIs (`agy`, `claude`, `codex`, `cursor-agent`).
-- **[Voice Assistant App](../../../voice-assistant-app)**: A mobile client
-  (iOS/Android) that acts as a hands-free voice interface for the Tech Lead
-  Stack. It connects to the local `voice-relay` peripheral to execute codebase
-  changes via voice commands.
+These live in their own repositories:
+
+- **[SLM Gate](https://github.com/zenithfoundry/slm-gate)**: A local
+  pre-processing and routing layer that can sit in front of this stack's MCP
+  server. See [Running the MCP server](docs/running-the-mcp-server.md).
+- **[Voice Agent Relay](https://github.com/zenithfoundry/voice-agent-relay)**: A
+  local node service that parses spoken transcripts and executes them via
+  keyless agent CLIs (`agy`, `claude`, `codex`, `cursor-agent`).
+- **Voice Assistant App** (private repository, not publicly available): A mobile
+  client (iOS/Android) that acts as a hands-free voice interface for the Tech
+  Lead Stack. It connects to the local voice relay to execute codebase changes
+  via voice commands.
 
 ## Branching Strategy
 
@@ -692,6 +699,14 @@ workflow and squash-and-merge PRs.
 For detailed day-to-day workflow examples and guidelines for both developers and
 AI agents, please refer to the
 [Branch Management Strategy](./BRANCH_MANAGEMENT.md) document.
+
+## Support, Contributing & Security
+
+- **Need help?** See [SUPPORT.md](SUPPORT.md).
+- **Found a bug or want to contribute?** See [CONTRIBUTING.md](CONTRIBUTING.md).
+- **Found a security vulnerability?** Report it privately as described in
+  [SECURITY.md](SECURITY.md). Do not open a public issue.
+- **Licence:** [MIT](LICENSE).
 
 ---
 

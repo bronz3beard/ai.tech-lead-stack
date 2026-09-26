@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/bronz3beard/ai.tech-lead-stack/security/advisories/new
+    about: Report it privately. Please do not open a public issue for security problems.
+  - name: Ask a question
+    url: https://github.com/bronz3beard/ai.tech-lead-stack/discussions
+    about: Questions and ideas go in GitHub Discussions.

@@ -2,7 +2,13 @@
 
 ## Supported versions
 
-Only the latest commit on `main` receives security fixes.
+| Version                                                                      | Supported |
+| ---------------------------------------------------------------------------- | --------- |
+| Latest [release](https://github.com/bronz3beard/ai.tech-lead-stack/releases) | Yes       |
+| `main` branch                                                                | Yes       |
+| Any older release                                                            | No        |
+
+Fixes ship in a new release. They are not backported to older versions.
 
 ## Reporting a vulnerability
 
@@ -13,8 +19,20 @@ Report vulnerabilities privately through GitHub's
 Include the affected file or component, steps to reproduce, and the impact you
 expect.
 
-You should get an acknowledgement within 14 days. Once a fix is available we
-will publish a GitHub Security Advisory and credit you unless you ask us not to.
+## What happens next
+
+1. You get an acknowledgement within 14 days.
+2. The report is assessed and you are told whether it is accepted, usually
+   within 30 days of acknowledgement.
+3. A fix is prepared privately. You are kept informed and may be asked to
+   confirm the fix works.
+4. The fix is released, and a GitHub Security Advisory is published with a CVE
+   where one applies. The release notes list every fixed vulnerability by its
+   advisory or CVE ID.
+5. You are credited in the advisory unless you ask not to be.
+
+Please keep the details private until the advisory is published. If a fix takes
+longer than 90 days, we will agree a disclosure date with you.
 
 ## Scope and responsibility
 
