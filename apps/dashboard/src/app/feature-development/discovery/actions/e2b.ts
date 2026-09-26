@@ -46,7 +46,7 @@ export async function writeSandboxFileAction(sandboxId: string, path: string, co
     await sandbox.files.write(path, content);
     return { success: true };
   } catch (error: any) {
-    console.error(`[E2B Action] Failed to write file ${path}:`, error);
+    console.error('[E2B Action] Failed to write file %s:', path, error);
     return { success: false, error: error.message };
   }
 }
@@ -58,7 +58,7 @@ export async function readSandboxFileAction(sandboxId: string, path: string) {
     const content = await sandbox.files.read(path);
     return { success: true, content };
   } catch (error: any) {
-    console.error(`[E2B Action] Failed to read file ${path}:`, error);
+    console.error('[E2B Action] Failed to read file %s:', path, error);
     return { success: false, error: error.message };
   }
 }
@@ -71,7 +71,7 @@ export async function killSandboxAction(sandboxId: string) {
     return { success: true };
   } catch (error: any) {
     // If it fails to connect, it might already be dead, which is fine
-    console.warn(`[E2B Action] Failed to kill sandbox ${sandboxId}:`, error.message);
+    console.warn('[E2B Action] Failed to kill sandbox %s:', sandboxId, error.message);
     return { success: false, error: error.message };
   }
 }

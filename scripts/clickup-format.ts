@@ -62,7 +62,8 @@ export interface ChecklistItem {
 function escapeInline(text: string): string {
   // Only escape pipes inside table cells and stray backticks are handled by
   // callers via `code()`. Keep this conservative — over-escaping harms readability.
-  return text.replace(/\|/g, '\\|');
+  // Backslashes go first, or a trailing `\` would swallow the escaped pipe.
+  return text.replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
 }
 
 export function h1(text: string): string {

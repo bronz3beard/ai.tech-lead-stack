@@ -39,6 +39,40 @@ const globalForPrisma = global as unknown as {
   pool?: pg.Pool;
 };
 
+// Managed hosts that require TLS. `supabase.com` covers Supabase's pooler hosts.
+const SSL_HOST_SUFFIXES = [
+  'rlwy.net',
+  'neon.tech',
+  'supabase.co',
+  'supabase.com',
+];
+const LOCAL_HOSTS = ['localhost', '127.0.0.1'];
+
+/**
+ * Decides whether a connection string needs TLS. Matches on the parsed
+ * hostname, not a substring, so e.g. `evil.com/?x=neon.tech` does not count.
+ */
+export function shouldUseSsl(rawUrl: string, nodeEnv?: string): boolean {
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return false;
+  }
+
+  // Non-special schemes like postgres:// keep the host's original casing.
+  const host = url.hostname.toLowerCase();
+  const isManagedHost = SSL_HOST_SUFFIXES.some(
+    (suffix) => host === suffix || host.endsWith(`.${suffix}`)
+  );
+
+  return (
+    isManagedHost ||
+    url.searchParams.get('sslmode') === 'require' ||
+    (nodeEnv === 'production' && !LOCAL_HOSTS.includes(host))
+  );
+}
+
 /**
  * Lazily initializes and returns the PostgreSQL connection pool.
  */
@@ -50,15 +84,7 @@ export function getPool(): pg.Pool {
 
   const rawUrl = process.env.DATABASE_URL || '';
 
-  const isSsl =
-    Boolean(rawUrl) &&
-    (rawUrl.includes('rlwy.net') ||
-      rawUrl.includes('neon.tech') ||
-      rawUrl.includes('supabase.co') ||
-      rawUrl.includes('sslmode=require') ||
-      (process.env.NODE_ENV === 'production' &&
-        !rawUrl.includes('localhost') &&
-        !rawUrl.includes('127.0.0.1')));
+  const isSsl = shouldUseSsl(rawUrl, process.env.NODE_ENV);
 
   const newPool = new pg.Pool({
     connectionString: rawUrl && rawUrl !== 'undefined' ? rawUrl : undefined,

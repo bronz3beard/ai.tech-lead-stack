@@ -59,7 +59,8 @@ async function main() {
       for (const pattern of cond.diffContains) {
         // Simple minimatch-like regex for globs
         const regexStr = pattern
-          .replace(/\./g, '\\.')
+          // Escape every regex metacharacter except `*`, which is the glob.
+          .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
           .replace(/\*\*/g, '.*')
           .replace(/\*/g, '[^/]*');
         const regex = new RegExp(`^${regexStr}$|${regexStr}`);

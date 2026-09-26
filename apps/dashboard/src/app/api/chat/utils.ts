@@ -132,7 +132,8 @@ export async function readWorkflow(workflowName: string) {
     return result?.content ?? null;
   } catch (err: unknown) {
     console.error(
-      `Workflow read error for ${workflowName}:`,
+      'Workflow read error for %s:',
+      workflowName,
       getErrorMessage(err)
     );
     return null;

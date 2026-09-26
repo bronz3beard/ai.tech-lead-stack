@@ -1,4 +1,27 @@
-import { isSkillTrace, isActiveSkill } from './trace-utils';
+import {
+  isSkillTrace,
+  isActiveSkill,
+  normalizeProjectName,
+  normalizeSkillName,
+} from './trace-utils';
+
+describe('name normalization', () => {
+  it('collapses separators and trims surrounding dashes', () => {
+    expect(normalizeSkillName('--Planning   Expert--.md')).toBe(
+      'planning-expert'
+    );
+    expect(normalizeProjectName('  My___Project!! ')).toBe('my-project');
+  });
+
+  it('stays fast on long runs of dashes', () => {
+    const input = `a${'-'.repeat(50_000)}!`;
+    const started = Date.now();
+
+    expect(normalizeSkillName(input)).toBe('a');
+    expect(normalizeProjectName(input)).toBe('a');
+    expect(Date.now() - started).toBeLessThan(100);
+  });
+});
 
 describe('isSkillTrace', () => {
   it("should return true when name is 'skill' or 'skill.md'", () => {

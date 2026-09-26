@@ -48,6 +48,8 @@ function parseArgs(argv) {
 const args = parseArgs(process.argv.slice(2));
 const outDir = args.out;
 const server = args.server || 'tech-lead-stack';
+// `server` is a CLI argument; escape it before it goes into a RegExp.
+const serverPattern = server.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const agent = args.agent || 'claude-code';
 const sourceDir = args.source || repoRoot;
 const domains = (args.domains || 'eng,pm,hr')
@@ -110,7 +112,10 @@ function resolveToolNames(text) {
       (_m, t) => `\`mcp__${server}__${t}\``
     )
     .replace(
-      new RegExp(`\\b(?:mcp_${server}_|${server}_)(${tools})\\b`, 'g'),
+      new RegExp(
+        `\\b(?:mcp_${serverPattern}_|${serverPattern}_)(${tools})\\b`,
+        'g'
+      ),
       (_m, t) => `mcp__${server}__${t}`
     );
 }

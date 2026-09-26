@@ -36,7 +36,7 @@ export function normalizeProjectName(name: string | undefined | null): string {
     .replace(/^ai\./, '')
     .replace(/-(mcp|analytics|llms|bridge|code-review)$/, '')
     .replace(/[^a-z0-9]+/g, '-') // Convert spaces and special chars to dashes
-    .replace(/^-+|-+$/g, ''); // Trim leading/trailing dashes
+    .replace(/^-|-$/g, ''); // Trim the single leading/trailing dash (runs were collapsed above; `-+$` is quadratic)
 }
 
 /**
@@ -53,7 +53,7 @@ export function normalizeSkillName(name: string | undefined | null): string {
     .trim()
     .replace(/\.md$/, '')
     .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with dashes
-    .replace(/^-+|-+$/g, ''); // Trim leading/trailing dashes
+    .replace(/^-|-$/g, ''); // Trim the single leading/trailing dash (runs were collapsed above; `-+$` is quadratic)
 }
 
 /**

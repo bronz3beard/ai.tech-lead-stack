@@ -70,6 +70,12 @@ describe('clickup-format', () => {
       expect(out).toContain('x \\| y');
     });
 
+    test('pipe mode escapes backslashes so a trailing one cannot eat a pipe escape', () => {
+      const t: Table = { headers: ['A'], rows: [['C:\\ | y']] };
+      const out = renderTable(t, 'pipe');
+      expect(out).toContain('| C:\\\\ \\| y |');
+    });
+
     test('auto-falls back to list when columns exceed the doc limit (8)', () => {
       const wide: Table = {
         headers: ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8', 'c9'],
