@@ -3,9 +3,6 @@ import type { NextConfig } from 'next';
 import path from 'path';
 
 const nextConfig: NextConfig = {
-  experimental: {
-    useCache: true,
-  },
   transpilePackages: ['@zenithfoundry/tech-lead-stack'],
   /**
    * Required for Vercel to correctly trace files (like Prisma engines) outside this app folder.

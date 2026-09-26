@@ -583,10 +583,9 @@ export async function POST(req: NextRequest) {
           );
 
           // Write the ZIP file to the sandbox
-          const arrayBuffer = zipBuffer.buffer.slice(
-            zipBuffer.byteOffset,
-            zipBuffer.byteOffset + zipBuffer.byteLength
-          );
+          // Copy into a standalone ArrayBuffer: a Buffer's backing store is
+          // typed ArrayBufferLike, which e2b's write() does not accept.
+          const arrayBuffer = new Uint8Array(zipBuffer).buffer;
           await sandbox.files.write('project.zip', arrayBuffer);
           sendEvent('log', '  [zip] ZIP bundle uploaded to sandbox');
 
