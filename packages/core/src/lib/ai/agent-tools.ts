@@ -5,7 +5,7 @@ import { promisify } from 'util';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
-import matter from 'gray-matter';
+import { parseFrontmatter } from '../skills/safe-matter';
 
 /**
  * @desc Factory that creates agent tools with access to the current skill
@@ -194,7 +194,7 @@ export function createAgentTools(currentContent: string) {
         }
 
         try {
-          const parsed = matter(content);
+          const parsed = parseFrontmatter(content);
           const data = parsed.data;
           const errors: string[] = [];
 

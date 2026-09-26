@@ -4,13 +4,13 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@zenithfoundry/tech-lead-stack/db';
 import { execFile } from 'child_process';
 import fs from 'fs/promises';
-import matter from 'gray-matter';
 import { getServerSession } from 'next-auth';
 import { Octokit } from 'octokit';
 import os from 'os';
 import path from 'path';
 import { promisify } from 'util';
 import { frontmatterSchema } from '@zenithfoundry/tech-lead-stack/skills/frontmatter-schema';
+import { parseFrontmatter } from '@zenithfoundry/tech-lead-stack/skills/safe-matter';
 
 const execFileAsync = promisify(execFile);
 
@@ -25,7 +25,7 @@ async function getGitHubUsername(token: string) {
 
 export async function validateSkill(content: string) {
   try {
-    const parsed = matter(content);
+    const parsed = parseFrontmatter(content);
     const validated = frontmatterSchema.safeParse(parsed.data);
     if (!validated.success) {
       const errMsgs = validated.error.issues.map((e) => e.message).join(', ');
@@ -106,7 +106,7 @@ export async function submitSkill(content: string) {
   let parsedName = '';
   let parsedDescription = '';
   try {
-    const parsed = matter(content);
+    const parsed = parseFrontmatter(content);
     const validated = frontmatterSchema.safeParse(parsed.data);
     if (!validated.success) {
       const errMsgs = validated.error.issues.map((e) => e.message).join(', ');
