@@ -31,7 +31,7 @@ jobs:
       - name: Get pnpm store directory
         shell: bash
         run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+          echo "STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_ENV"
 
       - name: Setup pnpm cache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
@@ -82,7 +82,8 @@ jobs:
   evaluator-calibration:
     name: Evaluator Calibration
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || github.repository == 'bronz3beard/ai.tech-lead-stack'
+    # Skipped for release tags: this paid eval already ran when the commit reached main.
+    if: github.ref_type != 'tag' && (github.event_name == 'workflow_dispatch' || github.repository == 'bronz3beard/ai.tech-lead-stack')
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
     steps:
@@ -100,7 +101,7 @@ jobs:
       - name: Get pnpm store directory
         shell: bash
         run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+          echo "STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_ENV"
 
       - name: Setup pnpm cache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0

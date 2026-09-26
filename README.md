@@ -527,7 +527,17 @@ mean: [Choosing a tier](docs/tiers.md).
 
 ### 1. Installation
 
-Clone this repo and link it globally for easy access:
+**Only need the MCP server?** It is published on npm as
+[`tech-lead-stack`](https://www.npmjs.com/package/tech-lead-stack), with the
+skills bundled. Point your MCP client at `npx -y tech-lead-stack`, for example
+in Claude Code:
+
+```bash
+claude mcp add tech-lead-stack -- npx -y tech-lead-stack
+```
+
+For the full stack (IDE commands, project linking, the dashboard), clone this
+repo and link it globally for easy access:
 
 ```bash
 

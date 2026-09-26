@@ -1,6 +1,21 @@
 {
   "name": "@zenithfoundry/tech-lead-stack",
   "version": "1.0.0",
+  "description": "MCP server for the Tech-Lead Stack: agent skills and workflows for tech leads, PMs and HR.",
+  "license": "MIT",
+  "author": "bronz3beard",
+  "homepage": "https://github.com/bronz3beard/ai.tech-lead-stack#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bronz3beard/ai.tech-lead-stack.git",
+    "directory": "packages/core"
+  },
+  "bugs": {
+    "url": "https://github.com/bronz3beard/ai.tech-lead-stack/issues"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
   "type": "module",
   "publishConfig": {
     "access": "public"
@@ -18,7 +33,7 @@
     "./mcp-server/*": "./src/mcp-server/*.ts"
   },
   "scripts": {
-    "mcp:build": "esbuild src/mcp-server/index.ts --bundle --platform=node --packages=external --format=esm --outfile=dist/mcp-server.mjs",
+    "mcp:build": "esbuild src/mcp-server/index.ts --bundle --platform=node --packages=external --format=esm --alias:@prisma/client=./src/mcp-server/prisma-client-lazy.ts --outfile=dist/mcp-server.mjs",
     "mcp:start": "node dist/mcp-server.mjs",
     "reflexion": "tsx scripts/reflexion-loop.ts",
     "reflexion:eval": "tsx scripts/reflexion-eval.ts",

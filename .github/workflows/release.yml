@@ -1,9 +1,12 @@
 # Tag-driven release. Pushing a v<major>.<minor>.<patch> tag (created with
 # `pnpm release:tag`, see docs/releasing.md) verifies the tag, re-runs the CI
 # quality gate on the tagged commit, and publishes a GitHub Release with the
-# CHANGELOG notes, an SBOM, and a signed build-provenance attestation.
-# Running it by hand (workflow_dispatch) is a rehearsal: it builds the release
-# assets for the current version but creates no release and signs nothing.
+# CHANGELOG notes, an SBOM, the npm tarball, and a signed build-provenance
+# attestation. It then publishes that same attested tarball to npm as
+# `tech-lead-stack`, after the maintainer approves the npm-publish environment.
+# Running it by hand (workflow_dispatch) is a rehearsal: it builds and
+# smoke-tests the release assets for the current version but creates no
+# release, signs nothing and publishes nothing.
 name: Release
 
 on:
@@ -99,7 +102,29 @@ jobs:
         run: |
           git archive --format=tar.gz --prefix="tech-lead-stack-$VERSION/" \
             -o "release-assets/tech-lead-stack-$VERSION-source.tar.gz" HEAD
-          ls -l release-assets
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build and pack the npm package
+        run: |
+          pnpm run mcp:build
+          node scripts/stage-npm-package.mjs .tmp/npm-package
+          npm pack ./.tmp/npm-package --pack-destination release-assets
+
+      - name: Smoke-test the npm package
+        run: node scripts/smoke-npm-package.mjs "release-assets/tech-lead-stack-$VERSION.tgz"
+
+      - name: List release assets
+        run: ls -l release-assets
 
       - name: Attest build provenance
         id: attest
@@ -127,3 +152,47 @@ jobs:
           fi
           gh release create "$TAG" release-assets/* \
             --verify-tag --title "$TAG" --notes-file release-notes.md "$PRERELEASE_FLAG"
+
+  npm-publish:
+    name: Publish to npm
+    needs: [verify, release]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    # Requires the maintainer's approval, and only accepts v* tags.
+    environment: npm-publish
+    permissions:
+      contents: read # download the release asset
+      id-token: write # npm trusted publishing and provenance
+    env:
+      TAG: ${{ needs.verify.outputs.tag }}
+      VERSION: ${{ needs.verify.outputs.version }}
+      PRERELEASE: ${{ needs.verify.outputs.prerelease }}
+    steps:
+      # registry-url writes the .npmrc that npm publish authenticates with.
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: npm must support trusted publishing (11.5.1 or later)
+        run: |
+          npm --version
+          node -e 'const [a,b,c]=process.argv[1].split(".").map(Number); process.exit(a>11||(a===11&&(b>5||(b===5&&c>=1)))?0:1)' "$(npm --version)"
+
+      # Publish the exact tarball that was smoke-tested and attested, not a rebuild.
+      - name: Download the attested tarball
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release download "$TAG" --pattern "tech-lead-stack-$VERSION.tgz"
+
+      # Uses npm trusted publishing (OIDC). NPM_BOOTSTRAP_TOKEN is only set for
+      # the very first release, before the package exists on npm; see
+      # docs/releasing.md. Either way npm attaches a provenance statement.
+      - name: Publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_BOOTSTRAP_TOKEN }}
+        run: |
+          if [ "$PRERELEASE" = "true" ]; then DIST_TAG=next; else DIST_TAG=latest; fi
+          npm publish "tech-lead-stack-$VERSION.tgz" --access public --provenance --tag "$DIST_TAG"

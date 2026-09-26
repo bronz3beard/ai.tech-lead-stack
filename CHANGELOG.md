@@ -47,6 +47,9 @@ own project.
 - Versioned releases. Pushing a version tag publishes a GitHub Release with
   these notes, a source archive, an SBOM and a signed build-provenance
   attestation. See `docs/releasing.md`.
+- The MCP server is published to npm as `tech-lead-stack`, with the skills and
+  workflows bundled, so an MCP client can run it with `npx -y tech-lead-stack`
+  without cloning this repository. It runs without a database.
 - `SUPPORT.md`, a rewritten `CONTRIBUTING.md` (including how to report a bug),
   and a fuller `SECURITY.md` describing what happens after a vulnerability
   report.
