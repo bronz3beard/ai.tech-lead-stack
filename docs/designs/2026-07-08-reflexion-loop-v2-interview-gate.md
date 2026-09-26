@@ -5,6 +5,11 @@
 > (actor telemetry). Consumed by WS-4 (dev-team plan gate), WS-6 (dashboard),
 > WS-7 (cloud runner).
 
+> [!NOTE] **Paths predate the monorepo split** (`a41ded5`, 2026-09-01) and are
+> left as written. `src/lib/*`, `src/mcp-server/*`, `prisma/*` and
+> `scripts/reflexion-loop.ts` now live under `packages/core/`; `src/app/*` lives
+> under `apps/dashboard/src/`. See the companion design doc for the full map.
+
 ## 🎯 Verification Gates Context
 
 **1. Core Goal:** Upgrade the reflexion loop from a fire-and-forget

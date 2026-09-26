@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import * as dotenv from 'dotenv';
 import { join, resolve } from 'path';
 import pg from 'pg';
+import type { ConnectionOptions } from 'tls';
 
 /**
  * Prisma Client with PostgreSQL adapter.
@@ -73,6 +74,67 @@ export function shouldUseSsl(rawUrl: string, nodeEnv?: string): boolean {
   );
 }
 
+// libpq's sslmode names for the modes that encrypt.
+const SSL_MODES = ['verify-full', 'verify-ca', 'no-verify'] as const;
+type SslMode = (typeof SSL_MODES)[number];
+
+const isSslMode = (value: string): value is SslMode =>
+  (SSL_MODES as readonly string[]).includes(value);
+
+const PEM_CERTIFICATE =
+  /-----BEGIN CERTIFICATE-----[\s\S]+?-----END CERTIFICATE-----/g;
+
+/**
+ * Pulls the PEM certificate block(s) out of DATABASE_SSL_CA. Tolerates `\n`
+ * escapes (single-line env values) and surrounding text, e.g. Railway's
+ * root.crt, which starts with an `openssl -text` dump before the PEM block.
+ */
+function extractPemCertificates(value: string | undefined): string | undefined {
+  if (value === undefined) return undefined;
+
+  const blocks = value.replace(/\\n/g, '\n').match(PEM_CERTIFICATE);
+  if (!blocks) {
+    throw new Error(
+      'DATABASE_SSL_CA must contain a PEM certificate (-----BEGIN CERTIFICATE----- ... -----END CERTIFICATE-----)'
+    );
+  }
+  return blocks.join('\n');
+}
+
+/**
+ * TLS options for the pool, chosen by DATABASE_SSL_MODE:
+ * - `verify-full` (default): trusted chain AND hostname match.
+ * - `verify-ca`: trusted chain only. For private-CA providers whose cert does
+ *   not name the public host (Railway's is issued to `localhost`).
+ *   Requires DATABASE_SSL_CA.
+ * - `no-verify`: encrypted but unauthenticated; last resort.
+ * DATABASE_SSL_CA is the provider's CA as PEM (`\n` escapes allowed).
+ */
+export function getSslOptions(env: NodeJS.ProcessEnv): ConnectionOptions {
+  const mode = env.DATABASE_SSL_MODE ?? 'verify-full';
+  if (!isSslMode(mode)) {
+    throw new Error(
+      `DATABASE_SSL_MODE must be one of ${SSL_MODES.join(', ')}; got "${mode}"`
+    );
+  }
+
+  const ca = extractPemCertificates(env.DATABASE_SSL_CA);
+
+  if (mode === 'no-verify') {
+    return { rejectUnauthorized: false };
+  }
+  if (mode === 'verify-ca' && !ca) {
+    throw new Error('DATABASE_SSL_MODE=verify-ca requires DATABASE_SSL_CA');
+  }
+
+  return {
+    rejectUnauthorized: true,
+    ...(ca && { ca }),
+    // The chain is still verified; only the hostname comparison is skipped.
+    ...(mode === 'verify-ca' && { checkServerIdentity: () => undefined }),
+  };
+}
+
 /**
  * Lazily initializes and returns the PostgreSQL connection pool.
  */
@@ -84,11 +146,18 @@ export function getPool(): pg.Pool {
 
   const rawUrl = process.env.DATABASE_URL || '';
 
-  const isSsl = shouldUseSsl(rawUrl, process.env.NODE_ENV);
+  const ssl = shouldUseSsl(rawUrl, process.env.NODE_ENV)
+    ? getSslOptions(process.env)
+    : false;
+  if (ssl && !ssl.rejectUnauthorized) {
+    console.warn(
+      '[Database] TLS certificate verification is DISABLED (DATABASE_SSL_MODE=no-verify).'
+    );
+  }
 
   const newPool = new pg.Pool({
     connectionString: rawUrl && rawUrl !== 'undefined' ? rawUrl : undefined,
-    ssl: isSsl ? { rejectUnauthorized: false } : false,
+    ssl,
     connectionTimeoutMillis: 5000,
   });
 

@@ -35,14 +35,8 @@ export async function writeSandboxFileAction(sandboxId: string, path: string, co
   try {
     const apiKey = await getApiKey();
     const sandbox = await Sandbox.connect(sandboxId, { apiKey });
-    
-    // Ensure parent directory exists
-    const parts = path.split('/');
-    if (parts.length > 1) {
-      const dir = path.substring(0, path.lastIndexOf('/'));
-      await sandbox.commands.run(`mkdir -p "${dir}"`);
-    }
-    
+    // files.write creates missing parent directories itself, so the
+    // client-supplied path never needs to reach a shell command.
     await sandbox.files.write(path, content);
     return { success: true };
   } catch (error: any) {

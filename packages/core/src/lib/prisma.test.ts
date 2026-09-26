@@ -1,5 +1,69 @@
 import fc from 'fast-check';
-import { shouldUseSsl } from './prisma';
+import { getSslOptions, shouldUseSsl } from './prisma';
+
+describe('getSslOptions', () => {
+  const pem = '-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----';
+
+  it('verifies server certificates by default', () => {
+    expect(getSslOptions({})).toEqual({ rejectUnauthorized: true });
+  });
+
+  it('passes a provider CA through and keeps verification on', () => {
+    expect(getSslOptions({ DATABASE_SSL_CA: pem })).toEqual({
+      rejectUnauthorized: true,
+      ca: pem,
+    });
+  });
+
+  it('unescapes \\n sequences in a single-line CA env value', () => {
+    const singleLine = pem.replace(/\n/g, '\\n');
+    expect(getSslOptions({ DATABASE_SSL_CA: singleLine }).ca).toBe(pem);
+  });
+
+  it('keeps only the PEM block from a full `cat root.crt` (openssl -text dump first)', () => {
+    const railwayFile = `Certificate:\n    Data:\n        Version: 3 (0x2)\n        Issuer: CN=root-ca\n${pem}\n`;
+    expect(getSslOptions({ DATABASE_SSL_CA: railwayFile }).ca).toBe(pem);
+  });
+
+  it('verify-ca keeps chain verification and skips only the hostname check', () => {
+    const options = getSslOptions({
+      DATABASE_SSL_MODE: 'verify-ca',
+      DATABASE_SSL_CA: pem,
+    });
+
+    expect(options).toMatchObject({ rejectUnauthorized: true, ca: pem });
+    expect(
+      options.checkServerIdentity?.('db.proxy.rlwy.net', {} as never)
+    ).toBeUndefined();
+  });
+
+  it('refuses verify-ca without a CA to verify against', () => {
+    expect(() => getSslOptions({ DATABASE_SSL_MODE: 'verify-ca' })).toThrow(
+      'requires DATABASE_SSL_CA'
+    );
+  });
+
+  it('disables verification only for an explicit no-verify', () => {
+    expect(getSslOptions({ DATABASE_SSL_MODE: 'no-verify' })).toEqual({
+      rejectUnauthorized: false,
+    });
+  });
+
+  it.each(['require', 'disable', 'VERIFY-FULL', 'false', ''])(
+    'rejects unknown DATABASE_SSL_MODE %p',
+    (mode) => {
+      expect(() => getSslOptions({ DATABASE_SSL_MODE: mode })).toThrow(
+        'DATABASE_SSL_MODE must be one of'
+      );
+    }
+  );
+
+  it('rejects a CA value that is not a PEM certificate', () => {
+    expect(() => getSslOptions({ DATABASE_SSL_CA: 'not-a-cert' })).toThrow(
+      'must contain a PEM certificate'
+    );
+  });
+});
 
 describe('shouldUseSsl (property-based)', () => {
   const label = fc.stringMatching(/^[a-z0-9]{1,12}$/);

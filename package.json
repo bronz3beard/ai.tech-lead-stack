@@ -2,7 +2,7 @@
   "name": "tech-lead-stack-workspace",
   "version": "1.0.0",
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.5.0"
   },
   "description": "RTK-powered agent skills for Tech Leads.",
   "bin": {
@@ -92,18 +92,16 @@
     "calibrate-skill-costs": "pnpm --filter @zenithfoundry/tech-lead-stack run calibrate-skill-costs",
     "db:generate": "pnpm --filter @zenithfoundry/tech-lead-stack run db:generate",
     "test:cleanup": "node --test scripts/__tests__/cleanup.test.mjs",
-    "test:critic": "node --test scripts/__tests__/resolve-critic.test.mjs"
+    "test:critic": "node --test scripts/__tests__/resolve-critic.test.mjs",
+    "test:scripts": "jest --config scripts/jest.config.cjs && node --test scripts/__tests__/*.test.mjs"
   },
   "dependencies": {
     "@types/bcryptjs": "^3.0.0",
     "@types/pg": "^8.20.0",
     "@types/react-syntax-highlighter": "^15.5.13",
-    "autoevals": "latest",
     "dotenv": "^16.5.0",
     "p-map": "^7.0.4",
-    "playwright-extra": "latest",
     "postcss": "^8.5.28",
-    "puppeteer-extra-plugin-stealth": "latest",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.2",
     "tw-animate-css": "^1.4.0"
@@ -114,7 +112,6 @@
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
-    "@types/adm-zip": "^0.5.8",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.6.0",
     "@types/react": "^19.2.14",
@@ -127,7 +124,7 @@
     "jest-environment-jsdom": "^30.5.2",
     "lint-staged": "^16.4.0",
     "markdownlint-cli": "^0.49.1",
-    "playwright": "latest",
+    "playwright": "^1.63.0",
     "prettier": "^3.8.2",
     "ts-jest": "^29.4.9",
     "ts-node": "^10.9.2",
@@ -179,12 +176,11 @@
   "publishConfig": {
     "access": "public"
   },
-  "private": true,
+  "private": false,
   "packageManager": "pnpm@10.13.1",
   "pnpm": {
     "onlyBuiltDependencies": [
       "@prisma/engines",
-      "autoevals",
       "esbuild",
       "prisma",
       "sharp",

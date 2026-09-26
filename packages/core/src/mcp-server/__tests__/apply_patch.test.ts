@@ -136,4 +136,57 @@ describe('CodebaseHandlers.handleApplyPatch', () => {
     expect(payload.escalateTo).toBe('human');
     expect(payload.guardId).toBe('protected-paths');
   });
+
+  describe('protected path glob matching', () => {
+    const mockGuard = () => {
+      (fs.readdir as jest.Mock).mockResolvedValue(['protected-paths.json']);
+      (fs.readFile as jest.Mock).mockImplementation(async (p: string) => {
+        if (p.endsWith('protected-paths.json')) {
+          return JSON.stringify({
+            id: 'protected-paths',
+            condition: {
+              diffContains: ['**/auth/**', '**/payments/**', 'infra/**'],
+            },
+            action: 'require-human-approve',
+            message: 'Modifications to protected paths require human approval.',
+          });
+        }
+        throw new Error('Not found');
+      });
+    };
+    const patch = `<<<<<<< SEARCH\nfoo\n=======\nbar\n>>>>>>> REPLACE`;
+
+    it.each([
+      'auth/session.ts',
+      'payments/charge.ts',
+      'src/auth/login.ts',
+      'src/payments/deep/refund.ts',
+      'infra/modules/db.tf',
+    ])('refuses to patch protected path %s', async (filePath) => {
+      mockGuard();
+      const result = await new CodebaseHandlers().handleApplyPatch({
+        path: filePath,
+        patch,
+      });
+
+      expect(JSON.parse(result.content[0].text).refused).toBe(true);
+    });
+
+    it.each([
+      'src/oauth/client.ts',
+      'src/authors/list.ts',
+      'myinfra/x.tf',
+      'docs/infra/x.md',
+    ])('does not treat look-alike path %s as protected', async (filePath) => {
+      mockGuard();
+      const result = await new CodebaseHandlers().handleApplyPatch({
+        path: filePath,
+        patch,
+      });
+
+      // Past the guard the handler tries to read the (unmocked) file, so
+      // the only thing to assert is that no refusal was produced.
+      expect(result.content[0].text).not.toContain('"refused"');
+    });
+  });
 });

@@ -4,6 +4,18 @@
 > Companion file: `2026-07-08-jules-prompts.md` (the implementation prompts)
 > Sources: (1) "Physician, heal thyself" dev-team blog post; (2) *Loop Engineering: The Anthropic Playbook* (HuaShu Orange Book / Osmani, Jun 2026); (3) the current state of this repo (audited 2026-07-08).
 
+> [!NOTE] **Paths predate the monorepo split** (`a41ded5`, 2026-09-01). This is
+> a point-in-time design record, so its paths are left as written. Current
+> locations:
+>
+> - `src/lib/*`, `src/mcp-server/*`, `prisma/*` → `packages/core/…`, except
+>   `src/lib/{analytics-service,workflow-roles}.ts` → `apps/dashboard/src/lib/`
+> - `src/app/*`, `src/components/*` → `apps/dashboard/src/…`
+> - `scripts/{reflexion-loop,reflexion-eval,generate-skill-registry,backfill-actor-type}.ts`
+>   → `packages/core/scripts/`; the issue runner shipped as
+>   `packages/core/scripts/reflexion-issue-runner.js`
+> - `scripts/{validate-skills.sh,autoeval-check.mjs}` are unchanged at the root
+
 ---
 
 ## 1. Purpose

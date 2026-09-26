@@ -116,7 +116,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Setup Prisma
-        run: pnpm prisma generate
+        run: pnpm run db:generate
 
       - name: Run Reflexion Loop
         env:
@@ -125,11 +125,14 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           REFLEXION_MAX_COST_USD: ${{ vars.REFLEXION_MAX_COST_USD || '3' }}
           REFLEXION_MAX_REVISIONS: ${{ vars.REFLEXION_MAX_REVISIONS || '3' }}
+        # The runner lives in packages/core and spawns `tsx scripts/reflexion-loop.ts`
+        # relative to its cwd; its output paths are anchored to GITHUB_WORKSPACE.
+        working-directory: packages/core
         run: node scripts/reflexion-issue-runner.js
 
       # TEMPORARY debug step — remove once the artifact upload is confirmed working.
       # The runner writes to $GITHUB_WORKSPACE/.reflexion-out (see OUT_DIR in
-      # scripts/reflexion-issue-runner.js). This proves the files exist there.
+      # packages/core/scripts/reflexion-issue-runner.js). This proves the files exist there.
       - name: Debug — list reflexion output
         if: always()
         run: |

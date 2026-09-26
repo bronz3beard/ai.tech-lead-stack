@@ -57,15 +57,9 @@ async function main() {
 
     if (cond.diffContains) {
       for (const pattern of cond.diffContains) {
-        // Simple minimatch-like regex for globs
-        const regexStr = pattern
-          // Escape every regex metacharacter except `*`, which is the glob.
-          .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
-          .replace(/\*\*/g, '.*')
-          .replace(/\*/g, '[^/]*');
-        const regex = new RegExp(`^${regexStr}$|${regexStr}`);
-
-        if (stagedFiles.some((f) => regex.test(f))) {
+        // Node's glob matcher (same as the MCP apply_patch guard): `**/` also
+        // matches zero directories, so `**/auth/**` guards a root-level `auth/`.
+        if (stagedFiles.some((f) => path.matchesGlob(f, pattern))) {
           triggered = true;
           break;
         }

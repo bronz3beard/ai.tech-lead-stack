@@ -664,7 +664,6 @@ bash /path/to/tech-lead-stack/scripts/cleanup.sh .
 
 | Document                                                                                                                       | Purpose                                                                 |
 | :----------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------- |
-| [`docs/IMPLEMENTATION_PLAYBOOK.md`](./docs/IMPLEMENTATION_PLAYBOOK.md)                                                         | The definitive guide on implementation.                                 |
 | [`docs/using-the-dev-team.md`](./docs/using-the-dev-team.md)                                                                   | Guide to operating the dev-team orchestrator.                           |
 | [`docs/skill-readiness.md`](./docs/skill-readiness.md)                                                                         | Status of skill readiness.                                              |
 | [`docs/mcp-proxy-setup.md`](./docs/mcp-proxy-setup.md)                                                                         | Running the stack behind an upstream MCP proxy (slm-gate or any other). |

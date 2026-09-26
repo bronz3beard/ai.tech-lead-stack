@@ -33,6 +33,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# The placeholder-only template is documented as committed (docs/ci.md).
+!.env.example
 
 # vercel
 .vercel
@@ -76,5 +78,11 @@ defect-library/report.json
 
 packages/*/dist/
 
+# Local code-search index (Ollama embeddings) built by `npm run index:build`
+.tls-index/
+
 # Python virtualenv created by install.sh for requirements.txt
 .venv/
+
+# Local-only doc — untracked going forward, must never be re-committed
+/docs/IMPLEMENTATION_PLAYBOOK.md

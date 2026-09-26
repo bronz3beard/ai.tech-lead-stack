@@ -195,18 +195,11 @@ export class CodebaseHandlers {
         // ignore if hooks dir doesn't exist
       }
 
-      const matchGlob = (pattern: string, testPath: string) => {
-        // basic minimatch-like conversion for ** and *
-        const escaped = pattern.replace(/[.+*?^${}()|[\]\\]/g, '\\$&');
-        const regexStr = escaped
-          .replace(/\\\*\\\*/g, '.*')
-          .replace(/(?<!\.)\\\*/g, '[^/]*');
-        return new RegExp(`^${regexStr}$`).test(testPath);
-      };
-
       for (const guard of protectedGuards) {
         for (const pattern of guard.condition.diffContains) {
-          if (matchGlob(pattern, relativePath)) {
+          // Node's glob matcher: `**/` also matches zero directories, so
+          // `**/auth/**` guards a root-level `auth/` too.
+          if (path.matchesGlob(relativePath, pattern)) {
             if (
               guard.action === 'require-human-approve' ||
               guard.action === 'block'

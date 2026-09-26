@@ -69,14 +69,10 @@ jobs:
       - name: Run Tests
         run: pnpm test
 
-      - name: Test Installer (IDE surfaces)
-        run: pnpm run test:install
-
-      - name: Test Cleanup (uninstall round-trip)
-        run: pnpm run test:cleanup
-
-      - name: Test Critic Resolution Ladder
-        run: pnpm run test:critic
+      # Every root script test by glob (installer, cleanup, critic ladder, hooks,
+      # gherkin, evidence, ClickUp formatting, ...), so new ones can't be missed.
+      - name: Test Scripts
+        run: pnpm run test:scripts
 
       - name: Build Project
         run: pnpm run build

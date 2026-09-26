@@ -41,7 +41,6 @@
     "@prisma/client": "^7.7.0",
     "adm-zip": "^0.6.1",
     "ai": "^6.0.168",
-    "autoevals": "latest",
     "dotenv": "^16.5.0",
     "gray-matter": "^4.0.3",
     "js-yaml": "^5.4.2",

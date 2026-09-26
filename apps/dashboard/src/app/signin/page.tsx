@@ -13,11 +13,12 @@ import { Label } from '@/components/ui/label';
 import { ArrowRight, Github, Loader2, Lock, LogIn, Mail } from 'lucide-react';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 function SignInContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const paramError = searchParams.get('error');
 
@@ -81,8 +82,11 @@ function SignInContent() {
         toast.success('Welcome Back!', {
           description: 'Authentication successful. Entering dashboard...',
         });
+        // signIn({ redirect: false }) has already refreshed the client
+        // session, so a client-side navigation is enough; `replace` keeps the
+        // sign-in page out of the back-button history.
         setTimeout(() => {
-          window.location.href = '/dashboard';
+          router.replace('/dashboard');
         }, 800);
       }
     } catch {
