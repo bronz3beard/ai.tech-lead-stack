@@ -42,6 +42,15 @@ because that fallback is exactly how the gateway's keys leaked in.
 A gateway's own `LANGFUSE_*` variables are unaffected. It keeps writing to its
 own project.
 
+### Added
+
+- Versioned releases. Pushing a version tag publishes a GitHub Release with
+  these notes, a source archive, an SBOM and a signed build-provenance
+  attestation. See `docs/releasing.md`.
+- `SUPPORT.md`, a rewritten `CONTRIBUTING.md` (including how to report a bug),
+  and a fuller `SECURITY.md` describing what happens after a vulnerability
+  report.
+
 ### Changed
 
 - Every trace and generation the stack sends to Langfuse now carries environment

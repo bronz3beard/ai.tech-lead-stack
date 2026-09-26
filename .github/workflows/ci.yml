@@ -5,6 +5,8 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  # Lets release.yml re-run this exact quality gate on the tagged commit.
+  workflow_call:
 
 permissions:
   contents: read

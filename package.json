@@ -82,6 +82,8 @@
     "validate:hooks": "node scripts/enforce-hooks.mjs",
     "validate:gherkin": "node scripts/validate-gherkin.mjs",
     "validate:scripts": "bash scripts/validate-scripts.sh",
+    "release:prepare": "node scripts/release.mjs prepare",
+    "release:tag": "node scripts/release.mjs tag",
     "prepare": "husky",
     "mcp:build": "pnpm --filter @zenithfoundry/tech-lead-stack run mcp:build && mkdir -p dist && printf \"import '../packages/core/dist/mcp-server.mjs';\\n\" > dist/mcp-server.mjs",
     "mcp:start": "node dist/mcp-server.mjs",
