@@ -126,30 +126,36 @@ and that an installed npm package came from this repository:
 npm audit signatures
 ```
 
-## The first release (one-time setup)
+## How npm publishing is set up
 
-For the very first release, the version is already `1.0.0`, so pass it exactly:
-`pnpm release:prepare 1.0.0`.
+The Release workflow publishes to npm with
+[trusted publishing](https://docs.npmjs.com/trusted-publishers): npm trusts this
+repository's `release.yml`, running in the `npm-publish` environment, and no npm
+token exists anywhere. npm adds a provenance statement to every version
+published this way.
 
-npm only lets GitHub publish through trusted publishing once the package already
-exists, so v1.0.0 is published with a temporary token instead:
+The package's settings on npmjs.com (**Settings** → **Trusted Publisher**) must
+stay as:
 
-1. On npmjs.com, open your avatar menu → **Access Tokens** → **Generate New
-   Token** → **Granular Access Token**. Give it a 1-day expiry, **Read and
-   write** permission on packages, and tick **Bypass two-factor authentication**
-   (CI cannot type a 2FA code). Copy the token.
-2. Save it on GitHub as a secret of the npm-publish environment:
-   `gh secret set NPM_BOOTSTRAP_TOKEN --env npm-publish` (paste the token when
-   asked).
-3. Release v1.0.0 as described above and approve the npm-publish step.
-4. Once `tech-lead-stack@1.0.0` is on npm, switch to trusted publishing:
-   1. On npmjs.com, open the package → **Settings** → **Trusted Publisher** →
-      **GitHub Actions**, and enter: user `bronz3beard`, repository
-      `ai.tech-lead-stack`, workflow `release.yml`, environment `npm-publish`.
-   2. On the same page, set **Publishing access** to "Require two-factor
-      authentication and disallow tokens".
-   3. Remove the token:
-      `gh secret delete NPM_BOOTSTRAP_TOKEN --env npm-publish`, and delete it
-      under **Access Tokens** on npmjs.com.
+- publisher: GitHub Actions
+- user: `bronz3beard`, repository: `ai.tech-lead-stack`
+- workflow: `release.yml`, environment: `npm-publish`
+- publishing access: "Require two-factor authentication and disallow tokens"
 
-Every later release publishes through trusted publishing, with no token.
+If you rename the workflow file or the environment, update these settings first,
+or the publish step fails.
+
+**Why v1.0.1 was published by hand.** npm only accepts trusted publishing for a
+package that already exists, and it no longer lets a token that skips 2FA
+publish. So the first version, 1.0.1, was published from the maintainer's
+machine with 2FA, using the exact tarball the Release workflow built and
+attested:
+
+```bash
+gh release download v1.0.1 -R bronz3beard/ai.tech-lead-stack -p 'tech-lead-stack-1.0.1.tgz'
+gh attestation verify tech-lead-stack-1.0.1.tgz -R bronz3beard/ai.tech-lead-stack
+npm publish tech-lead-stack-1.0.1.tgz --access public
+```
+
+That version has no npm provenance statement, but its GitHub attestation proves
+where it was built. Every later version is published by the workflow.
