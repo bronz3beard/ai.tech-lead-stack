@@ -187,12 +187,9 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: gh release download "$TAG" --pattern "tech-lead-stack-$VERSION.tgz"
 
-      # Uses npm trusted publishing (OIDC). NPM_BOOTSTRAP_TOKEN is only set for
-      # the very first release, before the package exists on npm; see
-      # docs/releasing.md. Either way npm attaches a provenance statement.
+      # Authenticates with npm trusted publishing (OIDC): no token exists. npm
+      # attaches a provenance statement linking the package to this run.
       - name: Publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_BOOTSTRAP_TOKEN }}
         run: |
           if [ "$PRERELEASE" = "true" ]; then DIST_TAG=next; else DIST_TAG=latest; fi
           npm publish "tech-lead-stack-$VERSION.tgz" --access public --provenance --tag "$DIST_TAG"
