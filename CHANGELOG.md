@@ -5,6 +5,25 @@ All notable changes to this project are recorded here. The format follows
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-09-26
+
+### Changed
+
+- New npm versions are now staged by the Release workflow and go live only when
+  the maintainer approves them on npm with 2FA (npm staged publishing). CI can
+  no longer make a version live on its own. See `docs/releasing.md`.
+
+### Fixed
+
+- 1.0.2 was released on GitHub but never reached npm, because npm refused the
+  direct publish. This release delivers the same changes to npm.
+
+### Security
+
+- The dashboard's diagram parser now gets `lodash-es` 4.18.1 instead of 4.17.23,
+  fixing GHSA-r5fr-rjxr-66jc (high) and GHSA-f23m-r3pf-42rh (medium). The npm
+  package was not affected.
+
 ## [1.0.2] - 2026-09-26
 
 ### Changed

@@ -680,6 +680,8 @@ bash /path/to/tech-lead-stack/scripts/cleanup.sh .
 | [`docs/skill-readiness.md`](./docs/skill-readiness.md)                                                                         | Status of skill readiness.                                              |
 | [`docs/mcp-proxy-setup.md`](./docs/mcp-proxy-setup.md)                                                                         | Running the stack behind an upstream MCP proxy (slm-gate or any other). |
 | [`docs/reflexion-issue-runner.md`](./docs/reflexion-issue-runner.md)                                                           | Running reflexion as a GitHub issue loop.                               |
+| [`docs/releasing.md`](./docs/releasing.md)                                                                                     | How to cut a release and approve the npm version.                       |
+| [`docs/openssf-best-practices.md`](./docs/openssf-best-practices.md)                                                           | Answers and evidence for the OpenSSF Best Practices badge forms.        |
 | [`docs/designs/2026-07-08-agentic-dev-team-design.md`](./docs/designs/2026-07-08-agentic-dev-team-design.md)                   | Design doc for the dev team orchestrator.                               |
 | [`docs/designs/2026-07-08-reflexion-loop-v2-interview-gate.md`](./docs/designs/2026-07-08-reflexion-loop-v2-interview-gate.md) | Design doc for the reflexion loop.                                      |
 | [`docs/decisions/0001-packaging.md`](./docs/decisions/0001-packaging.md)                                                       | ADR 0001: Packaging and Dependencies.                                   |
