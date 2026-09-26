@@ -5,6 +5,8 @@ All notable changes to this project are recorded here. The format follows
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-09-26
+
 ### ⚠️ Breaking — Langfuse credentials are renamed
 
 The stack now reads its Langfuse credentials from `TLS_`-prefixed variables

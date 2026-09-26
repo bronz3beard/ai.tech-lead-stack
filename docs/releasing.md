@@ -46,6 +46,14 @@ become the text of the GitHub Release.
 
 Commit, push, and open a pull request. Merge it once CI passes.
 
+```bash
+git add packages/core/package.json CHANGELOG.md
+git commit -m "chore(release): v1.3.0"
+git push -u origin HEAD
+gh pr create --fill
+gh pr checks --watch              # waits until every check has finished
+```
+
 ### 2. Tag the release
 
 ```bash
