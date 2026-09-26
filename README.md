@@ -14,6 +14,101 @@ automated testing.
 Live Web App:
 [https://ai-tech-lead-stack.vercel.app](https://ai-tech-lead-stack.vercel.app)
 
+<br />
+
+```mermaid
+
+  flowchart TB
+
+  dev(("Developer<br/>in browser"))
+  agent(("IDE coding agent"))
+
+  subgraph dash["Dashboard app · apps/dashboard"]
+    chat["Chat API<br/>api/chat"]
+    discovery["Feature discovery API<br/>api/orchestrator/discovery"]
+    sandbox["Sandbox boot API<br/>api/orchestrator/sandbox/boot"]
+    design["Design review API<br/>api/design-review"]
+    projects["Projects API<br/>api/projects"]
+    reflexapi["Reflexion API<br/>api/orchestrator/reflexion + /resume"]
+    metrics["Metrics dashboard<br/>dashboard/page.tsx"]
+  end
+
+  subgraph core["Shared core · packages/core"]
+    mcp["MCP server<br/>mcp-server/index.ts"]
+    engine["Reflexion engine<br/>engine.ts"]
+    runner["Model runner<br/>providers-user · providers-env"]
+    store["Run state store<br/>DbStateStore · FileStateStore"]
+    skills["Skill service<br/>fs-service.ts"]
+    telemetry["Telemetry service<br/>telemetry-service.ts"]
+  end
+
+  subgraph ext["Storage and external services"]
+    db[("Postgres<br/>via Prisma")]
+    files[("Local files<br/>skills · KIs · temp run state")]
+    ai["AI model providers"]
+    github["GitHub"]
+    e2b["E2B sandbox"]
+    tools["ClickUp · Figma"]
+    langfuse["Langfuse"]
+  end
+
+  dev -->|"uses"| dash
+  agent -->|"calls MCP tools"| mcp
+
+  dash -->|"every route reads and writes"| db
+  chat -->|"streams replies"| ai
+  chat -->|"reads code (no linked repo)"| skills
+  chat -.->|"reads code (linked repo)"| github
+  chat -.->|"optional chat tools"| tools
+  chat -->|"records events"| telemetry
+  discovery -->|"streams replies"| ai
+  sandbox -->|"boots project"| e2b
+  reflexapi -.->|"reads project files"| github
+  reflexapi -->|"runs loop · user keys · DB state"| engine
+
+  mcp -->|"skills, pipelines, hooks"| skills
+  mcp -->|"runs loop · env keys · file state"| engine
+  mcp -->|"reads and writes KIs"| files
+  mcp -.->|"looks up user and project"| db
+  mcp -->|"records events"| telemetry
+
+  engine -->|"generates and critiques"| runner
+  runner -->|"calls models"| ai
+  engine -->|"saves progress"| store
+  store -->|"DbStateStore"| db
+  store -->|"FileStateStore"| files
+  skills -->|"reads skill files"| files
+  telemetry -->|"writes analytics events"| db
+  telemetry -->|"sends traces"| langfuse
+
+  click chat "https://github.com/bronz3beard/ai.tech-lead-stack/blob/main/apps/dashboard/src/app/api/chat/route.ts"
+  click discovery "https://github.com/bronz3beard/ai.tech-lead-stack/blob/main/apps/dashboard/src/app/api/orchestrator/discovery/route.ts"
+  click sandbox "https://github.com/bronz3beard/ai.tech-lead-stack/blob/main/apps/dashboard/src/app/api/orchestrator/sandbox/boot/route.ts"
+  click design "https://github.com/bronz3beard/ai.tech-lead-stack/blob/main/apps/dashboard/src/app/api/design-review/route.ts"
+  click projects "https://github.com/bronz3beard/ai.tech-lead-stack/blob/main/apps/dashboard/src/app/api/projects/route.ts"
+  click reflexapi "https://github.com/bronz3beard/ai.tech-lead-stack/blob/main/apps/dashboard/src/app/api/orchestrator/reflexion/route.ts"
+  click metrics "https://github.com/bronz3beard/ai.tech-lead-stack/blob/main/apps/dashboard/src/app/dashboard/page.tsx"
+  click mcp "https://github.com/bronz3beard/ai.tech-lead-stack/blob/main/packages/core/src/mcp-server/index.ts"
+  click engine "https://github.com/bronz3beard/ai.tech-lead-stack/blob/main/packages/core/src/lib/ai/reflexion/engine.ts"
+  click runner "https://github.com/bronz3beard/ai.tech-lead-stack/blob/main/packages/core/src/lib/ai/reflexion/providers-user.ts"
+  click store "https://github.com/bronz3beard/ai.tech-lead-stack/blob/main/packages/core/src/lib/ai/reflexion/state-store.ts"
+  click skills "https://github.com/bronz3beard/ai.tech-lead-stack/blob/main/packages/core/src/lib/skills/fs-service.ts"
+  click telemetry "https://github.com/bronz3beard/ai.tech-lead-stack/blob/main/packages/core/src/lib/telemetry-service.ts"
+  click db "https://github.com/bronz3beard/ai.tech-lead-stack/blob/main/packages/core/src/lib/prisma.ts"
+
+  classDef actor fill:#e0e7ff,stroke:#4f46e5,stroke-width:1.5px,color:#312e81
+  classDef app fill:#dbeafe,stroke:#2563eb,stroke-width:1.5px,color:#172554
+  classDef coreNode fill:#dcfce7,stroke:#16a34a,stroke-width:1.5px,color:#14532d
+  classDef extNode fill:#ffe4e6,stroke:#e11d48,stroke-width:1.5px,color:#881337
+  class dev,agent actor
+  class chat,discovery,sandbox,design,projects,reflexapi,metrics app
+  class mcp,engine,runner,store,skills,telemetry coreNode
+  class db,files,ai,github,e2b,tools,langfuse extNode
+
+```
+
+<br />
+
 > [!NOTE] **Related project — **SML Gate** (`small-language-model-gate`, CLI
 > `slm-gate`) — a local AI routing and pre-processing layer that uses a small,
 > free local model via Ollama to intercept, compress, and answer easy or
