@@ -13,9 +13,11 @@ Report vulnerabilities privately through GitHub's
 Include the affected file or component, steps to reproduce, and the impact you
 expect.
 
-You should get an acknowledgement within 7 days. Once a fix is available we will
-publish a GitHub Security Advisory and credit you unless you ask us not to.
+You should get an acknowledgement within 14 days. Once a fix is available we
+will publish a GitHub Security Advisory and credit you unless you ask us not to.
 
 ## Scope and responsibility
 
-AI-generated code should not be trusted blindly. Users are entirely responsible for reviewing, testing, and securing the output produced by these agents before deployment.
+AI-generated code should not be trusted blindly. Users are entirely responsible
+for reviewing, testing, and securing the output produced by these agents before
+deployment.
