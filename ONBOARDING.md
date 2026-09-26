@@ -121,7 +121,7 @@ the GitHub CLI auth check:
 
 Running the stack alongside another gate (such as `slm-gate`)? Pass
 `--mcp-name <name>` so the two register separately and neither shadows the
-other. See the [Claude Code Setup](README.md#claude-code-setup) section for the
+other. See the [Claude Code Setup](docs/editors/claude-code.md#claude-code-setup) section for the
 full reference, including exactly which files are written outside your project.
 
 #### Cline
@@ -170,7 +170,7 @@ lead-clean --global --apply   # actually remove it, all platforms at once
 
 Cleanup is project-only by default because one editor setup serves every project
 you have linked. See the README section
-[Install, Link & Uninstall](README.md#install-link--uninstall) for the full
+[Install, Link & Uninstall](docs/install-and-uninstall.md#install-link--uninstall) for the full
 reference.
 
 **Updating an Existing Installation:** If you are pulling new updates for the

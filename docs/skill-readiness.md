@@ -188,7 +188,7 @@ files disagree with each other.
 ### What it does
 
 The script reads every `.md` file in `.ai/skills/`, parses the YAML frontmatter
-using `gray-matter`, validates it against a Zod schema, and then generates four
+using `gray-matter`, validates it against a Zod schema, and then generates five
 outputs:
 
 **1. `.ai/cursor-skills.manifest`** — regenerated completely from frontmatter.
@@ -196,9 +196,10 @@ Only skills with `surface: public` are written to the skills section. All
 workflow files from `.agents/workflows/` are included below them with the
 `workflow-` prefix convention. The header comments are preserved.
 
-**2. The README skills table** — the script finds the
+**2. The skills table** — the script finds the
 `<!-- SKILLS_TABLE:START -->` and `<!-- SKILLS_TABLE:END -->` markers in
-`README.md` and replaces everything between them with a freshly generated table.
+`docs/skills.md` and replaces everything between them with a freshly generated
+table.
 The table now has a Modes column. Public skills get the full five-column table
 (Skill, Description, How it works, Use Case, Modes, Est. Context Footprint).
 Internal skills get a smaller table underneath with four columns (no How it
@@ -210,6 +211,10 @@ containing one node per skill with its phase, kind, ownership, targets, and the
 
 **4. `.ai/agent-surfaces.json`** — the agent-agnostic surface index that every
 installer adapter reads. See the next section.
+
+**5. `.github/badges/agent-surfaces.json`** — a Shields.io endpoint file holding
+the number of surface entries. The README's "agent surfaces" badge reads it from
+`main`, and `--check` fails if it has drifted from the index.
 
 ### The agent surface index
 
@@ -262,7 +267,7 @@ separate files in two different formats. Both routinely drifted.
 After this PR, neither file is hand-edited. They are **generated artifacts**.
 The source of truth is the skill frontmatter. Running `generate:registry` is the
 only correct way to update them. The validator enforces this — it will fail if
-the committed manifest or README table does not match what the generator would
+the committed manifest or skills table does not match what the generator would
 produce from the current frontmatter.
 
 ### The idempotence guarantee
@@ -286,7 +291,7 @@ in the PR and pasted the output.
 npx tsx scripts/generate-skill-registry.ts --check
 ```
 
-In check mode, the script generates the manifest and README table in memory and
+In check mode, the script generates the manifest and skills table in memory and
 compares them to the committed versions. If they differ, it exits non-zero with
 an error message. This is called automatically by `validate-skills.sh` at the
 end of every validation run, making registry drift a CI failure rather than
@@ -309,7 +314,7 @@ checks all of the above plus:
 - `surface` presence and validity: must be present; must be exactly `public` or
   `internal`
 - Registry drift: calls `generate-skill-registry.ts --check` at the end; if the
-  committed manifest or README table would be changed by re-running the
+  committed manifest or skills table would be changed by re-running the
   generator, the validator fails
 
 The validator outputs GitHub Actions error annotation format
@@ -478,7 +483,7 @@ would be a non-breaking additive change to the frontmatter contract.
    ```
 
    This will catch missing fields, wrong formats, and any drift between the
-   frontmatter and the committed manifest/README table.
+   frontmatter and the committed manifest/skills table.
 
 7. Commit the skill file, the regenerated manifest, and the regenerated README
    table in one atomic commit.

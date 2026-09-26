@@ -13,7 +13,13 @@ const rootDir = path.resolve(__dirname, '../../../');
 const skillsDir = path.join(rootDir, '.ai/skills');
 const workflowsDir = path.join(rootDir, '.agents/workflows');
 const manifestFile = path.join(rootDir, '.ai/cursor-skills.manifest');
-const readmeFile = path.join(rootDir, 'README.md');
+const skillsDocFile = path.join(rootDir, 'docs/skills.md');
+// Shields.io endpoint badge: the README reads this file from `main`, so the
+// "agent surfaces" count can never drift from the generated index.
+const surfacesBadgeFile = path.join(
+  rootDir,
+  '.github/badges/agent-surfaces.json'
+);
 const graphFile = path.join(rootDir, '.ai/skills.graph.json');
 const surfacesFile = path.join(rootDir, '.ai/agent-surfaces.json');
 
@@ -776,13 +782,25 @@ async function main() {
       2
     ) + '\n';
 
-  const currentReadme = fs.readFileSync(readmeFile, 'utf8');
-  const rawReadme = injectTable(currentReadme, newTable);
-  const prettierConfig = await prettier.resolveConfig(readmeFile);
-  const newReadme = await prettier.format(rawReadme, {
+  const currentSkillsDoc = fs.readFileSync(skillsDocFile, 'utf8');
+  const rawSkillsDoc = injectTable(currentSkillsDoc, newTable);
+  const prettierConfig = await prettier.resolveConfig(skillsDocFile);
+  const newSkillsDoc = await prettier.format(rawSkillsDoc, {
     ...prettierConfig,
-    filepath: readmeFile,
+    filepath: skillsDocFile,
   });
+
+  const newSurfacesBadgeJson =
+    JSON.stringify(
+      {
+        schemaVersion: 1,
+        label: 'agent surfaces',
+        message: String(surfaceEntries.length),
+        color: 'blueviolet',
+      },
+      null,
+      2
+    ) + '\n';
 
   if (isCheck) {
     // A declared `cost:` that has drifted from the file it describes is worse
@@ -813,11 +831,15 @@ async function main() {
 
     if (outputDest) {
       fs.writeFileSync(`${outputDest}/manifest.tmp`, newManifest);
-      fs.writeFileSync(`${outputDest}/readme.tmp`, newReadme);
+      fs.writeFileSync(`${outputDest}/skills-doc.tmp`, newSkillsDoc);
       fs.writeFileSync(`${outputDest}/skills.graph.json.tmp`, newGraphJson);
       fs.writeFileSync(
         `${outputDest}/agent-surfaces.json.tmp`,
         newSurfacesJson
+      );
+      fs.writeFileSync(
+        `${outputDest}/agent-surfaces-badge.json.tmp`,
+        newSurfacesBadgeJson
       );
     } else {
       const currentManifest = fs.readFileSync(manifestFile, 'utf8');
@@ -825,9 +847,8 @@ async function main() {
         console.error('Manifest is out of date.');
         process.exit(1);
       }
-      const currentReadme = fs.readFileSync(readmeFile, 'utf8');
-      if (currentReadme !== newReadme) {
-        console.error('README skills table is out of date.');
+      if (fs.readFileSync(skillsDocFile, 'utf8') !== newSkillsDoc) {
+        console.error('docs/skills.md skills table is out of date.');
         process.exit(1);
       }
 
@@ -869,13 +890,28 @@ async function main() {
         process.exit(1);
       }
 
+      let currentBadge = '';
+      try {
+        currentBadge = fs.readFileSync(surfacesBadgeFile, 'utf8');
+      } catch {
+        // file doesn't exist
+      }
+      if (currentBadge !== newSurfacesBadgeJson) {
+        console.error(
+          'Agent surfaces badge is out of date. Run npm run generate:registry to update.'
+        );
+        process.exit(1);
+      }
+
       console.log('Registry check passed.');
     }
   } else {
     fs.writeFileSync(manifestFile, newManifest);
-    fs.writeFileSync(readmeFile, newReadme);
+    fs.writeFileSync(skillsDocFile, newSkillsDoc);
     fs.writeFileSync(graphFile, newGraphJson);
     fs.writeFileSync(surfacesFile, newSurfacesJson);
+    fs.mkdirSync(path.dirname(surfacesBadgeFile), { recursive: true });
+    fs.writeFileSync(surfacesBadgeFile, newSurfacesBadgeJson);
     console.log(
       `Generated skill registry successfully (${surfaceEntries.length} agent surface entries).`
     );
