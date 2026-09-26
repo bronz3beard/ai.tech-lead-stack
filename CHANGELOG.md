@@ -5,6 +5,24 @@ All notable changes to this project are recorded here. The format follows
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-09-26
+
+### Changed
+
+- The npm package is now published only by the Release workflow, through npm
+  trusted publishing. No npm token exists, and every version carries an npm
+  provenance statement linking it to the GitHub Actions run that built it.
+  (#120)
+- Dependency updates: Prisma 7.10, pg 8.23, zod 4.6 and 27 other minor and patch
+  updates (#119); mermaid 12 for the dashboard's diagrams (#111); lint-staged 17
+  and @testing-library/jest-dom 7 for development (#110, #108); playwright 1.63
+  and python-dotenv 1.2.3 for the optional Python tooling (#103, #104).
+
+### Security
+
+- requests 2.34.2 for the optional Python tooling, which includes the fixes for
+  CVE-2024-35195 and CVE-2024-47081. (#105)
+
 ## [1.0.1] - 2026-09-26
 
 ### ⚠️ Breaking — Langfuse credentials are renamed

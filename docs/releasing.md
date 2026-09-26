@@ -36,6 +36,15 @@ GitHub.
 ```bash
 git switch main && git pull --ff-only
 git switch -c release/v1.3.0
+git log --oneline "$(git describe --tags --abbrev=0)"..HEAD   # every change since the last release
+```
+
+Make sure `## [Unreleased]` in `CHANGELOG.md` has a line for each change in that
+list that matters to users, grouped under `### Added`, `### Changed`,
+`### Fixed` or `### Security`. List every fixed vulnerability by its CVE or
+advisory ID. `release:prepare` refuses to run while `[Unreleased]` is empty.
+
+```bash
 pnpm release:prepare minor        # or patch, major, or an exact version like 1.3.0-rc.1
 ```
 

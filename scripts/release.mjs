@@ -109,7 +109,9 @@ export function cutChangelogRelease(changelog, { version, date }) {
   const body = lines.slice(unreleased.start + 1, unreleased.end).join('\n');
   if (!body.trim()) {
     throw new Error(
-      'Nothing to release: the [Unreleased] section of CHANGELOG.md is empty.'
+      'Nothing to release: the [Unreleased] section of CHANGELOG.md is empty. ' +
+        'Add a line there for each change since the last release ' +
+        '(`git log --oneline "$(git describe --tags --abbrev=0)"..HEAD` lists them), then run this again.'
     );
   }
   lines.splice(unreleased.start + 1, 0, '', `## [${version}] - ${date}`);
