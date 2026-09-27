@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Keeps the AI setup prompt (docs/agent-setup.md) true to the code.
+ * Keeps the AI setup prompt (docs/agent-setup.md) and the migration guide
+ * (docs/switch-to-npm.md) true to the code.
  *
  * The prompt tells assistants to use only what its ALLOWED list names. This
  * fails CI when that list, or a /tls: command or guide link anywhere in the
@@ -175,6 +176,59 @@ export function findProblems(prompt, facts) {
   return problems;
 }
 
+/**
+ * The migration guide (docs/switch-to-npm.md): every `tech-lead-stack` command
+ * and option, every cleanup.sh option, and every link to this repository must
+ * exist. Relative links resolve from docs/.
+ */
+export function findGuideProblems(guide, facts) {
+  const problems = [];
+  const report = (what, names) => {
+    if (names.length > 0)
+      problems.push(`${what}: ${[...new Set(names)].join(', ')}`);
+  };
+
+  const commands = [
+    ...guide.matchAll(/npx -y tech-lead-stack@1 ([a-z-]+)((?:\s+--[a-z-]+)*)/g),
+  ];
+  if (commands.length === 0)
+    problems.push('The guide runs no tech-lead-stack commands.');
+  report(
+    'Guide commands the tech-lead-stack command does not have',
+    commands
+      .map((m) => m[1])
+      .filter((c) => !new RegExp(`^\\s+${c}\\b`, 'm').test(facts.usage))
+  );
+  report(
+    'Guide options the tech-lead-stack command does not have',
+    commands
+      .flatMap((m) => m[2].trim().split(/\s+/).filter(Boolean))
+      .filter((o) => !facts.usage.includes(o))
+  );
+
+  const cleanupOptions = [
+    ...guide.matchAll(/cleanup\.sh"?((?:\s+--[a-z-]+)*)/g),
+  ].flatMap((m) => m[1].trim().split(/\s+/).filter(Boolean));
+  report(
+    'Guide cleanup.sh options that do not exist',
+    cleanupOptions.filter((o) => !facts.cleanupUsage.includes(o))
+  );
+
+  const links = [
+    ...[...guide.matchAll(/\]\((?!https?:|#|mailto:)([^)#\s]+)/g)].map((m) =>
+      path.posix.join('docs', m[1])
+    ),
+    ...[...guide.matchAll(new RegExp(`${REPO_URL}([^)#\\s]+)`, 'g'))].map(
+      (m) => m[1]
+    ),
+  ];
+  report(
+    'Guide links to files that do not exist',
+    links.filter((l) => !facts.fileExists(l))
+  );
+  return problems;
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const prompt = extractPrompt(read('docs/agent-setup.md'));
   if (!prompt) {
@@ -183,14 +237,20 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     );
     process.exit(1);
   }
-  const problems = findProblems(prompt, gatherFacts());
+  const facts = gatherFacts();
+  const problems = [
+    ...findProblems(prompt, facts).map((p) => `docs/agent-setup.md: ${p}`),
+    ...findGuideProblems(read('docs/switch-to-npm.md'), facts).map(
+      (p) => `docs/switch-to-npm.md: ${p}`
+    ),
+  ];
   if (problems.length > 0) {
-    console.error('The AI setup prompt (docs/agent-setup.md) is out of date:');
+    console.error('The AI setup prompt or the switch guide is out of date:');
     for (const p of problems) console.error(`  - ${p}`);
     process.exit(1);
   }
   const count = Object.values(parseAllowed(prompt)).flat().length;
   console.log(
-    `AI setup prompt: all ${count} allowed names, /tls: commands and guide links exist.`
+    `AI setup prompt: all ${count} allowed names, /tls: commands and guide links exist. Switch guide: commands, options and links exist.`
   );
 }

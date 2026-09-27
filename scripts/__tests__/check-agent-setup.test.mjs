@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import {
   extractPrompt,
+  findGuideProblems,
   findProblems,
   gatherFacts,
   parseAllowed,
@@ -60,6 +61,28 @@ describe('check-agent-setup', () => {
     assert.match(problems, /does not have: --force/);
     assert.match(problems, /\/tls: commands that do not exist: plan-fast/);
     assert.match(problems, /files that do not exist: docs\/tier-guide.md/);
+  });
+
+  test('the switch guide matches the code, and invented steps are caught', () => {
+    const guide = fs.readFileSync(
+      path.join(repoRoot, 'docs/switch-to-npm.md'),
+      'utf8'
+    );
+    assert.deepEqual(findGuideProblems(guide, facts), []);
+
+    const changed = guide
+      .replace('init --yes', 'init --yes --silent')
+      .replace('cleanup.sh" --global --apply', 'cleanup.sh" --global --purge')
+      .replace('(agent-setup.md)', '(ai-setup.md)')
+      .replace('tech-lead-stack@1 doctor', 'tech-lead-stack@1 repair');
+    const problems = findGuideProblems(changed, facts).join('\n');
+    assert.match(problems, /does not have: --silent/);
+    assert.match(problems, /cleanup.sh options that do not exist: --purge/);
+    assert.match(problems, /do not exist: docs\/ai-setup.md/);
+    assert.match(
+      problems,
+      /commands the tech-lead-stack command does not have: repair/
+    );
   });
 
   test('fails rather than passing when it finds nothing to check', () => {

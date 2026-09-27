@@ -1,11 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
-import {
-  cutChangelogRelease,
-  extractChangelogSection,
-  nextVersion,
-  parseTag,
-} from '../release.mjs';
+import { extractChangelogSection, parseTag } from '../release.mjs';
 
 const CHANGELOG = [
   '# Changelog',
@@ -56,28 +51,27 @@ describe('parseTag', () => {
   }
 });
 
-describe('nextVersion', () => {
-  it('bumps patch, minor and major from a stable version', () => {
-    assert.strictEqual(nextVersion('1.4.2', 'patch'), '1.4.3');
-    assert.strictEqual(nextVersion('1.4.2', 'minor'), '1.5.0');
-    assert.strictEqual(nextVersion('1.4.2', 'major'), '2.0.0');
-  });
-
-  it('uses an exact version as given, including the current one for a first release', () => {
-    assert.strictEqual(nextVersion('1.0.0', '1.0.0'), '1.0.0');
-    assert.strictEqual(nextVersion('1.0.0', '1.1.0-rc.1'), '1.1.0-rc.1');
-  });
-
-  it('asks for an exact version when the current version is a prerelease', () => {
-    assert.throws(() => nextVersion('1.1.0-rc.1', 'minor'), /is a prerelease/);
-  });
-
-  it('rejects an unknown level', () => {
-    assert.throws(() => nextVersion('1.0.0', 'huge'), /Unknown release level/);
-  });
-});
-
 describe('extractChangelogSection', () => {
+  it("reads release-please's heading, with its compare link and date", () => {
+    const changelog = [
+      '# Changelog',
+      '',
+      '## [1.1.0](https://github.com/bronz3beard/ai.tech-lead-stack/compare/v1.0.3...v1.1.0) (2026-09-27)',
+      '',
+      '### Added',
+      '',
+      '* **cli:** `init` sets up every editor ([abc1234](https://github.com/x/y/commit/abc1234))',
+      '',
+      '## [1.0.3] - 2026-09-26',
+      '',
+      '- Older, hand-written notes.',
+    ].join('\n');
+    assert.strictEqual(
+      extractChangelogSection(changelog, '1.1.0'),
+      '### Added\n\n* **cli:** `init` sets up every editor ([abc1234](https://github.com/x/y/commit/abc1234))'
+    );
+  });
+
   it('returns the notes for a version, stopping before link references', () => {
     assert.strictEqual(
       extractChangelogSection(CHANGELOG, '1.0.0'),
@@ -104,39 +98,6 @@ describe('extractChangelogSection', () => {
     assert.throws(
       () => extractChangelogSection(CHANGELOG, '2.0.0'),
       /has no notes for 2.0.0/
-    );
-  });
-});
-
-describe('cutChangelogRelease', () => {
-  it('moves the unreleased notes under a new dated version heading', () => {
-    const result = cutChangelogRelease(CHANGELOG, {
-      version: '1.1.0',
-      date: '2026-10-15',
-    });
-    assert.strictEqual(
-      extractChangelogSection(result, '1.1.0'),
-      '### Added\n\n- Tag-driven releases.'
-    );
-    assert.match(result, /## \[Unreleased\]\n\n## \[1\.1\.0\] - 2026-10-15\n/);
-    assert.throws(
-      () => extractChangelogSection(result, 'Unreleased'),
-      /has no notes/
-    );
-  });
-
-  it('refuses to release a version that already has a section', () => {
-    assert.throws(
-      () => cutChangelogRelease(CHANGELOG, { version: '1.0.0', date: 'x' }),
-      /already has a section for 1.0.0/
-    );
-  });
-
-  it('refuses to release when nothing is unreleased', () => {
-    const empty = '# Changelog\n\n## [Unreleased]\n\n## [1.0.0] - 2026-10-01\n';
-    assert.throws(
-      () => cutChangelogRelease(empty, { version: '1.0.1', date: 'x' }),
-      /empty/
     );
   });
 });

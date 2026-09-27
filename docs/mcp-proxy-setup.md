@@ -244,10 +244,10 @@ tools appear as `mcp__slm-gate__<tool>`.
 
 Setting the two values by hand gives you the tools only. `init` also installs
 the `/tls:*` slash commands (named after your gateway), Cursor skills, Continue
-prompts, the project's workflows and RTK. Until the slm-gate doctor fix is
-released, `slm-gate doctor` may report the `DOWNSTREAM_MCP` target file as
-missing: it reads `-y` as a file path. The stack still starts; check it with the
-skills request above.
+prompts, the project's workflows and RTK. Use slm-gate 1.3.0 or later: older
+versions of `slm-gate doctor` report the `DOWNSTREAM_MCP` target file as
+missing, because they read `-y` as a file path. The stack still starts either
+way; check it with the skills request above.
 
 ---
 

@@ -1,8 +1,9 @@
-# Tag-driven release. Pushing a v<major>.<minor>.<patch> tag (created with
-# `pnpm release:tag`, see docs/releasing.md) verifies the tag, re-runs the CI
-# quality gate on the tagged commit, and publishes a GitHub Release with the
-# CHANGELOG notes, an SBOM, the npm tarball, and a signed build-provenance
-# attestation. It then stages that same attested tarball on npm as
+# Tag-driven release. release-please creates the v<major>.<minor>.<patch> tag
+# and its GitHub Release when its release pull request merges (see
+# release-please.yml and docs/releasing.md). The tag starts this workflow: it
+# verifies the tag, re-runs the CI quality gate on the tagged commit, and
+# attaches an SBOM, the npm tarball and a signed build-provenance attestation
+# to that GitHub Release. It then stages that same attested tarball on npm as
 # `tech-lead-stack`; it goes live only when the maintainer approves the staged
 # version on npmjs.com or with `npm stage approve`, with 2FA.
 # Running it by hand (workflow_dispatch) is a rehearsal: it builds and
@@ -136,7 +137,9 @@ jobs:
 
       # The signed bundle is attached as *.sigstore.json so users (and the
       # OpenSSF Scorecard Signed-Releases check) can find it next to the assets.
-      - name: Create GitHub Release
+      # release-please normally created the release already, with its notes;
+      # the assets are added to it. A tag pushed by hand gets a new release.
+      - name: Publish assets on the GitHub Release
         if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -145,14 +148,19 @@ jobs:
           PRERELEASE: ${{ needs.verify.outputs.prerelease }}
         run: |
           cp "$BUNDLE" "release-assets/tech-lead-stack-$VERSION.sigstore.json"
-          node scripts/release.mjs notes "$TAG" > release-notes.md
-          if [ "$PRERELEASE" = "true" ]; then
-            PRERELEASE_FLAG="--prerelease"
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" release-assets/* --clobber
+            if [ "$PRERELEASE" = "true" ]; then gh release edit "$TAG" --prerelease; fi
           else
-            PRERELEASE_FLAG="--latest"
+            node scripts/release.mjs notes "$TAG" > release-notes.md
+            if [ "$PRERELEASE" = "true" ]; then
+              PRERELEASE_FLAG="--prerelease"
+            else
+              PRERELEASE_FLAG="--latest"
+            fi
+            gh release create "$TAG" release-assets/* \
+              --verify-tag --title "$TAG" --notes-file release-notes.md "$PRERELEASE_FLAG"
           fi
-          gh release create "$TAG" release-assets/* \
-            --verify-tag --title "$TAG" --notes-file release-notes.md "$PRERELEASE_FLAG"
 
   npm-publish:
     name: Stage on npm

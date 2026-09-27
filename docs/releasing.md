@@ -1,87 +1,100 @@
 # Releasing
 
-A release is a version tag, such as `v1.2.0`, on a commit in `main`. Pushing the
-tag starts the [Release workflow](../.github/workflows/release.yml), which
-publishes the GitHub Release and stages the npm package
-[`tech-lead-stack`](https://www.npmjs.com/package/tech-lead-stack). The npm
-version goes live only when you approve it on npm, with 2FA. You never build a
-release or upload a package by hand.
+Releases are automated, as in slm-gate. Nobody edits `CHANGELOG.md`, bumps a
+version or creates a tag by hand:
+
+1. [release-please](https://github.com/googleapis/release-please) reads the
+   commit messages on `main` and keeps a **release pull request** open, titled
+   like `chore(main): release 1.1.0`. It holds the next version in
+   `packages/core/package.json` and its `CHANGELOG.md` entry, and updates both
+   as more work lands.
+2. Merging that pull request creates the tag `v1.1.0` and its GitHub Release.
+3. The tag starts the [Release workflow](../.github/workflows/release.yml),
+   which attaches the build files to that release and stages the npm package
+   [`tech-lead-stack`](https://www.npmjs.com/package/tech-lead-stack).
+4. The npm version goes live only when you approve it on npm, with 2FA.
 
 The npm package is built from `packages/core`, which is called
 `@zenithfoundry/tech-lead-stack` inside this repository. Only the published
 package uses the name `tech-lead-stack`
 ([scripts/stage-npm-package.mjs](../scripts/stage-npm-package.mjs) sets it).
 
-The version number lives in `packages/core/package.json`. The release notes come
-from `CHANGELOG.md`, so keep its `[Unreleased]` section up to date as changes
-land.
+## How commit messages become the changelog
 
-## Choosing the version number
+Commit messages follow
+[Conventional Commits](https://www.conventionalcommits.org/). The type decides
+the version bump and the changelog section
+([release-please-config.json](../release-please-config.json)):
 
-Versions follow [Semantic Versioning](https://semver.org/):
+| Commit starts with                                | Changelog section | Version bump  |
+| ------------------------------------------------- | ----------------- | ------------- |
+| `feat:`                                           | Added             | minor (1.1.0) |
+| `fix:`                                            | Fixed             | patch (1.0.4) |
+| `docs:`, `refactor:`, `perf:`, `revert:`, `deps:` | Changed           | none          |
+| `chore:`, `ci:`, `test:`, `build:`, `style:`      | not listed        | none          |
+| any type with `!`, or a `BREAKING CHANGE:` footer | noted as breaking | major (2.0.0) |
 
-| The release contains…                                | Bump    | Example       |
-| ---------------------------------------------------- | ------- | ------------- |
-| Only bug fixes                                       | `patch` | 1.2.0 → 1.2.1 |
-| New features, nothing breaks for existing users      | `minor` | 1.2.0 → 1.3.0 |
-| Anything listed under "⚠️ Breaking" in the changelog | `major` | 1.2.0 → 2.0.0 |
-| A test version to try before the real release        | exact   | `1.3.0-rc.1`  |
+This repository squash-merges, so a pull request becomes one commit, titled by
+the pull request. To list several changes from one pull request, put them in its
+description between these lines, one Conventional Commit per line:
 
-A test version (anything with a `-` suffix) is marked as a pre-release on
-GitHub.
+```text
+BEGIN_COMMIT_OVERRIDE
+feat(cli): add init
+fix(cleanup): keep a gateway such as slm-gate
+END_COMMIT_OVERRIDE
+```
+
+release-please reads the merged pull request's description and uses those lines
+instead of its title. You can still edit the description after merging, until
+the release pull request is merged.
+
+## One-time setup: the release GitHub App
+
+release-please must act as a GitHub App, not the workflow's own token: a tag or
+pull request made with that token starts no other workflows, so CI would not run
+on the release pull request and the Release workflow would never start.
+
+1. Create an App under your account: **Settings** → **Developer settings** →
+   **GitHub Apps** → **New GitHub App**. Name it, for example,
+   `tech-lead-stack-release`. Untick **Webhook → Active**. Under **Repository
+   permissions**, set **Contents** and **Pull requests** to **Read and write**.
+   Choose **Only on this account**, then create it.
+2. On the App's page, note the **Client ID**, then **Generate a private key** (a
+   `.pem` file downloads).
+3. **Install App** → install it on `bronz3beard/ai.tech-lead-stack` only.
+4. Give the repository the ID and the key:
+
+   ```bash
+   gh variable set RELEASE_APP_CLIENT_ID --repo bronz3beard/ai.tech-lead-stack --body "<Client ID>"
+   gh secret set RELEASE_APP_PRIVATE_KEY --repo bronz3beard/ai.tech-lead-stack < ~/Downloads/<app-name>.<date>.private-key.pem
+   ```
+
+5. Delete the downloaded `.pem` file.
+
+Until this is done, the **Release Please** workflow fails on every push to
+`main`, and nothing is released.
 
 ## Making a release
 
-### 1. Open a release pull request
+### 1. Merge the release pull request
+
+When the release pull request lists what you want to ship, check its CI and
+merge it:
 
 ```bash
-git switch main && git pull --ff-only
-git switch -c release/v1.3.0
-git log --oneline "$(git describe --tags --abbrev=0)"..HEAD   # every change since the last release
+gh pr list --label "autorelease: pending"          # the release pull request
+gh pr checks <number> --watch
+gh pr merge <number> --squash
 ```
 
-Make sure `## [Unreleased]` in `CHANGELOG.md` has a line for each change in that
-list that matters to users, grouped under `### Added`, `### Changed`,
-`### Fixed` or `### Security`. List every fixed vulnerability by its CVE or
-advisory ID. `release:prepare` refuses to run while `[Unreleased]` is empty.
+To release a version other than the one it proposes, for example a test version,
+add `Release-As: 1.2.0-rc.1` as a footer on a commit to `main`
+(`git commit --allow-empty -m "chore: release 1.2.0-rc.1" -m "Release-As: 1.2.0-rc.1"`).
+A version with a `-` suffix is marked as a pre-release on GitHub and published
+to npm under the `next` tag.
 
-```bash
-pnpm release:prepare minor        # or patch, major, or an exact version like 1.3.0-rc.1
-```
-
-`release:prepare` updates the version in `packages/core/package.json` and moves
-everything under `[Unreleased]` in `CHANGELOG.md` into a new `[1.3.0]` section
-with today's date. Read the notes it produced and tidy them if needed: they
-become the text of the GitHub Release.
-
-Commit, push, and open a pull request. Merge it once CI passes.
-
-```bash
-git add packages/core/package.json CHANGELOG.md
-git commit -m "chore(release): v1.3.0"
-git push -u origin HEAD
-gh pr create --fill
-gh pr checks --watch              # waits until every check has finished
-```
-
-### 2. Tag the release
-
-```bash
-git switch main && git pull --ff-only
-pnpm release:tag
-git push origin refs/tags/v1.3.0
-```
-
-`release:tag` refuses to create the tag unless all of these are true:
-
-- you are on `main`, with no uncommitted changes, and in sync with GitHub,
-- the tag does not already exist,
-- `CHANGELOG.md` has notes for this version.
-
-The tag's message lists the commits since the previous tag. If you have a git
-signing key configured, the tag is signed.
-
-### 3. Watch the workflow
+### 2. Watch the workflow
 
 Open the **Actions** tab and follow the **Release** run. It:
 
@@ -91,18 +104,16 @@ Open the **Actions** tab and follow the **Release** run. It:
 3. builds a source archive, an SBOM (a list of every dependency, in SPDX format)
    and the npm package, and checks that the package installs and starts,
 4. signs all of them with a build-provenance attestation,
-5. creates the GitHub Release with the changelog notes and all of the above
-   attached, and
+5. attaches all of the above to the GitHub Release release-please created, and
 6. stages that same package on npm. It is not live yet.
 
-If any check fails before the npm step, nothing is published. Fix the problem,
-then delete the tag and the GitHub Release before tagging again:
+If any check fails before the npm step, nothing is published. Fix the problem on
+`main`, then re-run the failed **Release** run from the Actions tab (**Re-run
+failed jobs**). If the fix changed code, release the next patch version instead:
+merge the fix with a `fix:` commit and release-please opens a new release pull
+request.
 
-```bash
-gh release delete v1.3.0 --yes 2>/dev/null; git tag -d v1.3.0 && git push origin :refs/tags/v1.3.0
-```
-
-### 4. Approve the npm release
+### 3. Approve the npm release
 
 When the **Stage on npm** job is green, the version is waiting on npm. Approve
 it in either place; both ask for your 2FA:

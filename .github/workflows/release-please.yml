@@ -1,0 +1,41 @@
+# Automated releases, as in slm-gate. release-please reads the Conventional
+# Commits on main (feat:, fix:, docs: ...) and keeps a release pull request open
+# with the next SemVer version in packages/core/package.json and its
+# CHANGELOG.md entry (release-please-config.json). Merging that pull request
+# creates the tag vX.Y.Z and its GitHub Release; the tag then starts
+# release.yml, which builds, attests and stages the npm package.
+#
+# release-please acts as a GitHub App (repo variable RELEASE_APP_CLIENT_ID,
+# secret RELEASE_APP_PRIVATE_KEY), not the job token: tags and pull requests
+# made with the job token start no other workflows, so release.yml and CI would
+# never run for them. See docs/releasing.md for the one-time setup.
+name: Release Please
+
+on:
+  push:
+    branches: [main]
+
+permissions: {}
+
+concurrency:
+  group: release-please
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    # The App's token does the writing (contents, pull requests), so the job
+    # token needs nothing.
+    permissions: {}
+    steps:
+      - id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json

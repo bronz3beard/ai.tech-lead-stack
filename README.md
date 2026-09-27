@@ -550,7 +550,9 @@ the reflexion loop, the web app and usage metrics. The same page lists five
 things to check before you trust the result, and a block to keep in `AGENTS.md`.
 
 Moving from a downloaded folder? The prompt handles that too: it removes the old
-setup, then does a fresh install.
+setup, then does a fresh install. To do it step by step yourself, including
+keeping your old settings, follow
+[Switch Tech-Lead Stack to npm](docs/switch-to-npm.md).
 
 ## 🚀 Quick Start
 
@@ -689,6 +691,7 @@ bash /path/to/tech-lead-stack/scripts/cleanup.sh .
 | Document                                                             | What it covers                                                                                         |
 | :------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------- |
 | [Set this up with an AI assistant](docs/agent-setup.md)              | A prompt that checks your computer, interviews you, sets everything up, and answers questions.         |
+| [Switch Tech-Lead Stack to npm](docs/switch-to-npm.md)               | Moving from a downloaded folder: remove the old setup, keep your settings if you like, install fresh.  |
 | [Choosing a tier](docs/tiers.md)                                     | The tier decision guide, current platform facts, and the L0–L3 model isolation levels.                 |
 | [Running the MCP server](docs/running-the-mcp-server.md)             | The three ways to connect: direct, `install.sh`, or behind SLM Gate. Building the standalone artifact. |
 | [Configuration](docs/configuration.md)                               | Model routing per role, and the fully offline local execution tier.                                    |

@@ -72,6 +72,9 @@ STEP 5 - SET IT UP
    bash "<folder>/scripts/cleanup.sh" to unlink it. From the last of those projects (never from my home folder), run
    bash "<folder>/scripts/cleanup.sh" --global to preview removing the old setup from my apps, show me the result, and
    after my yes run it again with --apply. It keeps a gateway such as slm-gate and backs up each file it edits.
+   Then ask whether I want to start clean or keep my old settings (API keys, database address). To keep them, follow
+   step 6 of the switch guide (in FACTS): copy the old settings file with cp -pn, then delete any line in it that still
+   points to the old folder. Never show me the file's contents. The switch guide has every step if I want to read it.
 2. From a project folder, run npx -y tech-lead-stack@1 init --dry-run and explain the plan in plain words. Add the
    options that fit my answers: --gateway none if I don't want my gateway used, --no-rtk if I don't want RTK,
    --ide <names> to limit it to some apps. After my yes, run the same command with --yes instead of --dry-run.
@@ -137,10 +140,12 @@ Guides:
 - Gateways: https://github.com/bronz3beard/ai.tech-lead-stack/blob/main/docs/mcp-proxy-setup.md
 - All skills: https://github.com/bronz3beard/ai.tech-lead-stack/blob/main/docs/skills.md
 - Settings: https://github.com/bronz3beard/ai.tech-lead-stack/blob/main/docs/configuration.md
+- Moving from a downloaded folder: https://github.com/bronz3beard/ai.tech-lead-stack/blob/main/docs/switch-to-npm.md
 
 ALLOWED
 Commands: `npx -y tech-lead-stack@1 init`, `npx -y tech-lead-stack@1 doctor`, `npx -y tech-lead-stack@1 uninstall`,
-`node -v`, `bash "<folder>/scripts/cleanup.sh"`.
+`node -v`, `bash "<folder>/scripts/cleanup.sh"`, `cp -pn "<folder>/.env" ~/.tech-lead-stack/.env`,
+`grep -n "<folder>" ~/.tech-lead-stack/.env`.
 init options: `--yes`, `--dry-run`, `--ide`, `--gateway`, `--no-rtk`, `--no-project`. doctor options: `--json`.
 uninstall options: `--apply`. cleanup.sh options: `--global`, `--apply`.
 App names for --ide: `claude-code`, `claude-desktop`, `cursor`, `continue`, `gemini`, `cline`.
