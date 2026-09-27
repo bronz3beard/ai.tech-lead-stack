@@ -4,10 +4,12 @@ import {
   checkEditor,
   checkFeatures,
   checkNode,
+  checkRtk,
   checkSettingsFile,
   findToolboxEntries,
   formatReport,
   hasFailure,
+  versionAtLeast,
 } from './doctor-checks';
 
 const claude = {
@@ -191,6 +193,33 @@ describe('checkSettingsFile', () => {
     });
     expect(check.status).toBe('warn');
     expect(check.fix).toContain('chmod 600');
+  });
+});
+
+describe('versionAtLeast', () => {
+  it.each([
+    ['0.50.0', 'v0.50.0', true],
+    ['0.51.0', 'v0.50.0', true],
+    ['1.0', 'v0.50.0', true],
+    ['0.43.0', 'v0.50.0', false],
+    ['0.50', 'v0.50.1', false],
+  ])('%s >= %s is %s', (a, b, expected) => {
+    expect(versionAtLeast(a, b)).toBe(expected);
+  });
+});
+
+describe('checkRtk', () => {
+  it('offers RTK when it is missing, flags an old one, and accepts the pinned one', () => {
+    expect(checkRtk({ installed: null, pinned: 'v0.50.0' }).status).toBe(
+      'info'
+    );
+    expect(checkRtk({ installed: '0.43.0', pinned: 'v0.50.0' })).toMatchObject({
+      status: 'warn',
+      title: expect.stringContaining('older'),
+    });
+    expect(checkRtk({ installed: '0.50.0', pinned: 'v0.50.0' }).status).toBe(
+      'ok'
+    );
   });
 });
 

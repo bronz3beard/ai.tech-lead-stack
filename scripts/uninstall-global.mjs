@@ -18,6 +18,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { removeContinueServers } from '../packages/core/src/install/continue-config.mjs';
 import {
   globalTargets,
   aliasLine,
@@ -86,6 +87,31 @@ function cleanMcpEntry(target) {
   // Only our keys are touched; account and session state in the same file survive.
   const tmp = `${target.path}.tmp.${process.pid}`;
   fs.writeFileSync(tmp, `${JSON.stringify(config, null, 2)}\n`);
+  fs.renameSync(tmp, target.path);
+}
+
+/** Remove Continue's list items (or legacy map keys) that point at this checkout. */
+function cleanYamlEntry(target) {
+  if (!fs.existsSync(target.path)) return;
+
+  let result;
+  try {
+    result = removeContinueServers(
+      fs.readFileSync(target.path, 'utf8'),
+      (server) => JSON.stringify(server).includes(sourceDir)
+    );
+  } catch (err) {
+    record(target.label, `SKIPPED (${err.message}): ${target.path}`);
+    return;
+  }
+  if (result.removed.length === 0) return;
+
+  record(target.label, `${result.removed.join(', ')} in ${target.path}`);
+  if (!apply) return;
+
+  backup(target.path);
+  const tmp = `${target.path}.tmp.${process.pid}`;
+  fs.writeFileSync(tmp, result.text);
   fs.renameSync(tmp, target.path);
 }
 
@@ -159,6 +185,9 @@ for (const target of globalTargets) {
   switch (target.kind) {
     case 'mcp-entry':
       cleanMcpEntry(target);
+      break;
+    case 'yaml-entry':
+      cleanYamlEntry(target);
       break;
     case 'directory':
       cleanDirectory(target);

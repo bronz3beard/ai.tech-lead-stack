@@ -13,7 +13,10 @@ import { fileURLToPath } from 'node:url';
  * behind before these existed.
  */
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const repoRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../..'
+);
 const installer = path.join(repoRoot, 'install.sh');
 const cleaner = path.join(repoRoot, 'scripts/cleanup.sh');
 
@@ -25,7 +28,10 @@ function scratch(prefix) {
 function seedProject(target) {
   fs.symlinkSync(path.join(repoRoot, '.ai'), path.join(target, '.ai'));
   fs.symlinkSync(path.join(repoRoot, '.agents'), path.join(target, '.agents'));
-  fs.symlinkSync(path.join(repoRoot, '.ai/agents.md'), path.join(target, 'AGENTS.md'));
+  fs.symlinkSync(
+    path.join(repoRoot, '.ai/agents.md'),
+    path.join(target, 'AGENTS.md')
+  );
   fs.mkdirSync(path.join(target, '.github'), { recursive: true });
   fs.copyFileSync(
     path.join(repoRoot, 'templates/PULL_REQUEST_TEMPLATE.md'),
@@ -58,7 +64,11 @@ describe('cleanup.sh safety rails', () => {
 
   test('refuses to clean the tech-lead-stack repo itself', () => {
     assert.throws(
-      () => execFileSync('bash', [cleaner, repoRoot], { encoding: 'utf8', stdio: 'pipe' }),
+      () =>
+        execFileSync('bash', [cleaner, repoRoot], {
+          encoding: 'utf8',
+          stdio: 'pipe',
+        }),
       /./,
       'cleaning the stack repo would delete its own tracked files'
     );
@@ -123,7 +133,10 @@ describe('cleanup.sh project scope', () => {
 
       runClean(target, home);
 
-      assert.ok(fs.existsSync(path.join(target, '.ai/mine.md')), 'real .ai must survive');
+      assert.ok(
+        fs.existsSync(path.join(target, '.ai/mine.md')),
+        'real .ai must survive'
+      );
     } finally {
       fs.rmSync(target, { recursive: true, force: true });
       fs.rmSync(home, { recursive: true, force: true });
@@ -173,7 +186,11 @@ describe('cleanup.sh --global', () => {
       const out = runClean(target, home, ['--global']);
 
       assert.match(out, /Would remove/);
-      assert.equal(fs.readdirSync(commandsDir).length, before, 'dry run deleted files');
+      assert.equal(
+        fs.readdirSync(commandsDir).length,
+        before,
+        'dry run deleted files'
+      );
     } finally {
       fs.rmSync(target, { recursive: true, force: true });
       fs.rmSync(home, { recursive: true, force: true });
@@ -193,17 +210,66 @@ describe('cleanup.sh --global', () => {
       // Seed unrelated state that must survive.
       const configPath = path.join(home, '.claude.json');
       const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-      config.mcpServers['someone-elses'] = { command: 'node', args: ['/opt/other.js'] };
+      config.mcpServers['someone-elses'] = {
+        command: 'node',
+        args: ['/opt/other.js'],
+      };
       config.oauthAccount = { keepMe: true };
       fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 
       runClean(target, home, ['--global', '--apply']);
 
       const after = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-      assert.ok(!fs.existsSync(path.join(home, '.claude/commands/tls')), 'commands remain');
+      assert.ok(
+        !fs.existsSync(path.join(home, '.claude/commands/tls')),
+        'commands remain'
+      );
       assert.ok(!after.mcpServers['tech-lead-stack'], 'our MCP entry remains');
-      assert.ok(after.mcpServers['someone-elses'], 'an unrelated MCP server was destroyed');
+      assert.ok(
+        after.mcpServers['someone-elses'],
+        'an unrelated MCP server was destroyed'
+      );
       assert.ok(after.oauthAccount?.keepMe, 'account state was destroyed');
+    } finally {
+      fs.rmSync(target, { recursive: true, force: true });
+      fs.rmSync(home, { recursive: true, force: true });
+    }
+  });
+
+  test('installs Continue as a list item and removes only that item', () => {
+    const target = scratch('tls-target-continue-');
+    const home = scratch('tls-home-continue-');
+    try {
+      const configPath = path.join(home, '.continue/config.yaml');
+      fs.mkdirSync(path.dirname(configPath), { recursive: true });
+      fs.writeFileSync(
+        configPath,
+        '# keep this comment\nmodels: []\nmcpServers:\n  - name: sqlite\n    command: npx\n'
+      );
+      execFileSync(
+        'bash',
+        [installer, '--link', target, '--ide', 'continue', '--ide-only'],
+        { env: { ...process.env, HOME: home }, encoding: 'utf8' }
+      );
+      assert.match(
+        fs.readFileSync(configPath, 'utf8'),
+        /- name: tech-lead-stack/
+      );
+
+      runClean(target, home, ['--global', '--apply']);
+
+      const after = fs.readFileSync(configPath, 'utf8');
+      assert.doesNotMatch(
+        after,
+        /tech-lead-stack/,
+        'our Continue entry remains'
+      );
+      assert.match(
+        after,
+        /- name: sqlite/,
+        "the user's own server was removed"
+      );
+      assert.match(after, /# keep this comment/, "the user's comment was lost");
     } finally {
       fs.rmSync(target, { recursive: true, force: true });
       fs.rmSync(home, { recursive: true, force: true });

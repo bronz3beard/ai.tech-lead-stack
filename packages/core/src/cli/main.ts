@@ -12,6 +12,12 @@ import fs from 'node:fs';
 const USAGE = `Usage: tech-lead-stack [command]
 
   (no command)   Start the MCP server. This is what your editor runs.
+  init           Connect the toolbox to your editors and create your settings
+                 file. Shows the plan and asks once before changing anything.
+                   --yes            accept the recommended choices, no questions
+                   --dry-run        only show what would change
+                   --ide <list>     only these editors, e.g. cursor,claude-code
+                   --gateway <name> put the toolbox behind this gateway, or none
   doctor         Check your setup. Read-only. Add --json for AI assistants.
   --version      Print the version.
   help           Show this message.`;
@@ -30,6 +36,11 @@ switch (command) {
   case 'mcp':
     await import('../mcp-server/index.js');
     break;
+  case 'init': {
+    const { runInit } = await import('./init.js');
+    process.exitCode = await runInit({ args, version: packageVersion() });
+    break;
+  }
   case 'doctor': {
     const { runDoctor } = await import('./doctor.js');
     process.exitCode = await runDoctor({ args, version: packageVersion() });

@@ -11,12 +11,12 @@ import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
+import { RTK_VERSION } from '../install/rtk-pin.mjs';
 import { globalTargets } from '../install/targets.mjs';
 import { getPool } from '../lib/prisma.js';
 import {
   type Check,
   type DatabaseState,
-  type EditorConfig,
   checkAnyEditor,
   checkDatabase,
   checkEditor,
@@ -28,20 +28,9 @@ import {
   formatReport,
   hasFailure,
 } from './doctor-checks.js';
+import { readEditorConfig } from './editor-config.js';
 
 const run = promisify(execFile);
-
-function readEditorConfig(file: string): EditorConfig {
-  if (!fs.existsSync(file)) return { state: 'missing' };
-  try {
-    return {
-      state: 'read',
-      config: JSON.parse(fs.readFileSync(file, 'utf8') || '{}'),
-    };
-  } catch {
-    return { state: 'unreadable' };
-  }
-}
 
 // A refused connection arrives as an AggregateError with an empty message and
 // the useful code (ECONNREFUSED) on its inner errors.
@@ -86,11 +75,11 @@ function settingsFile() {
 
 export async function collectChecks(): Promise<Check[]> {
   const editors = globalTargets
-    .filter((t) => t.kind === 'mcp-entry')
+    .filter((t) => t.kind === 'mcp-entry' || t.kind === 'yaml-entry')
     .map((t) =>
       checkEditor(
         { ...t, label: t.label.replace(' MCP registration', '') },
-        readEditorConfig(t.path)
+        readEditorConfig(t)
       )
     );
 
@@ -102,7 +91,7 @@ export async function collectChecks(): Promise<Check[]> {
     checkDatabase(await probeDatabase()),
     ...editors,
     checkAnyEditor(editors),
-    checkRtk(await rtkVersion()),
+    checkRtk({ installed: await rtkVersion(), pinned: RTK_VERSION }),
   ].filter((c): c is Check => c !== null);
 }
 

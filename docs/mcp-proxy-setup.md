@@ -225,7 +225,10 @@ Already using slm-gate and only want the tools? Skip Steps 1 and 3. The
 published `tech-lead-stack` package starts the server straight from npm, so
 nothing needs cloning or building. You need Node.js 22.5 or later (`node -v`).
 
-In your existing `slm-gate` entry, set these two values in `env`:
+The quickest way: `npx -y tech-lead-stack@1 init`. It finds the free slm-gate
+entry in each editor and sets the two values below for you (`--dry-run` shows
+the plan first). To do it by hand instead, set these two values in the `env` of
+your existing `slm-gate` entry:
 
 ```json
 "TLS_ADAPTER": "on",

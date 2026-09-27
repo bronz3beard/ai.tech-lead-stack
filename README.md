@@ -542,7 +542,14 @@ in Claude Code:
 claude mcp add tech-lead-stack -- npx -y tech-lead-stack
 ```
 
-Already using a gateway such as slm-gate? Let it start the server instead:
+Or let it set up every editor on this computer for you, including putting it
+behind a gateway such as slm-gate if you use one:
+
+```bash
+npx -y tech-lead-stack@1 init
+```
+
+Doing it by hand behind a gateway:
 [Without a clone: start the stack with npx](docs/mcp-proxy-setup.md#without-a-clone-start-the-stack-with-npx).
 
 For the full stack (IDE commands, project linking, the dashboard), clone this

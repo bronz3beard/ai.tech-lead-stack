@@ -159,7 +159,7 @@ export function checkEditor(
       id,
       status: 'warn',
       title: `${label}: can't read ${path}`,
-      fix: 'The file is not valid JSON. Fix or restore it (a .bak copy may sit next to it).',
+      fix: 'The file has a formatting error. Fix or restore it (a .bak copy may sit next to it).',
     };
   }
 
@@ -200,7 +200,7 @@ export function checkAnyEditor(editorChecks: (Check | null)[]): Check | null {
     id: 'editors',
     status: 'warn',
     title: 'No supported editor found on this computer',
-    fix: `Install Claude Code, Claude Desktop, Cursor, Gemini or Cline, then run: ${INIT}`,
+    fix: `Install Claude Code, Claude Desktop, Cursor, Continue, Gemini or Cline, then run: ${INIT}`,
   };
 }
 
@@ -267,19 +267,49 @@ export function checkSettingsFile(file: {
   };
 }
 
-export function checkRtk(version: string | null): Check {
-  return version
-    ? {
-        id: 'rtk',
-        status: 'ok',
-        title: `RTK ${version} (saves tokens on command output)`,
-      }
-    : {
-        id: 'rtk',
-        status: 'info',
-        title: 'RTK: not installed, optional',
-        fix: `It cuts the tokens your assistant spends reading command output. Install it with: ${INIT}`,
-      };
+const versionParts = (v: string) =>
+  v
+    .replace(/^v/, '')
+    .split('.')
+    .map((n) => Number.parseInt(n, 10) || 0);
+
+/** True when version a is the same as or newer than b ("v0.50.0", "0.43.1"). */
+export function versionAtLeast(a: string, b: string): boolean {
+  const [x, y] = [versionParts(a), versionParts(b)];
+  for (let i = 0; i < Math.max(x.length, y.length); i += 1) {
+    if ((x[i] ?? 0) !== (y[i] ?? 0)) return (x[i] ?? 0) > (y[i] ?? 0);
+  }
+  return true;
+}
+
+export function checkRtk({
+  installed,
+  pinned,
+}: {
+  installed: string | null;
+  pinned: string;
+}): Check {
+  if (!installed) {
+    return {
+      id: 'rtk',
+      status: 'info',
+      title: 'RTK: not installed, optional',
+      fix: `It cuts the tokens your assistant spends reading command output. Install it with: ${INIT}`,
+    };
+  }
+  if (!versionAtLeast(installed, pinned)) {
+    return {
+      id: 'rtk',
+      status: 'warn',
+      title: `RTK ${installed} is older than the version this toolbox is tested with (${pinned.replace(/^v/, '')})`,
+      fix: `Update it with: ${INIT}`,
+    };
+  }
+  return {
+    id: 'rtk',
+    status: 'ok',
+    title: `RTK ${installed} (saves tokens on command output)`,
+  };
 }
 
 const MARK: Record<CheckStatus, string> = {

@@ -27,9 +27,16 @@ const vscodeBase = isMac
  *
  * kind:
  *   'mcp-entry' — a JSON file with an mcpServers map; remove our key only.
+ *   'yaml-entry' — Continue's YAML config with an mcpServers list; remove our
+ *                  item only (see continue-config.mjs).
  *   'directory' — generated output we own entirely; safe to delete.
  *   'glob-dir'  — a directory whose matching files we own.
  *   'rc-alias'  — a line appended to a shell rc file.
+ *
+ * Editor entries (mcp-entry, yaml-entry) also carry:
+ *   editor      — the name `--ide` and `init` use for it;
+ *   installedIf — a path that exists once the editor is installed. The config
+ *                 file itself may not exist until something is configured.
  */
 export const globalTargets = [
   {
@@ -42,12 +49,15 @@ export const globalTargets = [
     id: 'claude-code-mcp',
     label: 'Claude Code MCP registration',
     kind: 'mcp-entry',
+    editor: 'claude-code',
     path: path.join(home, '.claude.json'),
+    installedIf: path.join(home, '.claude'),
   },
   {
     id: 'claude-desktop-mcp',
     label: 'Claude Desktop MCP registration',
     kind: 'mcp-entry',
+    editor: 'claude-desktop',
     path: isMac
       ? path.join(
           home,
@@ -57,12 +67,17 @@ export const globalTargets = [
           'claude_desktop_config.json'
         )
       : path.join(home, '.config', 'Claude', 'claude_desktop_config.json'),
+    installedIf: isMac
+      ? path.join(home, 'Library', 'Application Support', 'Claude')
+      : path.join(home, '.config', 'Claude'),
   },
   {
     id: 'cursor-mcp',
     label: 'Cursor MCP registration',
     kind: 'mcp-entry',
+    editor: 'cursor',
     path: path.join(home, '.cursor', 'mcp.json'),
+    installedIf: path.join(home, '.cursor'),
   },
   {
     id: 'cursor-skills',
@@ -70,6 +85,14 @@ export const globalTargets = [
     kind: 'glob-dir',
     path: path.join(home, '.cursor', 'skills'),
     ownedIf: 'symlink',
+  },
+  {
+    id: 'continue-mcp',
+    label: 'Continue MCP registration',
+    kind: 'yaml-entry',
+    editor: 'continue',
+    path: path.join(home, '.continue', 'config.yaml'),
+    installedIf: path.join(home, '.continue'),
   },
   {
     id: 'continue-prompts',
@@ -82,22 +105,27 @@ export const globalTargets = [
     id: 'gemini-mcp',
     label: 'Gemini (CLI/Desktop) MCP registration',
     kind: 'mcp-entry',
+    editor: 'gemini',
     path: path.join(home, '.gemini', 'settings.json'),
+    installedIf: path.join(home, '.gemini'),
   },
-  ...vscodeVariants.map((variant) => ({
-    id: `cline-mcp-${variant.toLowerCase().replace(/\W+/g, '-')}`,
-    label: `Cline MCP registration (${variant})`,
-    kind: 'mcp-entry',
-    path: path.join(
+  ...vscodeVariants.map((variant) => {
+    const storage = path.join(
       vscodeBase,
       variant,
       'User',
       'globalStorage',
-      'saoudrizwan.claude-dev',
-      'settings',
-      'cline_mcp_settings.json'
-    ),
-  })),
+      'saoudrizwan.claude-dev'
+    );
+    return {
+      id: `cline-mcp-${variant.toLowerCase().replace(/\W+/g, '-')}`,
+      label: `Cline MCP registration (${variant})`,
+      kind: 'mcp-entry',
+      editor: 'cline',
+      path: path.join(storage, 'settings', 'cline_mcp_settings.json'),
+      installedIf: storage,
+    };
+  }),
   {
     id: 'zshrc-alias',
     label: 'rtk alias in ~/.zshrc',

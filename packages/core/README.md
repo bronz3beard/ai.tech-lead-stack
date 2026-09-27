@@ -8,7 +8,23 @@ cloned.
 
 Requires Node.js 22.5 or later.
 
-## Connect it to your editor
+## Set it up
+
+```bash
+npx -y tech-lead-stack@1 init
+```
+
+It finds the editors on this computer (Claude Code, Claude Desktop, Cursor,
+Continue, Cline, Gemini), shows what it will change, and asks once. It adds the
+toolbox to each editor, or puts it behind a gateway such as slm-gate if you
+already use one, so no tool is listed twice. It never replaces a connection you
+already have. Then it creates your settings file and, if you like, asks for a
+database address and API keys, which are not shown as you type.
+
+`--dry-run` only shows the plan. `--yes` accepts the recommended choices without
+questions, for AI assistants and scripts. Restart your editors afterwards.
+
+## Connect it by hand
 
 ### Claude Code
 

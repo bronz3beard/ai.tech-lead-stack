@@ -205,49 +205,23 @@ setup_cursor_mcp_environment() {
 setup_continue() {
     local config_file="$HOME/.continue/config.yaml"
 
-    mkdir -p "$(dirname "$config_file")"
-    if [[ ! -f "$config_file" ]]; then
-        echo "models: []" > "$config_file"
-    fi
-
     echo "   - Merging tech-lead-stack into Continue config..."
 
-    # 1. Safely merge mcpServers to avoid duplicate root keys
-    if grep -q "tech-lead-stack:" "$config_file" 2>/dev/null; then
-        echo "   - tech-lead-stack MCP server already present in Continue config."
+    # 1. Add (or update) our entry in Continue's mcpServers list. The shared
+    #    module keeps the user's comments and converts the map entry older
+    #    installs wrote, which Continue never read.
+    if node -e "
+        import(process.argv[1]).then(m => m.writeContinueServer({
+          file: process.argv[2],
+          server: { name: process.argv[3], command: 'npm', args: ['--prefix', process.argv[4], '--silent', 'run', 'mcp:start'] },
+        })).catch(err => { console.error(err.message); process.exit(1); });
+    " "$SOURCE_DIR/packages/core/src/install/continue-config.mjs" "$config_file" "$MCP_SERVER_NAME" "$SOURCE_DIR"; then
+        echo "   ✅ $MCP_SERVER_NAME is in Continue's MCP servers: $config_file"
+        record_ok "Continue MCP → $config_file"
     else
-        # Use awk to inject into existing mcpServers key, or append if missing
-        SOURCE_DIR="$SOURCE_DIR" awk '
-        BEGIN { mcp_done=0; }
-        /^mcpServers:/ {
-            print $0
-            print "  tech-lead-stack:"
-            print "    command: npm"
-            print "    args:"
-            print "      - --prefix"
-            print "      - \"" ENVIRON["SOURCE_DIR"] "\""
-            print "      - --silent"
-            print "      - run"
-            print "      - mcp:start"
-            mcp_done=1
-            next
-        }
-        { print }
-        END {
-            if (mcp_done == 0) {
-                print "mcpServers:"
-                print "  tech-lead-stack:"
-                print "    command: npm"
-                print "    args:"
-                print "      - --prefix"
-                print "      - \"" ENVIRON["SOURCE_DIR"] "\""
-                print "      - --silent"
-                print "      - run"
-                print "      - mcp:start"
-            }
-        }
-        ' "$config_file" > /tmp/continue_config.yaml && mv /tmp/continue_config.yaml "$config_file"
-        echo "   ✅ Added tech-lead-stack MCP server to Continue config."
+        record_warn "Continue MCP not registered" \
+            "could not update $config_file (not valid YAML, or run 'pnpm install' in $SOURCE_DIR first); the file was left as it was" \
+            "fix the file, then re-run ./install.sh --link --ide-only --ide continue"
     fi
 
     # 2. Symlink workflows into ~/.continue/prompts/
@@ -962,12 +936,14 @@ else
 fi
 
 # 4. RTK Setup & Immediate Pre-Flight Check
-# The RTK installer is pinned to the v0.50.0 tag's commit and hash-checked before
-# it runs; RTK_VERSION pins the binary it downloads, which it checksum-verifies
-# itself. To upgrade RTK, bump all three values together.
-RTK_VERSION="v0.50.0"
-RTK_INSTALLER_URL="https://raw.githubusercontent.com/rtk-ai/rtk/1d87b8e719ce0a50c223cd93ca64dd16921f9aec/install.sh"
-RTK_INSTALLER_SHA256="d6eb73a772903e13ff34ee1be8a8b24e896ba9a978f20d2279a08b4083ea6f77"
+# The pinned release, installer URL and installer hash live in
+# packages/core/src/install/rtk-pin.mjs, shared with `tech-lead-stack init` and
+# `doctor`. If node cannot read them the values stay empty, the download fails,
+# and nothing unverified runs.
+IFS=$'\t' read -r RTK_VERSION RTK_INSTALLER_URL RTK_INSTALLER_SHA256 < <(node -e "
+    import('$SOURCE_DIR/packages/core/src/install/rtk-pin.mjs').then(p =>
+      console.log([p.RTK_VERSION, p.RTK_INSTALLER_URL, p.RTK_INSTALLER_SHA256].join('\t')));
+" 2>/dev/null)
 if ! command -v rtk &> /dev/null; then
     echo "🛠️ Installing RTK ${RTK_VERSION}..."
     RTK_INSTALLER="$(mktemp "${TMPDIR:-/tmp}/rtk-install.XXXXXX")"
