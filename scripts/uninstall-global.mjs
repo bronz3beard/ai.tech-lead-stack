@@ -7,8 +7,8 @@
  * every linked project, so unlinking a single project must never unregister the
  * machine. cleanup.sh only calls this when the user passes --global.
  *
- * Targets come from scripts/lib/install-targets.mjs so the installer and the
- * cleaner can never drift apart.
+ * Targets come from packages/core/src/install/targets.mjs so the installer and
+ * the cleaner can never drift apart.
  *
  * Usage:
  *   node scripts/uninstall-global.mjs --source <repo root> [--apply] [--json]
@@ -18,7 +18,10 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { globalTargets, aliasLine } from './lib/install-targets.mjs';
+import {
+  globalTargets,
+  aliasLine,
+} from '../packages/core/src/install/targets.mjs';
 
 function parseArgs(argv) {
   const args = {};

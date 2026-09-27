@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Builds dist/mcp-server.mjs, the MCP server the npm package runs.
+ * Builds dist/mcp-server.mjs, the `tech-lead-stack` command the npm package
+ * runs (src/cli/main.ts): the MCP server, plus subcommands such as `doctor`.
  *
  * One thing here needs esbuild's JS API rather than its CLI: the bare
  * `@prisma/client` import goes to the ESM client generated for this bundle
@@ -24,7 +25,8 @@ if (!fs.existsSync(generatedClient)) {
 }
 
 await build({
-  entryPoints: [path.join(core, 'src/mcp-server/index.ts')],
+  // The command dispatcher: no arguments starts the MCP server.
+  entryPoints: [path.join(core, 'src/cli/main.ts')],
   outfile: path.join(core, 'dist/mcp-server.mjs'),
   bundle: true,
   platform: 'node',

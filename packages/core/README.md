@@ -48,6 +48,17 @@ The tools then appear under the gateway's name, such as
 `mcp__slm-gate__list_skills`. See
 [Running the stack behind an upstream MCP proxy](https://github.com/bronz3beard/ai.tech-lead-stack/blob/main/docs/mcp-proxy-setup.md#without-a-clone-start-the-stack-with-npx).
 
+## Check your setup
+
+```bash
+npx -y tech-lead-stack@1 doctor
+```
+
+It checks Node.js, your settings file, which features your keys turn on, the
+usage-metrics database, and how each editor on this computer reaches the
+toolbox, then says what to do about anything missing. It only reads; nothing is
+changed. Add `--json` to get the same report for an AI assistant.
+
 ## Settings and API keys
 
 Put settings in one file, `~/.tech-lead-stack/.env`, and every editor uses them.

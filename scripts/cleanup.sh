@@ -82,7 +82,7 @@ echo "🧹 Cleaning project: $TARGET_DIR"
 [[ "$APPLY" == false ]] && echo "   (dry run — nothing will be deleted)"
 
 # --- Project-level removal ---------------------------------------------------
-# Target list comes from scripts/lib/install-targets.mjs, the same file the
+# Target list comes from packages/core/src/install/targets.mjs, the same file the
 # installer reads, so a new adapter can never leave cleanup behind.
 while IFS=$'\037' read -r kind rel source label; do
     [[ -z "$kind" ]] && continue
@@ -127,7 +127,7 @@ while IFS=$'\037' read -r kind rel source label; do
             ;;
     esac
 done < <(node -e "
-    import('$SOURCE_DIR/scripts/lib/install-targets.mjs').then(m => {
+    import('$SOURCE_DIR/packages/core/src/install/targets.mjs').then(m => {
       for (const t of m.projectTargets) {
         process.stdout.write([t.kind, t.path, t.source || '', t.label].join('') + '\n');
       }
@@ -144,7 +144,7 @@ while IFS= read -r dir; do
         record_removed "$dir (empty)"
     fi
 done < <(node -e "
-    import('$SOURCE_DIR/scripts/lib/install-targets.mjs').then(m =>
+    import('$SOURCE_DIR/packages/core/src/install/targets.mjs').then(m =>
       console.log(m.pruneIfEmpty.join('\n')));
 " 2>/dev/null)
 
