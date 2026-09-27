@@ -4,11 +4,22 @@
 
 ## Tier Decision Guide
 
-- **no keys + $20/mo** -> `reflexion-loop-sub-pro` + `dev-team-sub-pro`; ceiling
-  M; Risk-2 refused at intake and escalated if discovered mid-flight
-- **no keys + $100/mo** -> `reflexion-loop-sub-max` + `dev-team-sub-max`;
-  ceiling XL with a Tech-Lead confirmation gate
-- **API keys** -> `reflexion-loop` + `dev-team-orchestrator`
+There are four tiers. The name in brackets is the one the code, telemetry and
+`--tier` flag use.
+
+- **no keys, no subscription, own computer (`local`)** ->
+  `reflexion-loop-local` + `dev-team-local`; a model running on your machine
+  (for example Ollama), fully offline; one lane, ceiling M, Risk-2 refused, and
+  a time and token budget. Needs `LOCAL_MODEL_ENDPOINT` and `LOCAL_MODEL_NAME`
+  (see [Configuration](configuration.md#local-execution-tier)).
+- **no keys + $20/mo (`sub-pro`)** -> `reflexion-loop-sub-pro` +
+  `dev-team-sub-pro`; ceiling M; Risk-2 refused at intake and escalated if
+  discovered mid-flight
+- **no keys + $100/mo (`sub-max`)** -> `reflexion-loop-sub-max` +
+  `dev-team-sub-max`; ceiling XL with a Tech-Lead confirmation gate
+- **API keys (`byo`, bring your own)** -> `reflexion-loop` +
+  `dev-team-orchestrator`; needs `ANTHROPIC_API_KEY` and `GEMINI_API_KEY`; no
+  size ceiling
 
 > [!NOTE] **Platform facts (as of August 2026)** — verify current pricing and
 > quotas with the vendor.

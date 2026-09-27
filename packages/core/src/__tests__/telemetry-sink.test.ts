@@ -20,7 +20,9 @@ describe('Langfuse Sink & Telemetry Service', () => {
     (langfuseSink as any).droppedCounter = 0;
     (langfuseSink as any).isFlushing = false;
 
-    // We mock Prisma to avoid actual DB writes during test
+    // We mock Prisma to avoid actual DB writes during test. Building the client
+    // needs a DATABASE_URL; nothing connects to it.
+    process.env.DATABASE_URL ??= 'postgresql://test:test@localhost:5432/test';
     jest
       .spyOn(prisma.analyticsEvent, 'create')
       .mockImplementation(((args: any) => {

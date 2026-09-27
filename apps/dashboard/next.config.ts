@@ -1,6 +1,13 @@
 import type { NextConfig } from 'next';
 
+import fs from 'fs';
 import path from 'path';
+
+// Local setups keep one .env at the repo root; Next.js only reads this app's
+// folder. Hosted deploys set variables in the platform and have no file here.
+// Variables that are already set always win.
+const rootEnv = path.resolve(__dirname, '../../.env');
+if (fs.existsSync(rootEnv)) process.loadEnvFile(rootEnv);
 
 const nextConfig: NextConfig = {
   transpilePackages: ['@zenithfoundry/tech-lead-stack'],

@@ -123,8 +123,26 @@ async function smoke(tarball) {
       }
     };
     await Promise.race([run(), exited]);
+
+    // The same command with a subcommand must run it instead of the server.
+    const report = JSON.parse(
+      execFileSync(
+        'npx',
+        ['--no-install', 'tech-lead-stack', 'doctor', '--json'],
+        {
+          cwd: dir,
+          env,
+          encoding: 'utf8',
+        }
+      )
+    );
+    if (!report.checks?.some((check) => check.id === 'node')) {
+      throw new Error(
+        '`tech-lead-stack doctor --json` did not report its checks.'
+      );
+    }
     console.log(
-      `Smoke test passed: ${path.basename(tarball)} starts and serves bundled skills.`
+      `Smoke test passed: ${path.basename(tarball)} starts, serves bundled skills, and runs doctor.`
     );
   } finally {
     child.removeAllListeners('exit');

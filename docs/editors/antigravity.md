@@ -8,7 +8,7 @@ Open your terminal and clone the `tech-lead-stack` repository to a permanent
 location on your machine.
 
 ```bash
-git clone https://github.com/your-username/tech-lead-stack.git ~/tech-lead-stack
+git clone https://github.com/bronz3beard/ai.tech-lead-stack.git ~/tech-lead-stack
 cd ~/tech-lead-stack
 ```
 

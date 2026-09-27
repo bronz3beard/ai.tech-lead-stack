@@ -33,7 +33,7 @@
     "./mcp-server/*": "./src/mcp-server/*.ts"
   },
   "scripts": {
-    "mcp:build": "esbuild src/mcp-server/index.ts --bundle --platform=node --packages=external --format=esm --alias:@prisma/client=./src/mcp-server/prisma-client-lazy.ts --outfile=dist/mcp-server.mjs",
+    "mcp:build": "node scripts/build-mcp-server.mjs",
     "mcp:start": "node dist/mcp-server.mjs",
     "reflexion": "tsx scripts/reflexion-loop.ts",
     "reflexion:eval": "tsx scripts/reflexion-eval.ts",
@@ -63,6 +63,7 @@
     "p-map": "^7.0.8",
     "pg": "^8.23.0",
     "prisma": "^7.10.0",
+    "yaml": "^2.9.1",
     "zod": "^4.6.5"
   },
   "devDependencies": {

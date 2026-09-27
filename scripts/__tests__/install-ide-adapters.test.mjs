@@ -224,7 +224,8 @@ describe('Continue adapter', () => {
 
       const config = fs.readFileSync(path.join(home, '.continue/config.yaml'), 'utf8');
       assert.match(config, /mcpServers:/);
-      assert.match(config, /tech-lead-stack:/);
+      // Continue reads a list of servers, not a map keyed by name.
+      assert.match(config, /- name: tech-lead-stack/);
       assert.ok(config.includes(repoRoot), 'config must carry the real repo path');
 
       const prompts = fs.readdirSync(path.join(home, '.continue/prompts'));

@@ -6,10 +6,15 @@
 [![CodeQL](https://github.com/bronz3beard/ai.tech-lead-stack/actions/workflows/codeql.yml/badge.svg)](https://github.com/bronz3beard/ai.tech-lead-stack/actions/workflows/codeql.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/bronz3beard/ai.tech-lead-stack/badge)](https://scorecard.dev/viewer/?uri=github.com/bronz3beard/ai.tech-lead-stack)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14956/badge)](https://www.bestpractices.dev/projects/14956)
+[![OpenSSF Baseline](https://www.bestpractices.dev/projects/14956/baseline)](https://www.bestpractices.dev/projects/14956)
 [![License: MIT](https://img.shields.io/github/license/bronz3beard/ai.tech-lead-stack)](LICENSE)
 [![Node](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fbronz3beard%2Fai.tech-lead-stack%2Fmain%2Fpackage.json&query=%24.engines.node&label=node&logo=nodedotjs&logoColor=white&color=339933)](package.json)
+[![npm](https://img.shields.io/npm/v/tech-lead-stack)](https://www.npmjs.com/package/tech-lead-stack)
+[![npm downloads](https://img.shields.io/npm/dm/tech-lead-stack)](https://www.npmjs.com/package/tech-lead-stack)
+[![Minified size (gzip)](https://img.shields.io/bundlephobia/minzip/tech-lead-stack)](https://bundlephobia.com/package/tech-lead-stack)
 [![Agent surfaces](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fbronz3beard%2Fai.tech-lead-stack%2Fmain%2F.github%2Fbadges%2Fagent-surfaces.json)](docs/skills.md)
 [![MCP server](https://img.shields.io/badge/MCP-server-8A2BE2)](docs/running-the-mcp-server.md)
+[![AI setup prompt](https://img.shields.io/badge/AI%20setup-prompt-blueviolet)](docs/agent-setup.md)
 [![Editors](https://img.shields.io/badge/editors-Claude%20Code%20%7C%20Cursor%20%7C%20Antigravity%20%7C%20Cline%20%7C%20Continue%20%7C%20Gemini-blue)](#supported-editors--agents)
 [![Last commit](https://img.shields.io/github/last-commit/bronz3beard/ai.tech-lead-stack)](https://github.com/bronz3beard/ai.tech-lead-stack/commits/main)
 [![Discussions](https://img.shields.io/github/discussions/bronz3beard/ai.tech-lead-stack)](https://github.com/bronz3beard/ai.tech-lead-stack/discussions)
@@ -23,12 +28,18 @@ automated testing.
 Live Web App:
 [https://ai-tech-lead-stack.vercel.app](https://ai-tech-lead-stack.vercel.app)
 
+> **Setting this up with an AI assistant?** There's a prompt written for that:
+> [Set this up with an AI assistant](#set-this-up-with-an-ai-assistant). It
+> checks your computer, asks what you want help with, sets everything up, and
+> answers your questions afterwards.
+
 ## Contents
 
 - [How it fits together](#how-it-fits-together)
 - [Commands Quick Reference](#commands-quick-reference)
 - [Which tier am I on?](#which-tier-am-i-on)
 - [Requirements](#requirements)
+- [Set this up with an AI assistant](#set-this-up-with-an-ai-assistant)
 - [🚀 Quick Start](#-quick-start)
 - [Supported Editors & Agents](#supported-editors--agents)
 - [🧹 Resetting a Project](#-resetting-a-project)
@@ -482,7 +493,7 @@ flowchart LR
 > `DOWNSTREAM_MCP` pointing at `dist/mcp-server.mjs`) to condense tool and skill
 > payloads before they hit your editor's context window.**
 >
-> <a href="https://github.com/zenithfoundry/sml-gate" target="_blank" rel="noopener noreferrer">Explore
+> <a href="https://github.com/zenithfoundry/slm-gate" target="_blank" rel="noopener noreferrer">Explore
 > SML Gate on GitHub →</a>
 
 ## Commands Quick Reference
@@ -502,11 +513,12 @@ flowchart LR
 
 ## Which tier am I on?
 
-| Your plan                       | Loop to call             | Dev-team to call        | Capabilities & Isolation                                                                      |
-| :------------------------------ | :----------------------- | :---------------------- | :-------------------------------------------------------------------------------------------- |
-| **API keys (Gemini+Anthropic)** | `reflexion-loop`         | `dev-team-orchestrator` | Dual-model SDK enforcement (`validateDistinctModels`), 3+ parallel lanes, uncapped.           |
-| **$100-a-month subscription**   | `reflexion-loop-sub-max` | `dev-team-sub-max`      | Max 2 parallel lanes, git worktrees, L0–L3 cross-vendor verify, 60 turn budget.               |
-| **$20-a-month subscription**    | `reflexion-loop-sub-pro` | `dev-team-sub-pro`      | Single-lane pair (no worktrees), L0–L3 cross-vendor verify, 20 turn budget, capped at M size. |
+| Your plan                        | Loop to call             | Dev-team to call        | Capabilities & Isolation                                                                      |
+| :------------------------------- | :----------------------- | :---------------------- | :-------------------------------------------------------------------------------------------- |
+| **API keys (Gemini+Anthropic)**  | `reflexion-loop`         | `dev-team-orchestrator` | Dual-model SDK enforcement (`validateDistinctModels`), 3+ parallel lanes, uncapped.           |
+| **$100-a-month subscription**    | `reflexion-loop-sub-max` | `dev-team-sub-max`      | Max 2 parallel lanes, git worktrees, L0–L3 cross-vendor verify, 60 turn budget.               |
+| **$20-a-month subscription**     | `reflexion-loop-sub-pro` | `dev-team-sub-pro`      | Single-lane pair (no worktrees), L0–L3 cross-vendor verify, 20 turn budget, capped at M size. |
+| **A model on your own computer** | `reflexion-loop-local`   | `dev-team-local`        | Fully offline, single lane, same-model self-critique, capped at M size.                       |
 
 How to decide, the current platform facts, and what the L0–L3 isolation levels
 mean: [Choosing a tier](docs/tiers.md).
@@ -523,6 +535,25 @@ mean: [Choosing a tier](docs/tiers.md).
 * **Firecrawl API**: (Optional) For the `planning-expert` to read external
   links.
 
+## Set this up with an AI assistant
+
+There's a prompt you can paste into any AI coding assistant (Claude Code,
+Cursor, Gemini, Codex, or a plain chat window). It checks your computer, asks
+how technical you are and what you want help with, sets everything up from the
+npm package, and ends with a short "start here" summary. If something you need
+is missing, it stops, tells you how to get it, and carries on when you're ready.
+Keys never go through the chat.
+
+**[Get the prompt](docs/agent-setup.md)**, paste it into your assistant, and
+answer its questions. Afterwards, keep asking it about the skills, the dev team,
+the reflexion loop, the web app and usage metrics. The same page lists five
+things to check before you trust the result, and a block to keep in `AGENTS.md`.
+
+Moving from a downloaded folder? The prompt handles that too: it removes the old
+setup, then does a fresh install. To do it step by step yourself, including
+keeping your old settings, follow
+[Switch Tech-Lead Stack to npm](docs/switch-to-npm.md).
+
 ## 🚀 Quick Start
 
 ### 1. Installation
@@ -535,6 +566,16 @@ in Claude Code:
 ```bash
 claude mcp add tech-lead-stack -- npx -y tech-lead-stack
 ```
+
+Or let it set up every editor on this computer for you, including putting it
+behind a gateway such as slm-gate if you use one:
+
+```bash
+npx -y tech-lead-stack@1 init
+```
+
+Doing it by hand behind a gateway:
+[Without a clone: start the stack with npx](docs/mcp-proxy-setup.md#without-a-clone-start-the-stack-with-npx).
 
 For the full stack (IDE commands, project linking, the dashboard), clone this
 repo and link it globally for easy access:
@@ -649,6 +690,8 @@ bash /path/to/tech-lead-stack/scripts/cleanup.sh .
 
 | Document                                                             | What it covers                                                                                         |
 | :------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------- |
+| [Set this up with an AI assistant](docs/agent-setup.md)              | A prompt that checks your computer, interviews you, sets everything up, and answers questions.         |
+| [Switch Tech-Lead Stack to npm](docs/switch-to-npm.md)               | Moving from a downloaded folder: remove the old setup, keep your settings if you like, install fresh.  |
 | [Choosing a tier](docs/tiers.md)                                     | The tier decision guide, current platform facts, and the L0–L3 model isolation levels.                 |
 | [Running the MCP server](docs/running-the-mcp-server.md)             | The three ways to connect: direct, `install.sh`, or behind SLM Gate. Building the standalone artifact. |
 | [Configuration](docs/configuration.md)                               | Model routing per role, and the fully offline local execution tier.                                    |
