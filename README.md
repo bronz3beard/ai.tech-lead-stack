@@ -483,7 +483,7 @@ flowchart LR
 > `DOWNSTREAM_MCP` pointing at `dist/mcp-server.mjs`) to condense tool and skill
 > payloads before they hit your editor's context window.**
 >
-> <a href="https://github.com/zenithfoundry/sml-gate" target="_blank" rel="noopener noreferrer">Explore
+> <a href="https://github.com/zenithfoundry/slm-gate" target="_blank" rel="noopener noreferrer">Explore
 > SML Gate on GitHub →</a>
 
 ## Commands Quick Reference
@@ -503,11 +503,12 @@ flowchart LR
 
 ## Which tier am I on?
 
-| Your plan                       | Loop to call             | Dev-team to call        | Capabilities & Isolation                                                                      |
-| :------------------------------ | :----------------------- | :---------------------- | :-------------------------------------------------------------------------------------------- |
-| **API keys (Gemini+Anthropic)** | `reflexion-loop`         | `dev-team-orchestrator` | Dual-model SDK enforcement (`validateDistinctModels`), 3+ parallel lanes, uncapped.           |
-| **$100-a-month subscription**   | `reflexion-loop-sub-max` | `dev-team-sub-max`      | Max 2 parallel lanes, git worktrees, L0–L3 cross-vendor verify, 60 turn budget.               |
-| **$20-a-month subscription**    | `reflexion-loop-sub-pro` | `dev-team-sub-pro`      | Single-lane pair (no worktrees), L0–L3 cross-vendor verify, 20 turn budget, capped at M size. |
+| Your plan                        | Loop to call             | Dev-team to call        | Capabilities & Isolation                                                                      |
+| :------------------------------- | :----------------------- | :---------------------- | :-------------------------------------------------------------------------------------------- |
+| **API keys (Gemini+Anthropic)**  | `reflexion-loop`         | `dev-team-orchestrator` | Dual-model SDK enforcement (`validateDistinctModels`), 3+ parallel lanes, uncapped.           |
+| **$100-a-month subscription**    | `reflexion-loop-sub-max` | `dev-team-sub-max`      | Max 2 parallel lanes, git worktrees, L0–L3 cross-vendor verify, 60 turn budget.               |
+| **$20-a-month subscription**     | `reflexion-loop-sub-pro` | `dev-team-sub-pro`      | Single-lane pair (no worktrees), L0–L3 cross-vendor verify, 20 turn budget, capped at M size. |
+| **A model on your own computer** | `reflexion-loop-local`   | `dev-team-local`        | Fully offline, single lane, same-model self-critique, capped at M size.                       |
 
 How to decide, the current platform facts, and what the L0–L3 isolation levels
 mean: [Choosing a tier](docs/tiers.md).

@@ -93,6 +93,8 @@
     "reflexion:eval": "pnpm --filter @zenithfoundry/tech-lead-stack run reflexion:eval",
     "calibrate-skill-costs": "pnpm --filter @zenithfoundry/tech-lead-stack run calibrate-skill-costs",
     "db:generate": "pnpm --filter @zenithfoundry/tech-lead-stack run db:generate",
+    "db:migrate": "pnpm --filter @zenithfoundry/tech-lead-stack exec prisma migrate deploy",
+    "web:dev": "pnpm --filter @bronz3beard/tls-dashboard run dev",
     "test:cleanup": "node --test scripts/__tests__/cleanup.test.mjs",
     "test:critic": "node --test scripts/__tests__/resolve-critic.test.mjs",
     "test:scripts": "jest --config scripts/jest.config.cjs && node --test scripts/__tests__/*.test.mjs"
