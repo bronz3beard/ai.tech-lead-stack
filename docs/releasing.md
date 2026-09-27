@@ -57,20 +57,30 @@ on the release pull request and the Release workflow would never start.
 
 1. Create an App under your account: **Settings** → **Developer settings** →
    **GitHub Apps** → **New GitHub App**. Name it, for example,
-   `tech-lead-stack-release`. Untick **Webhook → Active**. Under **Repository
-   permissions**, set **Contents** and **Pull requests** to **Read and write**.
-   Choose **Only on this account**, then create it.
-2. On the App's page, note the **Client ID**, then **Generate a private key** (a
-   `.pem` file downloads).
+   `tech-lead-stack-release`, and set **Homepage URL** to the repository's URL.
+   Leave every user-authorization option and the redirect URI empty, and untick
+   **Webhook → Active**. Under **Repository permissions**, set **Contents**,
+   **Pull requests** and **Issues** to **Read and write** (Issues is for the
+   `autorelease` labels on the release pull request; **Metadata** turns on by
+   itself). Choose **Only on this account**, then create it.
+2. On the App's page, note the **App ID** and the **Client ID**, then **Generate
+   a private key** (a `.pem` file downloads).
 3. **Install App** → install it on `bronz3beard/ai.tech-lead-stack` only.
-4. Give the repository the ID and the key:
+4. Let it create release tags. The `release_tags` ruleset (**Settings** →
+   **Rules** → **Rulesets**) blocks creating `v*` tags for everyone but admins:
+   add the App to its **Bypass list** with **Always allow**.
+5. Give the repository the ID and the key:
 
    ```bash
    gh variable set RELEASE_APP_CLIENT_ID --repo bronz3beard/ai.tech-lead-stack --body "<Client ID>"
    gh secret set RELEASE_APP_PRIVATE_KEY --repo bronz3beard/ai.tech-lead-stack < ~/Downloads/<app-name>.<date>.private-key.pem
    ```
 
-5. Delete the downloaded `.pem` file.
+6. Delete the downloaded `.pem` file.
+
+The `main` ruleset needs two approvals, a code-owner review and a Preview
+deployment before a merge; as the repository admin you merge with
+`gh pr merge --admin`.
 
 Until this is done, the **Release Please** workflow fails on every push to
 `main`, and nothing is released.
@@ -85,7 +95,7 @@ merge it:
 ```bash
 gh pr list --label "autorelease: pending"          # the release pull request
 gh pr checks <number> --watch
-gh pr merge <number> --squash
+gh pr merge <number> --squash --admin
 ```
 
 To release a version other than the one it proposes, for example a test version,
