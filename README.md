@@ -28,12 +28,18 @@ automated testing.
 Live Web App:
 [https://ai-tech-lead-stack.vercel.app](https://ai-tech-lead-stack.vercel.app)
 
+> **Setting this up with an AI assistant?** There's a prompt written for that:
+> [Set this up with an AI assistant](#set-this-up-with-an-ai-assistant). It
+> checks your computer, asks what you want help with, sets everything up, and
+> answers your questions afterwards.
+
 ## Contents
 
 - [How it fits together](#how-it-fits-together)
 - [Commands Quick Reference](#commands-quick-reference)
 - [Which tier am I on?](#which-tier-am-i-on)
 - [Requirements](#requirements)
+- [Set this up with an AI assistant](#set-this-up-with-an-ai-assistant)
 - [🚀 Quick Start](#-quick-start)
 - [Supported Editors & Agents](#supported-editors--agents)
 - [🧹 Resetting a Project](#-resetting-a-project)
@@ -529,6 +535,23 @@ mean: [Choosing a tier](docs/tiers.md).
 * **Firecrawl API**: (Optional) For the `planning-expert` to read external
   links.
 
+## Set this up with an AI assistant
+
+There's a prompt you can paste into any AI coding assistant (Claude Code,
+Cursor, Gemini, Codex, or a plain chat window). It checks your computer, asks
+how technical you are and what you want help with, sets everything up from the
+npm package, and ends with a short "start here" summary. If something you need
+is missing, it stops, tells you how to get it, and carries on when you're ready.
+Keys never go through the chat.
+
+**[Get the prompt](docs/agent-setup.md)**, paste it into your assistant, and
+answer its questions. Afterwards, keep asking it about the skills, the dev team,
+the reflexion loop, the web app and usage metrics. The same page lists five
+things to check before you trust the result, and a block to keep in `AGENTS.md`.
+
+Moving from a downloaded folder? The prompt handles that too: it removes the old
+setup, then does a fresh install.
+
 ## 🚀 Quick Start
 
 ### 1. Installation
@@ -665,6 +688,7 @@ bash /path/to/tech-lead-stack/scripts/cleanup.sh .
 
 | Document                                                             | What it covers                                                                                         |
 | :------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------- |
+| [Set this up with an AI assistant](docs/agent-setup.md)              | A prompt that checks your computer, interviews you, sets everything up, and answers questions.         |
 | [Choosing a tier](docs/tiers.md)                                     | The tier decision guide, current platform facts, and the L0–L3 model isolation levels.                 |
 | [Running the MCP server](docs/running-the-mcp-server.md)             | The three ways to connect: direct, `install.sh`, or behind SLM Gate. Building the standalone artifact. |
 | [Configuration](docs/configuration.md)                               | Model routing per role, and the fully offline local execution tier.                                    |

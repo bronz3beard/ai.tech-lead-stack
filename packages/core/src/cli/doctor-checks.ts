@@ -97,7 +97,30 @@ export interface ToolboxEntry {
   via: 'direct' | 'gateway';
   /** Known setting names in the entry's env block (values are not kept). */
   settings: string[];
+  /** Started from the npm package, or from a downloaded folder (a clone). */
+  from: 'npm' | 'folder';
 }
+
+/** A server spec that starts the published package through npx. */
+export function startsNpxPackage(spec: unknown): boolean {
+  const { command, args } = (spec ?? {}) as {
+    command?: unknown;
+    args?: unknown;
+  };
+  return (
+    command === 'npx' &&
+    Array.isArray(args) &&
+    args.some((a) => typeof a === 'string' && /^tech-lead-stack(@|$)/.test(a))
+  );
+}
+
+const parsedOrNull = (json: string): unknown => {
+  try {
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+};
 
 const reachesToolbox = (text: string) =>
   /tech-lead-stack|mcp-server\.mjs/.test(text);
@@ -133,12 +156,18 @@ export function findToolboxEntries(config: unknown): ToolboxEntry[] {
         name,
         via: 'gateway',
         settings: [...knownIn(server.env), ...downstreamSettings(downstream)],
+        from: startsNpxPackage(parsedOrNull(downstream)) ? 'npm' : 'folder',
       });
     } else if (
       name === 'tech-lead-stack' ||
       reachesToolbox(JSON.stringify([server.command, server.args]))
     ) {
-      entries.push({ name, via: 'direct', settings: knownIn(server.env) });
+      entries.push({
+        name,
+        via: 'direct',
+        settings: knownIn(server.env),
+        from: startsNpxPackage(server) ? 'npm' : 'folder',
+      });
     }
   }
   return entries;
@@ -173,9 +202,10 @@ export function checkEditor(
     };
   }
   const describe = (e: ToolboxEntry) =>
-    e.via === 'gateway'
+    (e.via === 'gateway'
       ? `through gateway "${e.name}"`
-      : `directly as "${e.name}"`;
+      : `directly as "${e.name}"`) +
+    (e.from === 'folder' ? ' from a downloaded folder' : '');
   const settings = [...new Set(entries.flatMap((e) => e.settings))];
   const suffix = settings.length ? ` (sets ${settings.join(', ')})` : '';
 

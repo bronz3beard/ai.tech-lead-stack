@@ -41,7 +41,7 @@ describe('findToolboxEntries', () => {
       },
     };
     expect(findToolboxEntries(config)).toEqual([
-      { name: 'tech-lead-stack', via: 'direct', settings: [] },
+      { name: 'tech-lead-stack', via: 'direct', settings: [], from: 'npm' },
     ]);
   });
 
@@ -57,7 +57,11 @@ describe('findToolboxEntries', () => {
     expect(findToolboxEntries(config)[0]).toMatchObject({
       name: 'tls',
       via: 'direct',
+      from: 'folder',
     });
+    expect(checkEditor(claude, { state: 'read', config })?.title).toContain(
+      'from a downloaded folder'
+    );
   });
 
   it('finds the toolbox behind a gateway and reports setting names, not values', () => {
@@ -82,6 +86,7 @@ describe('findToolboxEntries', () => {
       name: 'slm-gate',
       via: 'gateway',
       settings: ['ANTHROPIC_API_KEY', 'DATABASE_URL'],
+      from: 'npm',
     });
     expect(JSON.stringify(entry)).not.toContain('sk-secret');
   });

@@ -4,7 +4,7 @@
  * gateway keeps everything except the DOWNSTREAM_MCP (and TLS_ADAPTER) init
  * set; a clone setup is left for cleanup.sh. Pure, so it can be tested.
  */
-import { findToolboxEntries } from './doctor-checks.js';
+import { findToolboxEntries, startsNpxPackage } from './doctor-checks.js';
 import type { EditorState } from './init-plan.js';
 
 export type UninstallChange =
@@ -17,16 +17,6 @@ type Server = {
   args?: unknown;
   env?: Record<string, unknown>;
 };
-
-/** A server spec that starts the published package through npx. */
-export function startsNpxPackage(spec: unknown): boolean {
-  const { command, args } = (spec ?? {}) as Server;
-  return (
-    command === 'npx' &&
-    Array.isArray(args) &&
-    args.some((a) => typeof a === 'string' && /^tech-lead-stack(@|$)/.test(a))
-  );
-}
 
 function downstreamOf(server: Server): unknown {
   const raw = server.env?.DOWNSTREAM_MCP;

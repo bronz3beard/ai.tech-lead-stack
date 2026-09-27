@@ -79,11 +79,36 @@ function cleanMcpEntry(target) {
   );
   if (ours.length === 0) return;
 
-  record(target.label, `${ours.join(', ')} in ${target.path}`);
+  // A gateway (such as slm-gate) that only starts this checkout through
+  // DOWNSTREAM_MCP is the user's own server: keep it, and remove just the
+  // settings that point here.
+  const isGateway = (name) => {
+    const { DOWNSTREAM_MCP: downstream, ...env } = servers[name].env ?? {};
+    const rest = { ...servers[name], env };
+    return (
+      String(downstream ?? '').includes(sourceDir) &&
+      !JSON.stringify(rest).includes(sourceDir)
+    );
+  };
+  record(
+    target.label,
+    ours
+      .map((name) =>
+        isGateway(name) ? `${name} (gateway kept, toolbox detached)` : name
+      )
+      .join(', ') + ` in ${target.path}`
+  );
   if (!apply) return;
 
   backup(target.path);
-  for (const name of ours) delete servers[name];
+  for (const name of ours) {
+    if (isGateway(name)) {
+      delete servers[name].env.DOWNSTREAM_MCP;
+      delete servers[name].env.TLS_ADAPTER;
+    } else {
+      delete servers[name];
+    }
+  }
   // Only our keys are touched; account and session state in the same file survive.
   const tmp = `${target.path}.tmp.${process.pid}`;
   fs.writeFileSync(tmp, `${JSON.stringify(config, null, 2)}\n`);

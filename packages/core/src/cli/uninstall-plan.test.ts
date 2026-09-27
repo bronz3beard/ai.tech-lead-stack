@@ -1,9 +1,6 @@
+import { startsNpxPackage } from './doctor-checks';
 import type { EditorState } from './init-plan';
-import {
-  planUninstall,
-  startsNpxPackage,
-  withoutToolbox,
-} from './uninstall-plan';
+import { planUninstall, withoutToolbox } from './uninstall-plan';
 
 function editor(mcpServers: object): EditorState {
   return {

@@ -59,6 +59,11 @@ jobs:
       - name: Validate Skills
         run: pnpm run validate:skills
 
+      # docs/agent-setup.md tells assistants to use only the names it lists;
+      # this fails when one of them stops existing or a new one is left out.
+      - name: Check AI Setup Prompt
+        run: pnpm run check:agent-setup
+
       - name: Lint (Next.js)
         run: pnpm run lint:next
 

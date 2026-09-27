@@ -81,6 +81,7 @@
     "validate:skills": "bash scripts/validate-skills.sh",
     "validate:hooks": "node scripts/enforce-hooks.mjs",
     "validate:gherkin": "node scripts/validate-gherkin.mjs",
+    "check:agent-setup": "node scripts/check-agent-setup.mjs",
     "validate:scripts": "bash scripts/validate-scripts.sh",
     "release:prepare": "node scripts/release.mjs prepare",
     "release:tag": "node scripts/release.mjs tag",

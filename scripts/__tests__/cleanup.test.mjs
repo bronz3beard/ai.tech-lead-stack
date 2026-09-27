@@ -236,6 +236,46 @@ describe('cleanup.sh --global', () => {
     }
   });
 
+  test('keeps a gateway that fronts the checkout and detaches only the toolbox', () => {
+    const target = scratch('tls-target-gateway-');
+    const home = scratch('tls-home-gateway-');
+    try {
+      const configPath = path.join(home, '.claude.json');
+      const downstream = JSON.stringify({
+        command: 'node',
+        args: [path.join(repoRoot, 'dist/mcp-server.mjs')],
+      });
+      fs.writeFileSync(
+        configPath,
+        JSON.stringify({
+          mcpServers: {
+            'slm-gate': {
+              command: 'slm-gate',
+              args: ['mcp'],
+              env: {
+                OLLAMA_MODEL: 'qwen',
+                TLS_ADAPTER: 'on',
+                DOWNSTREAM_MCP: downstream,
+              },
+            },
+          },
+        })
+      );
+
+      runClean(target, home, ['--global', '--apply']);
+
+      const gate = JSON.parse(fs.readFileSync(configPath, 'utf8')).mcpServers[
+        'slm-gate'
+      ];
+      assert.ok(gate, 'the gateway itself was deleted');
+      assert.deepEqual(gate.env, { OLLAMA_MODEL: 'qwen' });
+      assert.deepEqual(gate.args, ['mcp']);
+    } finally {
+      fs.rmSync(target, { recursive: true, force: true });
+      fs.rmSync(home, { recursive: true, force: true });
+    }
+  });
+
   test('installs Continue as a list item and removes only that item', () => {
     const target = scratch('tls-target-continue-');
     const home = scratch('tls-home-continue-');
