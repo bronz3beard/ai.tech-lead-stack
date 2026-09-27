@@ -1,5 +1,8 @@
 import fc from 'fast-check';
-import { getSslOptions, shouldUseSsl } from './prisma';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import { getPool, getSslOptions, shouldUseSsl } from './prisma';
 
 describe('getSslOptions', () => {
   const pem = '-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----';
@@ -131,5 +134,36 @@ describe('shouldUseSsl', () => {
 
   it.each(['', 'undefined'])('returns false for unusable url %p', (url) => {
     expect(shouldUseSsl(url, 'production')).toBe(false);
+  });
+});
+
+describe('getPool', () => {
+  const saved = { ...process.env };
+  const savedCwd = process.cwd();
+
+  afterEach(() => {
+    process.env = { ...saved };
+    process.chdir(savedCwd);
+  });
+
+  it('refuses to connect when DATABASE_URL is not set', () => {
+    delete process.env.DATABASE_URL;
+    process.env.TLS_SKIP_CWD_ENV = '1';
+
+    expect(() => getPool()).toThrow('DATABASE_URL is not set');
+  });
+
+  it("ignores the current folder's .env when the MCP server asks it to", () => {
+    const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'user-project-'));
+    fs.writeFileSync(
+      path.join(projectDir, '.env'),
+      'DATABASE_URL="postgresql://app:secret@localhost:5432/their_app"\n'
+    );
+    process.chdir(projectDir);
+    delete process.env.DATABASE_URL;
+    process.env.TLS_SKIP_CWD_ENV = '1';
+
+    expect(() => getPool()).toThrow('DATABASE_URL is not set');
+    expect(process.env.DATABASE_URL).toBeUndefined();
   });
 });

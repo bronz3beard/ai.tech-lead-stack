@@ -38,10 +38,6 @@ const BUNDLED_PATHS = [
   'LICENSE',
 ];
 
-// Loaded with require() on first use (see prisma-client-lazy.ts), so it never
-// appears as an import in the bundle.
-const LAZY_DEPENDENCIES = ['@prisma/client'];
-
 const packageName = (specifier) =>
   specifier
     .split('/')
@@ -99,10 +95,7 @@ function stage(outDir) {
   const corePackage = JSON.parse(
     fs.readFileSync(path.join(CORE, 'package.json'), 'utf8')
   );
-  const runtimeDependencies = new Set([
-    ...bareImports(fs.readFileSync(BUNDLE, 'utf8')),
-    ...LAZY_DEPENDENCIES,
-  ]);
+  const runtimeDependencies = bareImports(fs.readFileSync(BUNDLE, 'utf8'));
   const manifest = buildManifest({ corePackage, runtimeDependencies });
 
   fs.rmSync(outDir, { recursive: true, force: true });

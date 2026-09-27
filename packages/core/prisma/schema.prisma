@@ -4,6 +4,16 @@ generator client {
   binaryTargets   = ["native", "rhel-openssl-3.0.x"]
 }
 
+// ESM client bundled into the npm package's MCP server (see `mcp:build`), so
+// `npx tech-lead-stack` can record usage metrics without a `prisma generate`
+// on the user's machine. The web app and scripts keep using the client above.
+generator mcp {
+  provider     = "prisma-client"
+  output       = "../src/generated/mcp-prisma"
+  moduleFormat = "esm"
+  runtime      = "nodejs"
+}
+
 datasource db {
   provider = "postgresql"
 }

@@ -48,10 +48,23 @@ The tools then appear under the gateway's name, such as
 `mcp__slm-gate__list_skills`. See
 [Running the stack behind an upstream MCP proxy](https://github.com/bronz3beard/ai.tech-lead-stack/blob/main/docs/mcp-proxy-setup.md#without-a-clone-start-the-stack-with-npx).
 
+## Settings and API keys
+
+Put settings in one file, `~/.tech-lead-stack/.env`, and every editor uses them.
+A value in an editor's MCP `env` block wins over the file, for that editor only.
+The server never reads the `.env` of the project you have open; that file
+belongs to your app.
+
 Tools that call models themselves, such as the reflexion loops, need the
-matching API keys (for example `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`) in the
-server's environment. See
+matching API keys (for example `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`). See
 [Configuration](https://github.com/bronz3beard/ai.tech-lead-stack/blob/main/docs/configuration.md).
+
+## Usage metrics
+
+Add `DATABASE_URL` to `~/.tech-lead-stack/.env` and every skill and tool call is
+recorded. To see the results, run the web app against the same database:
+[Run it on your own machine](https://github.com/bronz3beard/ai.tech-lead-stack/blob/main/docs/web-app.md#run-it-on-your-own-machine).
+Without `DATABASE_URL`, nothing is recorded and everything else works.
 
 ## Verify the package
 

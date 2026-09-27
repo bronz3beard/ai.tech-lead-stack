@@ -15,6 +15,9 @@ const loadEnv = () => {
   // If we're already configured (e.g. by index.ts), skip redundant work
   if (process.env.DATABASE_URL && process.env.DATABASE_URL !== 'undefined')
     return;
+  // Set by the MCP server (mcp-server/config.ts). An editor starts it inside
+  // the user's project, so the current folder's .env is theirs, not ours.
+  if (process.env.TLS_SKIP_CWD_ENV === '1') return;
 
   try {
     const root = resolve(process.cwd());
@@ -145,6 +148,11 @@ export function getPool(): pg.Pool {
   loadEnv();
 
   const rawUrl = process.env.DATABASE_URL || '';
+  // Without this, pg falls back to localhost:5432 and whatever Postgres
+  // happens to be listening there.
+  if (!rawUrl || rawUrl === 'undefined') {
+    throw new Error('DATABASE_URL is not set, so database features are off.');
+  }
 
   const ssl = shouldUseSsl(rawUrl, process.env.NODE_ENV)
     ? getSslOptions(process.env)
@@ -156,7 +164,7 @@ export function getPool(): pg.Pool {
   }
 
   const newPool = new pg.Pool({
-    connectionString: rawUrl && rawUrl !== 'undefined' ? rawUrl : undefined,
+    connectionString: rawUrl,
     ssl,
     connectionTimeoutMillis: 5000,
   });

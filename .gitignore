@@ -47,6 +47,7 @@ next-env.d.ts
 scratch/design-review/
 
 /src/generated/prisma
+/packages/core/src/generated/
 
 tmp/*
 .tmp/*
