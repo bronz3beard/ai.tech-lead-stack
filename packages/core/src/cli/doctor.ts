@@ -11,6 +11,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
+import { readManifest } from '../install/copies.mjs';
 import { RTK_VERSION } from '../install/rtk-pin.mjs';
 import { globalTargets } from '../install/targets.mjs';
 import { getPool } from '../lib/prisma.js';
@@ -18,6 +19,7 @@ import {
   type Check,
   type DatabaseState,
   checkAnyEditor,
+  checkCopies,
   checkDatabase,
   checkEditor,
   checkFeatures,
@@ -73,7 +75,7 @@ function settingsFile() {
   return { path: file, exists: true, othersCanRead };
 }
 
-export async function collectChecks(): Promise<Check[]> {
+export async function collectChecks(version: string): Promise<Check[]> {
   const editors = globalTargets
     .filter((t) => t.kind === 'mcp-entry' || t.kind === 'yaml-entry')
     .map((t) =>
@@ -92,6 +94,7 @@ export async function collectChecks(): Promise<Check[]> {
     ...editors,
     checkAnyEditor(editors),
     checkRtk({ installed: await rtkVersion(), pinned: RTK_VERSION }),
+    checkCopies({ installed: readManifest().version, running: version }),
   ].filter((c): c is Check => c !== null);
 }
 
@@ -103,7 +106,7 @@ export async function runDoctor({
   args: string[];
   version: string;
 }): Promise<number> {
-  const checks = await collectChecks();
+  const checks = await collectChecks(version);
   if (args.includes('--json')) {
     console.log(
       JSON.stringify({ version, ok: !hasFailure(checks), checks }, null, 2)

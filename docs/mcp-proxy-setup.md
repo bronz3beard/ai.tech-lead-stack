@@ -242,11 +242,12 @@ gateway passes its environment down (§1). For example, `ANTHROPIC_API_KEY` and
 Restart the client (Step 4), then ask it to list the tech-lead-stack skills. The
 tools appear as `mcp__slm-gate__<tool>`.
 
-What this does **not** give you yet: the `/tls:*` slash commands, Cursor skills,
-workflows and RTK. Those come from the clone and Step 3. Until the slm-gate
-doctor fix is released, `slm-gate doctor` may report the `DOWNSTREAM_MCP` target
-file as missing: it reads `-y` as a file path. The stack still starts; check it
-with the skills request above.
+Setting the two values by hand gives you the tools only. `init` also installs
+the `/tls:*` slash commands (named after your gateway), Cursor skills, Continue
+prompts, the project's workflows and RTK. Until the slm-gate doctor fix is
+released, `slm-gate doctor` may report the `DOWNSTREAM_MCP` target file as
+missing: it reads `-y` as a file path. The stack still starts; check it with the
+skills request above.
 
 ---
 

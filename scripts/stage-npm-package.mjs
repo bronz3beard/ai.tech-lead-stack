@@ -32,6 +32,8 @@ const BUNDLED_PATHS = [
   '.ai/hooks',
   '.ai/skills.graph.json',
   '.ai/agent-surfaces.json',
+  // Read by `tech-lead-stack init` to install Cursor skills.
+  '.ai/cursor-skills.manifest',
   '.agents/workflows',
   '.agents/pm-workflows',
   '.agents/hr-workflows',

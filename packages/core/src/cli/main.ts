@@ -18,7 +18,11 @@ const USAGE = `Usage: tech-lead-stack [command]
                    --dry-run        only show what would change
                    --ide <list>     only these editors, e.g. cursor,claude-code
                    --gateway <name> put the toolbox behind this gateway, or none
+                   --no-rtk         leave RTK alone
+                   --no-project     don't copy workflows into this project
   doctor         Check your setup. Read-only. Add --json for AI assistants.
+  uninstall      Undo what init did. Shows what it would remove; add --apply
+                 to remove it. Your settings file and RTK are kept.
   --version      Print the version.
   help           Show this message.`;
 
@@ -39,6 +43,11 @@ switch (command) {
   case 'init': {
     const { runInit } = await import('./init.js');
     process.exitCode = await runInit({ args, version: packageVersion() });
+    break;
+  }
+  case 'uninstall': {
+    const { runUninstall } = await import('./uninstall.js');
+    process.exitCode = await runUninstall({ args });
     break;
   }
   case 'doctor': {

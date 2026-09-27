@@ -204,6 +204,29 @@ export function checkAnyEditor(editorChecks: (Check | null)[]): Check | null {
   };
 }
 
+/** Copied commands, skills and prompts, against the version now running. */
+export function checkCopies({
+  installed,
+  running,
+}: {
+  installed: string | null;
+  running: string;
+}): Check | null {
+  if (!installed) return null;
+  return installed === running
+    ? {
+        id: 'copies',
+        status: 'ok',
+        title: `Commands, skills and workflows: current (v${installed})`,
+      }
+    : {
+        id: 'copies',
+        status: 'warn',
+        title: `Commands, skills and workflows were installed by v${installed}; v${running} is running`,
+        fix: `Refresh them with: ${INIT}`,
+      };
+}
+
 export type DatabaseState =
   | { state: 'no-url' }
   | { state: 'unreachable'; message: string }

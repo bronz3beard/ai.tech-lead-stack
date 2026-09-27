@@ -12,7 +12,13 @@
  *      so the tools are not listed twice.
  *   4. Otherwise the toolbox is added as its own server.
  */
-import { type EditorConfig, findToolboxEntries } from './doctor-checks.js';
+import path from 'node:path';
+
+import {
+  type EditorConfig,
+  findToolboxEntries,
+  versionAtLeast,
+} from './doctor-checks.js';
 
 export const SERVER_NAME = 'tech-lead-stack';
 
@@ -39,7 +45,13 @@ export type EditorChange =
       gateway: string;
       env: Record<string, string>;
     }
-  | { action: 'keep'; target: EditorState; reason: string };
+  | {
+      action: 'keep';
+      target: EditorState;
+      reason: string;
+      /** The server name the editor already reaches the toolbox by. */
+      connectedAs?: string;
+    };
 
 export interface PlanOptions {
   /** Editor names from --ide, or 'auto' for every installed editor. */
@@ -106,7 +118,12 @@ function planOne(target: EditorState, options: PlanOptions): EditorChange {
       existing[0].via === 'gateway'
         ? `through "${existing[0].name}"`
         : `as "${existing[0].name}"`;
-    return { action: 'keep', target, reason: `already connected ${via}` };
+    return {
+      action: 'keep',
+      target,
+      reason: `already connected ${via}`,
+      connectedAs: existing[0].name,
+    };
   }
 
   if (options.gateway !== 'none') {
@@ -151,3 +168,60 @@ export function describeChange(change: EditorChange): string {
 export const editorNames = (states: EditorState[]) => [
   ...new Set(states.map((s) => s.editor)),
 ];
+
+/**
+ * The server name Claude Code's /tls:* commands must call tools by: the
+ * gateway's name when one fronts the toolbox. Null when Claude Code is not
+ * being set up, or its config can't be read.
+ */
+export function commandServer(changes: EditorChange[]): string | null {
+  const change = changes.find((c) => c.target.editor === 'claude-code');
+  if (!change) return null;
+  if (change.action === 'add') return change.name;
+  if (change.action === 'behind-gateway') return change.gateway;
+  return change.connectedAs ?? null;
+}
+
+export type RtkPlan =
+  | { action: 'none' }
+  | { action: 'install'; dir: string; reason: 'missing' | 'outdated' }
+  | { action: 'managed'; binary: string };
+
+/**
+ * Installs RTK when it is missing or older than the tested release, into the
+ * folder of the copy people already run (so the new one is the one found).
+ * A copy a package manager owns is left to that package manager.
+ */
+export function planRtk({
+  binary,
+  version,
+  pinned,
+  managed,
+  defaultDir,
+}: {
+  binary: string | null;
+  version: string | null;
+  pinned: string;
+  managed: boolean;
+  defaultDir: string;
+}): RtkPlan {
+  if (binary && version && versionAtLeast(version, pinned))
+    return { action: 'none' };
+  if (binary && managed) return { action: 'managed', binary };
+  if (!binary) return { action: 'install', dir: defaultDir, reason: 'missing' };
+  return { action: 'install', dir: path.dirname(binary), reason: 'outdated' };
+}
+
+export function describeRtk(plan: RtkPlan, pinned: string): string | null {
+  const release = pinned.replace(/^v/, '');
+  switch (plan.action) {
+    case 'none':
+      return null;
+    case 'managed':
+      return `RTK: yours is older than ${release} and managed by Homebrew; update it with: brew upgrade rtk`;
+    case 'install':
+      return plan.reason === 'missing'
+        ? `RTK: install ${release} into ${plan.dir} (it cuts the tokens your assistant spends reading command output)`
+        : `RTK: update to ${release} in ${plan.dir}`;
+  }
+}

@@ -81,14 +81,8 @@ export function removeContinueServers(text, matches) {
   return { text: doc.toString(), removed };
 }
 
-/**
- * Writes `server` into a Continue config file, creating it if needed. Keeps a
- * .bak of the previous file and swaps the new one in atomically, so a failure
- * leaves the original untouched.
- */
-export function writeContinueServer({ file, server }) {
-  const before = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
-  const after = setContinueServer(before, server);
+/** Keeps a .bak of the previous file and swaps the new text in atomically. */
+function replaceFile(file, before, after) {
   if (after === before) return false;
   fs.mkdirSync(path.dirname(file), { recursive: true });
   if (before) fs.copyFileSync(file, `${file}.bak`);
@@ -96,4 +90,18 @@ export function writeContinueServer({ file, server }) {
   fs.writeFileSync(tmp, after);
   fs.renameSync(tmp, file);
   return true;
+}
+
+/** Writes `server` into a Continue config file, creating it if needed. */
+export function writeContinueServer({ file, server }) {
+  const before = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
+  return replaceFile(file, before, setContinueServer(before, server));
+}
+
+/** Removes the server called `name` from a Continue config file. */
+export function removeContinueServerFromFile({ file, name }) {
+  if (!fs.existsSync(file)) return false;
+  const before = fs.readFileSync(file, 'utf8');
+  const { text } = removeContinueServers(before, (s) => s.name === name);
+  return replaceFile(file, before, text);
 }

@@ -18,11 +18,25 @@ It finds the editors on this computer (Claude Code, Claude Desktop, Cursor,
 Continue, Cline, Gemini), shows what it will change, and asks once. It adds the
 toolbox to each editor, or puts it behind a gateway such as slm-gate if you
 already use one, so no tool is listed twice. It never replaces a connection you
-already have. Then it creates your settings file and, if you like, asks for a
-database address and API keys, which are not shown as you type.
+already have. It also installs:
+
+- Claude Code's `/tls:*` slash commands;
+- Cursor skills and Continue prompts;
+- the workflow files, into the project you run it from (Antigravity and Gemini
+  read them there);
+- RTK, which cuts the tokens your assistant spends reading command output. It is
+  a checked download of a tested version, turned on for Claude Code.
+
+Then it creates your settings file and, if you like, asks for a database address
+and API keys, which are not shown as you type.
 
 `--dry-run` only shows the plan. `--yes` accepts the recommended choices without
-questions, for AI assistants and scripts. Restart your editors afterwards.
+questions, for AI assistants and scripts. `--no-rtk` and `--no-project` skip
+those parts. Restart your editors afterwards. Run `init` again after an upgrade
+to refresh the copied files; any you edited are left alone.
+
+To remove it all: `npx -y tech-lead-stack@1 uninstall` shows what it would
+remove, and `--apply` removes it. Your settings file and RTK are kept.
 
 ## Connect it by hand
 

@@ -4,21 +4,19 @@
  * once before changing anything; `--yes` accepts the recommended choices
  * (for AI assistants and scripts), `--dry-run` only shows the plan.
  */
-import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import readline from 'node:readline/promises';
 import { Writable } from 'node:stream';
-import { promisify } from 'node:util';
 
-import { writeContinueServer } from '../install/continue-config.mjs';
-import { updateJsonFile, withServer } from '../install/mcp-json.mjs';
-import { globalTargets } from '../install/targets.mjs';
-import { readEditorConfig } from './editor-config.js';
+import { readManifest, writeManifest } from '../install/copies.mjs';
+import { repoRoot } from '../mcp-server/config.js';
+import { readEditors } from './editor-config.js';
+import { serverIn, setServer } from './editor-write.js';
+import { planSurfaces, projectDirOf } from './init-surfaces.js';
 import {
   type EditorChange,
-  type EditorState,
   type ServerSpec,
   describeChange,
   editorNames,
@@ -31,7 +29,6 @@ import {
   withSettings,
 } from './settings-file.js';
 
-const run = promisify(execFile);
 const SETTINGS_FILE = path.join(os.homedir(), '.tech-lead-stack', '.env');
 
 interface InitOptions {
@@ -39,6 +36,8 @@ interface InitOptions {
   dryRun: boolean;
   editors: string[] | 'auto';
   gateway: string;
+  rtk: boolean;
+  project: boolean;
 }
 
 function parseArgs(args: string[]): InitOptions {
@@ -53,22 +52,9 @@ function parseArgs(args: string[]): InitOptions {
     editors:
       ide && ide !== 'auto' ? ide.split(',').map((s) => s.trim()) : 'auto',
     gateway: value('--gateway') ?? 'auto',
+    rtk: !args.includes('--no-rtk'),
+    project: !args.includes('--no-project'),
   };
-}
-
-function readEditors(): EditorState[] {
-  return globalTargets
-    .filter((t) => t.editor)
-    .map((t) => ({
-      id: t.id,
-      editor: t.editor as string,
-      label: t.label.replace(' MCP registration', ''),
-      path: t.path,
-      kind: t.kind,
-      installed:
-        fs.existsSync(t.installedIf as string) || fs.existsSync(t.path),
-      config: readEditorConfig(t),
-    }));
 }
 
 /** Terminal questions. Secret answers are not shown while typed. */
@@ -98,83 +84,23 @@ function createPrompt() {
   };
 }
 
-async function hasClaudeCli(): Promise<boolean> {
-  try {
-    await run('claude', ['--version'], { timeout: 10_000 });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Claude Code rewrites ~/.claude.json while it runs, so its own CLI makes the
- * change when it is installed (as install.sh does); otherwise the file is
- * edited directly.
- */
-async function setClaudeCodeServer({
-  name,
-  server,
-  replace,
-}: {
-  name: string;
-  server: object;
-  replace: boolean;
-}) {
-  if (await hasClaudeCli()) {
-    if (replace)
-      await run('claude', ['mcp', 'remove', name, '--scope', 'user']);
-    await run('claude', [
-      'mcp',
-      'add-json',
-      name,
-      JSON.stringify(server),
-      '--scope',
-      'user',
-    ]);
-    return;
-  }
-  const file = globalTargets.find((t) => t.editor === 'claude-code')
-    ?.path as string;
-  updateJsonFile(file, (config: object) => withServer(config, name, server));
-}
-
-function serverIn(target: EditorState, name: string): Record<string, unknown> {
-  const config = target.config.state === 'read' ? target.config.config : {};
-  const servers = (
-    config as { mcpServers?: Record<string, Record<string, unknown>> }
-  ).mcpServers;
-  return { ...(servers?.[name] ?? {}) };
-}
-
 async function applyChange(change: EditorChange): Promise<void> {
   const { target } = change;
   if (change.action === 'keep') return;
-
-  let name: string;
-  let server: Record<string, unknown>;
   if (change.action === 'add') {
-    name = change.name;
-    server = { ...change.server };
-  } else {
-    name = change.gateway;
-    const gateway = serverIn(target, name);
-    server = { ...gateway, env: { ...(gateway.env as object), ...change.env } };
-  }
-
-  if (target.kind === 'yaml-entry') {
-    writeContinueServer({ file: target.path, server: { name, ...server } });
-  } else if (target.editor === 'claude-code') {
-    await setClaudeCodeServer({
-      name,
-      server,
-      replace: change.action === 'behind-gateway',
+    await setServer({
+      target,
+      name: change.name,
+      server: { ...change.server },
     });
-  } else {
-    updateJsonFile(target.path, (config: object) =>
-      withServer(config, name, server)
-    );
+    return;
   }
+  const gateway = serverIn(target, change.gateway);
+  await setServer({
+    target,
+    name: change.gateway,
+    server: { ...gateway, env: { ...(gateway.env as object), ...change.env } },
+  });
 }
 
 async function askSettings(prompt: ReturnType<typeof createPrompt>) {
@@ -247,6 +173,14 @@ export async function runInit({
   const changes = planEditors(editors, { ...options, server });
   const needsSettingsFile = !fs.existsSync(SETTINGS_FILE);
   const toApply = changes.filter((c) => c.action !== 'keep');
+  const manifest = readManifest();
+  const { steps, notes } = planSurfaces({
+    changes,
+    root: repoRoot,
+    projectDir: options.project ? projectDirOf(process.cwd()) : null,
+    manifest,
+    rtk: options.rtk,
+  });
 
   console.log(`Tech-Lead Stack setup (v${version})\n`);
   if (changes.length === 0) {
@@ -255,10 +189,12 @@ export async function runInit({
     );
   }
   for (const change of changes) console.log(`  • ${describeChange(change)}`);
+  for (const step of steps) console.log(`  • ${step.describe}`);
   if (needsSettingsFile)
     console.log(
       `  • Create your settings file: ${SETTINGS_FILE} (private to you)`
     );
+  for (const note of notes) console.log(`  · ${note}`);
 
   if (options.dryRun) {
     console.log('\nDry run: nothing was changed.');
@@ -274,7 +210,10 @@ export async function runInit({
   }
   const prompt = interactive ? createPrompt() : null;
   try {
-    if (prompt && (toApply.length > 0 || needsSettingsFile)) {
+    if (
+      prompt &&
+      (toApply.length > 0 || steps.length > 0 || needsSettingsFile)
+    ) {
       const answer = await prompt.ask('\nMake these changes? [Y/n]');
       if (/^n/i.test(answer)) {
         console.log('Nothing was changed.');
@@ -292,6 +231,15 @@ export async function runInit({
         console.log(`  ✗ ${change.target.label}: ${(err as Error).message}`);
       }
     }
+    for (const step of steps) {
+      try {
+        console.log(`  ✓ ${step.label}: ${await step.apply()}`);
+      } catch (err) {
+        failed += 1;
+        console.log(`  ✗ ${step.describe}: ${(err as Error).message}`);
+      }
+    }
+    if (steps.length > 0) writeManifest({ ...manifest, version });
     if (needsSettingsFile) {
       createSettingsFile();
       console.log(`  ✓ Settings file: ${SETTINGS_FILE}`);
@@ -303,14 +251,14 @@ export async function runInit({
       await askSettings(prompt);
     }
 
-    if (toApply.length > 0)
+    if (toApply.length > 0 || steps.length > 0)
       console.log(
         '\nRestart your editors (or reconnect MCP servers) to pick up the change.'
       );
     console.log('\nYour setup now:\n');
     const { collectChecks } = await import('./doctor.js');
     const { formatReport } = await import('./doctor-checks.js');
-    console.log(formatReport(version, await collectChecks()));
+    console.log(formatReport(version, await collectChecks(version)));
     return failed > 0 ? 1 : 0;
   } finally {
     prompt?.close();
