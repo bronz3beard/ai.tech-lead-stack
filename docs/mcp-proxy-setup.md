@@ -219,6 +219,32 @@ grep -rho "mcp__[a-z0-9-]*__" ~/.claude/commands/tls/ | sort | uniq -c
 #   /mcp   →  slm-gate   connected
 ```
 
+### Without a clone: start the stack with npx
+
+Already using slm-gate and only want the tools? Skip Steps 1 and 3. The
+published `tech-lead-stack` package starts the server straight from npm, so
+nothing needs cloning or building. You need Node.js 22.5 or later (`node -v`).
+
+In your existing `slm-gate` entry, set these two values in `env`:
+
+```json
+"TLS_ADAPTER": "on",
+"DOWNSTREAM_MCP": "{\"command\":\"npx\",\"args\":[\"-y\",\"tech-lead-stack@1\"]}"
+```
+
+Features that need API keys read them from the same `env` block, because the
+gateway passes its environment down (§1). For example, `ANTHROPIC_API_KEY` and
+`GEMINI_API_KEY` together turn on `reflexion_loop`.
+
+Restart the client (Step 4), then ask it to list the tech-lead-stack skills. The
+tools appear as `mcp__slm-gate__<tool>`.
+
+What this does **not** give you yet: the `/tls:*` slash commands, Cursor skills,
+workflows and RTK. Those come from the clone and Step 3. Until the slm-gate
+doctor fix is released, `slm-gate doctor` may report the `DOWNSTREAM_MCP` target
+file as missing: it reads `-y` as a file path. The stack still starts; check it
+with the skills request above.
+
 ---
 
 ## 5. Overriding the detection

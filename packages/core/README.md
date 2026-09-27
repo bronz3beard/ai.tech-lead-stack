@@ -33,6 +33,21 @@ Add this to the client's MCP server configuration:
 
 Then ask your agent to list the available skills.
 
+### Behind a gateway such as slm-gate
+
+If your editor already talks to a gateway, let the gateway start this server
+instead of registering it a second time. For slm-gate, add these two values to
+the `env` block of your existing `slm-gate` entry, then restart your editor:
+
+```json
+"TLS_ADAPTER": "on",
+"DOWNSTREAM_MCP": "{\"command\":\"npx\",\"args\":[\"-y\",\"tech-lead-stack@1\"]}"
+```
+
+The tools then appear under the gateway's name, such as
+`mcp__slm-gate__list_skills`. See
+[Running the stack behind an upstream MCP proxy](https://github.com/bronz3beard/ai.tech-lead-stack/blob/main/docs/mcp-proxy-setup.md#without-a-clone-start-the-stack-with-npx).
+
 Tools that call models themselves, such as the reflexion loops, need the
 matching API keys (for example `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`) in the
 server's environment. See

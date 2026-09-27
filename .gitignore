@@ -86,3 +86,4 @@ packages/*/dist/
 
 # Local-only doc — untracked going forward, must never be re-committed
 /docs/IMPLEMENTATION_PLAYBOOK.md
+/docs/openssf-best-practices.md

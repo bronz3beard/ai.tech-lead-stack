@@ -6,6 +6,7 @@
 [![CodeQL](https://github.com/bronz3beard/ai.tech-lead-stack/actions/workflows/codeql.yml/badge.svg)](https://github.com/bronz3beard/ai.tech-lead-stack/actions/workflows/codeql.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/bronz3beard/ai.tech-lead-stack/badge)](https://scorecard.dev/viewer/?uri=github.com/bronz3beard/ai.tech-lead-stack)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14956/badge)](https://www.bestpractices.dev/projects/14956)
+[![OpenSSF Baseline](https://www.bestpractices.dev/projects/14956/baseline)](https://www.bestpractices.dev/projects/14956)
 [![License: MIT](https://img.shields.io/github/license/bronz3beard/ai.tech-lead-stack)](LICENSE)
 [![Node](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fbronz3beard%2Fai.tech-lead-stack%2Fmain%2Fpackage.json&query=%24.engines.node&label=node&logo=nodedotjs&logoColor=white&color=339933)](package.json)
 [![Agent surfaces](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fbronz3beard%2Fai.tech-lead-stack%2Fmain%2F.github%2Fbadges%2Fagent-surfaces.json)](docs/skills.md)
@@ -535,6 +536,9 @@ in Claude Code:
 ```bash
 claude mcp add tech-lead-stack -- npx -y tech-lead-stack
 ```
+
+Already using a gateway such as slm-gate? Let it start the server instead:
+[Without a clone: start the stack with npx](docs/mcp-proxy-setup.md#without-a-clone-start-the-stack-with-npx).
 
 For the full stack (IDE commands, project linking, the dashboard), clone this
 repo and link it globally for easy access:

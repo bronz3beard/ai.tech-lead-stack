@@ -27,7 +27,7 @@ project**. Both are in your home directory, not in your app repository:
 ## Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/bronz3beard/tech-lead-stack.git
+git clone https://github.com/bronz3beard/ai.tech-lead-stack.git tech-lead-stack
 cd tech-lead-stack
 ```
 

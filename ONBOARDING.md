@@ -94,7 +94,7 @@ want to work in. Replace the path with wherever you cloned `tech-lead-stack`:
 
 ```bash
 # From your project directory
-git clone https://github.com/bronz3beard/tech-lead-stack.git ~/tech-lead-stack
+git clone https://github.com/bronz3beard/ai.tech-lead-stack.git ~/tech-lead-stack
 ~/tech-lead-stack/install.sh --link . --ide claude-code
 ```
 
@@ -119,10 +119,13 @@ the GitHub CLI auth check:
 /path/to/tech-lead-stack/install.sh --link . --ide claude-code --ide-only
 ```
 
-Running the stack alongside another gate (such as `slm-gate`)? Pass
-`--mcp-name <name>` so the two register separately and neither shadows the
-other. See the [Claude Code Setup](docs/editors/claude-code.md#claude-code-setup) section for the
-full reference, including exactly which files are written outside your project.
+Running the stack behind a gateway (such as `slm-gate`)? Register the gateway
+first, then run the installer: it detects the gateway and names the commands
+after it, so you do not need `--mcp-name`. See
+[Running the stack behind an upstream MCP proxy](docs/mcp-proxy-setup.md), and
+the [Claude Code Setup](docs/editors/claude-code.md#claude-code-setup) section
+for the full reference, including exactly which files are written outside your
+project.
 
 #### Cline
 

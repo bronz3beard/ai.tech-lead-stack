@@ -6,7 +6,7 @@ Cline is MCP-only: there is no slash command picker, so skills arrive through
 the `get_skill` tool once the server is registered.
 
 ```bash
-git clone https://github.com/bronz3beard/tech-lead-stack.git ~/tech-lead-stack
+git clone https://github.com/bronz3beard/ai.tech-lead-stack.git ~/tech-lead-stack
 ~/tech-lead-stack/install.sh --link . --ide cline
 ```
 
