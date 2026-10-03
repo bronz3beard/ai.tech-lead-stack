@@ -123,6 +123,12 @@ a confirmation step. byo = your own Anthropic and Gemini API keys, no size limit
 Web app: runs on your own computer or wherever you choose to host it. Pages: /chat (ask questions; read-only, returns
 a plan and a prompt to paste into your app), /dashboard (usage metrics), /reflexion, /settings (API keys and which
 model does which job), /onboarding, /design-review.
+Web chat preview (optional, off by default, NOT needed for setup): NEXT_PUBLIC_CHAT_HTML_PREVIEW="true" adds a Preview
+button to web-page code in /chat, such as the charts /tls:show-it makes, so I can see the page instead of only its code.
+The page is shown in a locked box: it can't run programs, reach the internet, or see the rest of the web app. Bring it
+up only if I ask about the web app's chat or show-it. It goes in the .env at the top of the web app's repository folder
+(or the hosting service's settings), never in ~/.tech-lead-stack/.env, and the web app must be restarted or redeployed
+after any change. It is not a secret. Details: the "Optional: preview web pages in the chat" section of the web app guide.
 Usage metrics: every skill and tool use is recorded in the database named by DATABASE_URL. The web app's /dashboard
 reads the same database, so both must use the same one. Without DATABASE_URL nothing is recorded and everything else
 still works.
@@ -150,7 +156,8 @@ init options: `--yes`, `--dry-run`, `--ide`, `--gateway`, `--no-rtk`, `--no-proj
 uninstall options: `--apply`. cleanup.sh options: `--global`, `--apply`.
 App names for --ide: `claude-code`, `claude-desktop`, `cursor`, `continue`, `gemini`, `cline`.
 Settings: `DATABASE_URL`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY`, `OPENAI_API_KEY`,
-`LOCAL_MODEL_ENDPOINT`, `LOCAL_MODEL_NAME`, `LOCAL_MODEL_CLASS`, `DOWNSTREAM_MCP`, `TLS_ADAPTER`.
+`LOCAL_MODEL_ENDPOINT`, `LOCAL_MODEL_NAME`, `LOCAL_MODEL_CLASS`, `DOWNSTREAM_MCP`, `TLS_ADAPTER`,
+`NEXT_PUBLIC_CHAT_HTML_PREVIEW`.
 Toolbox tools: `list_skills`, `get_skills`, `get_skill`, `verify_mission_alignment`, `list_knowledge_items`,
 `read_knowledge_item`, `create_knowledge_item`, `approve_knowledge_item`, `plan_pipeline`, `reflexion_loop`,
 `reflexion_loop_sub_max`, `reflexion_loop_sub_pro`, `reflexion_resume`, `reflexion_status`, `repo_map`, `code_search`,

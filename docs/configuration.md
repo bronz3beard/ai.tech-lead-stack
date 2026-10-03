@@ -33,3 +33,14 @@ variables:
   - `large`: > 35B parameters (e.g., `qwen2.5-coder:72b`, `llama-3.1:70b`)
 - `REFLEXION_MAX_WALLCLOCK_MS`: (Optional) The maximum wall-clock time in
   milliseconds allowed for the Reflexion loop when running locally.
+
+## Web App Settings
+
+- `NEXT_PUBLIC_CHAT_HTML_PREVIEW`: (Optional, off unless set to `"true"`) Adds a
+  **Preview** button to web-page code in the web app's `/chat`, so you can see
+  the page instead of only its code. The page is shown in a locked box that
+  cannot run programs or reach the internet. Set it in the `.env` at the top of
+  the repository (or your host's settings), not in `~/.tech-lead-stack/.env`,
+  then restart or redeploy the web app. What it is, why it exists, and how to
+  turn it on and off:
+  [Preview web pages in the chat](web-app.md#optional-preview-web-pages-in-the-chat).

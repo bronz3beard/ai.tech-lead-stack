@@ -98,3 +98,99 @@ serverless host such as Vercel. Whichever you pick:
    ```
 
 Point every MCP server whose usage you want to see at the same `DATABASE_URL`.
+
+## Optional: preview web pages in the chat
+
+Setting: `NEXT_PUBLIC_CHAT_HTML_PREVIEW`. It is off unless you turn it on.
+
+### What it does
+
+Some answers in `/chat` contain a small web page, written as code. The
+[`show-it`](skills.md) skill does this when a picture explains something better
+than words: a bar chart comparing sizes, for example, or a diagram with labels.
+
+- **With the setting off** (the default), you see the code with a copy button,
+  the same as any other code in the chat. To see the page itself, you would copy
+  the code into a file and open it in your browser.
+- **With the setting on**, two buttons appear above that code: **Source** and
+  **Preview**. Source shows the code, and is what you see first. Preview shows
+  the page itself, right there in the chat.
+
+Diagrams written in mermaid already appear as pictures in the chat, with or
+without this setting. This setting only adds the Preview button to web-page
+code.
+
+### Why it exists
+
+`show-it` answers questions with pictures instead of paragraphs. In editors such
+as Claude Code or Cursor, it saves its web pages as files you can open. The web
+chat can't save files for you, so without a preview a web-page answer arrives as
+code you have to copy out before you can see what it shows. The preview removes
+that step.
+
+### Why it is off by default
+
+The page is written by an AI, so the web app does not trust it. Preview shows it
+inside a locked box:
+
+- **It cannot run programs.** No JavaScript runs, so the page cannot click,
+  type, open pop-ups, or change anything. It can only be looked at.
+- **It cannot reach the internet.** It cannot load images, fonts or anything
+  else from another website, so it cannot track you or send information
+  anywhere.
+- **It cannot see the rest of the web app.** It has no access to your login,
+  your other chats, or the page around it.
+
+These locks are tested. Even so, it is a new way of showing AI-written content,
+so you decide whether to turn it on. Turning it off brings back exactly the
+behaviour from before.
+
+### Turn it on, on your own computer
+
+1. Open the `.env` file at the top of the repository folder. This is the file
+   you made in [Run it on your own machine](#run-it-on-your-own-machine). It is
+   **not** `~/.tech-lead-stack/.env`; that file is for your coding apps, not for
+   the web app.
+2. Add this line, or remove the `#` in front of it if it is already there:
+
+   ```bash
+   NEXT_PUBLIC_CHAT_HTML_PREVIEW="true"
+   ```
+
+3. Restart the web app: stop it (press Ctrl+C where it is running), then start
+   it again:
+
+   ```bash
+   pnpm web:dev
+   ```
+
+4. To check it works, open `/chat` and ask for a visual web page, for example
+   `/show-it show a bar chart of the sizes of our five largest skills as an HTML page`.
+   When the code appears, click **Preview**.
+
+### Turn it on, on a hosting service
+
+Add `NEXT_PUBLIC_CHAT_HTML_PREVIEW` with the value `true` in your host's
+environment variable settings, the same place you put `DATABASE_URL`. Then
+**redeploy**. Saving the setting on its own does nothing until the app is built
+again; most hosts, including Vercel, rebuild when you redeploy.
+
+### Turn it off
+
+Delete the line, put a `#` in front of it, or change `true` to `false`. Then
+restart (on your own computer) or redeploy (on a hosting service).
+
+### Why the long name, and why the restart?
+
+The Preview button runs in your browser, not on the server. The web app is built
+with Next.js, and Next.js only lets a setting reach the browser when its name
+starts with `NEXT_PUBLIC_`. It copies the setting's value into the app at the
+moment the app starts or is built, which is why a change needs a restart or
+redeploy. Because the value ends up in the browser, settings with this prefix
+must never hold a secret. This one doesn't: it is just `true` or not.
+
+### Where it does not apply
+
+Only the web app's `/chat` page. It changes nothing in Claude Code, Cursor or
+any other coding app. There, `show-it` saves web pages as files in
+`.ai/output/visuals/` inside your project, and you open them in your browser.
