@@ -55,7 +55,7 @@ export class PipelineHandlers {
       });
 
       if (candidates.length > 0) {
-        const skills = candidates.map((c: any) => c.id).join(', ');
+        const skills = candidates.map((c: any) => c.name).join(', ');
         const flow = graph.artifactFlow?.find((f: any) =>
           f.emittedBy?.includes(phase)
         );

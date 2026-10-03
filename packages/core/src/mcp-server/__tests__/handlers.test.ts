@@ -151,7 +151,7 @@ describe('Handlers.handleReflexionLoop project model routing', () => {
         path: '/test.md'
       });
       mockFsService.loadGraph.mockResolvedValue({
-        nodes: [{ id: 'test-skill', phase: 'plan', kind: 'skill', domain: 'eng', targets: ['api'] }],
+        nodes: [{ name: 'test-skill', phase: 'plan', kind: 'skill', domain: 'eng', targets: ['api'] }],
         edges: [
           { from: 'test-skill', to: 'next-skill', type: 'suggests' },
           { from: 'test-skill', to: 'req-skill', type: 'requires' }
@@ -210,9 +210,9 @@ describe('Handlers.handleReflexionLoop project model routing', () => {
 
       mockFsService.loadGraph.mockResolvedValue({
         nodes: [
-          { id: 'spec-skill', phase: 'specify' },
-          { id: 'plan-skill', phase: 'plan' },
-          { id: 'build-skill', phase: 'build' }
+          { name: 'spec-skill', phase: 'specify' },
+          { name: 'plan-skill', phase: 'plan' },
+          { name: 'build-skill', phase: 'build' }
         ],
         edges: [],
         artifactFlow: [

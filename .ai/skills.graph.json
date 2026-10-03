@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "generatedAt": "2026-09-25T12:15:41.470Z",
+  "generatedAt": "2026-10-03T14:02:49.405Z",
   "nodes": [
     {
       "name": "accessibility-auditor",
@@ -482,7 +482,7 @@
         "api",
         "subscription"
       ],
-      "minModelClass": "small",
+      "minModelClass": "large",
       "consumes": [
         "spec"
       ],

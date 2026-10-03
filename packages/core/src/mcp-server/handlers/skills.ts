@@ -254,7 +254,7 @@ export class SkillHandlers {
       let fileContent = rawContent;
       const graph = await this.fsService.loadGraph();
       if (graph && graph.nodes) {
-        const node = graph.nodes.find((n: any) => n.id === resolvedName);
+        const node = graph.nodes.find((n: any) => n.name === resolvedName);
         if (node) {
           const requires = graph.edges
             ? graph.edges

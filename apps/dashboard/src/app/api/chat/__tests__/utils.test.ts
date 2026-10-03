@@ -1,4 +1,10 @@
-import { resolveGeminiApiKeys, isQuotaError, getErrorMessage } from '../utils';
+import { skillsService } from '@zenithfoundry/tech-lead-stack/skills';
+import {
+  resolveGeminiApiKeys,
+  isQuotaError,
+  getErrorMessage,
+  getChatTools,
+} from '../utils';
 
 describe('resolveGeminiApiKeys', () => {
   const originalEnv = process.env;
@@ -291,12 +297,11 @@ jest.mock('@zenithfoundry/tech-lead-stack/skills', () => ({
     getDynamicSkills: jest.fn().mockResolvedValue(new Map()),
     readSkill: jest.fn().mockResolvedValue(null),
     readFile: jest.fn().mockResolvedValue(''),
+    resolvePolicies: jest.fn().mockResolvedValue(''),
   },
 }));
 
 describe('getChatTools — inputSchema regression (Zod v4 + AI SDK v6)', () => {
-  const { getChatTools } = require('../utils') as typeof import('../utils');
-
   function getJsonSchema(t: Record<string, unknown>): Record<string, unknown> {
     // AI SDK v6: the key is inputSchema, not parameters
     return (t.inputSchema as any).jsonSchema as Record<string, unknown>;
@@ -341,5 +346,40 @@ describe('getChatTools — inputSchema regression (Zod v4 + AI SDK v6)', () => {
         );
       }
     }
+  });
+});
+
+describe('getChatTools — get_skill policy injection', () => {
+  const resolvePolicies = jest.mocked(skillsService.resolvePolicies);
+
+  function providerServing(content: string) {
+    return {
+      readSkill: jest.fn().mockResolvedValue({ content, path: '/skill.md' }),
+      readFile: jest.fn(),
+      getDynamicSkills: jest.fn(),
+      getSearchDirs: jest.fn(),
+    };
+  }
+
+  it('appends injected policies named in the skill frontmatter', async () => {
+    resolvePolicies.mockResolvedValueOnce('> four pillars text');
+    const tools = getChatTools(
+      providerServing('---\npolicies: [four-pillars]\n---\nSkill body')
+    );
+
+    const res = await (tools.get_skill as any).execute({ name: 'show-it' }, {});
+
+    expect(resolvePolicies).toHaveBeenCalledWith(['four-pillars']);
+    expect(res.content).toContain('Skill body');
+    expect(res.content).toContain('## Injected policies\n> four pillars text');
+  });
+
+  it('returns the skill content unchanged when frontmatter declares no policies', async () => {
+    const content = '---\nname: plain\n---\nSkill body';
+    const tools = getChatTools(providerServing(content));
+
+    const res = await (tools.get_skill as any).execute({ name: 'plain' }, {});
+
+    expect(res.content).toBe(content);
   });
 });

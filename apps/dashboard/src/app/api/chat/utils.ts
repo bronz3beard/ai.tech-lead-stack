@@ -1,4 +1,5 @@
 import { skillsService } from '@zenithfoundry/tech-lead-stack/skills';
+import { parseFrontmatter } from '@zenithfoundry/tech-lead-stack/skills/safe-matter';
 import { CodeProvider } from '@zenithfoundry/tech-lead-stack/skills/providers/base-provider';
 import { User } from '@prisma/client';
 import { jsonSchema, tool } from 'ai';
@@ -392,7 +393,18 @@ export function getChatTools(provider: CodeProvider = skillsService, integration
 
           if (!result)
             return { error: `Skill or workflow '${name}' not found.` };
-          return { content: result.content };
+
+          // Mirror MCP get_skill: append the policies named in frontmatter so
+          // web runs receive them too. Policies resolve from the stack's own
+          // .ai/policies whichever provider served the skill body.
+          const policies = parseFrontmatter(result.content).data?.policies;
+          const policyText = Array.isArray(policies)
+            ? await skillsService.resolvePolicies(policies)
+            : '';
+          if (!policyText) return { content: result.content };
+          return {
+            content: `${result.content}\n\n---\n## Injected policies\n${policyText}`,
+          };
         } catch (e: unknown) {
           return { error: `Lookup failed for ${name}: ${getErrorMessage(e)}` };
         }

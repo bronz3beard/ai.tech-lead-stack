@@ -429,20 +429,12 @@ object that stores the "How it works" and "Use Case" columns for the 19 existing
 public skills. These columns contain human-written descriptions that were in the
 old README table but are not represented in any frontmatter field.
 
-This was a pragmatic decision: moving this data into frontmatter would have
-required changing every skill's frontmatter significantly and was out of scope
-for this PR. As a consequence, **adding a new public skill requires one
-additional step**: add the skill's row to the `originalRows` object in
-`generate-skill-registry.ts` with its "How it works" and "Use Case" text.
-
-If you do not do this, the generated README row will show `-` in those two
-columns. The skill will still appear correctly in the manifest and the Modes
-column will be correct — only the README documentation columns will be
-incomplete.
-
-A future improvement would be to add `how_it_works` and `use_case` fields to the
-skill frontmatter schema, removing the need for `originalRows` entirely. This
-would be a non-breaking additive change to the frontmatter contract.
+**Resolved since:** the frontmatter schema now has optional `how:` and
+`useCase:` fields, and the generator prefers them, falling back to
+`originalRows` only when a field is absent. New public skills set both fields in
+frontmatter (see step 2 below) and never touch `originalRows`. If either field
+is missing, the generated README row shows `-` in that column; the manifest and
+Modes column are unaffected.
 
 ---
 
@@ -459,6 +451,8 @@ would be a non-breaking additive change to the frontmatter contract.
    cost: ~N tokens # estimate: count the approximate tokens in the skill body
    modes: [read-only] # add write if it edits files; add mcp if it calls MCP tools
    surface: public # or internal if it is support infrastructure
+   how: One sentence for the README "How it works" column. # public skills
+   useCase: One sentence for the README "Use Case" column. # public skills
    ---
    ```
 
@@ -471,12 +465,7 @@ would be a non-breaking additive change to the frontmatter contract.
    npm run generate:registry
    ```
 
-5. If the skill is `surface: public`, open `scripts/generate-skill-registry.ts`
-   and add a row to the `originalRows` object with the skill's name as the key
-   and an array of `[description, howItWorks, useCase]` as the value. Run
-   `npm run generate:registry` again after editing.
-
-6. Verify everything:
+5. Verify everything:
 
    ```bash
    npm run validate:skills
@@ -485,5 +474,5 @@ would be a non-breaking additive change to the frontmatter contract.
    This will catch missing fields, wrong formats, and any drift between the
    frontmatter and the committed manifest/skills table.
 
-7. Commit the skill file, the regenerated manifest, and the regenerated README
+6. Commit the skill file, the regenerated manifest, and the regenerated README
    table in one atomic commit.
