@@ -2,7 +2,7 @@
 
 [← Back to the README](../README.md)
 
-There are 51 workflows available across three domains. `--ide claude-code`
+There are 53 workflows available across three domains. `--ide claude-code`
 installs all three by default (narrow it with `--domains`). The Cursor and
 Continue adapters still cover `.agents/workflows/` only, so for those clients
 the `pm-` and `hr-` suites must be copy-pasted or registered manually.
@@ -33,6 +33,8 @@ the `pm-` and `hr-` suites must be copy-pasted or registered manually.
 | **reflexion-loop**                      | ✨ Special feature Requires API keys - run the two-model self-correcting plan loop        |
 | **regression-bug-fix**                  | Unified Feedback & Regression Fix                                                         |
 | **security-audit**                      | Security Audit                                                                            |
+| **show-it**                             | Explain the codebase visually with diagrams, terminal mocks, and static visuals.          |
+| **show-it-deep**                        | Interactive, explorable diagrams via archify (installed separately). IDE only.            |
 | **standup-daily-summary**               | Daily Standup Report                                                                      |
 | **strategy-target-evaluation**          | Product Strategy Audit                                                                    |
 | **style-logic-exporter**                | Export Tailwind v3.4 design tokens to Figma                                               |

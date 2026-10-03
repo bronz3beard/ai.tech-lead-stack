@@ -54,6 +54,8 @@ exports[`Skill Posture write-capable skills snapshots the write-capable set to a
   "reflexion-loop-local",
   "reflexion-loop-sub-max",
   "reflexion-loop-sub-pro",
+  "show-it",
+  "show-it-deep",
   "technical-debt-auditor",
   "vertical-slice-decomposer",
   "visual-verifier",

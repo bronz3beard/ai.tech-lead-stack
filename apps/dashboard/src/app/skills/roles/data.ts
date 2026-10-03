@@ -280,6 +280,36 @@ export const ALL_SKILLS: Array<Skill> = [
     roles: ['UNIVERSAL'],
   },
   {
+    id: 'show-it',
+    name: 'Show It (The Visual Explainer)',
+    description:
+      'Answers codebase questions with visuals instead of prose: mermaid diagrams, terminal mocks, annotated screenshots, or tiny static HTML. Picks the cheapest visual that carries the idea.',
+    useCases: [
+      'Seeing how a request flows through services as a sequence diagram before a planning session.',
+      'Understanding what a CLI command does from a terminal mock instead of reading its source.',
+      'Getting a labelled screenshot of a page that shows which component owns each region.',
+    ],
+    realWorldExample:
+      'A PM asks how checkout talks to payments and gets a ten-node mermaid diagram with file references, instead of three paragraphs of explanation.',
+    addedAt: '2026-10-03',
+    roles: ['UNIVERSAL'],
+  },
+  {
+    id: 'show-it-deep',
+    name: 'Show It Deep (The Interactive Diagram)',
+    description:
+      'Builds one interactive, explorable HTML diagram with archify, a free tool you install separately. Roughly 3-5x the token cost of Show It, and it needs a coding app that can run commands. If archify is missing it stops straight away and links its GitHub page.',
+    useCases: [
+      'Mapping a large service so the team can search it and trace paths between components.',
+      'Sharing a single HTML file that explains a system to someone without the codebase.',
+      'Exploring a data pipeline end to end, from sources through processing to consumers.',
+    ],
+    realWorldExample:
+      'A tech lead maps the whole MCP server, tools, handlers and storage, into one file the team opens in a browser to click through before a refactor.',
+    addedAt: '2026-10-03',
+    roles: ['DEVELOPER'],
+  },
+  {
     id: 'accessibility-auditor',
     name: 'Accessibility Auditor',
     description:

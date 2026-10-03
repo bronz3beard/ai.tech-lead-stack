@@ -19,8 +19,20 @@ import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import remarkGfm from 'remark-gfm';
+import HtmlPreview from './HtmlPreview';
 import MermaidRenderer from './MermaidRenderer';
 import StreamingIndicator from './StreamingIndicator';
+
+// Optional "Preview" button on ```html code blocks, so a web page in an answer
+// (for example a show-it chart) can be seen, not just read as code. The page is
+// AI-written, so HtmlPreview shows it in a locked-down iframe; see that file.
+// Off unless NEXT_PUBLIC_CHAT_HTML_PREVIEW is "true". Next.js copies the value
+// into the browser code when the app starts or is built, so changing it needs a
+// restart or redeploy, and this line must name the variable directly (Next.js
+// cannot copy process.env[someName]). Guide: docs/web-app.md, "Optional:
+// preview web pages in the chat".
+const HTML_PREVIEW_ENABLED =
+  process.env.NEXT_PUBLIC_CHAT_HTML_PREVIEW === 'true';
 
 // ---------------------------------------------------------------------------
 // Stream data types — mirrors the server-side event shapes
@@ -361,6 +373,21 @@ export default function ChatMessageList({
 
                                 if (!inline && language === 'mermaid') {
                                   return <MermaidRenderer chart={content} />;
+                                }
+
+                                if (
+                                  !inline &&
+                                  language === 'html' &&
+                                  HTML_PREVIEW_ENABLED
+                                ) {
+                                  return (
+                                    <HtmlPreview html={content}>
+                                      <CodeBlock
+                                        language={language}
+                                        value={content}
+                                      />
+                                    </HtmlPreview>
+                                  );
                                 }
 
                                 if (!inline && match) {

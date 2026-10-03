@@ -1,6 +1,7 @@
 export const WORKFLOW_ROLES: Record<string, string[]> = {
   // Global/All Roles
   "ask": ["DEVELOPER", "PM", "DESIGNER", "QA", "ADMIN"],
+  "show-it": ["DEVELOPER", "PM", "DESIGNER", "QA", "ADMIN"],
 
   // Shared workflows
   "accessibility-audit": ["DEVELOPER", "DESIGNER", "QA"],
@@ -76,6 +77,7 @@ export const WORKFLOW_DESCRIPTIONS: Record<string, string> = {
   "pr-design-review-init": "Start an AI-powered design review from an existing GitHub PR URL",
   "regression-bug-fix": "Remediation engine for QA and regression feedback",
   "security-audit": "Scan agent configurations for security vulnerabilities",
+  "show-it": "Explain the codebase visually with diagrams, terminal mocks, and static visuals",
   "solutioning-facilitator": "Facilitate a live, multi-role solutioning session with a running Solution Ledger of options, concerns, and decisions",
   "standup-daily-summary": "Analyze git activity for daily reports",
   "strategy-target-evaluation": "High-density product strategy and roadmap audit",
