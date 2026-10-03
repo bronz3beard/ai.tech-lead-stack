@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-10-03T15:23:03.174Z",
+  "generatedAt": "2026-10-03T17:01:10.461Z",
   "entries": [
     {
       "name": "accessibility-audit",
@@ -1053,12 +1053,33 @@
       "fetchName": "show-it",
       "skill": "show-it",
       "cost": "~2400 tokens",
-      "costTokens": 2408,
+      "costTokens": 2422,
       "domain": "eng",
       "domainKey": "eng",
       "description": "Explain the codebase visually with diagrams, terminal mocks, annotated screenshots, or tiny static HTML.",
       "skillPath": ".ai/skills/show-it.md",
       "workflowPath": ".agents/workflows/show-it.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "show-it-deep",
+      "fetchName": "show-it-deep",
+      "skill": "show-it-deep",
+      "cost": "~2650 tokens",
+      "costTokens": 2669,
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Interactive, explorable diagrams of the codebase using archify (optional, installed separately). Higher token cost; IDE only.",
+      "skillPath": ".ai/skills/show-it-deep.md",
+      "workflowPath": ".agents/workflows/show-it-deep.md",
       "surface": "public",
       "modes": [
         "read-only",

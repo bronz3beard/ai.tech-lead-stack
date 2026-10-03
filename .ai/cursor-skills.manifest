@@ -31,6 +31,7 @@ reflexion-loop-sub-pro|.ai/skills/reflexion-loop-sub-pro.md
 regression-bug-fix|.ai/skills/regression-bug-fix.md
 security-audit|.ai/skills/security-audit.md
 show-it|.ai/skills/show-it.md
+show-it-deep|.ai/skills/show-it-deep.md
 solutioning-facilitator|.ai/skills/solutioning-facilitator.md
 style-logic-exporter|.ai/skills/style-logic-exporter.md
 technical-debt-auditor|.ai/skills/technical-debt-auditor.md
@@ -66,6 +67,7 @@ workflow-reflexion-loop-sub-pro|.agents/workflows/reflexion-loop-sub-pro.md
 workflow-reflexion-loop|.agents/workflows/reflexion-loop.md
 workflow-regression-bug-fix|.agents/workflows/regression-bug-fix.md
 workflow-security-audit|.agents/workflows/security-audit.md
+workflow-show-it-deep|.agents/workflows/show-it-deep.md
 workflow-show-it|.agents/workflows/show-it.md
 workflow-standup-daily-summary|.agents/workflows/standup-daily-summary.md
 workflow-strategy-target-evaluation|.agents/workflows/strategy-target-evaluation.md

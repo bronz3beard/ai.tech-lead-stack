@@ -24,7 +24,7 @@ targets: [local, api, subscription]
 minModelClass: small
 consumes: [intent-brief]
 emits: [intent-brief]
-suggests: [ask, feature-design-assistant]
+suggests: [ask, feature-design-assistant, show-it-deep]
 policies:
   - user-sovereignty
   - diagnosis-first
@@ -108,7 +108,7 @@ Choose the first row that fits the idea **and** the capabilities.
 | UI region, no browser available     | ASCII wireframe      | nothing            | ≤ 30 lines, fenced `text`       |
 | Numbers, comparisons, layers        | Static HTML          | write              | ≤ 6 KB file                     |
 | "What is this part of the UI?"      | Annotated screenshot | write+exec+browser | ≤ 8 callouts                    |
-| Rich interactive architecture       | Best mermaid + note  | nothing            | suggest a heavier tool, see end |
+| Rich interactive architecture       | Best mermaid + note  | nothing            | suggest `show-it-deep`, see end |
 
 Without write capability, render numbers as a markdown table or a mermaid
 `xychart-beta`/`pie`, and return HTML as a fenced `html` block for the user to
@@ -179,10 +179,10 @@ Structure every answer as:
 
 ## Heavier Visuals
 
-For rich, interactive architecture diagrams a dedicated tool may serve better,
-at a much higher token cost. Deliver the best mermaid version first, then name
-the option (for example archify: `npx skills add tt-a1i/archify`). Never install
-it yourself.
+For rich, interactive diagrams (search, path tracing, export), deliver the best
+mermaid version first, then mention the `show-it-deep` skill: it builds an
+explorable HTML diagram with archify, a tool the user installs separately, at
+roughly 3-5x the token cost. Never install anything yourself.
 
 ## Operational Constraints
 

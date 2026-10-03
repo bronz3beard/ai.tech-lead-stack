@@ -511,6 +511,7 @@ flowchart LR
 | **Full feature loop (Sandbox)**   | `/feature-orchestrator` | End-to-end implementation from idea.         |
 | **Asking codebase questions**     | `/ask`                  | High-density technical advice.               |
 | **Seeing how the code works**     | `/show-it`              | Cheapest visual that carries the idea.       |
+| **Exploring a big system**        | `/show-it-deep`         | Interactive diagram via archify (opt-in).    |
 
 ## Which tier am I on?
 
@@ -706,15 +707,16 @@ bash /path/to/tech-lead-stack/scripts/cleanup.sh .
 
 **Reference**
 
-| Document                                | What it covers                                                                                        |
-| :-------------------------------------- | :---------------------------------------------------------------------------------------------------- |
-| [Available skills](docs/skills.md)      | Every skill by lifecycle phase, with its estimated context footprint. Generated from the skill files. |
-| [Workflow catalogue](docs/workflows.md) | All engineering, product management and HR workflows.                                                 |
-| [The web app](docs/web-app.md)          | The hosted dashboard and its routes.                                                                  |
-| [Methodology](docs/methodology.md)      | The four pillars, skill handoffs, policies, execution targets, analytics and the Reflexion loop.      |
-| [Architecture](docs/architecture.md)    | How RTK and the MCP server fit together, and how skills are discovered.                               |
-| [CI/CD](docs/ci.md)                     | What CI validates, and a fix for the "profile locked" browser error.                                  |
-| [Resources](docs/resources.md)          | Methodology sources, tooling and editor documentation.                                                |
+| Document                                           | What it covers                                                                                        |
+| :------------------------------------------------- | :---------------------------------------------------------------------------------------------------- |
+| [Available skills](docs/skills.md)                 | Every skill by lifecycle phase, with its estimated context footprint. Generated from the skill files. |
+| [Workflow catalogue](docs/workflows.md)            | All engineering, product management and HR workflows.                                                 |
+| [The web app](docs/web-app.md)                     | The hosted dashboard and its routes.                                                                  |
+| [Visual explanations](docs/visual-explanations.md) | `show-it` and `show-it-deep`: which to use, what each costs, and setting up archify.                  |
+| [Methodology](docs/methodology.md)                 | The four pillars, skill handoffs, policies, execution targets, analytics and the Reflexion loop.      |
+| [Architecture](docs/architecture.md)               | How RTK and the MCP server fit together, and how skills are discovered.                               |
+| [CI/CD](docs/ci.md)                                | What CI validates, and a fix for the "profile locked" browser error.                                  |
+| [Resources](docs/resources.md)                     | Methodology sources, tooling and editor documentation.                                                |
 
 **Guides, designs and decisions**
 

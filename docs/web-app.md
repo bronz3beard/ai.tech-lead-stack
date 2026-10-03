@@ -106,8 +106,9 @@ Setting: `NEXT_PUBLIC_CHAT_HTML_PREVIEW`. It is off unless you turn it on.
 ### What it does
 
 Some answers in `/chat` contain a small web page, written as code. The
-[`show-it`](skills.md) skill does this when a picture explains something better
-than words: a bar chart comparing sizes, for example, or a diagram with labels.
+[`show-it`](visual-explanations.md) skill does this when a picture explains
+something better than words: a bar chart comparing sizes, for example, or a
+diagram with labels.
 
 - **With the setting off** (the default), you see the code with a copy button,
   the same as any other code in the chat. To see the page itself, you would copy

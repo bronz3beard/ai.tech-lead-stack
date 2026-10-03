@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "generatedAt": "2026-10-03T15:23:03.160Z",
+  "generatedAt": "2026-10-03T17:01:10.447Z",
   "nodes": [
     {
       "name": "accessibility-auditor",
@@ -751,6 +751,29 @@
       "cost": "~2400 tokens"
     },
     {
+      "name": "show-it-deep",
+      "phase": "intent",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "mid",
+      "consumes": [
+        "intent-brief"
+      ],
+      "emits": [
+        "intent-brief"
+      ],
+      "surface": "public",
+      "cost": "~2650 tokens"
+    },
+    {
       "name": "solutioning-facilitator",
       "phase": "specify",
       "kind": "skill",
@@ -1435,6 +1458,21 @@
     {
       "from": "show-it",
       "to": "feature-design-assistant",
+      "type": "suggests"
+    },
+    {
+      "from": "show-it",
+      "to": "show-it-deep",
+      "type": "suggests"
+    },
+    {
+      "from": "show-it-deep",
+      "to": "show-it",
+      "type": "suggests"
+    },
+    {
+      "from": "show-it-deep",
+      "to": "ask",
       "type": "suggests"
     },
     {
