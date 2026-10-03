@@ -27,7 +27,7 @@ ownership:
   drive: human-ai
   approve: human
 targets: [local, api, subscription]
-minModelClass: small
+minModelClass: large
 consumes: [spec]
 emits: [plan]
 requires: [pr-automator]
