@@ -69,6 +69,37 @@ Agent policies and constraints are centrally enforced across the entire AI lifec
 - **Hooks Layer (`.ai/hooks`)**: Ownership gates and capability boundaries are strictly enforced at MCP call-time and validated in CI via a dedicated hooks enforcer.
 - **Execution Targets**: You operate under one of four execution tiers (`local`, `sub-pro`, `sub-max`, `byo`). Each has specific latency, context, and capability budgets (e.g., `local` enforces single-lane pipeline).
 
+## Model & env freshness check
+
+Model ids go stale silently: a retired or mistyped id fails only at call time,
+and the fallback paths then hide it. Run this check when it is **due** (on or
+after *Next due* below) or **at once** when a call fails with a model error —
+`404`/`not_found` for a model, "model … not supported/deprecated/retired", a
+schema error naming a model id, or `API key not valid`. Keep it cheap: no model
+calls, no full-repo reads.
+
+1. Inventory — model names only, never print key values:
+   ```bash
+   grep -rnoE "['\"](claude|gemini|gpt)-[a-z0-9.-]+['\"]" packages/core/src packages/core/scripts apps/dashboard/src --include='*.ts' | grep -vE "test|__tests__"
+   grep -E '^[A-Z_]*MODEL[A-Z_]*=' .env
+   ```
+2. Check each id against the free model-list endpoints (Anthropic
+   `GET /v1/models`, Gemini `GET /v1beta/models`, OpenAI `GET /v1/models`) or,
+   without a key, the vendor's deprecations page.
+3. Replace only ids that are missing, deprecated or a generation behind. Keep
+   both `MODELS` copies (`packages/core/src/lib/ai/constants.ts`,
+   `apps/dashboard/src/app/api/chat/constants.ts`), `MODEL_CATALOG`, the routing
+   `LADDERS` and both pricing tables (`telemetry-service.ts`,
+   `reflexion/pricing.ts`) in step. Never drop a catalog id that saved
+   `User`/`Project` settings still use. Keep critic ≠ planner (model
+   separation). Claude 5.x ids need `@ai-sdk/anthropic` ≥ 4 (older versions
+   force tool use, which those models reject).
+4. Update the dates below in the same PR.
+
+Last verified: 2026-10-03 · Next due: 2027-01-03. Known upcoming: Gemini Flash
+prices double 2027-01-01; `claude-haiku-4-5` retires no sooner than 2026-10-15;
+`claude-opus-4-6` / `claude-sonnet-4-6` no sooner than February 2027.
+
 ## Git discipline
 
 Work only on the feature branch named in your task. Never merge, never touch
