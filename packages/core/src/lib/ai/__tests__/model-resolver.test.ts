@@ -90,7 +90,7 @@ describe('model-resolver', () => {
 
     const auditorRes = resolveModelWithSource('auditor', ctx);
     expect(auditorRes.source).toBe('user');
-    expect(auditorRes.id).toBe('gemini-3.6-flash'); // normalized from legacy
+    expect(auditorRes.id).toBe('gemini-3.8-flash'); // normalized from legacy
   });
 
   it("returns source='default' for all responsibilities when nothing is set", () => {

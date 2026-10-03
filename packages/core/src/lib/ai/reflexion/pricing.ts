@@ -17,8 +17,10 @@ export const PRICE_PER_MTOK: Record<
   }
 > = {
   [MODELS.GEMINI]: {
+    // Google's published rate from 2027-01-01 ($0.75 / $3.75 until then): budget
+    // caps should over- rather than under-estimate.
     inputUsdPerMTok: 1.5, // For prompts and input context
-    outputUsdPerMTok: 9.0, // For generated text
+    outputUsdPerMTok: 7.5, // For generated text
     cachedInputUsdPerMTok: 0.375, // TODO: verify with provider
     cacheWriteUsdPerMTok: 1.5, // TODO: verify with provider
   },

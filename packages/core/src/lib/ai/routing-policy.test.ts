@@ -9,13 +9,12 @@ describe('routing-policy', () => {
 
     it('returns null if at the top of the ladder', () => {
       expect(nextModelUp('claude-opus-4-6')).toBeNull();
-      expect(nextModelUp('gemini-3.1-pro')).toBeNull();
+      expect(nextModelUp('gemini-3.1-pro-preview')).toBeNull();
       expect(nextModelUp('gpt-5.4')).toBeNull();
     });
 
     it('returns the next model in the gemini ladder', () => {
-      expect(nextModelUp('gemini-3.6-flash')).toBe('gemini-3.1-pro-preview');
-      expect(nextModelUp('gemini-3.1-pro-preview')).toBe('gemini-3.1-pro');
+      expect(nextModelUp('gemini-3.8-flash')).toBe('gemini-3.1-pro-preview');
     });
 
     it('returns null for unknown models', () => {

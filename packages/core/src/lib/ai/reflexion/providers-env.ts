@@ -428,7 +428,7 @@ export function runnerFromEnv(
   let fallbackPlannerId: string | undefined;
   const candidatePlanners = [
     { id: 'claude-haiku-4-5', slot: 'anthropic' as const },
-    { id: 'gemini-3.6-flash', slot: 'gemini' as const },
+    { id: 'gemini-3.8-flash', slot: 'gemini' as const },
     { id: 'gpt-5.4', slot: 'openai' as const }
   ];
 

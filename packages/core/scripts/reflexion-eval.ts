@@ -2,9 +2,11 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateObject } from 'ai';
 import { execSync } from 'child_process';
+import * as dotenv from 'dotenv';
 import fs from 'fs';
 import matter from 'gray-matter';
 import path from 'path';
+import { MODELS } from '../src/lib/ai/constants';
 import {
   runReflexion,
   type ReflexionRunner,
@@ -29,6 +31,10 @@ const currentDir =
       ? path.dirname(currentFilePath)
       : process.cwd();
 
+// Local runs read this stack's .env (REFLEXION_CRITIC_MODEL, MODEL_*, keys).
+// dotenv never overrides a variable already set, and CI has no .env file.
+dotenv.config({ path: path.join(findRepoRoot(currentDir), '.env'), quiet: true });
+
 // This is the critic side of runnerFromEnv, minimally exported, falling back to Gemini if Claude fails
 function buildCriticRunner() {
   const claudeKey = process.env.ANTHROPIC_API_KEY?.trim();
@@ -44,9 +50,8 @@ function buildCriticRunner() {
     : null;
 
   // Default models
-  const criticModelClaude =
-    process.env.REFLEXION_CRITIC_MODEL || 'claude-3-5-sonnet-20241022';
-  const criticModelGemini = 'gemini-3.1-pro-preview';
+  const criticModelClaude = process.env.REFLEXION_CRITIC_MODEL || MODELS.CLAUDE;
+  const criticModelGemini = MODELS.GEMINI_FALLBACK_CRITIC;
 
   return {
     async critique(plan: string): Promise<Critique> {
@@ -450,8 +455,8 @@ async function main() {
       const origPlanner = process.env.MODEL_PLANNER;
       const origAuditor = process.env.MODEL_AUDITOR;
 
-      process.env.MODEL_PLANNER = 'claude-sonnet-4-6';
-      process.env.MODEL_AUDITOR = 'gemini-3.6-flash';
+      process.env.MODEL_PLANNER = MODELS.CLAUDE;
+      process.env.MODEL_AUDITOR = MODELS.GEMINI;
 
       try {
         const swappedRunner = runnerFromEnv();

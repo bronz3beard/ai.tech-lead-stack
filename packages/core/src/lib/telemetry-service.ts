@@ -10,8 +10,10 @@ const PRICING_MAP: Record<string, { input: number; output: number }> = {
   'claude-opus-4-6': { input: 5, output: 25 },
   'claude-sonnet-4-6': { input: 3, output: 15 },
   'claude-haiku-4-5': { input: 1, output: 5 },
-  'gemini-3.6-flash': { input: 0.75, output: 3.75 },
-  'gemini-3.1-pro': { input: 2, output: 12 },
+  'gemini-3.8-flash': { input: 0.75, output: 3.75 },
+  'gemini-3.7-flash': { input: 0.75, output: 3.75 },
+  'gemini-3.1-pro-preview': { input: 2, output: 12 },
+  'gemini-3.1-pro-preview-customtools': { input: 2, output: 12 },
 };
 const DEFAULT_PRICING = { input: 3, output: 15 };
 
@@ -180,8 +182,8 @@ export class TelemetryService {
     } else if (validatedModel !== 'unknown-model') {
       // Look up closest family rate before falling back
       const familyRates: Array<{ match: RegExp, rate: { input: number; output: number } }> = [
-        { match: /gemini-.*-flash/i, rate: PRICING_MAP['gemini-3.6-flash'] },
-        { match: /gemini-.*-pro/i, rate: PRICING_MAP['gemini-3.1-pro'] },
+        { match: /gemini-.*-flash/i, rate: PRICING_MAP['gemini-3.8-flash'] },
+        { match: /gemini-.*-pro/i, rate: PRICING_MAP['gemini-3.1-pro-preview'] },
         { match: /claude-.*-opus/i, rate: PRICING_MAP['claude-opus-4-6'] },
         { match: /claude-.*-sonnet/i, rate: PRICING_MAP['claude-sonnet-4-6'] },
         { match: /claude-.*-haiku/i, rate: PRICING_MAP['claude-haiku-4-5'] },
