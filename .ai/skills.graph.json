@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "generatedAt": "2026-10-03T14:02:49.405Z",
+  "generatedAt": "2026-10-03T15:23:03.160Z",
   "nodes": [
     {
       "name": "accessibility-auditor",
@@ -727,6 +727,30 @@
       "cost": "~900 tokens"
     },
     {
+      "name": "show-it",
+      "phase": "intent",
+      "kind": "skill",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [
+        "intent-brief"
+      ],
+      "emits": [
+        "intent-brief"
+      ],
+      "surface": "public",
+      "cost": "~2400 tokens"
+    },
+    {
       "name": "solutioning-facilitator",
       "phase": "specify",
       "kind": "skill",
@@ -1401,6 +1425,16 @@
     {
       "from": "security-audit",
       "to": "qa-handover-generator",
+      "type": "suggests"
+    },
+    {
+      "from": "show-it",
+      "to": "ask",
+      "type": "suggests"
+    },
+    {
+      "from": "show-it",
+      "to": "feature-design-assistant",
       "type": "suggests"
     },
     {

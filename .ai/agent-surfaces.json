@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-25T12:15:41.520Z",
+  "generatedAt": "2026-10-03T15:23:03.174Z",
   "entries": [
     {
       "name": "accessibility-audit",
@@ -1042,6 +1042,27 @@
       "surface": "public",
       "modes": [
         "read-only",
+        "mcp"
+      ],
+      "kind": "skill",
+      "mcpCallable": true,
+      "ideEligible": true
+    },
+    {
+      "name": "show-it",
+      "fetchName": "show-it",
+      "skill": "show-it",
+      "cost": "~2400 tokens",
+      "costTokens": 2408,
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Explain the codebase visually with diagrams, terminal mocks, annotated screenshots, or tiny static HTML.",
+      "skillPath": ".ai/skills/show-it.md",
+      "workflowPath": ".agents/workflows/show-it.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
         "mcp"
       ],
       "kind": "skill",

@@ -51,6 +51,7 @@ exports[`Workflow Posture write-capable workflows snapshots the write-capable se
   "reflexion-loop-sub-pro",
   "regression-bug-fix",
   "security-audit",
+  "show-it",
   "standup-daily-summary",
   "strategy-target-evaluation",
   "style-logic-exporter",
