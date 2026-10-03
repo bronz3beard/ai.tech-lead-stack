@@ -4,6 +4,21 @@ All notable changes to this project are recorded here. From 1.1.0 on,
 release-please writes each entry from the commit messages on `main` (see
 [docs/releasing.md](docs/releasing.md)); nobody edits this file by hand.
 
+## [1.1.1](https://github.com/bronz3beard/ai.tech-lead-stack/compare/v1.1.0...v1.1.1) (2026-10-03)
+
+
+### Fixed
+
+* **mcp:** append the [GRAPH] footer in get_skill by matching graph nodes on name ([ad203ea](https://github.com/bronz3beard/ai.tech-lead-stack/commit/ad203ea53cdaf2ca133676d5851d80c990377e5f))
+* **mcp:** print skill names in plan_pipeline instead of undefined ([ad203ea](https://github.com/bronz3beard/ai.tech-lead-stack/commit/ad203ea53cdaf2ca133676d5851d80c990377e5f))
+* **skills:** set planning-expert minModelClass to large per ADR 0003 ([ad203ea](https://github.com/bronz3beard/ai.tech-lead-stack/commit/ad203ea53cdaf2ca133676d5851d80c990377e5f))
+* **web:** inject frontmatter policies into /chat get_skill results ([ad203ea](https://github.com/bronz3beard/ai.tech-lead-stack/commit/ad203ea53cdaf2ca133676d5851d80c990377e5f))
+
+
+### Changed
+
+* **skills:** drop the originalRows step from skill-readiness ([ad203ea](https://github.com/bronz3beard/ai.tech-lead-stack/commit/ad203ea53cdaf2ca133676d5851d80c990377e5f))
+
 ## [1.1.0](https://github.com/bronz3beard/ai.tech-lead-stack/compare/v1.0.3...v1.1.0) (2026-09-27)
 
 
