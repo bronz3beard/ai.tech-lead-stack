@@ -4,6 +4,21 @@ All notable changes to this project are recorded here. From 1.1.0 on,
 release-please writes each entry from the commit messages on `main` (see
 [docs/releasing.md](docs/releasing.md)); nobody edits this file by hand.
 
+## [1.2.0](https://github.com/bronz3beard/ai.tech-lead-stack/compare/v1.1.1...v1.2.0) (2026-10-03)
+
+
+### Added
+
+* **chat:** sandboxed static-HTML preview behind NEXT_PUBLIC_CHAT_HTML_PREVIEW ([4add021](https://github.com/bronz3beard/ai.tech-lead-stack/commit/4add021e7098bf71cef26093fbf115c9a2445985))
+* **dashboard:** expose show-it in web chat for all roles ([4add021](https://github.com/bronz3beard/ai.tech-lead-stack/commit/4add021e7098bf71cef26093fbf115c9a2445985))
+* **skills:** add show-it visual explainer skill ([4add021](https://github.com/bronz3beard/ai.tech-lead-stack/commit/4add021e7098bf71cef26093fbf115c9a2445985))
+* **skills:** add show-it-deep interactive diagrams via archify, with an install guard ([4add021](https://github.com/bronz3beard/ai.tech-lead-stack/commit/4add021e7098bf71cef26093fbf115c9a2445985))
+
+
+### Changed
+
+* visual explanations guide, preview flag docs, and AI setup prompt facts ([4add021](https://github.com/bronz3beard/ai.tech-lead-stack/commit/4add021e7098bf71cef26093fbf115c9a2445985))
+
 ## [1.1.1](https://github.com/bronz3beard/ai.tech-lead-stack/compare/v1.1.0...v1.1.1) (2026-10-03)
 
 
