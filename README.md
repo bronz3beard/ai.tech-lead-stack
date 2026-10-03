@@ -510,6 +510,7 @@ flowchart LR
 | **Merging to main**               | `/pr-automator`         | Synthesized diffs with visual proof.         |
 | **Full feature loop (Sandbox)**   | `/feature-orchestrator` | End-to-end implementation from idea.         |
 | **Asking codebase questions**     | `/ask`                  | High-density technical advice.               |
+| **Seeing how the code works**     | `/show-it`              | Cheapest visual that carries the idea.       |
 
 ## Which tier am I on?
 

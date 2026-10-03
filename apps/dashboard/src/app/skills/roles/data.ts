@@ -280,6 +280,21 @@ export const ALL_SKILLS: Array<Skill> = [
     roles: ['UNIVERSAL'],
   },
   {
+    id: 'show-it',
+    name: 'Show It (The Visual Explainer)',
+    description:
+      'Answers codebase questions with visuals instead of prose: mermaid diagrams, terminal mocks, annotated screenshots, or tiny static HTML. Picks the cheapest visual that carries the idea.',
+    useCases: [
+      'Seeing how a request flows through services as a sequence diagram before a planning session.',
+      'Understanding what a CLI command does from a terminal mock instead of reading its source.',
+      'Getting a labelled screenshot of a page that shows which component owns each region.',
+    ],
+    realWorldExample:
+      'A PM asks how checkout talks to payments and gets a ten-node mermaid diagram with file references, instead of three paragraphs of explanation.',
+    addedAt: '2026-10-03',
+    roles: ['UNIVERSAL'],
+  },
+  {
     id: 'accessibility-auditor',
     name: 'Accessibility Auditor',
     description:
