@@ -14,7 +14,11 @@ import {
 import { validatePlanContract } from '../src/lib/ai/reflexion/plan-contract';
 import { CRITIC_SYSTEM } from '../src/lib/ai/reflexion/prompts';
 import { runnerFromEnv } from '../src/lib/ai/reflexion/providers-env';
-import { CritiqueSchema, type Critique } from '../src/lib/ai/reflexion/schema';
+import {
+  CritiqueSchema,
+  LoopParamsSchema,
+  type Critique,
+} from '../src/lib/ai/reflexion/schema';
 import { assessTask, enforceTier } from '../src/lib/ai/tier-policy';
 import { findRepoRoot } from '../src/lib/skills/repo-root';
 
@@ -130,21 +134,26 @@ export function evaluateCritique(
   autoEscalate: boolean = false
 ): { success: boolean; errors: string[] } {
   const errors: string[] = [];
+  // Same pass rule as the reflexion engine (engine.ts): the critic's flag OR a
+  // score at the loop's pass threshold. Grading the raw flag alone made the
+  // harness stricter than the product it calibrates.
+  const actualPassed =
+    actual.passed || actual.score >= LoopParamsSchema.parse({}).passThreshold;
 
-  if (actual.passed !== expected.passed) {
-    if (autoEscalate && !expected.passed && actual.passed) {
+  if (actualPassed !== expected.passed) {
+    if (autoEscalate && !expected.passed && actualPassed) {
       // Escalation may only ADD passes, never remove them.
     } else if (autoEscalate) {
       // If autoEscalate failed to achieve a pass, we shouldn't strictly fail the original test
       // but if the test expected a pass and it failed, that's an error.
-      if (expected.passed && !actual.passed) {
+      if (expected.passed && !actualPassed) {
         errors.push(
-          `Expected passed=${expected.passed}, got passed=${actual.passed}`
+          `Expected passed=${expected.passed}, got passed=${actualPassed}`
         );
       }
     } else {
       errors.push(
-        `Expected passed=${expected.passed}, got passed=${actual.passed}`
+        `Expected passed=${expected.passed}, got passed=${actualPassed}`
       );
     }
   }

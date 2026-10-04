@@ -7,7 +7,7 @@ describe('reflexion-eval logic', () => {
     atomicBatches: 8,
     productionEthos: 8,
     modernWeb: 8,
-    score: 8,
+    score: 7, // below the engine's pass threshold (8), so a genuine fail
     passed: false,
     actionableFix: 'Please slice the tasks smaller.',
   };
@@ -22,10 +22,17 @@ describe('reflexion-eval logic', () => {
 
   it('fails if passed status does not match', () => {
     const expected = { passed: true };
-    const actual = { ...baseCritique, passed: false };
+    const actual = { ...baseCritique, score: 7, passed: false };
     const result = evaluateCritique(expected, actual);
     expect(result.success).toBe(false);
     expect(result.errors).toContain('Expected passed=true, got passed=false');
+  });
+
+  it('counts a score at the engine pass threshold as a pass, like the reflexion loop', () => {
+    const expected = { passed: true };
+    const actual = { ...baseCritique, score: 8, passed: false };
+    const result = evaluateCritique(expected, actual);
+    expect(result.success).toBe(true);
   });
 
   it('fails if overall score exceeds maxOverallScore', () => {
