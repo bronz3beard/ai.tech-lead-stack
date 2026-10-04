@@ -116,8 +116,8 @@ export const MODEL_CATALOG: ModelCatalogEntry[] = [
   },
   // Google (Gemini)
   {
-    id: 'gemini-3.6-flash',
-    label: 'Gemini 3.6 Flash',
+    id: 'gemini-3.8-flash',
+    label: 'Gemini 3.8 Flash',
     family: 'google',
     keySlot: 'gemini',
   },
@@ -127,10 +127,11 @@ export const MODEL_CATALOG: ModelCatalogEntry[] = [
     family: 'google',
     keySlot: 'gemini',
   },
-  // Google (Jules — same SDK, different key slot)
+  // Google (Jules — same SDK, different key slot). Needs an id distinct from the
+  // Gemini entries because catalogEntry() resolves the key slot by id.
   {
-    id: 'gemini-3.1-pro',
-    label: 'Google Jules (Gemini 3.1 Pro)',
+    id: 'gemini-3.1-pro-preview-customtools',
+    label: 'Google Jules (Gemini 3.1 Pro, custom tools)',
     family: 'google',
     keySlot: 'jules',
   },

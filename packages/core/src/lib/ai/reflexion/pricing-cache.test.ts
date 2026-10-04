@@ -1,5 +1,5 @@
 import { buildRunner } from './providers-env';
-const MODELS = { CLAUDE: 'claude-sonnet-4-6', GEMINI: 'gemini-3.6-flash', OPENAI: 'gpt-5.4' };
+import { MODELS } from '../constants';
 import type { LanguageModel } from 'ai';
 
 // Mock the 'ai' module so we can intercept generateText
@@ -115,9 +115,9 @@ describe('Reflexion pricing cache', () => {
     
     // Fresh cost: (200 / 1000000) * 1.5 = 0.0003
     // Cached input: (800 / 1000000) * 0.375 = 0.0003
-    // Output: (100 / 1000000) * 9.0 = 0.0009
-    // Total: 0.0015
-    expect(usage.costUsd).toBeCloseTo(0.0015);
+    // Output: (100 / 1000000) * 7.5 = 0.00075
+    // Total: 0.00135
+    expect(usage.costUsd).toBeCloseTo(0.00135);
     expect(usage.cachedReadTokens).toBe(800);
     expect(usage.estimatedCacheSavingsUsd).toBeCloseTo((800 / 1000000) * (1.5 - 0.375));
     

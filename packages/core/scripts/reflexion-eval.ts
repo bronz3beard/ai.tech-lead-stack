@@ -2,9 +2,11 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateObject } from 'ai';
 import { execSync } from 'child_process';
+import * as dotenv from 'dotenv';
 import fs from 'fs';
 import matter from 'gray-matter';
 import path from 'path';
+import { MODELS } from '../src/lib/ai/constants';
 import {
   runReflexion,
   type ReflexionRunner,
@@ -12,7 +14,11 @@ import {
 import { validatePlanContract } from '../src/lib/ai/reflexion/plan-contract';
 import { CRITIC_SYSTEM } from '../src/lib/ai/reflexion/prompts';
 import { runnerFromEnv } from '../src/lib/ai/reflexion/providers-env';
-import { CritiqueSchema, type Critique } from '../src/lib/ai/reflexion/schema';
+import {
+  CritiqueSchema,
+  LoopParamsSchema,
+  type Critique,
+} from '../src/lib/ai/reflexion/schema';
 import { assessTask, enforceTier } from '../src/lib/ai/tier-policy';
 import { findRepoRoot } from '../src/lib/skills/repo-root';
 
@@ -29,6 +35,10 @@ const currentDir =
       ? path.dirname(currentFilePath)
       : process.cwd();
 
+// Local runs read this stack's .env (REFLEXION_CRITIC_MODEL, MODEL_*, keys).
+// dotenv never overrides a variable already set, and CI has no .env file.
+dotenv.config({ path: path.join(findRepoRoot(currentDir), '.env'), quiet: true });
+
 // This is the critic side of runnerFromEnv, minimally exported, falling back to Gemini if Claude fails
 function buildCriticRunner() {
   const claudeKey = process.env.ANTHROPIC_API_KEY?.trim();
@@ -44,9 +54,8 @@ function buildCriticRunner() {
     : null;
 
   // Default models
-  const criticModelClaude =
-    process.env.REFLEXION_CRITIC_MODEL || 'claude-3-5-sonnet-20241022';
-  const criticModelGemini = 'gemini-3.1-pro-preview';
+  const criticModelClaude = process.env.REFLEXION_CRITIC_MODEL || MODELS.CLAUDE;
+  const criticModelGemini = MODELS.GEMINI_FALLBACK_CRITIC;
 
   return {
     async critique(plan: string): Promise<Critique> {
@@ -125,21 +134,26 @@ export function evaluateCritique(
   autoEscalate: boolean = false
 ): { success: boolean; errors: string[] } {
   const errors: string[] = [];
+  // Same pass rule as the reflexion engine (engine.ts): the critic's flag OR a
+  // score at the loop's pass threshold. Grading the raw flag alone made the
+  // harness stricter than the product it calibrates.
+  const actualPassed =
+    actual.passed || actual.score >= LoopParamsSchema.parse({}).passThreshold;
 
-  if (actual.passed !== expected.passed) {
-    if (autoEscalate && !expected.passed && actual.passed) {
+  if (actualPassed !== expected.passed) {
+    if (autoEscalate && !expected.passed && actualPassed) {
       // Escalation may only ADD passes, never remove them.
     } else if (autoEscalate) {
       // If autoEscalate failed to achieve a pass, we shouldn't strictly fail the original test
       // but if the test expected a pass and it failed, that's an error.
-      if (expected.passed && !actual.passed) {
+      if (expected.passed && !actualPassed) {
         errors.push(
-          `Expected passed=${expected.passed}, got passed=${actual.passed}`
+          `Expected passed=${expected.passed}, got passed=${actualPassed}`
         );
       }
     } else {
       errors.push(
-        `Expected passed=${expected.passed}, got passed=${actual.passed}`
+        `Expected passed=${expected.passed}, got passed=${actualPassed}`
       );
     }
   }
@@ -450,8 +464,8 @@ async function main() {
       const origPlanner = process.env.MODEL_PLANNER;
       const origAuditor = process.env.MODEL_AUDITOR;
 
-      process.env.MODEL_PLANNER = 'claude-sonnet-4-6';
-      process.env.MODEL_AUDITOR = 'gemini-3.6-flash';
+      process.env.MODEL_PLANNER = MODELS.CLAUDE;
+      process.env.MODEL_AUDITOR = MODELS.GEMINI;
 
       try {
         const swappedRunner = runnerFromEnv();
