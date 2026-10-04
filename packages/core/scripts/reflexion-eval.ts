@@ -1,6 +1,6 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { execSync } from 'child_process';
 import * as dotenv from 'dotenv';
 import fs from 'fs';
@@ -63,13 +63,13 @@ function buildCriticRunner() {
 
       if (anthropic) {
         try {
-          const { object } = await generateObject({
+          const { output } = await generateText({
             model: anthropic(criticModelClaude),
-            schema: CritiqueSchema,
+            output: Output.object({ schema: CritiqueSchema }),
             system: CRITIC_SYSTEM,
             prompt: `Please critique this plan:\n\n${plan}`,
           });
-          return object;
+          return output;
         } catch (err: unknown) {
           lastErr = err;
           // Continue to fallback
@@ -78,13 +78,13 @@ function buildCriticRunner() {
 
       if (google) {
         try {
-          const { object } = await generateObject({
+          const { output } = await generateText({
             model: google(criticModelGemini),
-            schema: CritiqueSchema,
+            output: Output.object({ schema: CritiqueSchema }),
             system: CRITIC_SYSTEM,
             prompt: `Please critique this plan:\n\n${plan}`,
           });
-          return object;
+          return output;
         } catch (err: unknown) {
           lastErr = err;
         }
@@ -479,7 +479,7 @@ async function main() {
           CRITIC_SYSTEM
         );
 
-        // Assert it returns a schema-valid Critique (zod parsing is handled by generateObject)
+        // Assert it returns a schema-valid Critique (zod parsing is handled by Output.object)
         if (
           critique &&
           typeof critique.passed === 'boolean' &&
