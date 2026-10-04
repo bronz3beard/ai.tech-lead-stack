@@ -86,7 +86,7 @@ describe('model-resolver', () => {
 
     const plannerRes = resolveModelWithSource('planner', ctx);
     expect(plannerRes.source).toBe('user');
-    expect(plannerRes.id).toBe('claude-sonnet-4-6'); // normalized from legacy 'claude' (MODELS.CLAUDE)
+    expect(plannerRes.id).toBe('claude-sonnet-5-5'); // normalized from legacy 'claude' (MODELS.CLAUDE)
 
     const auditorRes = resolveModelWithSource('auditor', ctx);
     expect(auditorRes.source).toBe('user');

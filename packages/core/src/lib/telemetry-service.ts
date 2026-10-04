@@ -7,6 +7,8 @@ import { MODEL_CATALOG } from './ai/model-registry';
 
 // NOTE: Adding a new routable model (e.g. claude-opus-4-8, gemini-3.7-flash) requires an entry in BOTH PRICING_MAP and MODEL_CATALOG (in model-registry.ts).
 const PRICING_MAP: Record<string, { input: number; output: number }> = {
+  'claude-opus-5-5': { input: 4, output: 20 },
+  'claude-sonnet-5-5': { input: 2, output: 10 },
   'claude-opus-4-6': { input: 5, output: 25 },
   'claude-sonnet-4-6': { input: 3, output: 15 },
   'claude-haiku-4-5': { input: 1, output: 5 },
@@ -14,6 +16,7 @@ const PRICING_MAP: Record<string, { input: number; output: number }> = {
   'gemini-3.7-flash': { input: 0.75, output: 3.75 },
   'gemini-3.1-pro-preview': { input: 2, output: 12 },
   'gemini-3.1-pro-preview-customtools': { input: 2, output: 12 },
+  'gpt-6.1-sol': { input: 2, output: 10 },
 };
 const DEFAULT_PRICING = { input: 3, output: 15 };
 

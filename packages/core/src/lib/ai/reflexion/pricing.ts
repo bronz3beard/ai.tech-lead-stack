@@ -25,10 +25,10 @@ export const PRICE_PER_MTOK: Record<
     cacheWriteUsdPerMTok: 1.5, // TODO: verify with provider
   },
   [MODELS.CLAUDE]: {
-    inputUsdPerMTok: 3.0, // For prompts and input context
-    outputUsdPerMTok: 15.0, // For generated text (including "extended thinking" tokens)
-    cachedInputUsdPerMTok: 0.3, // TODO: verify with provider (usually 10%)
-    cacheWriteUsdPerMTok: 3.75, // TODO: verify with provider (usually +25%)
+    inputUsdPerMTok: 2.0, // For prompts and input context
+    outputUsdPerMTok: 10.0, // For generated text (including thinking tokens)
+    cachedInputUsdPerMTok: 0.2, // Published cache-read rate
+    cacheWriteUsdPerMTok: 2.5, // 5-minute cache write (1.25x input)
   },
   [MODELS.GEMINI_FALLBACK_CRITIC]: {
     inputUsdPerMTok: 2.0, // For prompts up to 200K tokens
