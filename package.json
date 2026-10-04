@@ -116,7 +116,7 @@
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@types/jest": "^30.0.0",
-    "@types/node": "^25.6.0",
+    "@types/node": "^26.6.3",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "esbuild": "^0.28.2",
@@ -133,7 +133,7 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.23.15",
     "typescript": "^6.0.2",
-    "typescript-eslint": "^8.0.0"
+    "typescript-eslint": "^8.71.0"
   },
   "keywords": [
     "agentic-dev-team",
