@@ -12,37 +12,72 @@ expected:
 Detected stack: Node.js (v22), Next.js (App Router), Prisma, TailwindCSS, Jest.
 I will respect the existing `src/lib/` structure for utilities and `src/app/`
 for routes. I see `npm run lint` and `npm test` are available for verification.
-The existing `src/components/OrderSummary.tsx` renders the order total with
-`amount.toFixed(2)`, which drops the currency symbol and thousands separators.
+The existing `src/components/OrderSummary.tsx` (a Server Component) renders the
+order total with `amount.toFixed(2)`, which drops the currency symbol and
+thousands separators. In `prisma/schema.prisma`, `Order.total` is a `Decimal`
+and `Order.currency` is an ISO 4217 code; the page passes the request locale
+(from the `[locale]` route segment) down to `OrderSummary`. `tsconfig.json` sets
+`"lib": ["dom", "dom.iterable", "esnext"]`. ES2023 types the argument of
+`Intl.NumberFormat.prototype.format` as
+`number | bigint | StringNumericLiteral`, so a `Decimal` string must be cast to
+that template-literal type.
 
 ## Architecture
 
-We will add a simple utility function `formatCurrency` to handle money
-formatting consistently across the app, and ship it with its first real
-call-site so the change is a complete vertical slice, not dead code.
+We will add
+`formatCurrency(amount: Prisma.Decimal | number, currency: string, locale: string): string`,
+built on the native `Intl.NumberFormat`. Currency comes from the order record
+and the locale is always passed explicitly, never taken from the runtime
+default, so server and client output cannot diverge (no hydration mismatch). A
+`Decimal` is passed as its `toFixed()` string, cast to `StringNumericLiteral`
+(decimal.js `toFixed()` never uses exponent notation, unlike `toString()`), so
+no precision is lost to a float conversion. Only a malformed locale falls back
+(to `en-US`); an unknown currency is never replaced, because showing a EUR order
+as `$…` is worse than an unformatted amount. The utility is built and hardened
+first and only then wired into `OrderSummary`, so no step ships a page that can
+throw on user-controlled input.
 
 ## Atomic Task List
 
-1. Create currency utility and tests. Add `formatCurrency` in
-   `src/lib/currency.ts` using the built-in `Intl.NumberFormat` API (Modern Web
-   Guidance). Add unit tests in `src/lib/__tests__/currency.test.ts` to cover
-   standard, zero, and negative values, plus an explicit `de-DE` locale
-   (`1.234,50 €`). Why <100 LOC: It's a single function wrapping a native API
-   and its corresponding tests. Verification: Run
-   `npx jest src/lib/__tests__/currency.test.ts && npm run lint` to prove all
-   cases pass with no lint errors.
-2. Use the utility in the order summary. Replace the inline `amount.toFixed(2)`
-   in `src/components/OrderSummary.tsx` with `formatCurrency(amount)`. Extend
-   `src/components/__tests__/OrderSummary.test.tsx` to assert the rendered total
-   reads `$1,234.50`. Why <100 LOC: one call-site swap in
-   `src/components/OrderSummary.tsx` plus one assertion. Verification: Run
-   `npx jest OrderSummary && npm run lint` and confirm the new assertion passes.
+1. Add the hardened utility, test-first. In `src/lib/currency.ts`, add
+   `formatCurrency` with the signature above: validate the locale with
+   `Intl.getCanonicalLocales` (fall back to `en-US` on `RangeError`), and for a
+   currency `Intl` rejects, log a warning and return the raw ISO code with a
+   plainly formatted amount (`ABCD 1,234.50`) instead of throwing or
+   substituting USD. Tests in `src/lib/__tests__/currency.test.ts` assert
+   `$1,234.50`, `$0.00` and `-$1,234.50` for USD/en-US, the `xx-!!` locale
+   fallback and the `ABCD` raw-code output. Why <100 LOC: about 25 lines in
+   `src/lib/currency.ts` and about 35 lines of tests, two files. Verification:
+   Run `npx jest currency && npx tsc --noEmit && npm run lint` and confirm all
+   five cases pass.
+2. Pin locale and precision behaviour (tests only). Add cases to
+   `src/lib/__tests__/currency.test.ts`: EUR/de-DE renders `1.234,50` then
+   U+00A0 (non-breaking space) then `€`; JPY/ja-JP renders `￥1,235` with no
+   decimals; a `Prisma.Decimal` of `9007199254740993.10` renders
+   `$9,007,199,254,740,993.10` (a float would give `…994.00`). Why <100 LOC:
+   three test cases, about 20 lines, in one file. Verification: Run
+   `npx jest currency && npm run lint` and confirm the three new cases pass.
+3. Wire it into the order summary. Replace the inline `amount.toFixed(2)` in
+   `src/components/OrderSummary.tsx` with
+   `formatCurrency(order.total, order.currency, locale)`, and extend the
+   existing OrderSummary test to assert a USD order in `en-US` renders
+   `$1,234.50`. Why <100 LOC: a one-line call-site swap plus one assertion.
+   Verification: Run `npx jest OrderSummary && npx tsc --noEmit && npm run lint`
+   and confirm the new assertion passes.
 
 ## Risks & Verification
 
-- Risk: Formatting might be incorrect for unsupported locales.
-- Verification: The unit tests cover the default 'en-US' output and an explicit
-  'de-DE' locale, so both the fallback and a non-default locale are proven.
-- Gate before the PR: `npm run lint && npm test` must pass on the branch.
-- Rollback: each task is its own commit; reverting task 2 restores the previous
-  order-summary output without touching the utility.
+- Risk: locale-dependent output differs between server and client (hydration
+  mismatch). Closed by passing the locale explicitly into a Server Component;
+  the de-DE test pins the exact non-breaking-space output.
+- Risk: money precision. Closed by formatting `Decimal.toFixed()` output; the
+  large-`Decimal` test in task 2 proves no float drift.
+- Risk: currencies without minor units. Closed by the JPY test.
+- Risk: a malformed `[locale]` segment crashing the page. Closed in task 1,
+  before any call-site exists, by the `xx-!!` fallback test.
+- Risk: showing the wrong currency. Closed by never substituting a currency; the
+  task 1 `ABCD` test asserts the raw-code output and the warning.
+- Gate before the PR: `npx tsc --noEmit && npm run lint && npm test` must pass
+  on the branch.
+- Rollback: each task is its own commit; reverting task 3 restores the previous
+  order-summary output, and tasks 1 and 2 add no user-visible change.
