@@ -30,11 +30,16 @@ module.exports = {
 
           jsx: 'react-jsx',
           rootDir: '.',
+          // ai@7 / @ai-sdk/*@4 ship ESM .js only; ts-jest must compile them.
+          allowJs: true,
         },
       },
     ],
   },
+  // A file is skipped when this matches. ai, @ai-sdk/* and @workflow/serde (the
+  // ESM-only packages in the AI SDK tree) are let through in both pnpm path
+  // forms: node_modules/.pnpm/<pkg>@<ver>/... and node_modules/<pkg>/...
   transformIgnorePatterns: [
-    'node_modules/(?!(next-auth|openid-client|jose|@panva/hkdf|preact|preact-render-to-string|@modelcontextprotocol|octokit|@octokit)/)',
+    'node_modules/(?!(\\.pnpm/(ai|@ai-sdk\\+[a-z0-9-]+|@workflow\\+[a-z0-9-]+)@|(ai|@ai-sdk|@workflow|next-auth|openid-client|jose|@panva/hkdf|preact|preact-render-to-string|@modelcontextprotocol|octokit|@octokit)/))',
   ],
 };
