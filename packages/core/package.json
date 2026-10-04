@@ -48,7 +48,7 @@
     "prepare": "pnpm run mcp:build"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.68",
+    "@ai-sdk/anthropic": "^4.0.71",
     "@ai-sdk/google": "^3.0.61",
     "@ai-sdk/openai": "^3.0.52",
     "@modelcontextprotocol/sdk": "^1.30.1",
