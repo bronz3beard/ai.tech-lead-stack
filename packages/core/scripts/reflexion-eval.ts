@@ -40,7 +40,7 @@ const currentDir =
 dotenv.config({ path: path.join(findRepoRoot(currentDir), '.env'), quiet: true });
 
 // This is the critic side of runnerFromEnv, minimally exported, falling back to Gemini if Claude fails
-function buildCriticRunner() {
+export function buildCriticRunner() {
   const claudeKey = process.env.ANTHROPIC_API_KEY?.trim();
   const geminiKey = process.env.GEMINI_API_KEY?.trim();
 

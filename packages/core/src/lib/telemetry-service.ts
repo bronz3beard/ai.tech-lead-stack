@@ -6,7 +6,7 @@ import { normalizeProjectName, normalizeSkillName } from './trace-utils';
 import { MODEL_CATALOG } from './ai/model-registry';
 
 // NOTE: Adding a new routable model (e.g. claude-opus-4-8, gemini-3.7-flash) requires an entry in BOTH PRICING_MAP and MODEL_CATALOG (in model-registry.ts).
-const PRICING_MAP: Record<string, { input: number; output: number }> = {
+export const PRICING_MAP: Record<string, { input: number; output: number }> = {
   'claude-opus-5-5': { input: 4, output: 20 },
   'claude-sonnet-5-5': { input: 2, output: 10 },
   'claude-opus-4-6': { input: 5, output: 25 },
