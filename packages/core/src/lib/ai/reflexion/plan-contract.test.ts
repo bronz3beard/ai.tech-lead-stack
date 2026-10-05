@@ -76,4 +76,44 @@ describe('plan-contract validation', () => {
     expect(report.violations.filter(v => v.severity === 'fatal')).toHaveLength(0);
     expect(report.passesStructuralGate).toBe(true);
   });
+
+  describe('verification steps that wrap across lines', () => {
+    // Prettier's proseWrap (and LLM output) can break a task paragraph right
+    // after "Verification:", leaving the command on the next line.
+    const planWithTask = (task: string) => `## Phase 0 - Stack Diagnosis
+
+Detected stack: Node.js (v22), Next.js (App Router), Prisma, Jest. I will follow
+the existing \`src/lib/\` layout. \`npm run lint\` and \`npm test\` exist.
+
+## Atomic Task List
+
+1. ${task}
+
+## Risks & Verification
+
+- Risk: none beyond the task. Gate: \`npm test\` passes before the PR.
+`;
+    const verificationFatal = (task: string) =>
+      validatePlanContract(planWithTask(task)).violations.find(
+        (v) => v.pillar === 'productionEthos' && v.severity === 'fatal'
+      );
+
+    it('accepts a runnable command that starts on the line after "Verification:"', () => {
+      const task = `Add \`formatCurrency\` in \`src/lib/currency.ts\` with tests in
+   \`src/lib/__tests__/currency.test.ts\`. Why <100 LOC: one small file. Verification:
+   \`npx jest currency && npm run lint\` passes.`;
+
+      expect(verificationFatal(task)).toBeUndefined();
+    });
+
+    it('still rejects a fake verification phrase split across two lines', () => {
+      // "run" alone satisfies the runnable-token check, so only matching the
+      // wrapped "looks correct" catches this as fake.
+      const task = `Add \`formatCurrency\` in \`src/lib/currency.ts\`. Why <100 LOC: one small
+   file. Verification: run it locally and it looks
+   correct in the browser.`;
+
+      expect(verificationFatal(task)).toBeDefined();
+    });
+  });
 });
