@@ -6,6 +6,12 @@ updates:
     schedule:
       interval: weekly
     groups:
+      # ai and @ai-sdk/* must move together: each provider major only works
+      # with the matching ai major, and @ai-sdk/react pins ai exactly. Listed
+      # first because Dependabot assigns a dependency to the first match.
+      ai-sdk:
+        patterns: ['ai', '@ai-sdk/*']
+        update-types: [major, minor, patch]
       minor-and-patch:
         update-types: [minor, patch]
 

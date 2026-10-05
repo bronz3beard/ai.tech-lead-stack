@@ -3,8 +3,8 @@ import { z } from 'zod';
 /**
  * The critic's structured grade of one draft plan, scored against the Four
  * Pillars. Five sub-scores force the model to grade each pillar separately
- * instead of emitting one vague "7/10". Used with the AI SDK's
- * `generateObject`, which constrains the model to this exact shape.
+ * instead of emitting one vague "7/10". Used with the AI SDK's `generateText`
+ * + `Output.object`, which constrains the model to this exact shape.
  */
 export const LoopParamsSchema = z.object({
   passThreshold: z.number().default(8),

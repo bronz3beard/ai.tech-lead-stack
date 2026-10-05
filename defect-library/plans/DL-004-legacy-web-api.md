@@ -12,6 +12,8 @@ expected:
     - api
     - legacy
     - workaround
+    - deprecated
+    - clipboard
   expectedStructuralPass: false
 ---
 

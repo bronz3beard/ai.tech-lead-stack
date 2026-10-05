@@ -95,7 +95,19 @@ export interface ModelCatalogEntry {
 }
 
 export const MODEL_CATALOG: ModelCatalogEntry[] = [
-  // Anthropic
+  // Anthropic. The 4.6 entries stay while saved Project/User settings use them.
+  {
+    id: 'claude-opus-5-5',
+    label: 'Claude Opus 5.5',
+    family: 'anthropic',
+    keySlot: 'anthropic',
+  },
+  {
+    id: 'claude-sonnet-5-5',
+    label: 'Claude Sonnet 5.5',
+    family: 'anthropic',
+    keySlot: 'anthropic',
+  },
   {
     id: 'claude-opus-4-6',
     label: 'Claude Opus 4.6',
@@ -136,7 +148,7 @@ export const MODEL_CATALOG: ModelCatalogEntry[] = [
     keySlot: 'jules',
   },
   // OpenAI
-  { id: 'gpt-5.4', label: 'GPT-5.4', family: 'openai', keySlot: 'openai' },
+  { id: 'gpt-6.1-sol', label: 'GPT-6.1 Sol', family: 'openai', keySlot: 'openai' },
 ];
 
 export function catalogEntry(modelId: string): ModelCatalogEntry | undefined {

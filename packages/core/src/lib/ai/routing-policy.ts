@@ -5,10 +5,16 @@ import { catalogEntry, providerOf } from './model-registry';
  * Derived from MODEL_CATALOG and grouped by provider/key slot.
  */
 const LADDERS: Record<string, string[]> = {
-  'anthropic': ['claude-haiku-4-5', 'claude-sonnet-4-6', 'claude-opus-4-6'],
+  'anthropic': [
+    'claude-haiku-4-5',
+    'claude-sonnet-4-6',
+    'claude-sonnet-5-5',
+    'claude-opus-4-6',
+    'claude-opus-5-5',
+  ],
   'gemini': ['gemini-3.8-flash', 'gemini-3.1-pro-preview'],
   'jules': ['gemini-3.1-pro-preview-customtools'],
-  'openai': ['gpt-5.4'],
+  'openai': ['gpt-6.1-sol'],
 };
 
 /**

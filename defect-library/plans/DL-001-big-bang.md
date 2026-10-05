@@ -13,6 +13,9 @@ expected:
     - slice
     - batch
     - break
+    - big-bang
+    - vertical
+    - separate
   expectedStructuralPass: false
 ---
 

@@ -4,13 +4,14 @@ describe('routing-policy', () => {
   describe('nextModelUp', () => {
     it('returns the next model in the anthropic ladder', () => {
       expect(nextModelUp('claude-haiku-4-5')).toBe('claude-sonnet-4-6');
-      expect(nextModelUp('claude-sonnet-4-6')).toBe('claude-opus-4-6');
+      expect(nextModelUp('claude-sonnet-4-6')).toBe('claude-sonnet-5-5');
+      expect(nextModelUp('claude-opus-4-6')).toBe('claude-opus-5-5');
     });
 
     it('returns null if at the top of the ladder', () => {
-      expect(nextModelUp('claude-opus-4-6')).toBeNull();
+      expect(nextModelUp('claude-opus-5-5')).toBeNull();
       expect(nextModelUp('gemini-3.1-pro-preview')).toBeNull();
-      expect(nextModelUp('gpt-5.4')).toBeNull();
+      expect(nextModelUp('gpt-6.1-sol')).toBeNull();
     });
 
     it('returns the next model in the gemini ladder', () => {

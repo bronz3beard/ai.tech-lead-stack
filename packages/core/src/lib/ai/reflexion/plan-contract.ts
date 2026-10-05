@@ -172,8 +172,13 @@ export function validatePlanContract(planMarkdown: string): PlanContractReport {
       // Check Verification
       if (/Verification:/i.test(chunk)) {
          hasVerificationGate = true;
-         const verificationLineMatch = /Verification:([^\n]*)/i.exec(chunk);
-         const verificationText = verificationLineMatch ? verificationLineMatch[1] : chunk;
+         // Read the whole step, not just its first line: Markdown reflow (the
+         // repo's Prettier uses proseWrap: always) and LLM output can put the
+         // command on the next line. Collapsing whitespace also keeps the
+         // fake-phrase check working when a phrase wraps.
+         const verificationMatch = /Verification:([\s\S]*)/i.exec(chunk);
+         const verificationText = (verificationMatch ? verificationMatch[1] : chunk)
+           .replace(/\s+/g, ' ');
          
          const runnableTokens = ['npm', 'pnpm', 'tsc', 'jest', 'curl', 'run', 'npx'];
          const hasRunnableToken = runnableTokens.some(t => verificationText.toLowerCase().includes(t));

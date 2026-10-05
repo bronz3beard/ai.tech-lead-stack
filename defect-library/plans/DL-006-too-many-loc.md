@@ -13,6 +13,9 @@ expected:
     - size
     - loc
     - large
+    - vertical
+    - slice
+    - '100'
   expectedStructuralPass: true
 ---
 

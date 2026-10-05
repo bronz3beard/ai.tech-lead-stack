@@ -13,6 +13,9 @@ expected:
     - repo
     - context
     - diagnosis
+    - phase 0
+    - detected
+    - framework
   expectedStructuralPass: false
 ---
 
