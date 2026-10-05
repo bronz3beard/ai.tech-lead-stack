@@ -10,7 +10,8 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowRight, Github, Loader2, Lock, LogIn, Mail } from 'lucide-react';
+import { GithubIcon as Github } from '@/components/GithubIcon';
+import { ArrowRight, Loader2, Lock, LogIn, Mail } from 'lucide-react';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
