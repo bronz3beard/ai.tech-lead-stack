@@ -4,6 +4,13 @@ All notable changes to this project are recorded here. From 1.1.0 on,
 release-please writes each entry from the commit messages on `main` (see
 [docs/releasing.md](docs/releasing.md)); nobody edits this file by hand.
 
+## [1.2.2](https://github.com/bronz3beard/ai.tech-lead-stack/compare/v1.2.1...v1.2.2) (2026-10-05)
+
+
+### Fixed
+
+* **deps:** update dotenv 18, lucide-react 1.x and pending Dependabot bumps ([#146](https://github.com/bronz3beard/ai.tech-lead-stack/issues/146)) ([2a7a180](https://github.com/bronz3beard/ai.tech-lead-stack/commit/2a7a180a81ecbe8b86256afeef1535ede193acef))
+
 ## [1.2.1](https://github.com/bronz3beard/ai.tech-lead-stack/compare/v1.2.0...v1.2.1) (2026-10-05)
 
 
