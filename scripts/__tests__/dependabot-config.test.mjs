@@ -39,4 +39,13 @@ describe('dependabot npm groups', () => {
     assert.ok(aiSdk !== -1 && minorAndPatch !== -1);
     assert.ok(aiSdk < minorAndPatch);
   });
+
+  test('skips ESLint majors until eslint-config-next supports them', () => {
+    // ESLint 10 crashed lint:next (#142): eslint-plugin-react, jsx-a11y and
+    // import only support ESLint <= 9. Delete this test with the ignore rule.
+    assert.match(
+      npmBlock,
+      /- dependency-name: 'eslint'\n {8}update-types: \['version-update:semver-major'\]/
+    );
+  });
 });

@@ -14,6 +14,12 @@ updates:
         update-types: [major, minor, patch]
       minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # ESLint 10 breaks lint:next: eslint-config-next's plugins (react,
+      # jsx-a11y, import) only support ESLint <= 9 as of 2026-10-05. Remove this
+      # once their peer ranges include ^10, then take the major in one PR.
+      - dependency-name: 'eslint'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: github-actions
     directory: /
