@@ -1,6 +1,6 @@
 'use client';
 
-import { Github } from 'lucide-react';
+import { GithubIcon as Github } from '@/components/GithubIcon';
 import Image from 'next/image';
 
 export function DashboardDisclaimer() {

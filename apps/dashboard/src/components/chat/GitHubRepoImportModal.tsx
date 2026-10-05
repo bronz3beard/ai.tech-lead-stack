@@ -1,6 +1,7 @@
 'use client';
 
-import { Github, Loader2, Search, X, Lock, Globe, CheckCircle2 } from 'lucide-react';
+import { GithubIcon as Github } from '@/components/GithubIcon';
+import { Loader2, Search, X, Lock, Globe, CheckCircle2 } from 'lucide-react';
 import { useEffect, useState, useTransition } from 'react';
 
 export interface GitHubRepo {

@@ -4,7 +4,6 @@ import {
   Check,
   Edit2,
   Folder,
-  Github,
   Loader2,
   MessageSquare,
   Palette,
@@ -16,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import { GithubIcon as Github } from '@/components/GithubIcon';
 import GitHubRepoImportModal from './GitHubRepoImportModal';
 
 interface Project {
