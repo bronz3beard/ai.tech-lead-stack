@@ -4,6 +4,14 @@ All notable changes to this project are recorded here. From 1.1.0 on,
 release-please writes each entry from the commit messages on `main` (see
 [docs/releasing.md](docs/releasing.md)); nobody edits this file by hand.
 
+## [1.2.1](https://github.com/bronz3beard/ai.tech-lead-stack/compare/v1.2.0...v1.2.1) (2026-10-05)
+
+
+### Fixed
+
+* **ai:** replace retired and invalid model ids and repair eval calibration ([#136](https://github.com/bronz3beard/ai.tech-lead-stack/issues/136)) ([d97b5cc](https://github.com/bronz3beard/ai.tech-lead-stack/commit/d97b5cc6fe291b93d9b69b34269315333a40cbcd))
+* **deps:** upgrade to AI SDK v7 and current Claude/OpenAI models ([#138](https://github.com/bronz3beard/ai.tech-lead-stack/issues/138)) ([e35419f](https://github.com/bronz3beard/ai.tech-lead-stack/commit/e35419f645fc0c1aa6563bf763f3eacb2195a959))
+
 ## [1.2.0](https://github.com/bronz3beard/ai.tech-lead-stack/compare/v1.1.1...v1.2.0) (2026-10-03)
 
 
