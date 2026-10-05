@@ -1,3 +1,7 @@
+// A plain copy of fs, so one test can spy on renameSync (the real module's
+// properties are not redefinable). Behaviour is unchanged for every test.
+jest.mock('fs', () => ({ ...jest.requireActual('fs') }));
+
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -122,5 +126,38 @@ describe('FileStateStore', () => {
     const store = new FileStateStore(testDir);
     const loaded = await store.load('run-123');
     expect(loaded).toBeNull();
+  });
+
+  it('survives two saves to the same folder overlapping', async () => {
+    // Two runs in one folder: run B saves while run A is between writing its
+    // tmp file and renaming it. A shared tmp name made A's rename fail (ENOENT).
+    const storeA = new FileStateStore(testDir);
+    const storeB = new FileStateStore(testDir);
+    // Spy on the mocked module object itself; the `import * as fs` binding is
+    // a read-only wrapper that the store also reads through.
+    const fsModule = jest.requireMock<typeof import('fs')>('fs');
+    const realRename = jest.requireActual<typeof import('fs')>('fs').renameSync;
+    let interleaved = false;
+    const spy = jest
+      .spyOn(fsModule, 'renameSync')
+      .mockImplementation((from: fs.PathLike, to: fs.PathLike) => {
+        if (!interleaved) {
+          interleaved = true;
+          void storeB.save({ ...dummyState, runId: 'run-B' });
+        }
+        return realRename(from, to);
+      });
+
+    try {
+      await expect(
+        storeA.save({ ...dummyState, runId: 'run-A' })
+      ).resolves.toBeUndefined();
+    } finally {
+      spy.mockRestore();
+    }
+
+    expect(interleaved).toBe(true);
+    expect((await storeA.load('run-A'))?.runId).toBe('run-A');
+    expect(fs.readdirSync(testDir).filter((f) => f.endsWith('.tmp'))).toEqual([]);
   });
 });

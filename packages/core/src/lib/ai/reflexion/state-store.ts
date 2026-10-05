@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -105,7 +106,9 @@ export class FileStateStore implements StateStore {
       fs.mkdirSync(this.dir, { recursive: true });
     }
     const statePath = path.join(this.dir, 'state.json');
-    const tmpPath = path.join(this.dir, 'state.json.tmp');
+    // A unique tmp name per write: with a shared name, two overlapping saves
+    // (two runs in one folder) renamed each other's file away -> ENOENT.
+    const tmpPath = path.join(this.dir, `state.json.${randomUUID()}.tmp`);
 
     // Write to tmp file, then atomic rename
     fs.writeFileSync(tmpPath, JSON.stringify(state, null, 2), 'utf-8');
