@@ -1,6 +1,6 @@
 {
   "name": "@zenithfoundry/tech-lead-stack",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "MCP server for the Tech-Lead Stack: agent skills and workflows for tech leads, PMs and HR.",
   "license": "MIT",
   "author": "bronz3beard",
