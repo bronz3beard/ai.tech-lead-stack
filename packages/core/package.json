@@ -56,7 +56,7 @@
     "@prisma/client": "^7.10.0",
     "adm-zip": "^0.6.1",
     "ai": "7.0.127",
-    "dotenv": "^16.5.0",
+    "dotenv": "^18.0.5",
     "gray-matter": "^4.0.3",
     "js-yaml": "^5.4.2",
     "octokit": "^5.0.5",
