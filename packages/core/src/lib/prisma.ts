@@ -20,7 +20,8 @@ const loadEnv = () => {
   if (process.env.TLS_SKIP_CWD_ENV === '1') return;
 
   try {
-    const root = resolve(process.cwd());
+    // turbopackIgnore: a runtime-only .env lookup; without it Turbopack traces the whole repo into the server bundle.
+    const root = resolve(/*turbopackIgnore: true*/ process.cwd());
     dotenv.config({ path: join(root, '.env') });
 
     // Fallback if not found in CWD
