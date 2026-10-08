@@ -2,7 +2,7 @@
 
 [← Back to the README](../README.md)
 
-There are 53 workflows available across three domains. `--ide claude-code`
+There are 54 workflows available across three domains. `--ide claude-code`
 installs all three by default (narrow it with `--domains`). The Cursor and
 Continue adapters still cover `.agents/workflows/` only, so for those clients
 the `pm-` and `hr-` suites must be copy-pasted or registered manually.
@@ -12,6 +12,7 @@ the `pm-` and `hr-` suites must be copy-pasted or registered manually.
 | Workflow                                | Description                                                                               |
 | :-------------------------------------- | :---------------------------------------------------------------------------------------- |
 | **accessibility-audit**                 | Specialized audit for Web Accessibility (A11y).                                           |
+| **ai-impact-baseline**                  | Compare engineering metrics before and after AI entered the codebase, visually.           |
 | **ask**                                 | A Q&A workflow to chat with the Agent about the codebase.                                 |
 | **audit-tech-debt**                     | Technical Debt Audit                                                                      |
 | **changelog**                           | Generate Changelog                                                                        |
