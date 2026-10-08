@@ -4,6 +4,17 @@ All notable changes to this project are recorded here. From 1.1.0 on,
 release-please writes each entry from the commit messages on `main` (see
 [docs/releasing.md](docs/releasing.md)); nobody edits this file by hand.
 
+## [2.0.0](https://github.com/bronz3beard/ai.tech-lead-stack/compare/v1.2.2...v2.0.0) (2026-10-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* **telemetry:** the Langfuse integration is removed. TLS_LANGFUSE_PUBLIC_KEY, TLS_LANGFUSE_SECRET_KEY and TLS_LANGFUSE_BASE_URL are no longer read, traces are no longer sent to Langfuse, and GET /api/admin/sync is gone. telemetryService.recordEvent now requires a `kind`.
+
+### Added
+
+* **telemetry:** honest AI-usage metrics with Postgres as the single source of truth ([#148](https://github.com/bronz3beard/ai.tech-lead-stack/issues/148)) ([2d7bcfe](https://github.com/bronz3beard/ai.tech-lead-stack/commit/2d7bcfeec0184512090f243460acfe8a95573567))
+
 ## [1.2.2](https://github.com/bronz3beard/ai.tech-lead-stack/compare/v1.2.1...v1.2.2) (2026-10-05)
 
 
