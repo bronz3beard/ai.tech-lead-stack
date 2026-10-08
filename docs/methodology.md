@@ -130,12 +130,12 @@ PRs, are excluded from both groups.
 | Throughput             | Merged PRs per week                                            |
 
 Groups are compared on medians, because cycle times are heavily skewed. No
-difference is shown until each group has at least 5 PRs. Because AI-assisted
-PRs are often smaller, the panel also reports a **size-adjusted** cycle-time
-difference: medians are compared within size buckets (XS < 50, S < 200,
-M < 500, L ≥ 500 changed lines), using only buckets with 3+ PRs in both groups,
-weighted by PR count. People choose when to use AI, so every difference is a
-correlation, not proof that AI caused it.
+difference is shown until each group has at least 5 PRs. Because AI-assisted PRs
+are often smaller, the panel also reports a **size-adjusted** cycle-time
+difference: medians are compared within size buckets (XS < 50, S < 200, M < 500,
+L ≥ 500 changed lines), using only buckets with 3+ PRs in both groups, weighted
+by PR count. People choose when to use AI, so every difference is a correlation,
+not proof that AI caused it.
 
 ## ✨ Special Feature: The Reflexion Loop
 
