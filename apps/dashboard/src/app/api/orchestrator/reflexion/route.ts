@@ -1,6 +1,8 @@
 import { getProjectAccessFilter } from '@/lib/access';
 import { DbStateStore } from '@zenithfoundry/tech-lead-stack/ai/reflexion/db-state-store';
 import { runReflexion } from '@zenithfoundry/tech-lead-stack/ai/reflexion/engine';
+import { reflexionStepTelemetry } from '@zenithfoundry/tech-lead-stack/ai/reflexion/step-telemetry';
+import { telemetryService } from '@zenithfoundry/tech-lead-stack/telemetry-service';
 import { runnerFromUser } from '@zenithfoundry/tech-lead-stack/ai/reflexion/providers-user';
 import { authOptions } from '@/lib/auth';
 import { createGitHubClient } from '@/lib/github/client';
@@ -109,37 +111,16 @@ export async function POST(req: Request) {
         stateStore,
       },
       (e) => {
-        let teamRole: string | undefined;
-        let phaseStr = e.phase;
-
-        if ('revision' in e) {
-          revisionCounter = e.revision;
-        }
-
-        if (e.phase === 'critique' || e.phase === 'scored') teamRole = 'critic';
-        if (e.phase === 'adjudicate') teamRole = 'adjudicator';
-        if (e.phase === 'interview') teamRole = 'interviewer';
-
-        import('@zenithfoundry/tech-lead-stack/telemetry-service')
-          .then((m) =>
-            m.telemetryService.recordEvent({
-              skillName: 'reflexion-loop',
-              duration: 0,
-              status: 'SUCCESS',
-              actorType: 'AGENT',
-              autonomy: 'AUTONOMOUS',
+        if ('revision' in e) revisionCounter = e.revision;
+        telemetryService
+          .recordEvent(
+            reflexionStepTelemetry({
+              event: e,
               loopRunId: initialRun.id,
-              loopPhase: phaseStr,
-              teamRole,
-              promptTokens: ('usage' in e && e.usage) ? e.usage.promptTokens : undefined,
-              completionTokens: ('usage' in e && e.usage) ? e.usage.completionTokens : undefined,
-              model: ('usage' in e && e.usage) ? e.usage.modelId : undefined,
-              metadata: {
-                revision: revisionCounter,
-                score: 'critique' in e ? e.critique.score : undefined,
-                passed: 'critique' in e ? e.critique.passed : undefined,
-                criticFallback: runner.wasDegraded() ? true : undefined,
-              },
+              revision: revisionCounter,
+              criticDegraded: runner.wasDegraded(),
+              projectName: project?.name,
+              userEmail: user.email ?? undefined,
             })
           )
           .catch(() => {});

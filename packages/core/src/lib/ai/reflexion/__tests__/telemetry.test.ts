@@ -32,7 +32,8 @@ jest.mock('../engine', () => ({
 
 describe('Telemetry Events', () => {
   it('emits proper actor telemetry per phase in MCP handlers', async () => {
-    const withAnalytics = jest.fn();
+    // recordEvent is async in production, so the mock resolves like it does.
+    const withAnalytics = jest.fn().mockResolvedValue(null);
     (global as any).mockTelemetryFn = withAnalytics;
     const mockFs: any = {};
     const mockTelemetry: any = { recordEvent: withAnalytics }; // We inject it to handlers to catch it directly.

@@ -4,6 +4,8 @@ import { FileStateStore } from '../../lib/ai/reflexion/state-store.js';
 import { assessTask, enforceTier, type Tier } from '../../lib/ai/tier-policy.js';
 import { decrypt } from '../../lib/crypto.js';
 import { prisma } from '../../lib/prisma.js';
+import { reflexionStepTelemetry } from '../../lib/ai/reflexion/step-telemetry.js';
+import { telemetryService } from '../../lib/telemetry-service.js';
 import { UserResolver } from '../user-resolver.js';
 
 export class ReflexionHandlers {
@@ -42,36 +44,15 @@ export class ReflexionHandlers {
 
       let revisionCounter = state.revision;
       const result = await resumeReflexion(runner, state, answers, cfg, (e) => {
-        let teamRole: string | undefined;
         if ('revision' in e) revisionCounter = e.revision;
-        if (e.phase === 'critique' || e.phase === 'scored') teamRole = 'critic';
-        if (e.phase === 'adjudicate') teamRole = 'adjudicator';
-        if (e.phase === 'interview') teamRole = 'interviewer';
-
-        // Call telemetryService directly because this.telemetry is ITelemetry (no recordEvent exposed)
-        import('../../lib/telemetry-service.js')
-          .then((m) =>
-            m.telemetryService.recordEvent({
-              skillName: 'reflexion-loop',
-              projectName: undefined,
-              agent: undefined,
-              duration: 0,
-              status: 'SUCCESS',
-              actorType: 'AGENT',
-              autonomy: 'AUTONOMOUS',
+        telemetryService
+          .recordEvent(
+            reflexionStepTelemetry({
+              event: e,
               loopRunId: runId,
-              loopPhase: state.intentPhase || e.phase,
-              teamRole,
-              promptTokens: ('usage' in e && e.usage) ? e.usage.promptTokens : undefined,
-              completionTokens: ('usage' in e && e.usage) ? e.usage.completionTokens : undefined,
-              model: ('usage' in e && e.usage) ? e.usage.modelId : undefined,
-              metadata: {
-                revision: revisionCounter,
-                score: 'critique' in e ? e.critique.score : undefined,
-                passed: 'critique' in e ? e.critique.passed : undefined,
-                criticFallback: runner.wasDegraded() ? true : undefined,
-                totalSteps: revisionCounter,
-              },
+              revision: revisionCounter,
+              intentPhase: state.intentPhase,
+              criticDegraded: runner.wasDegraded(),
             })
           )
           .catch(() => {});
@@ -261,6 +242,7 @@ export class ReflexionHandlers {
       await stateStore.save(initialState);
 
       // Fire and forget
+      let revisionCounter = 0;
       runReflexion(
         runner,
         {
@@ -273,38 +255,16 @@ export class ReflexionHandlers {
           stateStore,
         },
         (e) => {
-          let teamRole: string | undefined;
-          let revisionCounter = 0;
           if ('revision' in e) revisionCounter = e.revision;
-          if (e.phase === 'critique' || e.phase === 'scored')
-            teamRole = 'critic';
-          if (e.phase === 'adjudicate') teamRole = 'adjudicator';
-          if (e.phase === 'interview') teamRole = 'interviewer';
-
-          // Call telemetryService directly because this.telemetry is ITelemetry (no recordEvent exposed)
-          import('../../lib/telemetry-service.js')
-            .then((m) =>
-              m.telemetryService.recordEvent({
-                skillName: 'reflexion-loop',
-                projectName: undefined,
-                agent: undefined,
-                duration: 0,
-                status: 'SUCCESS',
-                actorType: 'AGENT',
-                autonomy: 'AUTONOMOUS',
+          telemetryService
+            .recordEvent(
+              reflexionStepTelemetry({
+                event: e,
                 loopRunId: runId,
-                loopPhase: initialState.intentPhase || e.phase,
-                teamRole,
-                promptTokens: ('usage' in e && e.usage) ? e.usage.promptTokens : undefined,
-                completionTokens: ('usage' in e && e.usage) ? e.usage.completionTokens : undefined,
-                model: ('usage' in e && e.usage) ? e.usage.modelId : undefined,
-                metadata: {
-                  revision: revisionCounter,
-                  score: 'critique' in e ? e.critique.score : undefined,
-                  passed: 'critique' in e ? e.critique.passed : undefined,
-                  criticFallback: runner.wasDegraded() ? true : undefined,
-                  totalSteps: revisionCounter,
-                },
+                revision: revisionCounter,
+                intentPhase: initialState.intentPhase,
+                criticDegraded: runner.wasDegraded(),
+                projectName: project?.name,
               })
             )
             .catch(() => {});

@@ -1,8 +1,8 @@
 /**
  *
  * Closes the loop between the hand-authored `cost: ~N tokens` estimate in each
- * skill's frontmatter and what the skill ACTUALLY costs once Langfuse-enriched
- * actuals have landed in Postgres (AnalyticsEvent.totalTokens).
+ * skill's frontmatter and what the skill ACTUALLY costs, measured from
+ * AnalyticsEvent.totalTokens in Postgres.
  *
  * What it does:
  *   1. Loads every skill's declared estimate from .ai/skills + .ai/pm-skills.
@@ -84,7 +84,13 @@ function loadDeclared(): Declared[] {
 /** Bucket observed token counts per skill from Postgres. */
 async function loadObserved(): Promise<Map<string, Observed>> {
   const rows = await prisma.analyticsEvent.findMany({
-    where: { status: 'SUCCESS', totalTokens: { gt: 0 } },
+    // skill_invocation rows hold the served skill's size; chat/loop rows measure other things.
+    where: {
+      status: 'SUCCESS',
+      kind: 'skill_invocation',
+      environment: 'production',
+      totalTokens: { gt: 0 },
+    },
     select: { skillName: true, totalTokens: true },
   });
 

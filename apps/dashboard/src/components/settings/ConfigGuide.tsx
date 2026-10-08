@@ -44,11 +44,6 @@ export default function ConfigGuide() {
       required: true,
     },
     {
-      name: 'TLS_LANGFUSE_SECRET_KEY',
-      desc: 'For AI observability and tracing (with TLS_LANGFUSE_PUBLIC_KEY).',
-      required: false,
-    },
-    {
       name: 'FIRECRAWL_API_KEY',
       desc: 'For web discovery and mapping.',
       required: false,

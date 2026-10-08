@@ -1,5 +1,3 @@
-// Mock langfuse to prevent ESM dynamic import issues in Node 22
-
 // Mock telemetry to prevent real telemetry service from loading
 jest.mock('../telemetry', () => ({
   Telemetry: jest.fn().mockImplementation(() => ({

@@ -60,7 +60,6 @@ import './config.js';
 import { repoRoot } from './config.js';
 
 import { KiService } from '../lib/ki/ki-service.js';
-import { langfuseSink } from '../lib/langfuse-sink.js';
 import { AlignmentService } from '../lib/skills/alignment-service.js';
 import { FileSystemService } from '../lib/skills/fs-service.js';
 import { Handlers } from './handlers.js';
@@ -172,6 +171,11 @@ const GET_SKILLS_TOOL: Tool = {
       loopPhase: {
         type: 'string',
         description: 'Optional: Phase of the loop.',
+      },
+      sessionId: {
+        type: 'string',
+        description:
+          'Optional: one id you generate per workflow run and reuse on every call in that run, so analytics can group them.',
       },
       story: {
         type: 'string',
@@ -674,11 +678,3 @@ runServer().catch((error: unknown) => {
   process.exit(1);
 });
 
-process.on('SIGINT', () => {
-  langfuseSink.shutdown();
-  process.exit(0);
-});
-process.on('SIGTERM', () => {
-  langfuseSink.shutdown();
-  process.exit(0);
-});

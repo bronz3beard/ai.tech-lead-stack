@@ -16,8 +16,6 @@ import { AlignmentService } from '../../../skills/alignment-service';
 import { KiService } from '../../../ki/ki-service';
 import { Answers } from '../schema';
 
-// Mock langfuse to prevent ESM dynamic import issues in Jest
-
 // Mock telemetry & prisma to prevent any side effects or network calls
 jest.mock('../../../prisma', () => ({
   prisma: {

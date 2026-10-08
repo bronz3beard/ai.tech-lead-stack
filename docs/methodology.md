@@ -82,29 +82,31 @@ and capability constraints:
 
 ## Analytics
 
-We capture per-phase measurement metrics using Langfuse telemetry, which
-includes recent accuracy fixes (PROMPTS A and B) to better track agent
-progression.
+Every telemetry event is written to Postgres (`AnalyticsEvent`), the single
+source of truth. There is no external tracing backend. Each row has a `kind`:
 
-Every skill run is recorded in Postgres (`AnalyticsEvent`). If Langfuse is
-configured, it is also sent there as a trace with environment `tls` and tag
-`source:tls`. Langfuse is configured with `TLS_`-prefixed variables only:
+| kind               | Recorded by                                   | Carries cost? |
+| ------------------ | --------------------------------------------- | ------------- |
+| `skill_invocation` | MCP `get_skill(s)`, chat workflow/skill loads | No            |
+| `llm_generation`   | Web chat answers, reflexion phases with usage | Yes           |
+| `tool_call`        | Skill-editor chat tools                       | No            |
+| `loop_step`        | Reflexion phase markers without usage         | No            |
 
-```bash
-TLS_LANGFUSE_PUBLIC_KEY="pk-lf-..."
-TLS_LANGFUSE_SECRET_KEY="sk-lf-..."
-TLS_LANGFUSE_BASE_URL="https://us.cloud.langfuse.com"
-```
+The MCP server never sees the LLM call (it runs on the agent's own
+subscription), so MCP rows measure adoption and workflow, not spend. Their
+`promptTokens` is the size of the skill text the agent will read. Only
+`llm_generation` rows carry a `totalCost`, priced from
+`packages/core/src/lib/ai/reflexion/pricing.ts`; `costIsEstimate` is `false`
+when the usage came from a provider response.
 
-The generic `LANGFUSE_*` names are ignored on purpose. A gateway that spawns
-this stack (see [Running behind an upstream MCP proxy](mcp-proxy-setup.md))
-passes its own environment down, and reading those names sent every run into the
-gateway's Langfuse project as a duplicate trace. See
-[CHANGELOG.md](../CHANGELOG.md) for the migration.
+Rows are grouped into sessions by `sessionId` (chat id, reflexion run id, or an
+MCP session that the agent may supply and that otherwise rotates after 30
+minutes idle). Rows written under Jest are tagged `environment = 'test'` and are
+excluded from the dashboards.
 
-The web dashboard reads Postgres, not Langfuse. Each card states its source and
-window (`Source: TLS store · Latest 1,000 runs`, or the date range you picked),
-so its figures should not be compared directly with Langfuse's.
+The public home page shows adoption only (no spend). Spend, per-provider and
+per-project breakdowns are on `/dashboard`, behind sign-in, scoped to the
+projects you can access. Each card states its source and window.
 
 ## ✨ Special Feature: The Reflexion Loop
 

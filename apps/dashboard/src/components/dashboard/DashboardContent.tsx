@@ -13,25 +13,15 @@ import { SlidersHorizontal, User, Globe } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AgenticHealthSummary } from '@/app/dashboard/agentic-health-loader';
+import type { AgenticHealthSummary } from '@/app/dashboard/agentic-health-loader';
+import type { TraceData } from '@/lib/analytics-service';
 import { AgenticHealthSection } from './AgenticHealthSection';
-
-export type TraceData = {
-  id: string;
-  name: string;
-  timestamp: string;
-  sessionId?: string;
-  projectName: string;
-  model: string;
-  agent: string;
-  duration?: number;
-  status?: string;
-  metadata?: Record<string, unknown>;
-  totalCost?: number;
-  totalTokens?: number;
-  inputTokens?: number;
-  outputTokens?: number;
-};
+import { PhaseCostPanel } from './PhaseCostPanel';
+import { SpendPanel } from './SpendPanel';
+import { StepAnalyticsTable } from './StepAnalyticsTable';
+import type { SpendSummary } from '@/lib/usage-aggregates';
+import { computeStepMetrics } from '@/lib/step-metrics';
+import { bucketSum, utcDay } from '@/lib/time-buckets';
 
 export function DashboardContent({
   traces,
@@ -39,6 +29,8 @@ export function DashboardContent({
   titlePrefix,
   agenticHealth,
   dataWindow,
+  spend,
+  spendScopeLabel,
 }: {
   traces: TraceData[];
   projects: { id: string; name: string; ownerId: string | null }[];
@@ -46,8 +38,12 @@ export function DashboardContent({
   agenticHealth?: AgenticHealthSummary;
   /** Which rows were loaded, e.g. "Latest 1,000 runs". */
   dataWindow: string;
+  /** Aggregated in the database over the whole date range, not limited to the loaded rows. */
+  spend: SpendSummary;
+  /** Describes the spend window, e.g. "All time" or a date range. */
+  spendScopeLabel: string;
 }) {
-  // Every card reads the TLS Postgres store, not Langfuse, so its numbers are not comparable to Langfuse's.
+  // Every card reads the TLS Postgres store, the single source of truth for telemetry.
   const scopeLabel = `Source: TLS store · ${dataWindow}`;
   const router = useRouter();
   const pathname = usePathname();
@@ -99,84 +95,36 @@ export function DashboardContent({
   }, [traces, selectedProject]);
 
   const metrics = useMemo(() => {
-    let totalExecutions = 0;
-    let activeWorkflows = 0;
-    const skillCounts: Record<string, number> = {};
-    const timeBuckets: Record<string, number> = {};
-
-    const sortedTraces = [...filteredTraces].sort(
-      (a, b) =>
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    // Work = skill loads + LLM calls; tool calls and loop markers are parts of that work.
+    const work = filteredTraces.filter(
+      (t) =>
+        (t.kind === 'skill_invocation' || t.kind === 'llm_generation') &&
+        !isSkillTrace(t.name, t.name)
     );
+    const skillLoads = work.filter((t) => t.kind === 'skill_invocation');
+    const llmCalls = work.filter((t) => t.kind === 'llm_generation').length;
+    const sessions = new Set(work.map((t) => t.sessionId).filter(Boolean)).size;
+    const agentWork = work.filter((t) => t.actorType === 'AGENT').length;
 
-    const workflows = new Set<string>();
-
-    for (const trace of sortedTraces) {
-      // Group by skill name
-      let skillName = 'unknown';
-      if (trace.name && trace.name.startsWith('skill:')) {
-        skillName = trace.name.replace('skill:', '');
-      } else if (
-        trace.name === 'skill_execution' &&
-        typeof trace.metadata?.skillName === 'string'
-      ) {
-        skillName = trace.metadata.skillName;
-      } else if (trace.name) {
-        skillName = trace.name;
-      }
-
-      // Secondary filter to ignore skeletal skill traces
-      if (isSkillTrace(trace.name, skillName)) continue;
-
-      // Only count valid skill executions for the KPI
-      totalExecutions++;
-      skillCounts[skillName] = (skillCounts[skillName] || 0) + 1;
-
-      // Track workflows
-      if (trace.sessionId) {
-        workflows.add(trace.sessionId);
-      }
-
-      // Time series: format to include weekday and date for a clear timeline
-      // Example: "Thu, Apr 30"
-      const dateKey = new Date(trace.timestamp).toLocaleDateString(undefined, {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-      });
-      timeBuckets[dateKey] = (timeBuckets[dateKey] || 0) + 1;
-    }
-
-    activeWorkflows = workflows.size > 0 ? workflows.size : totalExecutions;
-
+    const skillCounts: Record<string, number> = {};
+    for (const t of skillLoads) skillCounts[t.name] = (skillCounts[t.name] || 0) + 1;
     const topSkills = Object.entries(skillCounts)
       .map(([name, total]) => ({ name, total }))
       .sort((a, b) => b.total - a.total)
       .slice(0, 5);
 
-    const tracesByTime = Object.entries(timeBuckets).map(([name, total]) => ({
-      name,
-      total,
-    }));
-
-    const totalCost = filteredTraces.reduce(
-      (sum, t) => sum + (t.totalCost || 0),
-      0
-    );
-
-    const successfulTraces = filteredTraces.filter(
-      (t) => !t.metadata?.error && t.status !== 'ERROR'
-    ).length;
-    const averageAccuracy =
-      totalExecutions > 0 ? (successfulTraces / totalExecutions) * 100 : 100;
-
     return {
-      totalExecutions,
-      activeWorkflows,
+      skillLoads: skillLoads.length,
+      llmCalls,
+      sessions,
+      workTotal: work.length,
+      agentShare: work.length > 0 ? agentWork / work.length : 0,
       topSkills,
-      tracesByTime,
-      totalCost,
-      averageAccuracy,
+      tracesByTime: bucketSum(
+        work.map((t) => ({ at: new Date(t.timestamp), value: 1 })),
+        utcDay
+      ),
+      stepMetrics: computeStepMetrics(filteredTraces),
     };
   }, [filteredTraces]);
 
@@ -279,72 +227,37 @@ export function DashboardContent({
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="bg-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-lg font-semibold">
-                Total Skills Run
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">
-                {metrics.totalExecutions.toLocaleString()}
-              </div>
-              <p className="text-xs text-muted mt-1">{scopeLabel}</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-lg font-semibold">
-                Active Workflows
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">
-                {metrics.activeWorkflows.toLocaleString()}
-              </div>
-              <p className="text-xs text-muted mt-1">
-                Unique session activities
-              </p>
-              <p className="text-xs text-muted mt-1">{scopeLabel}</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-lg font-semibold">
-                Total Est. Cost
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-emerald-500">
-                ${metrics.totalCost.toFixed(2)}
-              </div>
-              <p className="text-xs text-muted mt-1">
-                Calculated from LLM usage
-              </p>
-              <p className="text-xs text-muted mt-1">{scopeLabel}</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-card">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-lg font-semibold">
-                Project Health
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">
-                {Math.round(metrics.averageAccuracy)}%
-              </div>
-              <p className="text-xs text-muted mt-1">Success rate average</p>
-              <p className="text-xs text-muted mt-1">{scopeLabel}</p>
-            </CardContent>
-          </Card>
+          <StatTile
+            title="Skills Loaded"
+            value={metrics.skillLoads.toLocaleString()}
+            detail="Skill files served to agents and chat"
+            scopeLabel={scopeLabel}
+          />
+          <StatTile
+            title="Sessions"
+            value={metrics.sessions.toLocaleString()}
+            detail="Distinct chat, loop and agent sessions"
+            scopeLabel={scopeLabel}
+          />
+          <StatTile
+            title="LLM Calls"
+            value={metrics.llmCalls.toLocaleString()}
+            detail="Chat answers and reflexion phases this stack paid for"
+            scopeLabel={scopeLabel}
+          />
+          <StatTile
+            title="Agent-Initiated"
+            value={`${(metrics.agentShare * 100).toFixed(1)}%`}
+            detail={`Agent ÷ ${metrics.workTotal.toLocaleString()} skill loads and LLM calls`}
+            scopeLabel={scopeLabel}
+          />
         </div>
 
         <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-7">
           <Card className="lg:col-span-12">
             <CardHeader>
               <CardTitle className="text-lg font-semibold">
-                Top Performing Skills
+                Most Used Skills
               </CardTitle>
               <p className="text-sm text-muted">{scopeLabel}</p>
             </CardHeader>
@@ -359,7 +272,7 @@ export function DashboardContent({
                 Activity Timeline
               </CardTitle>
               <p className="text-base text-muted">
-                Trend of agent executions. {scopeLabel}
+                Skill loads and LLM calls per day (UTC). {scopeLabel}
               </p>
             </CardHeader>
             <CardContent className="pl-2 pb-6">
@@ -383,10 +296,52 @@ export function DashboardContent({
           </Card>
         </div>
 
+        <Card className="overflow-hidden">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">Analysis Steps per Run</CardTitle>
+            <p className="text-sm text-muted">
+              Reflexion runs count once at their final revision; each web-chat analysis turn is one
+              run. {scopeLabel}
+            </p>
+          </CardHeader>
+          <CardContent>
+            <StepAnalyticsTable metrics={metrics.stepMetrics} />
+          </CardContent>
+        </Card>
+
+        <PhaseCostPanel traces={filteredTraces} />
+
+        <SpendPanel spend={spend} scopeLabel={spendScopeLabel} />
+
         {agenticHealth && <AgenticHealthSection summary={agenticHealth} />}
 
         <DashboardDisclaimer />
       </div>
     </div>
+  );
+}
+
+function StatTile({
+  title,
+  value,
+  detail,
+  scopeLabel,
+}: {
+  title: string;
+  value: string;
+  detail: string;
+  scopeLabel: string;
+}) {
+  return (
+    <Card className="bg-card">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-lg font-semibold">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-3xl font-bold">{value}</p>
+        <p className="text-xs text-muted mt-1">{detail}</p>
+        <p className="text-xs text-muted mt-1">{scopeLabel}</p>
+      </CardContent>
+    </Card>
   );
 }

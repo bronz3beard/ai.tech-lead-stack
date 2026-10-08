@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-10-03T17:01:10.461Z",
+  "generatedAt": "2026-10-08T16:25:20.772Z",
   "entries": [
     {
       "name": "accessibility-audit",
@@ -866,7 +866,7 @@
       "fetchName": "pr-automator",
       "skill": "pr-automator",
       "cost": "~6650 tokens",
-      "costTokens": 5628,
+      "costTokens": 5633,
       "domain": "eng",
       "domainKey": "eng",
       "description": "PR Automator (with Mandatory Dynamic Template Adherence, Commit History Review, Label Matching, & Draft Mode)",

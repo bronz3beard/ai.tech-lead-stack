@@ -78,7 +78,7 @@ export class PipelineHandlers {
       undefined,
       'unknown',
       async () => resultText,
-      {}
+      { kind: 'tool_call' }
     );
 
     return {

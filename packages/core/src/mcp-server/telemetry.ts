@@ -1,10 +1,29 @@
-import { telemetryService } from '../lib/telemetry-service';
+import {
+  telemetryService,
+  type TelemetryKind,
+} from '../lib/telemetry-service';
 import {
   isSkillTrace,
   normalizeProjectName,
   normalizeSkillName,
 } from '../lib/trace-utils';
+import { getGitContext } from './git-context';
+import { McpSession } from './session';
 import { UserResolver } from './user-resolver';
+
+export interface TelemetryOverrides {
+  userEmail?: string;
+  userRole?: string;
+  actorType?: string | null;
+  autonomy?: string | null;
+  loopRunId?: string | null;
+  loopPhase?: string | null;
+  teamRole?: string | null;
+  /** Agent-supplied id grouping one workflow run; falls back to an idle-rotating server session. */
+  sessionId?: string;
+  /** Defaults to 'skill_invocation'. */
+  kind?: TelemetryKind;
+}
 
 export interface ITelemetry {
   withAnalytics<T>(
@@ -14,15 +33,7 @@ export interface ITelemetry {
     agent: string | undefined,
     skillCost: string | undefined,
     executeCallback: () => Promise<T>,
-    overrides?: {
-      userEmail?: string;
-      userRole?: string;
-      actorType?: string | null;
-      autonomy?: string | null;
-      loopRunId?: string | null;
-      loopPhase?: string | null;
-      teamRole?: string | null;
-    }
+    overrides?: TelemetryOverrides
   ): Promise<T>;
 }
 
@@ -32,6 +43,7 @@ export interface ITelemetry {
  */
 export class Telemetry implements ITelemetry {
   private userResolver: UserResolver;
+  private session = new McpSession();
 
   constructor() {
     this.userResolver = new UserResolver();
@@ -44,15 +56,7 @@ export class Telemetry implements ITelemetry {
     agent: string | undefined,
     skillCost: string | undefined,
     executeCallback: () => Promise<T>,
-    overrides?: {
-      userEmail?: string;
-      userRole?: string;
-      actorType?: string | null;
-      autonomy?: string | null;
-      loopRunId?: string | null;
-      loopPhase?: string | null;
-      teamRole?: string | null;
-    }
+    overrides?: TelemetryOverrides
   ): Promise<T> {
     const normalizedSkill = normalizeSkillName(skillName);
     const startTime = Date.now();
@@ -68,14 +72,15 @@ export class Telemetry implements ITelemetry {
 
     let status: 'SUCCESS' | 'ERROR' = 'SUCCESS';
     let errorMessage: string | undefined;
-    let completionTokens = 0;
-    let promptTokens = 500; // Baseline for MCP metadata
+    let promptTokens = 0;
 
     try {
       const result = await executeCallback();
       const outputStr =
         typeof result === 'string' ? result : JSON.stringify(result);
-      completionTokens = Math.ceil(outputStr.length / 4);
+      // Rough size (chars/4) of the text the agent will read as input. A
+      // workflow-size signal only: no LLM call happens here, so no cost is recorded.
+      promptTokens = Math.ceil(outputStr.length / 4);
       return result;
     } catch (error: unknown) {
       status = 'ERROR';
@@ -86,8 +91,10 @@ export class Telemetry implements ITelemetry {
 
       try {
         if (telemetryService?.recordEvent) {
+          const { gitBranch, prNumber } = getGitContext();
           await telemetryService.recordEvent({
             skillName,
+            kind: overrides?.kind ?? 'skill_invocation',
             projectName: normalizedProject,
             model,
             agent,
@@ -95,8 +102,11 @@ export class Telemetry implements ITelemetry {
             status,
             error: errorMessage,
             promptTokens,
-            completionTokens,
+            completionTokens: 0,
             userEmail,
+            sessionId: overrides?.sessionId || this.session.current(),
+            gitBranch,
+            prNumber,
             metadata: {
               userName,
               skillCost: skillCost || 'unknown',

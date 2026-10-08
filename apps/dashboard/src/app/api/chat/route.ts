@@ -11,6 +11,7 @@ import {
   streamText,
   UIMessage,
   UIMessageStreamWriter,
+  type LanguageModelUsage,
   type ModelMessage,
 } from 'ai';
 import { getServerSession } from 'next-auth';
@@ -409,6 +410,32 @@ export async function POST(req: Request) {
           const preferredProvider = user.preferredModel || 'gemini';
           let workflowNameStr = 'general-chat';
 
+          let stepCount = 0;
+          
+          let configs: { modelId: string, keyIndex: number, label: string }[] = [];
+          
+          if (preferredProvider === 'gemini') {
+            configs = [
+              { modelId: MODELS.GEMINI, keyIndex: 0, label: 'Primary Model' },
+              { modelId: MODELS.FALLBACK_GEMINI, keyIndex: 0, label: 'Stable Model (Primary Key)' },
+              { modelId: MODELS.FALLBACK_GEMINI, keyIndex: 1, label: 'Stable Model (Alternative Key)' },
+            ];
+          } else if (preferredProvider === 'jules') {
+            configs = [
+              { modelId: MODELS.JULES, keyIndex: 0, label: 'Primary Model' },
+              { modelId: MODELS.FALLBACK_JULES, keyIndex: 0, label: 'Stable Model (Primary Key)' },
+              { modelId: MODELS.FALLBACK_JULES, keyIndex: 1, label: 'Stable Model (Alternative Key)' },
+            ];
+          } else if (preferredProvider === 'claude') {
+            configs = [
+              { modelId: MODELS.CLAUDE, keyIndex: 0, label: 'Primary Model' }
+            ];
+          } else if (preferredProvider === 'openai') {
+            configs = [
+              { modelId: MODELS.OPENAI, keyIndex: 0, label: 'Primary Model' }
+            ];
+          }
+
           if (
             lastUserMessage &&
             lastUserMessageText &&
@@ -437,7 +464,8 @@ export async function POST(req: Request) {
             const workflowContent = await telemetry.withAnalytics(
               workflowName,
               project.name,
-              MODELS.GEMINI,
+              // The model that will read the workflow; rotation may later switch it.
+              configs[0]?.modelId,
               preferredProvider,
               '~1000 tokens',
               async () => {
@@ -448,7 +476,8 @@ export async function POST(req: Request) {
                 userEmail: user.email ?? undefined,
                 userRole: user.role,
                 actorType: 'HUMAN',
-                autonomy: 'DIRECTED'
+                autonomy: 'DIRECTED',
+                sessionId: currentChatId,
               }
             );
 
@@ -457,35 +486,30 @@ export async function POST(req: Request) {
             }
           }
 
-          let stepCount = 0;
-          
-          let configs: { modelId: string, keyIndex: number, label: string }[] = [];
-          
-          if (preferredProvider === 'gemini') {
-            configs = [
-              { modelId: MODELS.GEMINI, keyIndex: 0, label: 'Primary Model' },
-              { modelId: MODELS.FALLBACK_GEMINI, keyIndex: 0, label: 'Stable Model (Primary Key)' },
-              { modelId: MODELS.FALLBACK_GEMINI, keyIndex: 1, label: 'Stable Model (Alternative Key)' },
-            ];
-          } else if (preferredProvider === 'jules') {
-            configs = [
-              { modelId: MODELS.JULES, keyIndex: 0, label: 'Primary Model' },
-              { modelId: MODELS.FALLBACK_JULES, keyIndex: 0, label: 'Stable Model (Primary Key)' },
-              { modelId: MODELS.FALLBACK_JULES, keyIndex: 1, label: 'Stable Model (Alternative Key)' },
-            ];
-          } else if (preferredProvider === 'claude') {
-            configs = [
-              { modelId: MODELS.CLAUDE, keyIndex: 0, label: 'Primary Model' }
-            ];
-          } else if (preferredProvider === 'openai') {
-            configs = [
-              { modelId: MODELS.OPENAI, keyIndex: 0, label: 'Primary Model' }
-            ];
-          }
+          // A failed model call is a real llm_generation outcome; without it the
+          // success rate can only ever read 100%.
+          const recordFailedAttempt = (modelId: string, startedAt: number, err: unknown) => {
+            telemetryService.recordEvent({
+              skillName: `analysis:${workflowNameStr}`,
+              kind: 'llm_generation',
+              sessionId: currentChatId,
+              projectName: project.name,
+              model: modelId,
+              agent: preferredProvider,
+              duration: (Date.now() - startedAt) / 1000,
+              status: 'ERROR',
+              error: getErrorMessage(err).slice(0, 500),
+              userEmail: user.email ?? undefined,
+              metadata: { chatId: currentChatId, quotaError: isQuotaError(err) },
+              actorType: 'HUMAN',
+              autonomy: 'DIRECTED',
+            }).catch((logErr) => console.error('[Telemetry] Failed-attempt log failed:', logErr));
+          };
 
           for (let i = 0; i < configs.length; i++) {
             const config = configs[i];
             const isLastAttempt = i === configs.length - 1;
+            const attemptStart = Date.now();
 
             console.info(
               `[chat] Attempt ${i + 1}/${configs.length} using ${config.label} (${config.modelId})`
@@ -532,10 +556,10 @@ export async function POST(req: Request) {
                         const resultPart = event.toolResults.find(r => r.toolCallId === call.toolCallId) as any;
 
                         // --- EXECUTION TELEMETRY ---
-                        // Capture get_skill and discrete skill tools for analytics
+                        // Only skill loads are skill runs; other tools (code_search,
+                        // ClickUp, ...) are part of this chat turn, not skills.
                         const isSkillTool =
-                          call.toolName === 'get_skill' ||
-                          (!['list_skills', 'read_file', 'list_files', 'run_command'].includes(call.toolName));
+                          call.toolName === 'get_skill' || call.toolName === 'get_skills';
 
                         if (isSkillTool) {
                           const args = callAny.args || callAny.input || {};
@@ -546,6 +570,8 @@ export async function POST(req: Request) {
                           // Record skill execution event asynchronously
                           telemetryService.recordEvent({
                             skillName,
+                            kind: 'skill_invocation',
+                            sessionId: currentChatId,
                             projectName: project.name,
                             model: config.modelId,
                             agent: preferredProvider,
@@ -558,7 +584,6 @@ export async function POST(req: Request) {
                               toolCallId: call.toolCallId,
                               stepNumber: stepCount,
                               source: 'chat-v2-execution',
-                              llmCall: false,
                             },
                             promptTokens: 0,
                             completionTokens: 0,
@@ -678,7 +703,7 @@ export async function POST(req: Request) {
               // Once the model finished analytical turns, relay the final summary streams
               const uiStream = result.toUIMessageStream();
               let textEmitted = false;
-              let summaryUsage: any = undefined;
+              let summaryUsage: LanguageModelUsage | undefined = undefined;
 
               try {
                 for await (const chunk of uiStream) {
@@ -784,23 +809,33 @@ export async function POST(req: Request) {
                 });
 
                 // --- STEP TELEMETRY ---
+                // One llm_generation row per answered chat turn: a person asked, the model answered.
                 const mainUsage = await result.usage;
+                const usages: (LanguageModelUsage | undefined)[] = [mainUsage, summaryUsage];
+                const sumUsage = (pick: (u: LanguageModelUsage) => number | undefined) =>
+                  usages.reduce((sum, u) => sum + ((u && pick(u)) ?? 0), 0);
                 telemetryService.recordEvent({
                   skillName: `analysis:${workflowNameStr}`,
+                  kind: 'llm_generation',
+                  sessionId: currentChatId,
                   projectName: project.name,
                   model: config.modelId,
                   agent: preferredProvider,
-                  duration: 0, // Duration isn't critical here since we just want step count
+                  duration: (Date.now() - attemptStart) / 1000,
                   status: 'SUCCESS',
-                  promptTokens: (mainUsage?.inputTokens ?? 0) + (summaryUsage?.inputTokens ?? 0),
-                  completionTokens: (mainUsage?.outputTokens ?? 0) + (summaryUsage?.outputTokens ?? 0),
+                  promptTokens: sumUsage((u) => u.inputTokens),
+                  completionTokens: sumUsage((u) => u.outputTokens),
+                  cacheReadTokens: sumUsage((u) => u.inputTokenDetails?.cacheReadTokens),
+                  cacheWriteTokens: sumUsage((u) => u.inputTokenDetails?.cacheWriteTokens),
+                  reasoningTokens: sumUsage((u) => u.outputTokenDetails?.reasoningTokens),
+                  usageFromProvider: true,
                   userEmail: user.email ?? undefined,
                   metadata: {
                     totalSteps: stepCount,
                     chatId: currentChatId,
                   },
-                  actorType: 'AGENT',
-                  autonomy: 'AUTONOMOUS'
+                  actorType: 'HUMAN',
+                  autonomy: 'DIRECTED',
                 }).catch(err => console.error('[Telemetry] Total step log failed:', err));
 
                 // BACKGROUND SUMMARIZATION: After a successful stream, update the
@@ -822,6 +857,7 @@ export async function POST(req: Request) {
                 return; // SUCCESS - Both model and stream finished
               } catch (streamErr: unknown) {
                 if (isQuotaError(streamErr)) {
+                  recordFailedAttempt(config.modelId, attemptStart, streamErr);
                   console.warn(
                     `[chat] Mid-stream quota hit for ${config.modelId}. Rotating...`
                   );
@@ -831,6 +867,7 @@ export async function POST(req: Request) {
                 throw streamErr;
               }
             } catch (err: unknown) {
+              recordFailedAttempt(config.modelId, attemptStart, err);
               const quotaError = isQuotaError(err);
               const errorText = getErrorMessage(err);
 

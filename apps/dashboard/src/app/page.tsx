@@ -1,376 +1,185 @@
 import { DashboardDisclaimer } from '@/components/dashboard/DashboardDisclaimer';
-import { InsightsTable } from '@/components/dashboard/InsightsTable';
-import { StepAnalyticsTable } from '@/components/dashboard/StepAnalyticsTable';
-import { PhaseCostPanel } from '@/components/dashboard/PhaseCostPanel';
 import { ProjectSelect, type Project } from '@/components/ProjectSelect';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, LineChart } from '@/components/ui/chart';
-import { isSkillTrace, isActiveSkill, normalizeSkillName } from '@zenithfoundry/tech-lead-stack/trace-utils';
-import { getAnalytics } from '@/lib/analytics-service';
-import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { getProjectAccessFilter } from '@/lib/access';
+import {
+  DEFAULT_SERIES_DAYS,
+  getAdoptionSummary,
+  type AdoptionSummary,
+} from '@/lib/usage-aggregates';
 import { prisma } from '@zenithfoundry/tech-lead-stack/db';
+import { normalizeProjectName } from '@zenithfoundry/tech-lead-stack/trace-utils';
+import { getServerSession } from 'next-auth';
+import Link from 'next/link';
+import { z } from 'zod';
 
-export const revalidate = 60; // cached for 60 seconds
+/**
+ * Public adoption view: counts only, never spend. Anonymous visitors see the
+ * all-projects aggregate; signed-in users can narrow to projects they can access.
+ * Spend and per-session detail live on /dashboard, behind sign-in.
+ */
 
+const SearchParamsSchema = z.object({
+  projectId: z.string().trim().max(200).optional(),
+});
 
+const EMPTY_SUMMARY: AdoptionSummary = {
+  skillsLoaded: 0,
+  llmCalls: 0,
+  sessions: 0,
+  projects: 0,
+  people: 0,
+  actorSplit: { human: 0, agent: 0, unknown: 0 },
+  topSkills: [],
+  dailySkillLoads: [],
+};
 
-async function getGlobalMetrics(projectId?: string, session?: any) {
-  try {
-    // 1. Fetch total analytics from Postgres - much faster!
-    // We fetch a larger batch for the global view to ensure historical accuracy
-    const allTraces = await getAnalytics({ 
-      timeframe: 'all',
-      limit: -1, // Fetch all historical records
-      projectName: projectId === 'all' ? undefined : projectId
-    });
-
-    // 2. Fetch projects from database to ensure all authorized projects are shown
-    const isPrivilegedRole = session?.user?.role === 'ADMIN' || session?.user?.role === 'DEVELOPER';
-
-    const dbProjects = await prisma.project.findMany({
-      where: session?.user?.id ? (isPrivilegedRole ? {} : {
-        OR: [
-          { ownerId: session.user.id },
-          { accessGrants: { some: { role: session.user.role as any } } }
-        ]
-      }) : {},
-      select: { name: true, settings: true },
-      orderBy: { name: 'asc' }
-    });
-
-    const projects: Project[] = [
-      { id: 'all', name: 'All Projects' },
-      ...dbProjects.map((p) => {
-        const hasConfig = p.settings && typeof p.settings === 'object' && Object.values(p.settings).some(v => typeof v === 'string' && v.trim().length > 0 && v !== '********');
-        return {
-          id: p.name,
-          name: p.name.charAt(0).toUpperCase() + p.name.slice(1).replace(/-/g, ' '),
-          hasConfig: !!hasConfig,
-        };
-      }),
-    ];
-
-    // Filtering logic for Global Dashboard vs Project view
-    const finalTraces = allTraces.filter((trace) => {
-      // 1. Project filtering 
-      if (projectId !== 'all' && trace.projectName !== projectId) return false;
-
-      // 2. Skill filtering for Global view - remove internal/meta skills
-      if (projectId === 'all') {
-        let rawSkillName = trace.name;
-        if (trace.name && trace.name.startsWith('skill:')) {
-          rawSkillName = trace.name.replace('skill:', '');
-        } else if (trace.metadata?.skillName) {
-          rawSkillName = trace.metadata.skillName as string;
-        }
-
-        const skillName = normalizeSkillName(rawSkillName);
-        return isActiveSkill(skillName) && !isSkillTrace(trace.name, skillName);
-      }
-      
-      return true;
-    });
-
-// Logic moved to fetch from DB above
-
-    const totalExecutions = finalTraces.length;
-    const sessionIds = new Set(
-      finalTraces.map((t) => t.sessionId).filter(Boolean)
-    );
-    const activeWorkflows =
-      sessionIds.size > 0 ? sessionIds.size : totalExecutions;
-
-    const skillCounts: Record<string, number> = {};
-    const timeBuckets: Record<string, number> = {};
-
-    // Sort chronologically (oldest to newest) for the Activity Timeline
-    const chronologicalTraces = [...finalTraces].sort(
-      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    );
-
-    chronologicalTraces.forEach((trace) => {
-      // Aggregate by skill
-      let rawSkillName = trace.name;
-      if (trace.name && trace.name.startsWith('skill:')) {
-        rawSkillName = trace.name.replace('skill:', '');
-      } else if (trace.metadata?.skillName) {
-        rawSkillName = trace.metadata.skillName as string;
-      }
-      const skillName = normalizeSkillName(rawSkillName);
-
-      skillCounts[skillName] = (skillCounts[skillName] || 0) + 1;
-
-      // Aggregate by time - include weekday for tooltip as requested
-      const dateKey = new Date(trace.timestamp).toLocaleDateString(undefined, {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-      });
-      timeBuckets[dateKey] = (timeBuckets[dateKey] || 0) + 1;
-    });
-
-    const topSkills = Object.entries(skillCounts)
-      .map(([name, total]) => ({ name, total }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 10);
-
-    const tracesByTime = Object.entries(timeBuckets).map(([name, total]) => ({
-      name,
-      total,
-    }));
-
-    const analysisTraces = finalTraces.filter(t => t.name === 'reflexion-loop' || t.metadata?.totalSteps !== undefined);
-    
-    // Group traces by run ID to avoid double-counting steps from multiple events (e.g. generate, critique) in the same run
-    const tracesByRun: Record<string, { steps: number, phase: string, skill: string }> = {};
-    
-    analysisTraces.forEach(t => {
-      const runId = (t as any).loopRunId || t.id; // fallback to trace ID if no loopRunId
-      let skillName = t.metadata?.skillName as string || t.name;
-      const steps = typeof t.metadata?.totalSteps === 'number' ? t.metadata.totalSteps : 
-                    (typeof t.metadata?.totalSteps === 'string' ? parseInt(t.metadata.totalSteps, 10) : 0);
-      const phase = (t as any).loopPhase || 'unknown';
-      
-      if (!tracesByRun[runId] || (isNaN(steps) ? 0 : steps) > tracesByRun[runId].steps) {
-        tracesByRun[runId] = {
-           steps: isNaN(steps) ? 0 : steps,
-           phase,
-           skill: skillName
-        };
-      }
-    });
-
-    const stepMetricsMap: Record<string, { totalExecutions: number; totalSteps: number }> = {};
-    
-    Object.values(tracesByRun).forEach(runData => {
-      const key = `${runData.skill}|${runData.phase}`;
-      if (!stepMetricsMap[key]) {
-        stepMetricsMap[key] = { totalExecutions: 0, totalSteps: 0 };
-      }
-      stepMetricsMap[key].totalExecutions += 1;
-      stepMetricsMap[key].totalSteps += runData.steps;
-    });
-
-    const stepMetrics = Object.entries(stepMetricsMap).map(([key, data]) => {
-      const [skillName, intentPhase] = key.split('|');
-      return {
-        skillName,
-        intentPhase,
-        totalExecutions: data.totalExecutions,
-        averageSteps: data.totalSteps / data.totalExecutions,
-        totalSteps: data.totalSteps
-      };
-    }).sort((a, b) => b.totalSteps - a.totalSteps);
-
-    return {
-      totalExecutions,
-      activeWorkflows:
-        activeWorkflows > totalExecutions ? totalExecutions : activeWorkflows,
-      projects,
-      topSkills,
-      tracesByTime,
-      stepMetrics,
-      traces: finalTraces,
-    };
-  } catch (error) {
-    console.error('Error fetching metrics from Postgres:', error);
-    return {
-      totalExecutions: 0,
-      activeWorkflows: 0,
-      projects: [{ id: 'all', name: 'All Projects' }],
-      topSkills: [],
-      tracesByTime: [],
-      stepMetrics: [],
-      traces: [],
-    };
-  }
+async function loadSelectableProjects(
+  user: { id: string; role: string; email?: string | null } | undefined
+): Promise<Project[]> {
+  if (!user) return [];
+  const rows = await prisma.project.findMany({
+    where: getProjectAccessFilter(user),
+    select: { name: true },
+    orderBy: { name: 'asc' },
+  });
+  return rows.map((p) => ({
+    id: normalizeProjectName(p.name),
+    name: p.name.charAt(0).toUpperCase() + p.name.slice(1).replace(/-/g, ' '),
+  }));
 }
 
 interface PageProps {
-  searchParams: Promise<{ projectId?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 export default async function PublicDashboard({ searchParams }: PageProps) {
-  const resolvedParams = searchParams ? await searchParams : {};
-  const projectId = resolvedParams?.projectId || 'all';
+  const parsed = SearchParamsSchema.safeParse(await searchParams);
+  const requestedProject = parsed.success ? parsed.data.projectId : undefined;
 
   let session = null;
   try {
     session = await getServerSession(authOptions);
   } catch (error) {
-    console.warn(
-      '[PublicDashboard] Unable to retrieve server session, continuing in anonymous mode:',
-      error
-    );
+    console.warn('[PublicDashboard] No session, continuing anonymously:', error);
   }
 
-  const metrics = await getGlobalMetrics(projectId, session);
+  const sessionUser = session?.user?.id
+    ? { id: session.user.id, role: session.user.role, email: session.user.email }
+    : undefined;
+  const projects = await loadSelectableProjects(sessionUser);
+  // Only a project the viewer can access narrows the view; anything else shows the aggregate.
+  const selected = projects.find((p) => p.id === requestedProject);
 
-  const defaultProject: Project = { id: 'all', name: 'All Projects' };
-  const projects =
-    metrics?.projects && metrics.projects.length > 0
-      ? metrics.projects
-      : [defaultProject];
-  const selectedProject =
-    projects.find((p) => p.id === projectId) || projects[0] || defaultProject;
+  let summary = EMPTY_SUMMARY;
+  try {
+    summary = await getAdoptionSummary({ scope: null, projectName: selected?.id });
+  } catch (error) {
+    console.error('[PublicDashboard] Failed to load adoption summary:', error);
+  }
 
-  const traces = metrics?.traces || [];
-  const topSkills = metrics?.topSkills || [];
-  const tracesByTime = metrics?.tracesByTime || [];
-  const stepMetrics = metrics?.stepMetrics || [];
-  const totalExecutions = metrics?.totalExecutions || 0;
-  const activeWorkflows = metrics?.activeWorkflows || 0;
-
-  const totalCost = traces.reduce(
-    (sum, t) => sum + (t.totalCost || 0),
-    0
-  );
-
-  // Calculate average accuracy
-  const successfulTraces = traces.filter(
-    (t) => !t.metadata?.error && t.status !== 'ERROR'
-  ).length;
-  const averageAccuracy =
-    totalExecutions > 0
-      ? (successfulTraces / totalExecutions) * 100
-      : 100;
+  const actorTotal = summary.actorSplit.human + summary.actorSplit.agent;
+  const agentShare = actorTotal > 0 ? Math.round((summary.actorSplit.agent / actorTotal) * 100) : 0;
 
   return (
     <div className="flex flex-col min-h-full bg-[#0f172a] text-slate-200 p-8 font-sans">
       <div className="max-w-7xl mx-auto w-full space-y-12">
-        {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
           <div>
             <h1 className="text-5xl font-extrabold tracking-tight bg-linear-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent">
               Global Public Dashboard
             </h1>
             <p className="text-slate-400 mt-3 text-xl font-medium">
-              Viewing telemetry data for:{' '}
+              Adoption for:{' '}
               <span className="text-indigo-400 font-bold border-b-2 border-indigo-400/30 pb-1">
-                {selectedProject?.name ?? 'All Projects'}
+                {selected?.name ?? 'All Projects'}
               </span>
             </p>
           </div>
 
-          <div className="flex items-center">
-            <ProjectSelect
-              projects={projects}
-              selectedProjectId={projectId}
-            />
-          </div>
+          {projects.length > 0 && (
+            <div className="flex items-center">
+              <ProjectSelect
+                projects={[{ id: 'all', name: 'All Projects' }, ...projects]}
+                selectedProjectId={selected?.id ?? 'all'}
+              />
+            </div>
+          )}
         </div>
 
-        {/* Top Level KPIs */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <section aria-label="Adoption totals" className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <KPICard
-            title="Total Skills Run"
-            value={totalExecutions}
-            subtitle="Cumulative across all runs"
+            title="Skills Loaded"
+            value={summary.skillsLoaded.toLocaleString()}
+            subtitle="Skill files served to agents and chat, all time"
           />
           <KPICard
-            title="Active Workflows"
-            value={activeWorkflows}
-            subtitle="Unique session activities"
+            title="Sessions"
+            value={summary.sessions.toLocaleString()}
+            subtitle="Distinct chat, loop and agent sessions (recorded since Oct 2026)"
           />
           <KPICard
-            title="Total Est. Cost"
-            value={`$${totalCost.toFixed(2)}`}
-            subtitle="Calculated from LLM usage"
+            title="Active Projects"
+            value={summary.projects.toLocaleString()}
+            subtitle={`${summary.people.toLocaleString()} signed-in people`}
           />
           <KPICard
-            title="Project Health"
-            value={`${Math.round(averageAccuracy)}%`}
-            subtitle="Success rate average"
+            title="Agent-Initiated"
+            value={`${agentShare}%`}
+            subtitle={`${summary.actorSplit.agent.toLocaleString()} agent of ${actorTotal.toLocaleString()} skill loads and LLM calls`}
           />
-        </div>
+        </section>
 
-        {/* Visual Analytics */}
         <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-7">
           <Card className="lg:col-span-4 border-slate-800 bg-slate-900/50 backdrop-blur-xl shadow-2xl">
             <CardHeader className="pb-0">
-              <CardTitle className="text-2xl font-bold text-white mb-2">
-                Top Performing Skills
-              </CardTitle>
+              <CardTitle className="text-2xl font-bold text-white mb-2">Most Used Skills</CardTitle>
+              <p className="text-slate-400">Skill loads, all time, top 10.</p>
             </CardHeader>
             <CardContent className="pt-6">
-              <BarChart data={topSkills} />
+              <BarChart data={summary.topSkills} />
             </CardContent>
           </Card>
 
           <Card className="lg:col-span-3 border-slate-800 bg-slate-900/50 backdrop-blur-xl shadow-2xl">
             <CardHeader className="pb-0">
-              <CardTitle className="text-2xl font-bold text-white mb-2">
-                Activity Timeline
-              </CardTitle>
+              <CardTitle className="text-2xl font-bold text-white mb-2">Activity Timeline</CardTitle>
               <p className="text-slate-400">
-                Trend of agent executions over the last 100 traces.
+                Skill loads per day (UTC), last {DEFAULT_SERIES_DAYS} days.
               </p>
             </CardHeader>
             <CardContent className="pt-6">
-              <LineChart data={tracesByTime} />
+              <LineChart data={summary.dailySkillLoads} />
             </CardContent>
           </Card>
         </div>
 
-        {/* Analytics Insights Table */}
-        <Card className="border-slate-800 bg-slate-900/50 backdrop-blur-xl shadow-2xl overflow-hidden">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-white">
-              Analytics Insights
-            </CardTitle>
-            <p className="text-slate-400">
-              Detailed performance and token cost metrics for each skill.
-            </p>
-          </CardHeader>
-          <CardContent>
-            <InsightsTable traces={traces} />
-          </CardContent>
-        </Card>
+        <p className="text-slate-400 text-sm">
+          Spend, providers, sessions and reflexion health are on the{' '}
+          <Link href="/dashboard" className="text-indigo-400 hover:text-indigo-300 underline">
+            signed-in dashboard
+          </Link>
+          .
+        </p>
 
-        {/* Step Analytics Table */}
-        <Card className="border-slate-800 bg-slate-900/50 backdrop-blur-xl shadow-2xl overflow-hidden">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-white">
-              Total Thinking and Analysis Steps
-            </CardTitle>
-            <p className="text-slate-400">
-              Aggregated telemetry showing the total analytical turns taken per workflow.
-            </p>
-          </CardHeader>
-          <CardContent>
-            <StepAnalyticsTable metrics={stepMetrics} />
-          </CardContent>
-        </Card>
-
-        {/* Phase Cost Panel */}
-        <PhaseCostPanel traces={traces as any} />
-
-        {/* Disclaimer Section */}
         <DashboardDisclaimer />
       </div>
     </div>
   );
 }
 
-function KPICard({
-  title,
-  value,
-  subtitle,
-}: {
-  title: string;
-  value: string | number;
-  subtitle: string;
-}) {
+function KPICard({ title, value, subtitle }: { title: string; value: string; subtitle: string }) {
   return (
     <Card className="border-slate-800 bg-slate-900/50 backdrop-blur-xl shadow-xl hover:border-indigo-500/40 transition-all duration-300 group">
       <CardHeader className="pb-2">
-        <p className="text-slate-400 text-sm font-semibold uppercase tracking-widest group-hover:text-indigo-400 transition-colors">
+        <h2 className="text-slate-400 text-sm font-semibold uppercase tracking-widest group-hover:text-indigo-400 transition-colors">
           {title}
-        </p>
+        </h2>
       </CardHeader>
       <CardContent>
-        <div className="text-4xl font-extrabold text-white mb-2">{value}</div>
+        <p className="text-4xl font-extrabold text-white mb-2">{value}</p>
         <p className="text-xs text-slate-500 font-medium">{subtitle}</p>
       </CardContent>
     </Card>

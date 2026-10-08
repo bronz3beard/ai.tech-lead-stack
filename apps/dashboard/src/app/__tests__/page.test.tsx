@@ -3,7 +3,7 @@ import '@testing-library/jest-dom';
 import { render } from '@testing-library/react';
 import PublicDashboard from '../page';
 import { getServerSession } from 'next-auth';
-import { getAnalytics } from '@/lib/analytics-service';
+import { getAdoptionSummary } from '@/lib/usage-aggregates';
 import { prisma } from '@zenithfoundry/tech-lead-stack/db';
 
 jest.mock('next-auth', () => ({
@@ -14,8 +14,9 @@ jest.mock('@/lib/auth', () => ({
   authOptions: {},
 }));
 
-jest.mock('@/lib/analytics-service', () => ({
-  getAnalytics: jest.fn(),
+jest.mock('@/lib/usage-aggregates', () => ({
+  DEFAULT_SERIES_DAYS: 90,
+  getAdoptionSummary: jest.fn(),
 }));
 
 jest.mock('@zenithfoundry/tech-lead-stack/db', () => ({
@@ -39,18 +40,6 @@ jest.mock('@/components/ui/chart', () => ({
   LineChart: () => <div data-testid="line-chart" />,
 }));
 
-jest.mock('@/components/dashboard/InsightsTable', () => ({
-  InsightsTable: () => <div data-testid="insights-table" />,
-}));
-
-jest.mock('@/components/dashboard/StepAnalyticsTable', () => ({
-  StepAnalyticsTable: () => <div data-testid="step-analytics-table" />,
-}));
-
-jest.mock('@/components/dashboard/PhaseCostPanel', () => ({
-  PhaseCostPanel: () => <div data-testid="phase-cost-panel" />,
-}));
-
 jest.mock('@/components/dashboard/DashboardDisclaimer', () => ({
   DashboardDisclaimer: () => <div data-testid="disclaimer" />,
 }));
@@ -58,7 +47,16 @@ jest.mock('@/components/dashboard/DashboardDisclaimer', () => ({
 describe('PublicDashboard Page Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (getAnalytics as jest.Mock).mockResolvedValue([]);
+    (getAdoptionSummary as jest.Mock).mockResolvedValue({
+      skillsLoaded: 1142,
+      llmCalls: 40,
+      sessions: 12,
+      projects: 3,
+      people: 2,
+      actorSplit: { human: 300, agent: 900, unknown: 0 },
+      topSkills: [],
+      dailySkillLoads: [],
+    });
     (prisma.project.findMany as jest.Mock).mockResolvedValue([]);
   });
 
@@ -71,9 +69,55 @@ describe('PublicDashboard Page Component', () => {
     const { getByText, getAllByText } = render(ui);
 
     expect(getByText('Global Public Dashboard')).toBeInTheDocument();
-    expect(getByText(/Viewing telemetry data for:/)).toBeInTheDocument();
+    expect(getByText(/Adoption for:/)).toBeInTheDocument();
     expect(getAllByText('All Projects').length).toBeGreaterThanOrEqual(1);
-    expect(getByText('Total Skills Run')).toBeInTheDocument();
+    expect(getByText('Skills Loaded')).toBeInTheDocument();
+    expect(getByText('1,142')).toBeInTheDocument();
+    expect(getByText('75%')).toBeInTheDocument(); // 900 agent of 1,200
+  });
+
+  it('never shows spend on the public page', async () => {
+    (getServerSession as jest.Mock).mockResolvedValue(null);
+
+    const ui = await PublicDashboard({ searchParams: Promise.resolve({}) });
+    const { container } = render(ui);
+
+    expect(container.textContent).not.toMatch(/\$\d/);
+  });
+
+  it('ignores a project filter from an anonymous visitor and offers no project picker', async () => {
+    (getServerSession as jest.Mock).mockResolvedValue(null);
+
+    const ui = await PublicDashboard({
+      searchParams: Promise.resolve({ projectId: 'alpha-project' }),
+    });
+    const { queryByTestId } = render(ui);
+
+    expect(getAdoptionSummary).toHaveBeenCalledWith({ scope: null, projectName: undefined });
+    expect(queryByTestId('project-select')).toBeNull();
+    expect(prisma.project.findMany).not.toHaveBeenCalled();
+  });
+
+  it('narrows to a project the signed-in user can access', async () => {
+    (getServerSession as jest.Mock).mockResolvedValue({
+      user: { id: 'user-1', role: 'DEVELOPER', email: 'dev@example.com' },
+    });
+    (prisma.project.findMany as jest.Mock).mockResolvedValue([{ name: 'alpha-project' }]);
+
+    await PublicDashboard({ searchParams: Promise.resolve({ projectId: 'alpha-project' }) });
+
+    expect(getAdoptionSummary).toHaveBeenCalledWith({ scope: null, projectName: 'alpha-project' });
+  });
+
+  it('shows the aggregate when the summary query fails', async () => {
+    (getServerSession as jest.Mock).mockResolvedValue(null);
+    (getAdoptionSummary as jest.Mock).mockRejectedValue(new Error('db down'));
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const ui = await PublicDashboard({ searchParams: Promise.resolve({}) });
+    const { getByText } = render(ui);
+
+    expect(getByText('Skills Loaded')).toBeInTheDocument();
   });
 
   it('renders public dashboard when user is authenticated with a session', async () => {

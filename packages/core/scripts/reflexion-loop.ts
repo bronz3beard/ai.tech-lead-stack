@@ -10,7 +10,7 @@
  * dependency-free SVG diminishing-returns chart. Exit code 0 = passed,
  * 2 = hit the revision cap without passing (handy in CI).
  *
- * Relative imports (matching scripts/migrate-analytics.ts) so it runs under tsx
+ * Relative imports so it runs under tsx
  * without the '@/' path alias.
  */
 import * as fs from 'fs';
@@ -25,7 +25,6 @@ import { runnerFromEnv } from '../src/lib/ai/reflexion/providers-env';
 import { Answers, ReflexionStateV2 } from '../src/lib/ai/reflexion/schema';
 import { FileStateStore } from '../src/lib/ai/reflexion/state-store';
 import { assessTask, enforceTier, type Tier } from '../src/lib/ai/tier-policy';
-import { langfuseSink } from '../src/lib/langfuse-sink';
 import { formatInterviewMd, parseYamlAnswers } from './reflexion-loop-utils';
 
 const STACK_FILES = [
@@ -393,7 +392,6 @@ async function main(): Promise<number> {
 
 main()
   .then((code) => {
-    langfuseSink.shutdown();
     process.exit(code);
   })
   .catch((err) => {
@@ -401,6 +399,5 @@ main()
       '[reflexion] error:',
       err instanceof Error ? err.message : err
     );
-    langfuseSink.shutdown();
     process.exit(4);
   });

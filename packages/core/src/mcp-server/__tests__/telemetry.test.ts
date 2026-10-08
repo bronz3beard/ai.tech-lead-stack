@@ -100,6 +100,64 @@ describe('Telemetry', () => {
       );
     });
 
+    it('records the served skill size as prompt tokens, with no completion tokens and as a skill invocation', async () => {
+      const telemetry = new Telemetry();
+      const skillText = 'x'.repeat(4000);
+
+      await telemetry.withAnalytics(
+        'planning-expert',
+        'test-project',
+        'claude-opus-5-5',
+        'claude-code',
+        '~1000 tokens',
+        async () => skillText
+      );
+
+      expect(telemetryService.recordEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          kind: 'skill_invocation',
+          promptTokens: 1000,
+          completionTokens: 0,
+        })
+      );
+    });
+
+    it('groups calls under the agent-supplied session id when given', async () => {
+      const telemetry = new Telemetry();
+
+      await telemetry.withAnalytics('a', 'p', 'm', 'g', undefined, async () => 'ok', {
+        sessionId: 'agent-run-1',
+      });
+
+      expect(telemetryService.recordEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ sessionId: 'agent-run-1' })
+      );
+    });
+
+    it('falls back to one server session id across consecutive calls', async () => {
+      const telemetry = new Telemetry();
+
+      await telemetry.withAnalytics('a', 'p', 'm', 'g', undefined, async () => 'ok');
+      await telemetry.withAnalytics('b', 'p', 'm', 'g', undefined, async () => 'ok');
+
+      const calls = (telemetryService.recordEvent as jest.Mock).mock.calls;
+      const [first, second] = calls.map((c) => c[0].sessionId);
+      expect(first).toMatch(/^mcp-/);
+      expect(second).toBe(first);
+    });
+
+    it('lets a caller label a non-skill tool call', async () => {
+      const telemetry = new Telemetry();
+
+      await telemetry.withAnalytics('plan_pipeline', undefined, undefined, undefined, 'unknown', async () => 'chain', {
+        kind: 'tool_call',
+      });
+
+      expect(telemetryService.recordEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: 'tool_call' })
+      );
+    });
+
     it('should handle errors in callback and trace them', async () => {
       const telemetry = new Telemetry();
       const mockError = new Error('Skill execution failed');

@@ -309,6 +309,7 @@ export class SkillHandlers {
         loopRunId?: string | null;
         loopPhase?: string | null;
         teamRole?: string | null;
+        sessionId?: string;
       } = {};
 
       if (typeof args.actorType === 'string')
@@ -319,6 +320,9 @@ export class SkillHandlers {
       if (typeof args.loopPhase === 'string')
         overrides.loopPhase = args.loopPhase;
       if (typeof args.teamRole === 'string') overrides.teamRole = args.teamRole;
+      if (typeof args.sessionId === 'string' && args.sessionId.trim()) {
+        overrides.sessionId = args.sessionId.trim().slice(0, 200);
+      }
 
       if (resolvedName === 'qa-handover-generator') {
         if (overrides.teamRole === undefined) {

@@ -44,11 +44,13 @@ export function autonomyDepth(events: AnalyticsEvent[]): number {
 
 /**
  * Calculates the Evaluator Rejection Rate (ERR).
- * Formula: critique events with metadata.passed=false ÷ all loopPhase='critique' events
+ * Formula: scored events with metadata.passed=false ÷ all loopPhase='scored' events.
+ * The engine emits 'critique' when the critic starts and 'scored' with the verdict,
+ * so only 'scored' carries passed/score.
  * Source: docs/designs/2026-07-08-agentic-dev-team-design.md section WS-6
  */
 export function evaluatorRejectionRate(events: AnalyticsEvent[]): number {
-  const critiqueEvents = events.filter((e) => e.loopPhase === 'critique');
+  const critiqueEvents = events.filter((e) => e.loopPhase === 'scored');
   if (critiqueEvents.length === 0) return 0;
 
   const rejectedCount = critiqueEvents.filter((e) => {
