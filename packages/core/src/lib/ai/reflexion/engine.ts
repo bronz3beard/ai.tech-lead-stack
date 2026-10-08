@@ -20,6 +20,7 @@ import {
   StateStore,
   StopReason,
 } from './schema';
+import { randomUUID } from 'crypto';
 import { validatePlanContract, PlanContractReport } from './plan-contract';
 import { type Tier, deriveLoopParams } from '../tier-policy';
 import { nextModelUp, shouldEscalate } from '../routing-policy';
@@ -148,7 +149,8 @@ export async function runReflexion(
   const startTime = Date.now();
   const runId =
     existingState?.runId ||
-    `run-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    // The run id keys stored state and resume/status lookups, so it must be unguessable.
+    `run-${Date.now()}-${randomUUID()}`;
   const mode = cfg.mode ?? 'interview';
   let maxRevisions = cfg.maxRevisions ?? 3;
   if (cfg.tier && cfg.tier !== 'byo') {

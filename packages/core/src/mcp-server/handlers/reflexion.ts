@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { resumeReflexion, runReflexion } from '../../lib/ai/reflexion/engine.js';
 import { runnerFromEnv } from '../../lib/ai/reflexion/providers-env.js';
 import { FileStateStore } from '../../lib/ai/reflexion/state-store.js';
@@ -216,7 +217,8 @@ export class ReflexionHandlers {
         decrypt,
       });
       const stateStore = new FileStateStore('.reflexion-out');
-      const runId = `run-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      // The run id keys stored state and resume/status lookups, so it must be unguessable.
+      const runId = `run-${Date.now()}-${randomUUID()}`;
 
       const initialState = {
         version: 2 as const,
