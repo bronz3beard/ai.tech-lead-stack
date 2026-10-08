@@ -4,6 +4,13 @@ All notable changes to this project are recorded here. From 1.1.0 on,
 release-please writes each entry from the commit messages on `main` (see
 [docs/releasing.md](docs/releasing.md)); nobody edits this file by hand.
 
+## [2.1.0](https://github.com/bronz3beard/ai.tech-lead-stack/compare/v2.0.0...v2.1.0) (2026-10-08)
+
+
+### Added
+
+* add no-AI analyse skill ([1870010](https://github.com/bronz3beard/ai.tech-lead-stack/commit/1870010f6f9fefaae0da2b30ba69fa5f332f22dc))
+
 ## [2.0.0](https://github.com/bronz3beard/ai.tech-lead-stack/compare/v1.2.2...v2.0.0) (2026-10-08)
 
 
