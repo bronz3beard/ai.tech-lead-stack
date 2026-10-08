@@ -25,7 +25,9 @@ import { useCallback, useMemo, useState } from 'react';
 import { AgenticHealthSection } from './AgenticHealthSection';
 import { AiImpactPanel } from './AiImpactPanel';
 import { PhaseCostPanel } from './PhaseCostPanel';
+import { AiImpactPanel } from './AiImpactPanel';
 import { SpendPanel } from './SpendPanel';
+import type { AiImpactResult } from '@/lib/ai-impact-loader';
 import { StepAnalyticsTable } from './StepAnalyticsTable';
 
 export function DashboardContent({
