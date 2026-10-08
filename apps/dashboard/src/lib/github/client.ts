@@ -1,4 +1,70 @@
 import { prisma } from '@zenithfoundry/tech-lead-stack/db';
+import { z } from 'zod';
+import type { PullRequestRecord } from '../ai-impact';
+
+/** Merged PRs, fetched page by page; GitHub's search caps a query at 1,000 results. */
+const MERGED_PRS_QUERY = `
+query MergedPullRequests($q: String!, $cursor: String) {
+  search(query: $q, type: ISSUE, first: 50, after: $cursor) {
+    pageInfo { hasNextPage endCursor }
+    nodes {
+      ... on PullRequest {
+        number title body headRefName createdAt mergedAt additions deletions
+        author { __typename login }
+        reviews(first: 1) { nodes { submittedAt } }
+        commits(first: 100) { nodes { commit { authoredDate message } } }
+      }
+    }
+  }
+}`;
+
+// The GraphQL response is external input: validate it before trusting any field.
+const PullRequestNodeSchema = z.object({
+  number: z.number().int(),
+  title: z.string(),
+  body: z.string().nullable(),
+  headRefName: z.string(),
+  createdAt: z.string(),
+  mergedAt: z.string(),
+  additions: z.number().int().nonnegative(),
+  deletions: z.number().int().nonnegative(),
+  author: z.object({ __typename: z.string(), login: z.string() }).nullable(),
+  reviews: z.object({ nodes: z.array(z.object({ submittedAt: z.string().nullable() })) }),
+  commits: z.object({
+    nodes: z.array(z.object({ commit: z.object({ authoredDate: z.string(), message: z.string() }) })),
+  }),
+});
+
+const MergedPrsResponseSchema = z.object({
+  data: z.object({
+    search: z.object({
+      pageInfo: z.object({ hasNextPage: z.boolean(), endCursor: z.string().nullable() }),
+      // Non-PR nodes come back as {}; they are dropped below.
+      nodes: z.array(z.unknown()),
+    }),
+  }),
+});
+
+type MergedPrsPage = z.infer<typeof MergedPrsResponseSchema>['data']['search'];
+
+function toPullRequestRecord(node: z.infer<typeof PullRequestNodeSchema>): PullRequestRecord {
+  const commitDates = node.commits.nodes.map((c) => c.commit.authoredDate).sort();
+  return {
+    number: node.number,
+    title: node.title,
+    body: node.body ?? '',
+    headRefName: node.headRefName,
+    authorLogin: node.author?.login ?? null,
+    authorIsBot: node.author?.__typename === 'Bot' || Boolean(node.author?.login.endsWith('[bot]')),
+    createdAt: node.createdAt,
+    mergedAt: node.mergedAt,
+    firstCommitAt: commitDates[0] ?? null,
+    firstReviewAt: node.reviews.nodes[0]?.submittedAt ?? null,
+    additions: node.additions,
+    deletions: node.deletions,
+    commitMessages: node.commits.nodes.map((c) => c.commit.message),
+  };
+}
 
 export interface GitHubClientConfig {
   owner: string;
@@ -138,6 +204,44 @@ export class GitHubClient {
     });
     // Search for a PR where the head branch matches
     return prs.find((pr: any) => pr.head.ref === branch);
+  }
+
+  /**
+   * Read-only: PRs merged on or after `since`, newest first, at most `cap`.
+   * `capped` is true when more existed than were returned.
+   */
+  async listMergedPullRequests(input: {
+    since: Date;
+    cap: number;
+  }): Promise<{ prs: PullRequestRecord[]; capped: boolean }> {
+    const day = input.since.toISOString().slice(0, 10);
+    const q = `repo:${this.owner}/${this.repo} is:pr is:merged merged:>=${day} sort:updated-desc`;
+    const prs: PullRequestRecord[] = [];
+    let cursor: string | null = null;
+
+    while (prs.length < input.cap) {
+      const response: Response = await fetch('https://api.github.com/graphql', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query: MERGED_PRS_QUERY, variables: { q, cursor } }),
+      });
+      if (!response.ok) {
+        throw new Error(`GitHub GraphQL Error (${response.status}): ${await response.text()}`);
+      }
+      const page: MergedPrsPage = MergedPrsResponseSchema.parse(await response.json()).data.search;
+      for (const node of page.nodes) {
+        const parsed = PullRequestNodeSchema.safeParse(node);
+        if (parsed.success) prs.push(toPullRequestRecord(parsed.data));
+      }
+      if (!page.pageInfo.hasNextPage || !page.pageInfo.endCursor) {
+        return { prs: prs.slice(0, input.cap), capped: prs.length > input.cap };
+      }
+      cursor = page.pageInfo.endCursor;
+    }
+    return { prs: prs.slice(0, input.cap), capped: true };
   }
 
   /**

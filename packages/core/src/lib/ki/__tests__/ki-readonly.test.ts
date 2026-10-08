@@ -13,8 +13,6 @@ import { AlignmentService } from '../../skills/alignment-service';
 import { FileSystemService } from '../../skills/fs-service';
 import { KiService } from '../ki-service';
 
-// Mock langfuse to prevent ESM dynamic import issues in Jest
-
 describe('KiService & create_knowledge_item Readonly Confinement', () => {
   const repoRoot = path.resolve(__dirname, '../../../../../..');
   let fakeHomeDir: string;

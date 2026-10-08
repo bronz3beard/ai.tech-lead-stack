@@ -26,7 +26,7 @@ import { FileStateStore } from '../lib/ai/reflexion/state-store';
  * responsibility and are expected.
  */
 
-// Mock langfuse & prisma to prevent external network or DB calls
+// Mock prisma to prevent DB calls
 
 jest.mock('../lib/prisma', () => ({
   prisma: {

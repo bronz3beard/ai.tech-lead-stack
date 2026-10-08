@@ -23,7 +23,7 @@ import { FileStateStore } from '../lib/ai/reflexion/state-store';
  * cover write-capable skills executed autonomously by the developer's IDE agent.
  */
 
-// Mock langfuse & prisma to prevent external network or DB calls
+// Mock prisma to prevent DB calls
 
 jest.mock('../lib/prisma', () => ({
   prisma: {

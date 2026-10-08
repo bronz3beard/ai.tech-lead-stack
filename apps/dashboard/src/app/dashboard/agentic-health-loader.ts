@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { prisma } from '@zenithfoundry/tech-lead-stack/db';
-import { getProjectAccessFilter } from '@/lib/access';
+import { buildAnalyticsWhere, type AnalyticsAccessScope } from '@/lib/analytics-service';
+import { utcWeekStart } from '@/lib/time-buckets';
 import {
   autonomousWorkRatio,
   autonomyDepth,
@@ -40,20 +41,26 @@ export interface AgenticHealthSummary {
 
 export async function loadAgenticHealth(
   params: unknown,
-  user: { id: string; role: Role; email?: string | null }
+  user: { id: string; role: Role; email?: string | null },
+  scope: AnalyticsAccessScope
 ): Promise<AgenticHealthSummary> {
+  // `projectId` carries the project *name* from the dashboard URL (?project=).
   const { projectId, from, to } = AgenticHealthParamsSchema.parse(params);
 
-  const accessFilter = getProjectAccessFilter(user);
-
-  const dateFilter: any = {};
+  const dateFilter: { gte?: Date; lte?: Date } = {};
   if (from) dateFilter.gte = new Date(from);
   if (to) dateFilter.lte = new Date(to);
 
-  // Fetch AnalyticsEvents matching the filters
-  const eventWhere: any = { ...accessFilter };
-  if (projectId && projectId !== 'all') eventWhere.projectId = projectId;
-  if (Object.keys(dateFilter).length > 0) eventWhere.createdAt = dateFilter;
+  const eventWhere = {
+    AND: [
+      buildAnalyticsWhere({
+        scope,
+        projectName: projectId ?? undefined,
+        dateRange: { from: dateFilter.gte, to: dateFilter.lte },
+      }),
+      { environment: { not: 'test' } },
+    ],
+  };
 
   // We explicitly fetch ALL events to compute the ratio of AGENT vs HUMAN correctly.
   const events = await prisma.analyticsEvent.findMany({
@@ -62,7 +69,7 @@ export async function loadAgenticHealth(
   });
 
   // ReflexionRun has no projectId column; runs are scoped by userId (non-admins see only their own runs).
-  const runWhere: any = {};
+  const runWhere: { createdAt?: typeof dateFilter; userId?: string } = {};
   if (Object.keys(dateFilter).length > 0) runWhere.createdAt = dateFilter;
   if (user.role !== Role.ADMIN) {
       runWhere.userId = user.id;
@@ -73,10 +80,15 @@ export async function loadAgenticHealth(
     orderBy: { createdAt: 'desc' },
   });
 
-  const awr = autonomousWorkRatio(events);
-  const ad = autonomyDepth(events);
+  // Autonomy ratios count units of work (skill loads, LLM calls). Tool calls and
+  // loop markers would let one reflexion run outweigh dozens of human turns.
+  const workEvents = events.filter(
+    (e) => e.kind === 'skill_invocation' || e.kind === 'llm_generation'
+  );
+  const awr = autonomousWorkRatio(workEvents);
+  const ad = autonomyDepth(workEvents);
   const err = evaluatorRejectionRate(events);
-  const critiqueCount = events.filter((e) => e.loopPhase === 'critique').length;
+  const critiqueCount = events.filter((e) => e.loopPhase === 'scored').length;
   const health = classifyEvaluatorHealth(err, critiqueCount);
   const conv = convergence(runs);
   const htr = humanTouchpointsPerRun(events);
@@ -86,14 +98,8 @@ export async function loadAgenticHealth(
   // Calculate Weekly AWR
   const weeklyBuckets: Record<string, { total: number; agent: number }> = {};
 
-  for (const event of events) {
-    // bucket by ISO week or simple start-of-week string
-    const d = new Date(event.createdAt);
-    // simple string bucket: YYYY-MM-DD of Monday
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    const monday = new Date(d.setDate(diff));
-    const key = monday.toISOString().split('T')[0];
+  for (const event of workEvents) {
+    const key = utcWeekStart(event.createdAt);
 
     if (!weeklyBuckets[key]) {
       weeklyBuckets[key] = { total: 0, agent: 0 };

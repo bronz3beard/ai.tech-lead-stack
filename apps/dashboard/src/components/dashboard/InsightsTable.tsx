@@ -10,30 +10,9 @@ import {
 } from '@/components/ui/table';
 import { Tooltip } from '@/components/ui/tooltip';
 import { useMemo, useState } from 'react';
-import { TraceData } from './DashboardContent';
+import type { TraceData } from '@/lib/analytics-service';
 import { isSkillTrace, normalizeSkillName } from '@zenithfoundry/tech-lead-stack/trace-utils';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-const FALLBACK_TOKEN_COST: Record<string, number> = {
-  'agent-optimizer': 500,
-  'changelog-generator': 670,
-  'clean-code': 880,
-  'code-review-checklist': 600,
-  'codebase-onboarding-intelligence': 960,
-  'daily-standup': 500,
-  'feature-design-assistant': 700,
-  'mission-architect': 1200,
-  'mission-control': 615,
-  'planning-expert': 475,
-  'pr-automator': 875,
-  'product-strategist': 750,
-  'regression-bug-fix': 1300,
-  'security-audit': 495,
-  'style-logic-exporter': 650,
-  'technical-debt-auditor': 760,
-  'verification-auditor': 1400,
-  'visual-verifier': 375,
-};
 
 export function InsightsTable({ traces }: { traces: TraceData[] }) {
   const [actorFilter, setActorFilter] = useState<'ALL' | 'HUMAN' | 'AGENT'>('ALL');
@@ -41,7 +20,7 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
   const tableData = useMemo(() => {
     const filteredTraces = traces.filter((t) => {
       if (actorFilter === 'ALL') return true;
-      const tActorType = (t as any).actorType || t.metadata?.actorType;
+      const tActorType = t.actorType || t.metadata?.actorType;
       if (actorFilter === 'HUMAN') {
         // Fallback missing actorTypes to HUMAN per historic defaults
         return tActorType === 'HUMAN' || !tActorType;
@@ -66,7 +45,7 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
 
     for (const trace of filteredTraces) {
       // Re-apply the same filter logic for consistency but on `filteredTraces`.
-      let tActorType = (trace as any).actorType || trace.metadata?.actorType;
+      let tActorType = trace.actorType || trace.metadata?.actorType;
       // Default to human if missing per backfill logic
       if (!tActorType && trace.metadata?.source === 'mcp') tActorType = 'AGENT';
       if (!tActorType && trace.name === 'reflexion-loop') tActorType = 'AGENT';
@@ -130,7 +109,10 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
         skillStats[skillName].tokenUsage += trace.totalTokens;
       }
 
-      const isLlmCall = trace.metadata?.llmCall !== false;
+      // Rows written before `kind` existed fall back to the old metadata flag.
+      const isLlmCall = trace.kind
+        ? trace.kind === 'llm_generation'
+        : trace.metadata?.llmCall !== false;
       if (isLlmCall) {
         skillStats[skillName].isLlmSkill = true;
       }
@@ -232,8 +214,8 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
           <TableHead className="w-[180px]">Skill Name</TableHead>
           <TableHead className="min-w-[200px]">Model</TableHead>
           <TableHead className="text-right">Executions</TableHead>
-          <TableHead className="text-right">Avg Token usage (per run)</TableHead>
-          <TableHead className="text-right">Total execution cost</TableHead>
+          <TableHead className="text-right">Avg tokens per run</TableHead>
+          <TableHead className="text-right">Total LLM cost</TableHead>
           <TableHead className="text-right">Total Tokens</TableHead>
           <TableHead className="text-right">Avg Duration</TableHead>
           <TableHead className="text-right">Accuracy (Success Rate)</TableHead>
@@ -255,13 +237,7 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
               )}
             </TableCell>
             <TableCell className="text-right">{row.executions}</TableCell>
-            <TableCell className="text-right">
-              {!row.isLlmSkill ? (
-                <span className="text-muted-foreground">-</span>
-              ) : (
-                row.perRunTokens
-              )}
-            </TableCell>
+            <TableCell className="text-right">{row.perRunTokens}</TableCell>
             <TableCell className="text-right text-emerald-400 font-medium">
               {row.hasPricingFallback ? (
                 <Tooltip text="Cost estimated using fallback pricing for unrecognized model">
@@ -270,18 +246,14 @@ export function InsightsTable({ traces }: { traces: TraceData[] }) {
                   </span>
                 </Tooltip>
               ) : !row.isLlmSkill ? (
-                <span className="text-muted-foreground">$0.00</span>
+                <Tooltip text="Skill loads run on the agent's own subscription; no LLM cost is recorded">
+                  <span className="text-muted-foreground cursor-help">-</span>
+                </Tooltip>
               ) : (
                 row.totalCost
               )}
             </TableCell>
-            <TableCell className="text-right">
-              {!row.isLlmSkill ? (
-                <span className="text-muted-foreground">-</span>
-              ) : (
-                row.totalTokens
-              )}
-            </TableCell>
+            <TableCell className="text-right">{row.totalTokens}</TableCell>
             <TableCell className="text-right">{row.avgDuration}</TableCell>
             <TableCell className="text-right">{row.accuracy}</TableCell>
           </TableRow>

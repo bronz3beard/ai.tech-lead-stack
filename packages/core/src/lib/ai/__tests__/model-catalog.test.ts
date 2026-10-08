@@ -1,4 +1,3 @@
-import { PRICING_MAP } from '../../telemetry-service';
 import { MODELS } from '../constants';
 import { MODEL_CATALOG, catalogEntry, providerOf } from '../model-registry';
 import { PRICE_PER_MTOK } from '../reflexion/pricing';
@@ -44,7 +43,7 @@ describe('MODEL_CATALOG', () => {
   });
 
   it('prices every catalog model explicitly instead of by family fallback', () => {
-    const unpriced = ids.filter((id) => !PRICING_MAP[id]);
+    const unpriced = ids.filter((id) => !PRICE_PER_MTOK[id]);
     expect(unpriced).toEqual([]);
   });
 });

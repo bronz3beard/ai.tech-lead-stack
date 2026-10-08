@@ -2,7 +2,7 @@
 
 import { CheckCircle2, Circle, Loader2 } from 'lucide-react';
 import { useMemo } from 'react';
-import { TraceData } from './DashboardContent';
+import type { TraceData } from '@/lib/analytics-service';
 
 export function WorkflowPhaseTracker({ traces }: { traces: TraceData[] }) {
   const phases = useMemo(() => {

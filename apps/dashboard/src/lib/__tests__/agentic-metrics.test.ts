@@ -33,6 +33,16 @@ const mockEvent = (overrides: Partial<AnalyticsEvent>): AnalyticsEvent => ({
   loopRunId: null,
   loopPhase: null,
   teamRole: null,
+  kind: null,
+  provider: null,
+  sessionId: null,
+  gitBranch: null,
+  prNumber: null,
+  cacheReadTokens: null,
+  cacheWriteTokens: null,
+  reasoningTokens: null,
+  costIsEstimate: true,
+  environment: 'production',
   ...overrides,
 });
 
@@ -102,12 +112,20 @@ describe('Agentic Metrics', () => {
 
     it('calculates the rate correctly', () => {
       const events = [
-        mockEvent({ loopPhase: 'critique', metadata: { passed: true } }),
-        mockEvent({ loopPhase: 'critique', metadata: { passed: false } }),
-        mockEvent({ loopPhase: 'critique', metadata: { passed: false } }),
+        mockEvent({ loopPhase: 'scored', metadata: { passed: true } }),
+        mockEvent({ loopPhase: 'scored', metadata: { passed: false } }),
+        mockEvent({ loopPhase: 'scored', metadata: { passed: false } }),
         mockEvent({ loopPhase: 'generate' }),
       ];
       expect(evaluatorRejectionRate(events)).toBe(2 / 3);
+    });
+
+    it('ignores critique start markers, which carry no verdict', () => {
+      const events = [
+        mockEvent({ loopPhase: 'critique' }),
+        mockEvent({ loopPhase: 'scored', metadata: { passed: false } }),
+      ];
+      expect(evaluatorRejectionRate(events)).toBe(1);
     });
   });
 

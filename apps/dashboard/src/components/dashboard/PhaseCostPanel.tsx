@@ -14,10 +14,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { AnalyticsEvent } from '@prisma/client';
+import type { TraceData } from '@/lib/analytics-service';
 
 interface PhaseCostPanelProps {
-  traces: AnalyticsEvent[];
+  traces: TraceData[];
 }
 
 export function PhaseCostPanel({ traces }: PhaseCostPanelProps) {
@@ -39,7 +39,7 @@ export function PhaseCostPanel({ traces }: PhaseCostPanelProps) {
     if (t.loopRunId) {
        phaseMap[phase].runs.add(t.loopRunId);
        // Check if this was a critique that required rework
-       if (t.metadata && (t.metadata as any).score !== undefined && (t.metadata as any).passed === false) {
+       if (t.metadata?.score !== undefined && t.metadata?.passed === false) {
            phaseMap[phase].reworkLoops += 1;
        }
     }
@@ -64,7 +64,7 @@ export function PhaseCostPanel({ traces }: PhaseCostPanelProps) {
             Cost & Time by Phase
           </CardTitle>
           <p className="text-slate-400">
-            Analytics grouped by canonical lifecycle phase.
+            Reflexion LLM cost by engine phase (generated, scored, adjudicated). Cache discounts are not applied per phase.
           </p>
         </CardHeader>
         <CardContent className="flex flex-col items-center justify-center p-8 text-slate-400">
@@ -81,7 +81,7 @@ export function PhaseCostPanel({ traces }: PhaseCostPanelProps) {
           Cost & Time by Phase
         </CardTitle>
         <p className="text-slate-400">
-          Analytics grouped by canonical lifecycle phase.
+          Reflexion LLM cost by engine phase (generated, scored, adjudicated). Cache discounts are not applied per phase.
         </p>
       </CardHeader>
       <CardContent>

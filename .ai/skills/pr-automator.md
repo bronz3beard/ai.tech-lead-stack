@@ -136,8 +136,9 @@ tech-lead-stack, and never committed.
     generated storage-state. If state is persisted, it goes to a gitignored path
     (`auth/*.storageState.json`); confirm the path is ignored, and never
     `git add` it.
-  - **Telemetry caveat:** this stack traces runs (Langfuse). Treat anything the
-    user pastes as auth as a secret and redact it from every line of output.
+  - **Telemetry caveat:** this stack records runs in its own Postgres store.
+    Treat anything the user pastes as auth as a secret and redact it from every
+    line of output.
   - These are **test-user** credentials only. SSO/MFA logins cannot be automated
     headlessly — use a pre-seeded `E2E_STORAGE_STATE`, or capture evidence
     manually.

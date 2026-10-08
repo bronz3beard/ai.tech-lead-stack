@@ -197,6 +197,7 @@ export async function POST(req: Request) {
                     await telemetryService
                       .recordEvent({
                         skillName: call.toolName,
+                        kind: 'tool_call',
                         projectName: projectName ?? 'Skill Assistant',
                         model: (aiProvider as any).modelId,
                         agent: 'Skill Assistant',

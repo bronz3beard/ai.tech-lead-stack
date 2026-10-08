@@ -27,9 +27,10 @@ The **MCP Server** serves as the **Intelligence Layer** for your IDE.
 - **Skill Discovery**: The server dynamically reads `.ai/skills/*.md` files and
   exposes them as tools. It uses the `internal: true` flag to hide support-only
   skills from primary discovery while keeping them available for implementation.
-- **Telemetry & Metrics**: Unlike the CLI, executions via the MCP are
-  instrumented via **Langfuse**. This captures token usage, project attribution,
-  and agentic decision-making for enterprise-grade analytics.
+- **Telemetry & Metrics**: Executions via the MCP are recorded in Postgres
+  (`AnalyticsEvent`) as `skill_invocation` events: which skill, project, agent
+  and session. The LLM call runs on the agent's own subscription, so MCP events
+  carry no cost.
 
 ### 3. Agent Skills vs. Dev Workflows
 
@@ -51,9 +52,8 @@ through the **MCP Server**, which enforces a strict priority of discovery:
 
 - **Customization**: Teams can "fork" a skill for a specific project without
   modifying the global repository.
-- **Auditability**: Every skill retrieval is wrapped in a **Langfuse Trace**
-  (Telemetry) to track which model, agent, and project are executing specific
-  logic.
+- **Auditability**: Every skill retrieval is recorded as an `AnalyticsEvent`
+  to track which model, agent, and project are executing specific logic.
 - **Cost Control**: The server captures and reports the "Budgeted Cost" of each
   skill to prevent uncontrolled LLM spend.
 

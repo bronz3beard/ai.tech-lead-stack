@@ -96,13 +96,33 @@ model AnalyticsEvent {
   loopRunId String?
   loopPhase String?
   teamRole  String?
-  user      User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 'skill_invocation' | 'llm_generation' | 'tool_call' | 'loop_step'. Only
+  // llm_generation rows carry a cost; the rest are adoption/workflow signals.
+  kind             String?
+  provider         String? // 'anthropic' | 'google' | 'openai' | 'local'
+  sessionId        String? // chatId, loopRunId, or MCP session id
+  gitBranch        String?
+  prNumber         Int?
+  cacheReadTokens  Int?
+  cacheWriteTokens Int?
+  reasoningTokens  Int?
+  // false only when token usage came from a provider response.
+  costIsEstimate   Boolean @default(true)
+  // 'production' | 'test'; dashboards exclude 'test'.
+  environment      String  @default("production")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
   @@index([skillName, createdAt])
   @@index([projectName, createdAt])
   @@index([actorType, createdAt])
   @@index([loopRunId])
+  @@index([environment, kind, createdAt])
+  @@index([provider, createdAt])
+  @@index([sessionId])
+  @@index([projectName, kind, createdAt])
 }
 
 model VerificationToken {

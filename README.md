@@ -81,7 +81,7 @@ flowchart LR
 
   repo["Your project repo<br/>on GitHub"]
   code[("Files on your machine<br/>(MCP working directory)")]
-  ext[("Postgres · AI providers · Langfuse<br/>E2B · ClickUp · Figma · Discord · Ollama")]
+  ext[("Postgres · AI providers<br/>E2B · ClickUp · Figma · Discord · Ollama")]
 
   dev -->|"uses"| dash
   agent -->|"calls MCP tools"| mcp
@@ -448,10 +448,10 @@ flowchart LR
 
 Web chat, the skill editor, web reflexion and several MCP tools record events
 through one telemetry service. It writes each event to the `AnalyticsEvent`
-table first. Only if that write succeeds, and `TLS_LANGFUSE_*` keys are set,
-does it forward the event to Langfuse. The Metrics dashboard reads those events
-and reflexion runs. It also pulls traces back from Langfuse into the same table,
-as does `/api/admin/sync`.
+table, the single source of truth. Each event has a `kind`; only
+`llm_generation` events carry a cost. The Metrics dashboard reads those events
+and reflexion runs with grouped queries. See
+[docs/methodology.md](docs/methodology.md#analytics) for what each kind means.
 
 ```mermaid
 flowchart LR
@@ -460,16 +460,13 @@ flowchart LR
   mcpcalls["MCP get_* · plan_pipeline<br/>reflexion_loop · reflexion_resume"]
   telemetry["Telemetry service<br/>telemetry-service.ts"]
   db[("Postgres")]
-  langfuse["Langfuse"]
   metrics["Metrics dashboard<br/>dashboard/page.tsx"]
 
   webchat -->|"records events"| telemetry
   webreflex -->|"records events"| telemetry
   mcpcalls -->|"records events"| telemetry
-  telemetry -->|"1 · writes AnalyticsEvent"| db
-  telemetry -.->|"2 · then forwards<br/>(TLS_LANGFUSE_* keys)"| langfuse
+  telemetry -->|"writes AnalyticsEvent"| db
   metrics -->|"reads AnalyticsEvent<br/>and ReflexionRun"| db
-  metrics -.->|"pulls traces back<br/>into AnalyticsEvent"| langfuse
 
   click telemetry "https://github.com/bronz3beard/ai.tech-lead-stack/blob/main/packages/core/src/lib/telemetry-service.ts"
   click metrics "https://github.com/bronz3beard/ai.tech-lead-stack/blob/main/apps/dashboard/src/app/dashboard/page.tsx"
@@ -479,7 +476,7 @@ flowchart LR
   classDef extNode fill:#ffe4e6,stroke:#e11d48,stroke-width:1.5px,color:#881337
   class webchat,webreflex,metrics app
   class mcpcalls,telemetry coreNode
-  class db,langfuse extNode
+  class db extNode
 ```
 
 <br />

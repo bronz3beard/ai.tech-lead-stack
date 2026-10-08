@@ -32,7 +32,7 @@ export function AgenticStatCards({
         <CardContent>
           <div className="text-2xl font-bold">{(awr * 100).toFixed(1)}%</div>
           <p className="text-xs text-muted-foreground mt-1">
-            Agent events / All events
+            Agent ÷ all skill loads and LLM calls
           </p>
         </CardContent>
       </Card>

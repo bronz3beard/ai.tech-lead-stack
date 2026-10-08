@@ -259,7 +259,7 @@ export default function OnboardingPage() {
               </p>
 
               <p>
-                <strong>Execution Targets</strong>: Agent tasks are governed by four distinct execution targets (`local`, `sub-pro`, `sub-max`, `byo`) depending on budget and capability constraints. We capture per-phase measurement metrics using Langfuse telemetry, which includes recent accuracy fixes to better track agent progression.
+                <strong>Execution Targets</strong>: Agent tasks are governed by four distinct execution targets (`local`, `sub-pro`, `sub-max`, `byo`) depending on budget and capability constraints. Per-phase metrics are recorded in the TLS Postgres store, and only real LLM calls carry a cost.
               </p>
             </div>
           </div>

@@ -2,7 +2,7 @@ import { DashboardContent } from '@/components/dashboard/DashboardContent';
 import {
   DEFAULT_ANALYTICS_LIMIT,
   getAnalytics,
-  syncTracesFromLangfuse,
+  resolveAnalyticsScope,
   TIMEFRAME_PRESETS,
 } from '@/lib/analytics-service';
 import { DateRange, describeDateRange, parseDateRange } from '@/lib/date-range';
@@ -12,14 +12,20 @@ import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
 import { getProjectAccessFilter } from '@/lib/access';
 import { loadAgenticHealth } from './agentic-health-loader';
+import { getSpendSummary } from '@/lib/usage-aggregates';
+import { loadAiImpact } from '@/lib/ai-impact-loader';
+import { z } from 'zod';
 
-export interface DashboardSearchParams {
-  limit?: string;
-  from?: string;
-  to?: string;
-  view?: string;
-  project?: string;
-}
+/** URL params are untrusted input; anything that fails validation is ignored. */
+const DashboardSearchParamsSchema = z.object({
+  limit: z.string().trim().max(10).optional(),
+  from: z.string().trim().max(10).optional(),
+  to: z.string().trim().max(10).optional(),
+  view: z.enum(['global', 'me']).optional(),
+  project: z.string().trim().max(200).optional(),
+});
+
+export type DashboardSearchParams = Record<string, string | string[] | undefined>;
 
 /** Describes the rows getAnalytics returns for these inputs, so each card can state its window. */
 function describeWindow({
@@ -38,6 +44,19 @@ function describeWindow({
     timeframe && TIMEFRAME_PRESETS.includes(timeframe) ? `timeframe '${timeframe}'` : undefined;
   const period = describeDateRange(dateRange) ?? preset;
   return period ? `${rows}, ${period}` : rows;
+}
+
+/** The spend panel aggregates every row in the window, so only the period is described. */
+function describeSpendWindow({
+  timeframe,
+  dateRange,
+}: {
+  timeframe: string | undefined;
+  dateRange: DateRange;
+}): string {
+  const preset =
+    timeframe && TIMEFRAME_PRESETS.includes(timeframe) ? `timeframe '${timeframe}'` : undefined;
+  return describeDateRange(dateRange) ?? preset ?? 'All time';
 }
 
 export default async function DashboardPage({
@@ -59,7 +78,8 @@ export default async function DashboardPage({
   const user = await prisma.user.findUnique({ where: { email: userEmail } });
   const resolvedUserId = user ? user.id : userEmail;
 
-  const { limit, view, project, from, to } = await searchParams;
+  const parsedParams = DashboardSearchParamsSchema.safeParse(await searchParams);
+  const { limit, view, project, from, to } = parsedParams.success ? parsedParams.data : {};
   const dateRange = parseDateRange({ from, to });
   const filterByUser = view === 'me';
   const parsedLimit =
@@ -68,14 +88,15 @@ export default async function DashboardPage({
   const timeframe: string | undefined =
     limit && !['10', '20', '50', '100'].includes(limit) ? limit : undefined;
 
-  // Background sync (throttled)
-  if (!filterByUser) {
-    syncTracesFromLangfuse(50).catch(err =>
-      console.error('[Dashboard] Background sync failed:', err)
-    );
-  }
+  const accessUser = {
+    id: resolvedUserId,
+    role: user?.role || 'DEVELOPER',
+    email: user?.email,
+  };
+  const scope = await resolveAnalyticsScope(accessUser);
 
   const traces = await getAnalytics({
+    scope,
     userId: filterByUser ? resolvedUserId : undefined,
     userEmail: filterByUser ? userEmail : undefined,
     timeframe: timeframe,
@@ -96,14 +117,20 @@ export default async function DashboardPage({
     ownerId: p.ownerId,
   }));
 
-  const agenticHealth = await loadAgenticHealth(
-    { projectId: project },
-    {
-      id: resolvedUserId,
-      role: user?.role || 'DEVELOPER',
-      email: user?.email,
-    }
-  );
+  const singleProject = project && project !== 'all' ? project : undefined;
+  const [agenticHealth, spend, aiImpact] = await Promise.all([
+    loadAgenticHealth({ projectId: project }, accessUser, scope),
+    getSpendSummary({
+      scope,
+      user: filterByUser ? { userId: resolvedUserId, userEmail } : undefined,
+      projectName: project,
+      timeframe,
+      dateRange,
+    }),
+    singleProject
+      ? loadAiImpact({ user: accessUser, projectName: singleProject, dateRange })
+      : Promise.resolve(undefined),
+  ]);
 
   return (
     <DashboardContent
@@ -111,6 +138,9 @@ export default async function DashboardPage({
       projects={projects}
       agenticHealth={agenticHealth}
       dataWindow={describeWindow({ limit: parsedLimit, timeframe, dateRange })}
+      spend={spend}
+      aiImpact={aiImpact}
+      spendScopeLabel={describeSpendWindow({ timeframe, dateRange })}
       titlePrefix={filterByUser ? 'My Authenticated' : 'Global Telemetry'}
     />
   );
