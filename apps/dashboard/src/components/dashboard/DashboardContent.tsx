@@ -17,7 +17,9 @@ import type { AgenticHealthSummary } from '@/app/dashboard/agentic-health-loader
 import type { TraceData } from '@/lib/analytics-service';
 import { AgenticHealthSection } from './AgenticHealthSection';
 import { PhaseCostPanel } from './PhaseCostPanel';
+import { AiImpactPanel } from './AiImpactPanel';
 import { SpendPanel } from './SpendPanel';
+import type { AiImpactResult } from '@/lib/ai-impact-loader';
 import { StepAnalyticsTable } from './StepAnalyticsTable';
 import type { SpendSummary } from '@/lib/usage-aggregates';
 import { computeStepMetrics } from '@/lib/step-metrics';
@@ -31,6 +33,7 @@ export function DashboardContent({
   dataWindow,
   spend,
   spendScopeLabel,
+  aiImpact,
 }: {
   traces: TraceData[];
   projects: { id: string; name: string; ownerId: string | null }[];
@@ -42,6 +45,8 @@ export function DashboardContent({
   spend: SpendSummary;
   /** Describes the spend window, e.g. "All time" or a date range. */
   spendScopeLabel: string;
+  /** BETA AI-vs-not comparison; only loaded when a single project is selected. */
+  aiImpact?: AiImpactResult;
 }) {
   // Every card reads the TLS Postgres store, the single source of truth for telemetry.
   const scopeLabel = `Source: TLS store · ${dataWindow}`;
@@ -312,6 +317,8 @@ export function DashboardContent({
         <PhaseCostPanel traces={filteredTraces} />
 
         <SpendPanel spend={spend} scopeLabel={spendScopeLabel} />
+
+        {aiImpact && <AiImpactPanel result={aiImpact} />}
 
         {agenticHealth && <AgenticHealthSection summary={agenticHealth} />}
 

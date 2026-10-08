@@ -13,6 +13,7 @@ import { redirect } from 'next/navigation';
 import { getProjectAccessFilter } from '@/lib/access';
 import { loadAgenticHealth } from './agentic-health-loader';
 import { getSpendSummary } from '@/lib/usage-aggregates';
+import { loadAiImpact } from '@/lib/ai-impact-loader';
 import { z } from 'zod';
 
 /** URL params are untrusted input; anything that fails validation is ignored. */
@@ -116,7 +117,8 @@ export default async function DashboardPage({
     ownerId: p.ownerId,
   }));
 
-  const [agenticHealth, spend] = await Promise.all([
+  const singleProject = project && project !== 'all' ? project : undefined;
+  const [agenticHealth, spend, aiImpact] = await Promise.all([
     loadAgenticHealth({ projectId: project }, accessUser, scope),
     getSpendSummary({
       scope,
@@ -125,6 +127,9 @@ export default async function DashboardPage({
       timeframe,
       dateRange,
     }),
+    singleProject
+      ? loadAiImpact({ user: accessUser, projectName: singleProject, dateRange })
+      : Promise.resolve(undefined),
   ]);
 
   return (
@@ -134,6 +139,7 @@ export default async function DashboardPage({
       agenticHealth={agenticHealth}
       dataWindow={describeWindow({ limit: parsedLimit, timeframe, dateRange })}
       spend={spend}
+      aiImpact={aiImpact}
       spendScopeLabel={describeSpendWindow({ timeframe, dateRange })}
       titlePrefix={filterByUser ? 'My Authenticated' : 'Global Telemetry'}
     />

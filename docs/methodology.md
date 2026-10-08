@@ -108,6 +108,35 @@ The public home page shows adoption only (no spend). Spend, per-provider and
 per-project breakdowns are on `/dashboard`, behind sign-in, scoped to the
 projects you can access. Each card states its source and window.
 
+### Beta: task outcomes with AI vs without
+
+When one project is selected, `/dashboard` compares merged pull requests that
+were AI-assisted with those that were not. A merged PR is the unit of work. The
+project must be linked to a GitHub repository and you must be signed in with
+GitHub; the data is read-only and cached for 15 minutes.
+
+A PR is **AI-assisted** if any of these hold: TLS recorded a skill load or LLM
+call on its branch or PR number; a commit has a `Co-Authored-By:` trailer naming
+an AI tool; its description has an AI "Generated with" marker; or an AI coding
+agent (for example Jules) opened it. Dependency and release bots, and revert
+PRs, are excluded from both groups.
+
+| Metric                 | Definition                                                     |
+| ---------------------- | -------------------------------------------------------------- |
+| Cycle time             | First commit → merge (DORA lead-time proxy), median and p75    |
+| Coding / pickup/review | First commit → opened / opened → first review / review → merge |
+| PR size                | Lines added + deleted, median                                  |
+| Revert rate            | Share later reverted by a `Revert "<title>"` PR in the window  |
+| Throughput             | Merged PRs per week                                            |
+
+Groups are compared on medians, because cycle times are heavily skewed. No
+difference is shown until each group has at least 5 PRs. Because AI-assisted
+PRs are often smaller, the panel also reports a **size-adjusted** cycle-time
+difference: medians are compared within size buckets (XS < 50, S < 200,
+M < 500, L ≥ 500 changed lines), using only buckets with 3+ PRs in both groups,
+weighted by PR count. People choose when to use AI, so every difference is a
+correlation, not proof that AI caused it.
+
 ## ✨ Special Feature: The Reflexion Loop
 
 The Reflexion Loop is a self-correcting plan loop that leverages Gemini as the
