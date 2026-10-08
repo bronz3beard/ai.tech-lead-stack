@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-10-08T16:25:20.772Z",
+  "generatedAt": "2026-10-08T17:15:57.393Z",
   "entries": [
     {
       "name": "accessibility-audit",
@@ -43,6 +43,27 @@
       "kind": "policy",
       "mcpCallable": true,
       "ideEligible": false
+    },
+    {
+      "name": "ai-impact-baseline",
+      "fetchName": "ai-impact-baseline",
+      "skill": "ai-impact-baseline",
+      "cost": "~3200 tokens",
+      "costTokens": 3107,
+      "domain": "eng",
+      "domainKey": "eng",
+      "description": "Compare engineering metrics before and after AI entered the codebase, and explain the deltas visually.",
+      "skillPath": ".ai/skills/ai-impact-baseline.md",
+      "workflowPath": ".agents/workflows/ai-impact-baseline.md",
+      "surface": "public",
+      "modes": [
+        "read-only",
+        "write",
+        "mcp"
+      ],
+      "kind": "report",
+      "mcpCallable": true,
+      "ideEligible": true
     },
     {
       "name": "ask",

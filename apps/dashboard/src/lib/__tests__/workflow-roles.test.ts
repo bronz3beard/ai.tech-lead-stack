@@ -17,6 +17,22 @@ describe('workflow-roles', () => {
     });
   });
 
+  describe('ai-impact-baseline', () => {
+    it.each(['DEVELOPER', 'PM', 'DESIGNER', 'QA'])(
+      'grants access to the %s role',
+      (role) => {
+        expect(canAccessWorkflow(role, 'ai-impact-baseline')).toBe(true);
+      }
+    );
+
+    it('appears in the slash menu for a QA user with its own description', () => {
+      const baseline = getWorkflowsForRole('QA').find((w) => w.name === 'ai-impact-baseline');
+
+      expect(baseline).toBeDefined();
+      expect(baseline?.description).not.toBe('Execute workflow');
+    });
+  });
+
   it('denies an unmapped workflow to a non-admin role', () => {
     expect(canAccessWorkflow('PM', 'not-a-real-workflow')).toBe(false);
   });

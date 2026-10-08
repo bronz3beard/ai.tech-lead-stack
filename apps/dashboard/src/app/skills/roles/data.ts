@@ -10,6 +10,21 @@ export interface Skill {
 
 export const ALL_SKILLS: Array<Skill> = [
   {
+    id: 'ai-impact-baseline',
+    name: 'AI Impact Baseline (Before vs After AI)',
+    description:
+      'Finds the first AI-assisted commit in a repository (or asks you for the date when it cannot), then compares the same engineering metrics for an equal window before and after it: commits, churn, tests, fixes and reverts from git on any host, plus pull-request cycle time, review, issue, CI and release metrics from GitHub. Explains the deltas visually and leaves a JSON report anyone can chart.',
+    useCases: [
+      'Putting evidence behind "what changed since we adopted AI?" for a retro or leadership update.',
+      'Checking whether review time, PR size or revert rate moved after an AI tool was rolled out.',
+      'Producing a reusable JSON baseline that a developer or another agent turns into a dashboard.',
+    ],
+    realWorldExample:
+      'A team lead runs it on a Bitbucket repo; no AI trailer is found, so it asks for the suspected month, then shows commits per week and fix-commit share for the 120 days on each side, with a note that pull-request metrics need a GitHub origin.',
+    addedAt: '2026-10-08',
+    roles: ['UNIVERSAL'],
+  },
+  {
     id: 'solutioning-facilitator',
     name: 'Solutioning Facilitator',
     description:

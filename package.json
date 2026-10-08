@@ -14,6 +14,7 @@
   "rtk": {
     "tools": {
       "accessibility-auditor": "cat .ai/skills/accessibility-auditor.md",
+      "ai-impact-baseline": "node scripts/ai-impact-baseline.mjs",
       "changelog-generator": "cat .ai/skills/changelog-generator.md",
       "clean-code": "cat .ai/skills/clean-code.md",
       "cleanup": "bash scripts/cleanup.sh",

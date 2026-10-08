@@ -31,6 +31,7 @@ exports[`Skill Posture write-capable skills snapshots the write-capable set to a
 [
   "accessibility-auditor",
   "agent-optimizer",
+  "ai-impact-baseline",
   "changelog-generator",
   "clean-code",
   "code-review-checklist",

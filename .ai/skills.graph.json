@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "generatedAt": "2026-10-08T16:25:20.759Z",
+  "generatedAt": "2026-10-08T17:15:57.376Z",
   "nodes": [
     {
       "name": "accessibility-auditor",
@@ -11,10 +11,18 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
-      "consumes": ["diff"],
-      "emits": ["review-report"],
+      "consumes": [
+        "diff"
+      ],
+      "emits": [
+        "review-report"
+      ],
       "surface": "public",
       "cost": "~1000 tokens"
     },
@@ -27,12 +35,38 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
       "consumes": [],
       "emits": [],
       "surface": "internal",
       "cost": "~950 tokens"
+    },
+    {
+      "name": "ai-impact-baseline",
+      "phase": "scale",
+      "kind": "report",
+      "domain": "eng",
+      "ownership": {
+        "drive": "human-ai",
+        "approve": "human"
+      },
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
+      "minModelClass": "small",
+      "consumes": [],
+      "emits": [
+        "evidence"
+      ],
+      "surface": "public",
+      "cost": "~3200 tokens"
     },
     {
       "name": "ask",
@@ -43,10 +77,18 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
-      "consumes": ["intent-brief"],
-      "emits": ["intent-brief"],
+      "consumes": [
+        "intent-brief"
+      ],
+      "emits": [
+        "intent-brief"
+      ],
       "surface": "public",
       "cost": "~3050 tokens"
     },
@@ -59,10 +101,18 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
-      "consumes": ["release"],
-      "emits": ["review-report"],
+      "consumes": [
+        "release"
+      ],
+      "emits": [
+        "review-report"
+      ],
       "surface": "public",
       "cost": "~400 tokens"
     },
@@ -75,10 +125,18 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
-      "consumes": ["review-report"],
-      "emits": ["release"],
+      "consumes": [
+        "review-report"
+      ],
+      "emits": [
+        "release"
+      ],
       "surface": "public",
       "cost": "~1050 tokens"
     },
@@ -91,10 +149,18 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
-      "consumes": ["plan"],
-      "emits": ["diff"],
+      "consumes": [
+        "plan"
+      ],
+      "emits": [
+        "diff"
+      ],
       "surface": "public",
       "cost": "~1350 tokens"
     },
@@ -107,10 +173,18 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
-      "consumes": ["diff"],
-      "emits": ["review-report"],
+      "consumes": [
+        "diff"
+      ],
+      "emits": [
+        "review-report"
+      ],
       "surface": "public",
       "cost": "~950 tokens"
     },
@@ -123,7 +197,11 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
       "consumes": [],
       "emits": [],
@@ -139,10 +217,18 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
-      "consumes": ["intent-brief"],
-      "emits": ["intent-brief"],
+      "consumes": [
+        "intent-brief"
+      ],
+      "emits": [
+        "intent-brief"
+      ],
       "surface": "public",
       "cost": "~1150 tokens"
     },
@@ -155,10 +241,18 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
-      "consumes": ["review-report"],
-      "emits": ["release"],
+      "consumes": [
+        "review-report"
+      ],
+      "emits": [
+        "release"
+      ],
       "surface": "public",
       "cost": "~1000 tokens"
     },
@@ -171,10 +265,18 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
-      "consumes": ["diff"],
-      "emits": ["review-report"],
+      "consumes": [
+        "diff"
+      ],
+      "emits": [
+        "review-report"
+      ],
       "surface": "public",
       "cost": "~3400 tokens"
     },
@@ -187,7 +289,9 @@
         "drive": "ai",
         "approve": "human"
       },
-      "targets": ["local"],
+      "targets": [
+        "local"
+      ],
       "minModelClass": "small",
       "consumes": [],
       "emits": [],
@@ -202,7 +306,10 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["api", "subscription"],
+      "targets": [
+        "api",
+        "subscription"
+      ],
       "minModelClass": "large",
       "consumes": [],
       "emits": [],
@@ -217,7 +324,10 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["api", "subscription"],
+      "targets": [
+        "api",
+        "subscription"
+      ],
       "minModelClass": "large",
       "consumes": [],
       "emits": [],
@@ -232,7 +342,10 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["api", "subscription"],
+      "targets": [
+        "api",
+        "subscription"
+      ],
       "minModelClass": "large",
       "consumes": [],
       "emits": [],
@@ -248,7 +361,11 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
       "consumes": [],
       "emits": [],
@@ -264,10 +381,18 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
-      "consumes": ["intent-brief"],
-      "emits": ["intent-brief"],
+      "consumes": [
+        "intent-brief"
+      ],
+      "emits": [
+        "intent-brief"
+      ],
       "surface": "public",
       "cost": "~1300 tokens"
     },
@@ -279,7 +404,10 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["api", "subscription"],
+      "targets": [
+        "api",
+        "subscription"
+      ],
       "minModelClass": "large",
       "consumes": [],
       "emits": [],
@@ -295,7 +423,11 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
       "consumes": [],
       "emits": [],
@@ -310,7 +442,10 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["api", "subscription"],
+      "targets": [
+        "api",
+        "subscription"
+      ],
       "minModelClass": "large",
       "consumes": [],
       "emits": [],
@@ -325,7 +460,10 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["api", "subscription"],
+      "targets": [
+        "api",
+        "subscription"
+      ],
       "minModelClass": "large",
       "consumes": [],
       "emits": [],
@@ -341,7 +479,11 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
       "consumes": [],
       "emits": [],
@@ -357,10 +499,18 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "large",
-      "consumes": ["spec"],
-      "emits": ["plan"],
+      "consumes": [
+        "spec"
+      ],
+      "emits": [
+        "plan"
+      ],
       "surface": "public",
       "cost": "~5900 tokens"
     },
@@ -373,10 +523,18 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
-      "consumes": ["spec"],
-      "emits": ["plan"],
+      "consumes": [
+        "spec"
+      ],
+      "emits": [
+        "plan"
+      ],
       "surface": "public",
       "cost": "~2300 tokens"
     },
@@ -389,10 +547,18 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
-      "consumes": ["review-report"],
-      "emits": ["release"],
+      "consumes": [
+        "review-report"
+      ],
+      "emits": [
+        "release"
+      ],
       "surface": "public",
       "cost": "~6650 tokens"
     },
@@ -405,10 +571,18 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
-      "consumes": ["intent-brief"],
-      "emits": ["intent-brief"],
+      "consumes": [
+        "intent-brief"
+      ],
+      "emits": [
+        "intent-brief"
+      ],
       "surface": "public",
       "cost": "~850 tokens"
     },
@@ -421,10 +595,18 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
-      "consumes": ["review-report"],
-      "emits": ["release"],
+      "consumes": [
+        "review-report"
+      ],
+      "emits": [
+        "release"
+      ],
       "surface": "public",
       "cost": "~2100 tokens"
     },
@@ -437,10 +619,18 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
-      "consumes": ["spec"],
-      "emits": ["plan"],
+      "consumes": [
+        "spec"
+      ],
+      "emits": [
+        "plan"
+      ],
       "surface": "public",
       "cost": "~1350 tokens"
     },
@@ -453,7 +643,9 @@
         "drive": "ai",
         "approve": "human"
       },
-      "targets": ["local"],
+      "targets": [
+        "local"
+      ],
       "minModelClass": "small",
       "consumes": [],
       "emits": [],
@@ -469,10 +661,18 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
-      "consumes": ["spec"],
-      "emits": ["plan"],
+      "consumes": [
+        "spec"
+      ],
+      "emits": [
+        "plan"
+      ],
       "surface": "public",
       "cost": "~2400 tokens"
     },
@@ -485,10 +685,18 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
-      "consumes": ["spec"],
-      "emits": ["plan"],
+      "consumes": [
+        "spec"
+      ],
+      "emits": [
+        "plan"
+      ],
       "surface": "public",
       "cost": "~1850 tokens"
     },
@@ -501,10 +709,18 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
-      "consumes": ["plan"],
-      "emits": ["diff"],
+      "consumes": [
+        "plan"
+      ],
+      "emits": [
+        "diff"
+      ],
       "surface": "public",
       "cost": "~800 tokens"
     },
@@ -517,10 +733,18 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
-      "consumes": ["diff"],
-      "emits": ["review-report"],
+      "consumes": [
+        "diff"
+      ],
+      "emits": [
+        "review-report"
+      ],
       "surface": "public",
       "cost": "~900 tokens"
     },
@@ -533,10 +757,18 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
-      "consumes": ["intent-brief"],
-      "emits": ["intent-brief"],
+      "consumes": [
+        "intent-brief"
+      ],
+      "emits": [
+        "intent-brief"
+      ],
       "surface": "public",
       "cost": "~2400 tokens"
     },
@@ -549,10 +781,17 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["api", "subscription"],
+      "targets": [
+        "api",
+        "subscription"
+      ],
       "minModelClass": "mid",
-      "consumes": ["intent-brief"],
-      "emits": ["intent-brief"],
+      "consumes": [
+        "intent-brief"
+      ],
+      "emits": [
+        "intent-brief"
+      ],
       "surface": "public",
       "cost": "~2650 tokens"
     },
@@ -565,10 +804,18 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
-      "consumes": ["intent-brief"],
-      "emits": ["spec"],
+      "consumes": [
+        "intent-brief"
+      ],
+      "emits": [
+        "spec"
+      ],
       "surface": "public",
       "cost": "~3750 tokens"
     },
@@ -581,7 +828,11 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
       "consumes": [],
       "emits": [],
@@ -597,7 +848,11 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
       "consumes": [],
       "emits": [],
@@ -613,10 +868,18 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
-      "consumes": ["intent-brief"],
-      "emits": ["spec"],
+      "consumes": [
+        "intent-brief"
+      ],
+      "emits": [
+        "spec"
+      ],
       "surface": "public",
       "cost": "~650 tokens"
     },
@@ -629,10 +892,18 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
-      "consumes": ["diff"],
-      "emits": ["review-report"],
+      "consumes": [
+        "diff"
+      ],
+      "emits": [
+        "review-report"
+      ],
       "surface": "internal",
       "cost": "~1000 tokens"
     },
@@ -645,10 +916,18 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "large",
-      "consumes": ["spec"],
-      "emits": ["plan"],
+      "consumes": [
+        "spec"
+      ],
+      "emits": [
+        "plan"
+      ],
       "surface": "public",
       "cost": "~4450 tokens"
     },
@@ -661,7 +940,11 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
       "consumes": [],
       "emits": [],
@@ -677,10 +960,18 @@
         "drive": "human-ai",
         "approve": "human"
       },
-      "targets": ["local", "api", "subscription"],
+      "targets": [
+        "local",
+        "api",
+        "subscription"
+      ],
       "minModelClass": "small",
-      "consumes": ["review-report"],
-      "emits": ["release"],
+      "consumes": [
+        "review-report"
+      ],
+      "emits": [
+        "release"
+      ],
       "surface": "public",
       "cost": "~2400 tokens"
     }
@@ -704,6 +995,21 @@
     {
       "from": "agent-optimizer",
       "to": "mission-architect",
+      "type": "suggests"
+    },
+    {
+      "from": "ai-impact-baseline",
+      "to": "show-it",
+      "type": "requires"
+    },
+    {
+      "from": "ai-impact-baseline",
+      "to": "ask",
+      "type": "suggests"
+    },
+    {
+      "from": "ai-impact-baseline",
+      "to": "weekly-leadership-report",
       "type": "suggests"
     },
     {
@@ -1295,33 +1601,66 @@
   "artifactFlow": [
     {
       "type": "intent-brief",
-      "emittedBy": ["intent"],
-      "consumedBy": ["intent", "specify"]
+      "emittedBy": [
+        "intent"
+      ],
+      "consumedBy": [
+        "intent",
+        "specify"
+      ]
     },
     {
       "type": "spec",
-      "emittedBy": ["specify"],
-      "consumedBy": ["plan"]
+      "emittedBy": [
+        "specify"
+      ],
+      "consumedBy": [
+        "plan"
+      ]
     },
     {
       "type": "plan",
-      "emittedBy": ["plan"],
-      "consumedBy": ["build"]
+      "emittedBy": [
+        "plan"
+      ],
+      "consumedBy": [
+        "build"
+      ]
     },
     {
       "type": "diff",
-      "emittedBy": ["build"],
-      "consumedBy": ["review"]
+      "emittedBy": [
+        "build"
+      ],
+      "consumedBy": [
+        "review"
+      ]
+    },
+    {
+      "type": "evidence",
+      "emittedBy": [
+        "scale"
+      ],
+      "consumedBy": []
     },
     {
       "type": "review-report",
-      "emittedBy": ["review", "scale"],
-      "consumedBy": ["deploy"]
+      "emittedBy": [
+        "review",
+        "scale"
+      ],
+      "consumedBy": [
+        "deploy"
+      ]
     },
     {
       "type": "release",
-      "emittedBy": ["deploy"],
-      "consumedBy": ["scale"]
+      "emittedBy": [
+        "deploy"
+      ],
+      "consumedBy": [
+        "scale"
+      ]
     }
   ]
 }

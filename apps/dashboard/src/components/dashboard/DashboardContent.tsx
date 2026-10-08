@@ -1,5 +1,6 @@
 'use client';
 
+import type { AgenticHealthSummary } from '@/app/dashboard/agentic-health-loader';
 import { DashboardDisclaimer } from '@/components/dashboard/DashboardDisclaimer';
 import { DateRangePicker } from '@/components/dashboard/DateRangePicker';
 import { InsightsTable } from '@/components/dashboard/InsightsTable';
@@ -8,22 +9,24 @@ import { ProjectSelector } from '@/components/dashboard/ProjectSelector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, LineChart } from '@/components/ui/chart';
-import { isSkillTrace, normalizeProjectName } from '@zenithfoundry/tech-lead-stack/trace-utils';
-import { SlidersHorizontal, User, Globe } from 'lucide-react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useMemo, useState } from 'react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { AgenticHealthSummary } from '@/app/dashboard/agentic-health-loader';
-import type { TraceData } from '@/lib/analytics-service';
-import { AgenticHealthSection } from './AgenticHealthSection';
-import { PhaseCostPanel } from './PhaseCostPanel';
-import { AiImpactPanel } from './AiImpactPanel';
-import { SpendPanel } from './SpendPanel';
 import type { AiImpactResult } from '@/lib/ai-impact-loader';
-import { StepAnalyticsTable } from './StepAnalyticsTable';
-import type { SpendSummary } from '@/lib/usage-aggregates';
+import type { TraceData } from '@/lib/analytics-service';
 import { computeStepMetrics } from '@/lib/step-metrics';
 import { bucketSum, utcDay } from '@/lib/time-buckets';
+import type { SpendSummary } from '@/lib/usage-aggregates';
+import {
+  isSkillTrace,
+  normalizeProjectName,
+} from '@zenithfoundry/tech-lead-stack/trace-utils';
+import { Globe, SlidersHorizontal, User } from 'lucide-react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useMemo, useState } from 'react';
+import { AgenticHealthSection } from './AgenticHealthSection';
+import { AiImpactPanel } from './AiImpactPanel';
+import { PhaseCostPanel } from './PhaseCostPanel';
+import { SpendPanel } from './SpendPanel';
+import { StepAnalyticsTable } from './StepAnalyticsTable';
 
 export function DashboardContent({
   traces,
@@ -112,7 +115,8 @@ export function DashboardContent({
     const agentWork = work.filter((t) => t.actorType === 'AGENT').length;
 
     const skillCounts: Record<string, number> = {};
-    for (const t of skillLoads) skillCounts[t.name] = (skillCounts[t.name] || 0) + 1;
+    for (const t of skillLoads)
+      skillCounts[t.name] = (skillCounts[t.name] || 0) + 1;
     const topSkills = Object.entries(skillCounts)
       .map(([name, total]) => ({ name, total }))
       .sort((a, b) => b.total - a.total)
@@ -133,7 +137,10 @@ export function DashboardContent({
     };
   }, [filteredTraces]);
 
-  const displayTitle = !selectedProject || selectedProject === 'all' ? 'All Projects' : selectedProject;
+  const displayTitle =
+    !selectedProject || selectedProject === 'all'
+      ? 'All Projects'
+      : selectedProject;
 
   return (
     <div className="flex flex-col min-h-screen bg-background p-8 text-foreground">
@@ -303,10 +310,12 @@ export function DashboardContent({
 
         <Card className="overflow-hidden">
           <CardHeader>
-            <CardTitle className="text-lg font-semibold">Analysis Steps per Run</CardTitle>
+            <CardTitle className="text-lg font-semibold">
+              Analysis Steps per Run
+            </CardTitle>
             <p className="text-sm text-muted">
-              Reflexion runs count once at their final revision; each web-chat analysis turn is one
-              run. {scopeLabel}
+              Reflexion runs count once at their final revision; each web-chat
+              analysis turn is one run. {scopeLabel}
             </p>
           </CardHeader>
           <CardContent>

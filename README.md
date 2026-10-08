@@ -509,6 +509,7 @@ flowchart LR
 | **Asking codebase questions**     | `/ask`                  | High-density technical advice.               |
 | **Seeing how the code works**     | `/show-it`              | Cheapest visual that carries the idea.       |
 | **Exploring a big system**        | `/show-it-deep`         | Interactive diagram via archify (opt-in).    |
+| **Measuring AI adoption**         | `/ai-impact-baseline`   | Same metrics before vs after AI, visualised. |
 
 ## Which tier am I on?
 

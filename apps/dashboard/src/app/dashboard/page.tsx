@@ -1,20 +1,20 @@
 import { DashboardContent } from '@/components/dashboard/DashboardContent';
+import { getProjectAccessFilter } from '@/lib/access';
+import { loadAiImpact } from '@/lib/ai-impact-loader';
 import {
   DEFAULT_ANALYTICS_LIMIT,
   getAnalytics,
   resolveAnalyticsScope,
   TIMEFRAME_PRESETS,
 } from '@/lib/analytics-service';
-import { DateRange, describeDateRange, parseDateRange } from '@/lib/date-range';
 import { authOptions } from '@/lib/auth';
+import { DateRange, describeDateRange, parseDateRange } from '@/lib/date-range';
+import { getSpendSummary } from '@/lib/usage-aggregates';
 import { prisma } from '@zenithfoundry/tech-lead-stack/db';
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
-import { getProjectAccessFilter } from '@/lib/access';
-import { loadAgenticHealth } from './agentic-health-loader';
-import { getSpendSummary } from '@/lib/usage-aggregates';
-import { loadAiImpact } from '@/lib/ai-impact-loader';
 import { z } from 'zod';
+import { loadAgenticHealth } from './agentic-health-loader';
 
 /** URL params are untrusted input; anything that fails validation is ignored. */
 const DashboardSearchParamsSchema = z.object({
@@ -25,7 +25,10 @@ const DashboardSearchParamsSchema = z.object({
   project: z.string().trim().max(200).optional(),
 });
 
-export type DashboardSearchParams = Record<string, string | string[] | undefined>;
+export type DashboardSearchParams = Record<
+  string,
+  string | string[] | undefined
+>;
 
 /** Describes the rows getAnalytics returns for these inputs, so each card can state its window. */
 function describeWindow({
@@ -38,10 +41,13 @@ function describeWindow({
   dateRange: DateRange;
 }): string {
   const cap = limit && !Number.isNaN(limit) ? limit : DEFAULT_ANALYTICS_LIMIT;
-  const rows = limit === -1 ? 'All runs' : `Latest ${cap.toLocaleString()} runs`;
+  const rows =
+    limit === -1 ? 'All runs' : `Latest ${cap.toLocaleString()} runs`;
   // Mirrors getAnalytics: an explicit date range replaces the timeframe preset.
   const preset =
-    timeframe && TIMEFRAME_PRESETS.includes(timeframe) ? `timeframe '${timeframe}'` : undefined;
+    timeframe && TIMEFRAME_PRESETS.includes(timeframe)
+      ? `timeframe '${timeframe}'`
+      : undefined;
   const period = describeDateRange(dateRange) ?? preset;
   return period ? `${rows}, ${period}` : rows;
 }
@@ -55,7 +61,9 @@ function describeSpendWindow({
   dateRange: DateRange;
 }): string {
   const preset =
-    timeframe && TIMEFRAME_PRESETS.includes(timeframe) ? `timeframe '${timeframe}'` : undefined;
+    timeframe && TIMEFRAME_PRESETS.includes(timeframe)
+      ? `timeframe '${timeframe}'`
+      : undefined;
   return describeDateRange(dateRange) ?? preset ?? 'All time';
 }
 
@@ -78,12 +86,16 @@ export default async function DashboardPage({
   const user = await prisma.user.findUnique({ where: { email: userEmail } });
   const resolvedUserId = user ? user.id : userEmail;
 
-  const parsedParams = DashboardSearchParamsSchema.safeParse(await searchParams);
-  const { limit, view, project, from, to } = parsedParams.success ? parsedParams.data : {};
+  const parsedParams = DashboardSearchParamsSchema.safeParse(
+    await searchParams
+  );
+  const { limit, view, project, from, to } = parsedParams.success
+    ? parsedParams.data
+    : {};
   const dateRange = parseDateRange({ from, to });
   const filterByUser = view === 'me';
   const parsedLimit =
-    limit === 'all' ? -1 : (limit ? parseInt(limit, 10) : undefined);
+    limit === 'all' ? -1 : limit ? parseInt(limit, 10) : undefined;
 
   const timeframe: string | undefined =
     limit && !['10', '20', '50', '100'].includes(limit) ? limit : undefined;
@@ -128,7 +140,11 @@ export default async function DashboardPage({
       dateRange,
     }),
     singleProject
-      ? loadAiImpact({ user: accessUser, projectName: singleProject, dateRange })
+      ? loadAiImpact({
+          user: accessUser,
+          projectName: singleProject,
+          dateRange,
+        })
       : Promise.resolve(undefined),
   ]);
 

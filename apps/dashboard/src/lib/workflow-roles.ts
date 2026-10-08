@@ -2,6 +2,7 @@ export const WORKFLOW_ROLES: Record<string, string[]> = {
   // Global/All Roles
   "ask": ["DEVELOPER", "PM", "DESIGNER", "QA", "ADMIN"],
   "show-it": ["DEVELOPER", "PM", "DESIGNER", "QA", "ADMIN"],
+  "ai-impact-baseline": ["DEVELOPER", "PM", "DESIGNER", "QA", "ADMIN"],
 
   // Shared workflows
   "accessibility-audit": ["DEVELOPER", "DESIGNER", "QA"],
@@ -59,6 +60,7 @@ export const WORKFLOW_ROLES: Record<string, string[]> = {
 
 export const WORKFLOW_DESCRIPTIONS: Record<string, string> = {
   "accessibility-audit": "Deep semantic audit for A11y and contrast standards",
+  "ai-impact-baseline": "Compare engineering metrics before and after AI entered the codebase, explained visually",
   "ask": "General codebase consultation and architectural advisor",
   "audit-tech-debt": "Quantify and track structural and technical debt",
   "changelog": "Transforms raw Git commit logs and pull request history into semantic release notes",
