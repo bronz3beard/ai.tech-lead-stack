@@ -106,7 +106,8 @@ Already cloned it? Then just:
 
 That generates one slash command per skill under `~/.claude/commands/tls/` and
 registers the MCP server at user scope in `~/.claude.json`. Your app repository
-is not touched.
+is not touched. From then on the MCP server keeps those commands current at each
+session start, so new skills appear after a `git pull` without re-running it.
 
 Reload Claude Code and type `/tls:` to see them.
 

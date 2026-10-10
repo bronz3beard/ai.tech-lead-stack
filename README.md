@@ -571,7 +571,7 @@ Or let it set up every editor on this computer for you, including putting it
 behind a gateway such as slm-gate if you use one:
 
 ```bash
-npx -y tech-lead-stack@1 init
+npx -y tech-lead-stack@latest init
 ```
 
 Doing it by hand behind a gateway:

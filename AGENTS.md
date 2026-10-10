@@ -27,6 +27,11 @@ the relevant guide in `node_modules/next/dist/docs/` before writing any Next.js
 code. Heed deprecation notices. This is Pillar 1 in practice: ground decisions
 in what's actually installed, not what's familiar.
 
+`packages/core/src/install/{surfaces,reconcile,refresh,lock,version}.mjs` run
+inside the MCP server at every start (they refresh users' installed editor
+files): async I/O only (a test fails on any `*Sync(` call), stderr only, and
+TS files that core Jest loads must not import them (Jest cannot require `.mjs`).
+
 ## MCP tool naming & skill acquisition contract
 
 If your client connects to the `tech-lead-stack` MCP server (e.g. Cursor,

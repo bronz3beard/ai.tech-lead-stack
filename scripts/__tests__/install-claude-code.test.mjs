@@ -120,6 +120,40 @@ describe('install.sh --ide claude-code', () => {
     );
   });
 
+  test('records this clone so the MCP server can keep the commands current', () => {
+    const record = JSON.parse(
+      fs.readFileSync(path.join(scratchHome, '.tech-lead-stack/installed.json'), 'utf8'),
+    );
+    assert.deepEqual(record.source, { kind: 'clone', root: fs.realpathSync(repoRoot) });
+    assert.ok(record.version, 'the writer version is recorded');
+    assert.equal(record.surfaces.length, 1);
+    const [surface] = record.surfaces;
+    assert.equal(surface.id, 'claude-code-commands');
+    assert.equal(surface.server, 'tech-lead-stack');
+    assert.deepEqual(
+      surface.files.map((f) => path.basename(f)).sort(),
+      listCommands().sort(),
+    );
+  });
+
+  test('a re-run backs up an edited command instead of losing it', () => {
+    const ask = path.join(commandsDir(), 'ask.md');
+    fs.writeFileSync(ask, 'my own version');
+
+    runInstaller();
+
+    assert.ok(
+      fs.readFileSync(ask, 'utf8').includes('READ-ONLY ADVISORY ORACLE'),
+      'the generated command is back in place',
+    );
+    const backups = path.join(scratchHome, '.tech-lead-stack/backup');
+    const [run] = fs.readdirSync(backups);
+    assert.equal(
+      fs.readFileSync(path.join(backups, run, '.claude/commands/tls/ask.md'), 'utf8'),
+      'my own version',
+    );
+  });
+
   test('--domains narrows the generated set', () => {
     const engHome = fs.mkdtempSync(path.join(os.tmpdir(), 'tls-home-eng-'));
     try {

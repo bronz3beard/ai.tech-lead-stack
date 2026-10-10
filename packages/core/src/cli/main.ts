@@ -7,7 +7,7 @@
  * setup changes. Subcommands are loaded only when asked for, so the server
  * never runs their code and they never start the server.
  */
-import fs from 'node:fs';
+import { packageVersion } from '../install/version.mjs';
 
 const USAGE = `Usage: tech-lead-stack [command]
 
@@ -26,13 +26,6 @@ const USAGE = `Usage: tech-lead-stack [command]
   --version      Print the version.
   help           Show this message.`;
 
-function packageVersion(): string {
-  // dist/ sits next to the package.json, both in the npm package and in a clone.
-  const manifest = new URL('../package.json', import.meta.url);
-  return (JSON.parse(fs.readFileSync(manifest, 'utf8')) as { version: string })
-    .version;
-}
-
 const [command, ...args] = process.argv.slice(2);
 
 switch (command) {
@@ -42,7 +35,7 @@ switch (command) {
     break;
   case 'init': {
     const { runInit } = await import('./init.js');
-    process.exitCode = await runInit({ args, version: packageVersion() });
+    process.exitCode = await runInit({ args, version: await packageVersion() });
     break;
   }
   case 'uninstall': {
@@ -52,12 +45,15 @@ switch (command) {
   }
   case 'doctor': {
     const { runDoctor } = await import('./doctor.js');
-    process.exitCode = await runDoctor({ args, version: packageVersion() });
+    process.exitCode = await runDoctor({
+      args,
+      version: await packageVersion(),
+    });
     break;
   }
   case '--version':
   case '-v':
-    console.log(packageVersion());
+    console.log(await packageVersion());
     break;
   case 'help':
   case '--help':

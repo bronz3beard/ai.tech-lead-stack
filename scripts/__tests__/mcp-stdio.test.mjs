@@ -10,6 +10,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -19,6 +20,9 @@ const repoRoot = path.resolve(
   '..'
 );
 const serverBundle = path.join(repoRoot, 'packages', 'core', 'dist', 'mcp-server.mjs');
+const packageVersion = JSON.parse(
+  fs.readFileSync(path.join(repoRoot, 'packages', 'core', 'package.json'), 'utf8')
+).version;
 const TIMEOUT_MS = 30_000;
 
 // Set empty rather than deleted: the server loads the repo .env, and dotenv
@@ -38,7 +42,11 @@ const BLANKED = [
   'LANGFUSE_BASEURL',
 ];
 
-test('the MCP server answers over stdio and writes nothing but JSON-RPC to stdout', async (t) => {
+/**
+ * Starts the built server and returns helpers to talk JSON-RPC to it.
+ * `extraEnv` is applied over the blanked environment.
+ */
+function startServer(t, extraEnv) {
   assert.ok(
     fs.existsSync(serverBundle),
     `${serverBundle} is missing; run pnpm install (it builds the bundle).`
@@ -46,6 +54,7 @@ test('the MCP server answers over stdio and writes nothing but JSON-RPC to stdou
 
   const env = { ...process.env };
   for (const key of BLANKED) env[key] = '';
+  Object.assign(env, extraEnv);
   const child = spawn(process.execPath, [serverBundle], { cwd: repoRoot, env });
   t.after(() => child.kill());
 
@@ -90,13 +99,41 @@ test('the MCP server answers over stdio and writes nothing but JSON-RPC to stdou
       send({ jsonrpc: '2.0', id, method, params });
     });
 
-  const init = await request('initialize', {
-    protocolVersion: '2025-06-18',
-    capabilities: {},
-    clientInfo: { name: 'mcp-stdio-test', version: '1' },
+  const initialize = async () => {
+    const init = await request('initialize', {
+      protocolVersion: '2025-06-18',
+      capabilities: {},
+      clientInfo: { name: 'mcp-stdio-test', version: '1' },
+    });
+    assert.ok(init.serverInfo?.name, 'initialize returned no serverInfo');
+    assert.equal(
+      init.serverInfo.version,
+      packageVersion,
+      'the server advertises the package version'
+    );
+    send({ jsonrpc: '2.0', method: 'notifications/initialized' });
+  };
+
+  const pollution = () =>
+    stdoutLines.filter((line) => {
+      if (!line.trim()) return false;
+      try {
+        return JSON.parse(line).jsonrpc !== '2.0';
+      } catch {
+        return true;
+      }
+    });
+
+  return { request, initialize, pollution, stderr: () => stderr };
+}
+
+test('the MCP server answers over stdio and writes nothing but JSON-RPC to stdout', async (t) => {
+  // This test runs against the real home folder; keep the editor-file
+  // refresh out of it (the next test covers the refresh with a scratch home).
+  const { request, initialize, pollution } = startServer(t, {
+    TLS_AUTO_REFRESH: '0',
   });
-  assert.ok(init.serverInfo?.name, 'initialize returned no serverInfo');
-  send({ jsonrpc: '2.0', method: 'notifications/initialized' });
+  await initialize();
 
   const { tools } = await request('tools/list', {});
   const names = tools.map((tool) => tool.name);
@@ -116,13 +153,50 @@ test('the MCP server answers over stdio and writes nothing but JSON-RPC to stdou
   // shortly after handling a request is caught too.
   await new Promise((resolve) => setTimeout(resolve, 500));
 
-  const polluted = stdoutLines.filter((line) => {
-    if (!line.trim()) return false;
-    try {
-      return JSON.parse(line).jsonrpc !== '2.0';
-    } catch {
-      return true;
-    }
+  assert.deepEqual(pollution(), [], 'non-JSON-RPC output reached stdout');
+});
+
+test('a refresh due at start updates editor files without disturbing the protocol', async (t) => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'tls-stdio-home-'));
+  t.after(() => fs.rmSync(home, { recursive: true, force: true }));
+  const recordFile = path.join(home, '.tech-lead-stack', 'installed.json');
+  fs.mkdirSync(path.dirname(recordFile), { recursive: true });
+  // As install.sh would record this clone, before any command was written.
+  fs.writeFileSync(
+    recordFile,
+    JSON.stringify({
+      version: '0.0.1',
+      files: {},
+      source: { kind: 'clone', root: fs.realpathSync(repoRoot) },
+      surfaces: [
+        {
+          id: 'claude-code-commands',
+          server: 'tech-lead-stack',
+          domains: ['eng', 'pm', 'hr'],
+          files: [],
+        },
+      ],
+    })
+  );
+
+  const { request, initialize, pollution, stderr } = startServer(t, {
+    HOME: home,
   });
-  assert.deepEqual(polluted, [], 'non-JSON-RPC output reached stdout');
+  await initialize();
+  const { tools } = await request('tools/list', {});
+  assert.ok(tools.length > 0, 'tools/list answered while refreshing');
+
+  const deadline = Date.now() + TIMEOUT_MS;
+  while (!JSON.parse(fs.readFileSync(recordFile, 'utf8')).lastRefresh) {
+    assert.ok(Date.now() < deadline, `no refresh. stderr:\n${stderr().slice(-1500)}`);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  const record = JSON.parse(fs.readFileSync(recordFile, 'utf8'));
+  assert.equal(record.lastRefresh.error, null);
+  assert.ok(
+    fs.existsSync(path.join(home, '.claude', 'commands', 'tls', 'ask.md')),
+    'the /tls:ask command was written'
+  );
+  assert.match(stderr(), /\[tls\] refreshed editor files/);
+  assert.deepEqual(pollution(), [], 'non-JSON-RPC output reached stdout');
 });

@@ -1,5 +1,7 @@
 import {
+  type EditorFilesState,
   checkAnyEditor,
+  checkCopies,
   checkDatabase,
   checkEditor,
   checkFeatures,
@@ -240,5 +242,92 @@ describe('formatReport and hasFailure', () => {
     expect(report).not.toContain('hidden');
     expect(report).toContain('1 thing(s) to fix');
     expect(hasFailure(checks)).toBe(true);
+  });
+});
+
+describe('checkCopies (editor files and their automatic refresh)', () => {
+  const kept: EditorFilesState = {
+    installed: '2.2.0',
+    running: '2.2.0',
+    recorded: true,
+    adoption: null,
+    autoRefresh: true,
+    lastRefresh: { at: '2026-10-09T10:00:00Z', error: null, kept: [] },
+    stuckLock: null,
+  };
+
+  it('says nothing when nothing was installed', () => {
+    expect(
+      checkCopies({ ...kept, installed: null, recorded: false })
+    ).toBeNull();
+  });
+
+  it('reports files kept current automatically', () => {
+    const check = checkCopies(kept);
+    expect(check?.status).toBe('ok');
+    expect(check?.title).toMatch(/kept current automatically \(v2\.2\.0\)/);
+  });
+
+  it('names files left alone because the user changed them', () => {
+    const check = checkCopies({
+      ...kept,
+      lastRefresh: {
+        ...kept.lastRefresh!,
+        kept: ['/h/.claude/commands/tls/ask.md'],
+      },
+    });
+    expect(check?.status).toBe('info');
+    expect(check?.title).toContain('ask.md');
+  });
+
+  it('turns a failed refresh into a warning with a fix', () => {
+    const check = checkCopies({
+      ...kept,
+      lastRefresh: { ...kept.lastRefresh!, error: 'planning: EACCES' },
+    });
+    expect(check?.status).toBe('warn');
+    expect(check?.title).toContain('EACCES');
+    expect(check?.fix).toMatch(/new session/);
+  });
+
+  it('flags a lock held by a live process for too long', () => {
+    const check = checkCopies({
+      ...kept,
+      stuckLock: { pid: 42, at: '2026-10-09T09:00:00Z' },
+    });
+    expect(check?.status).toBe('warn');
+    expect(check?.title).toContain('process 42');
+  });
+
+  it('tells an older install apart: adoptable or not, with the reason', () => {
+    const legacy = {
+      ...kept,
+      installed: '1.1.0',
+      recorded: false,
+      lastRefresh: null,
+    };
+    expect(checkCopies({ ...legacy, adoption: { ok: true } })?.status).toBe(
+      'info'
+    );
+    const blocked = checkCopies({
+      ...legacy,
+      adoption: { ok: false, reason: 'the commands name 2 different servers' },
+    });
+    expect(blocked?.status).toBe('warn');
+    expect(blocked?.title).toContain('2 different servers');
+    expect(blocked?.fix).toMatch(/init/);
+  });
+
+  it('says when the automatic refresh is turned off', () => {
+    expect(checkCopies({ ...kept, autoRefresh: false })?.title).toContain(
+      'TLS_AUTO_REFRESH=0'
+    );
+    const stale = checkCopies({
+      ...kept,
+      autoRefresh: false,
+      installed: '2.1.0',
+    });
+    expect(stale?.status).toBe('warn');
+    expect(stale?.fix).toMatch(/init/);
   });
 });

@@ -46,7 +46,7 @@ Ask me one question: "How comfortable are you with the terminal: never used it, 
 STEP 2 - LOOK AROUND
 Run these and tell me, in a short plain list, what they show:
 - node -v
-- npx -y tech-lead-stack@1 doctor --json
+- npx -y tech-lead-stack@latest doctor --json
 Doctor only reads; it changes nothing. From its checks, report: my Node.js version, which of my apps are connected
 and how (directly, through a gateway such as slm-gate, or "from a downloaded folder"), which features are on, whether
 usage metrics are on, and whether RTK is installed. Then ask me to confirm or correct the list.
@@ -75,18 +75,18 @@ STEP 5 - SET IT UP
    Then ask whether I want to start clean or keep my old settings (API keys, database address). To keep them, follow
    step 6 of the switch guide (in FACTS): copy the old settings file with cp -pn, then delete any line in it that still
    points to the old folder. Never show me the file's contents. The switch guide has every step if I want to read it.
-2. From a project folder, run npx -y tech-lead-stack@1 init --dry-run and explain the plan in plain words. Add the
+2. From a project folder, run npx -y tech-lead-stack@latest init --dry-run and explain the plan in plain words. Add the
    options that fit my answers: --gateway none if I don't want my gateway used, --no-rtk if I don't want RTK,
    --ide <names> to limit it to some apps. After my yes, run the same command with --yes instead of --dry-run.
 3. Keys and database: if my tier needs keys, or I want metrics, tell me which lines to fill in my settings file
    (see RULES) and wait for "done". Metrics need DATABASE_URL set to the same database my web app uses.
 4. If I want the web app and don't have it running, walk me through "Run it on your own machine" in the web app guide
    (in FACTS). It runs from a copy of the repository; that's separate from the app setup above, which always uses npm.
-5. For each other project I work in, run npx -y tech-lead-stack@1 init --yes from that project. It adds the workflow
+5. For each other project I work in, run npx -y tech-lead-stack@latest init --yes from that project. It adds the workflow
    files there; everything else is already done.
 
 STEP 6 - CHECK IT WORKS
-Run npx -y tech-lead-stack@1 doctor --json again. For every check with status "fail" or "warn", follow its "fix" and run
+Run npx -y tech-lead-stack@latest doctor --json again. For every check with status "fail" or "warn", follow its "fix" and run
 doctor again, until none are left, or tell me clearly which ones need me. Then ask me to restart my apps and try it: in
 Claude Code, type /tls: to see the commands; in any other app, ask it to "list the tech-lead-stack skills".
 
@@ -155,7 +155,7 @@ Guides:
 - Moving from a downloaded folder: https://github.com/bronz3beard/ai.tech-lead-stack/blob/main/docs/switch-to-npm.md
 
 ALLOWED
-Commands: `npx -y tech-lead-stack@1 init`, `npx -y tech-lead-stack@1 doctor`, `npx -y tech-lead-stack@1 uninstall`,
+Commands: `npx -y tech-lead-stack@latest init`, `npx -y tech-lead-stack@latest doctor`, `npx -y tech-lead-stack@latest uninstall`,
 `node -v`, `bash "<folder>/scripts/cleanup.sh"`, `cp -pn "<folder>/.env" ~/.tech-lead-stack/.env`,
 `grep -n "<folder>" ~/.tech-lead-stack/.env`.
 init options: `--yes`, `--dry-run`, `--ide`, `--gateway`, `--no-rtk`, `--no-project`. doctor options: `--json`.
@@ -180,7 +180,7 @@ Before you rely on the setup, check these yourself:
 
 1. **No secrets in the chat.** Scroll back: no API key or database address
    should appear anywhere in the conversation.
-2. **Doctor agrees.** Run `npx -y tech-lead-stack@1 doctor`. The last line
+2. **Doctor agrees.** Run `npx -y tech-lead-stack@latest doctor`. The last line
    should read "Everything needed is in place", and every app you use should say
    "connected".
 3. **Nothing was listed twice.** If you use a gateway such as slm-gate, each app
@@ -199,8 +199,9 @@ Add this to your project's `AGENTS.md` (or `CLAUDE.md`, `.cursorrules`,
 ```md
 ## Tech-Lead Stack
 
-- Installed from npm. Check the setup with `npx -y tech-lead-stack@1 doctor`;
-  refresh it with `npx -y tech-lead-stack@1 init`.
+- Installed from npm. Check the setup with
+  `npx -y tech-lead-stack@latest doctor`; refresh it with
+  `npx -y tech-lead-stack@latest init`.
 - Settings live in `~/.tech-lead-stack/.env`. Never ask for keys in chat.
 - Our tier: <local | sub-pro | sub-max | byo>. Gateway: <none | slm-gate | ...>.
 ```

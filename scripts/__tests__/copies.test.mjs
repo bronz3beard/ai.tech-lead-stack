@@ -7,8 +7,12 @@ import path from 'node:path';
 import {
   copyOwned,
   hashOf,
+  loadManifest,
   ownership,
+  readManifest,
   removeOwned,
+  saveManifest,
+  writeManifest,
 } from '../../packages/core/src/install/copies.mjs';
 
 let dir;
@@ -73,5 +77,49 @@ describe('removeOwned', () => {
     removeOwned({ manifest, apply: true });
     assert.ok(!fs.existsSync(path.join(dir, 'skills')), 'empty folders remain');
     assert.equal(fs.readFileSync(edited, 'utf8'), 'my edits');
+  });
+});
+
+describe('the install record', () => {
+  const recordFile = () => path.join(dir, 'state', 'installed.json');
+
+  test('reads a record written by init <= 2.1.0 with the new keys unset', () => {
+    fs.mkdirSync(path.dirname(recordFile()), { recursive: true });
+    fs.writeFileSync(
+      recordFile(),
+      JSON.stringify({ version: '1.1.0', files: { '/a': 'h' } })
+    );
+    assert.deepEqual(readManifest(recordFile()), {
+      version: '1.1.0',
+      files: { '/a': 'h' },
+      source: null,
+      surfaces: null,
+      lastRefresh: null,
+    });
+  });
+
+  test('reads a missing or corrupt record as empty', () => {
+    assert.equal(readManifest(recordFile()).version, null);
+    fs.mkdirSync(path.dirname(recordFile()), { recursive: true });
+    fs.writeFileSync(recordFile(), '{ not json');
+    assert.deepEqual(readManifest(recordFile()).files, {});
+  });
+
+  test('writes atomically: no temp file is left and the result parses', async () => {
+    const record = {
+      version: '2.2.0',
+      files: {},
+      source: { kind: 'npm' },
+      surfaces: [],
+      lastRefresh: null,
+    };
+    writeManifest(record, recordFile());
+    assert.deepEqual(readManifest(recordFile()), record);
+
+    await saveManifest({ ...record, version: '2.3.0' }, recordFile());
+    assert.equal((await loadManifest(recordFile())).version, '2.3.0');
+    assert.deepEqual(fs.readdirSync(path.dirname(recordFile())), [
+      'installed.json',
+    ]);
   });
 });

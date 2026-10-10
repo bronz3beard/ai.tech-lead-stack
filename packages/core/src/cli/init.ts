@@ -11,6 +11,7 @@ import readline from 'node:readline/promises';
 import { Writable } from 'node:stream';
 
 import { readManifest, writeManifest } from '../install/copies.mjs';
+import { waitForLock } from '../install/lock.mjs';
 import { repoRoot } from '../mcp-server/config.js';
 import { readEditors } from './editor-config.js';
 import { serverIn, setServer } from './editor-write.js';
@@ -231,15 +232,37 @@ export async function runInit({
         console.log(`  ✗ ${change.target.label}: ${(err as Error).message}`);
       }
     }
-    for (const step of steps) {
-      try {
-        console.log(`  ✓ ${step.label}: ${await step.apply()}`);
-      } catch (err) {
-        failed += 1;
-        console.log(`  ✗ ${step.describe}: ${(err as Error).message}`);
+    // The same lock as the refresh the MCP server runs at start, so this run
+    // and a session starting meanwhile never write the same files at once.
+    const lock =
+      steps.length > 0
+        ? await waitForLock({
+            onWait: () =>
+              console.log(
+                '  … waiting for another tech-lead-stack process to finish updating editor files'
+              ),
+          })
+        : null;
+    try {
+      // A session may have refreshed the record while you were answering.
+      if (lock) Object.assign(manifest, readManifest());
+      for (const step of steps) {
+        try {
+          console.log(`  ✓ ${step.label}: ${await step.apply()}`);
+        } catch (err) {
+          failed += 1;
+          console.log(`  ✗ ${step.describe}: ${(err as Error).message}`);
+        }
       }
+      if (lock && (await lock.verify()))
+        writeManifest({ ...manifest, version });
+      else if (lock) {
+        failed += 1;
+        console.log('  ✗ Install record: lost the lock; run init again');
+      }
+    } finally {
+      await lock?.release();
     }
-    if (steps.length > 0) writeManifest({ ...manifest, version });
     if (needsSettingsFile) {
       createSettingsFile();
       console.log(`  ✓ Settings file: ${SETTINGS_FILE}`);

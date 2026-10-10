@@ -11,7 +11,7 @@ Requires Node.js 22.5 or later.
 ## Set it up
 
 ```bash
-npx -y tech-lead-stack@1 init
+npx -y tech-lead-stack@latest init
 ```
 
 It finds the editors on this computer (Claude Code, Claude Desktop, Cursor,
@@ -32,10 +32,12 @@ and API keys, which are not shown as you type.
 
 `--dry-run` only shows the plan. `--yes` accepts the recommended choices without
 questions, for AI assistants and scripts. `--no-rtk` and `--no-project` skip
-those parts. Restart your editors afterwards. Run `init` again after an upgrade
-to refresh the copied files; any you edited are left alone.
+those parts. Restart your editors afterwards. The copied files then stay current
+by themselves: each time the server starts on a new release, it updates them
+(new commands appear from the next session). Any you edited are left alone;
+`TLS_AUTO_REFRESH=0` turns this off.
 
-To remove it all: `npx -y tech-lead-stack@1 uninstall` shows what it would
+To remove it all: `npx -y tech-lead-stack@latest uninstall` shows what it would
 remove, and `--apply` removes it. Your settings file and RTK are kept.
 
 ## Connect it by hand
@@ -71,8 +73,10 @@ the `env` block of your existing `slm-gate` entry, then restart your editor:
 
 ```json
 "TLS_ADAPTER": "on",
-"DOWNSTREAM_MCP": "{\"command\":\"npx\",\"args\":[\"-y\",\"tech-lead-stack@1\"]}"
+"DOWNSTREAM_MCP": "{\"command\":\"npx\",\"args\":[\"-y\",\"tech-lead-stack@2\"]}"
 ```
+
+`@2` pins the current major version; `init` writes the right one for you.
 
 The tools then appear under the gateway's name, such as
 `mcp__slm-gate__list_skills`. See
@@ -81,7 +85,7 @@ The tools then appear under the gateway's name, such as
 ## Check your setup
 
 ```bash
-npx -y tech-lead-stack@1 doctor
+npx -y tech-lead-stack@latest doctor
 ```
 
 It checks Node.js, your settings file, which features your keys turn on, the

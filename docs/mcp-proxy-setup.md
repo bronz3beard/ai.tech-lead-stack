@@ -81,6 +81,14 @@ agent is told to call a tool that exists in no session.
 startup. The command simply appears not to work, or the agent improvises
 something else. With 53 generated commands, that is 53 quiet failures.
 
+The name chosen at install is recorded in `~/.tech-lead-stack/installed.json`,
+and the automatic refresh keeps using it: the gateway starts the toolbox server
+at each session (slm-gate passes its environment through, so
+`TLS_AUTO_REFRESH=0` reaches it too), and that server rewrites the commands
+with the same tool names. If you later rename the gateway, re-run the
+installer. A toolbox reached over HTTP (`DOWNSTREAM_MCP` with a `url`) runs on
+another machine and cannot refresh local files.
+
 ---
 
 ## 3. How the installer resolves it
@@ -223,15 +231,18 @@ Already using slm-gate and only want the tools? Skip Steps 1 and 3. The
 published `tech-lead-stack` package starts the server straight from npm, so
 nothing needs cloning or building. You need Node.js 22.5 or later (`node -v`).
 
-The quickest way: `npx -y tech-lead-stack@1 init`. It finds the free slm-gate
+The quickest way: `npx -y tech-lead-stack@latest init`. It finds the free slm-gate
 entry in each editor and sets the two values below for you (`--dry-run` shows
 the plan first). To do it by hand instead, set these two values in the `env` of
 your existing `slm-gate` entry:
 
 ```json
 "TLS_ADAPTER": "on",
-"DOWNSTREAM_MCP": "{\"command\":\"npx\",\"args\":[\"-y\",\"tech-lead-stack@1\"]}"
+"DOWNSTREAM_MCP": "{\"command\":\"npx\",\"args\":[\"-y\",\"tech-lead-stack@2\"]}"
 ```
+
+`@2` pins the current major version (updates within it arrive by themselves);
+`init` writes the right one for you.
 
 Features that need API keys read them from the same `env` block, because the
 gateway passes its environment down (§1). For example, `ANTHROPIC_API_KEY` and

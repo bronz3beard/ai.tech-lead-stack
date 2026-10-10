@@ -59,6 +59,8 @@ import {
 import './config.js';
 import { repoRoot } from './config.js';
 
+import { refreshInstalledSurfaces } from '../install/refresh.mjs';
+import { packageVersion } from '../install/version.mjs';
 import { KiService } from '../lib/ki/ki-service.js';
 import { AlignmentService } from '../lib/skills/alignment-service.js';
 import { FileSystemService } from '../lib/skills/fs-service.js';
@@ -102,10 +104,13 @@ fsService
     );
   });
 
+// The real package version (a hard-coded one here drifted behind releases).
+const serverVersion = await packageVersion();
+
 const server = new Server(
   {
     name: 'tech-lead-stack-analytics',
-    version: '2.0.0',
+    version: serverVersion,
   },
   {
     capabilities: {
@@ -670,6 +675,20 @@ async function runServer() {
   // Release stdout back to MCP SDK — intercept no longer needed
   mcpTransportConnected = true;
   console.error('Tech-Lead Stack Analytics MCP Server running on stdio');
+  // Bring the editor files the user installed (/tls:* commands, Cursor and
+  // Continue copies) up to this release. After connect, so requests are
+  // answered meanwhile; it never throws and logs to stderr only.
+  setImmediate(() => {
+    void refreshInstalledSurfaces({
+      root: repoRoot,
+      version: serverVersion,
+    }).catch((error: unknown) =>
+      console.error(
+        '[tls] editor file refresh failed:',
+        error instanceof Error ? error.message : String(error)
+      )
+    );
+  });
 }
 
 runServer().catch((error: unknown) => {

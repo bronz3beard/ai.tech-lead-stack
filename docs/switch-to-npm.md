@@ -45,7 +45,7 @@ directory", the path is wrong: fix it and run both lines again.
 ## 3. Check the new version is out
 
 ```bash
-npx -y tech-lead-stack@1 help
+npx -y tech-lead-stack@latest help
 ```
 
 The list should include `init` and `uninstall`. If it doesn't, the new version
@@ -148,8 +148,8 @@ setup and giving you a short "start here" summary. If you brought your settings
 over in step 6, it sees your keys are already set and won't ask for them.
 
 No assistant to hand? Run the same fresh install yourself, in a project folder:
-`npx -y tech-lead-stack@1 init`. It lists every change, asks once, then offers
-to take your keys.
+`npx -y tech-lead-stack@latest init`. It lists every change, asks once, then
+offers to take your keys.
 
 ## 8. Add the workflow files to your other projects
 
@@ -158,7 +158,7 @@ workflow files:
 
 ```bash
 cd ~/code/another-app
-npx -y tech-lead-stack@1 init --yes
+npx -y tech-lead-stack@latest init --yes
 ```
 
 ## 9. Check everything
@@ -166,7 +166,7 @@ npx -y tech-lead-stack@1 init --yes
 Open a **new** Terminal window, so the old `rtk` shortcut is gone, then run:
 
 ```bash
-npx -y tech-lead-stack@1 doctor
+npx -y tech-lead-stack@latest doctor
 ```
 
 The last line should say **Everything needed is in place**. If not, each line
@@ -188,8 +188,8 @@ If anything stops working, drag it back out and
 
 > **From now on,** there is nothing to update by hand: your apps start the
 > newest 1.x version each time. When `doctor` says your commands and skills are
-> from an older version, refresh them with `npx -y tech-lead-stack@1 init`. Any
-> you edited are left alone.
+> from an older version, refresh them with `npx -y tech-lead-stack@latest init`.
+> Any you edited are left alone.
 
-To remove it all later: `npx -y tech-lead-stack@1 uninstall` shows what it would
-remove, and `--apply` removes it. Your settings file and RTK are kept.
+To remove it all later: `npx -y tech-lead-stack@latest uninstall` shows what it
+would remove, and `--apply` removes it. Your settings file and RTK are kept.

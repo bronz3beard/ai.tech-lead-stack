@@ -74,7 +74,10 @@ describe('check-agent-setup', () => {
       .replace('init --yes', 'init --yes --silent')
       .replace('cleanup.sh" --global --apply', 'cleanup.sh" --global --purge')
       .replace('(agent-setup.md)', '(ai-setup.md)')
-      .replace('tech-lead-stack@1 doctor', 'tech-lead-stack@1 repair');
+      .replace(
+        'tech-lead-stack@latest doctor',
+        'tech-lead-stack@latest repair'
+      );
     const problems = findGuideProblems(changed, facts).join('\n');
     assert.match(problems, /does not have: --silent/);
     assert.match(problems, /cleanup.sh options that do not exist: --purge/);
