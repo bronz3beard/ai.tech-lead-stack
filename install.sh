@@ -459,7 +459,10 @@ resolve_command_server_name() {
 setup_claude_code_commands() {
     # Generation lives in Node, not jq + perl: Node 22 is already a hard
     # requirement of this repo, so the adapter has no extra dependencies to
-    # probe for. The script stages and swaps atomically on its own.
+    # probe for. --record writes through the install engine (each file
+    # replaced atomically, edited ones backed up first) and records this clone
+    # in ~/.tech-lead-stack/installed.json, so the MCP server running from this
+    # checkout keeps the commands current after a git pull.
     echo "   - Generating slash commands in $CLAUDE_COMMANDS_DIR (domains: $DOMAINS)..."
 
     local count
@@ -468,21 +471,22 @@ setup_claude_code_commands() {
         --server "$COMMAND_SERVER_NAME" \
         --domains "$DOMAINS" \
         --source "$SOURCE_DIR" \
-        --agent claude-code); then
+        --agent claude-code \
+        --record); then
         echo "   ✅ Generated $count slash command(s) calling mcp__${COMMAND_SERVER_NAME}__<tool>."
         echo "      Invoke them as /tls:<name>."
         record_ok "Claude Code slash commands ($count, tools: mcp__${COMMAND_SERVER_NAME}__) → $CLAUDE_COMMANDS_DIR"
         return 0
     fi
 
-    echo "   ⚠️  Slash command generation failed — $CLAUDE_COMMANDS_DIR left untouched."
+    echo "   ⚠️  Slash command generation failed — see the error above ($CLAUDE_COMMANDS_DIR)."
     echo "      WHAT THIS AFFECTS: /tls:<name> slash commands in Claude Code."
-    echo "      Any previously generated commands still work — the generator stages"
-    echo "      and swaps atomically, so nothing was half-written or corrupted."
+    echo "      Any previously generated commands still work — each file is replaced"
+    echo "      atomically, so nothing was half-written or corrupted."
     echo "      The MCP server is registered separately and is unaffected."
     record_warn "Claude Code slash commands not regenerated" \
-        "generate-ide-commands.mjs exited non-zero; the existing command directory was left intact rather than partially overwritten" \
-        "node $SOURCE_DIR/scripts/generate-ide-commands.mjs --out $CLAUDE_COMMANDS_DIR --server $COMMAND_SERVER_NAME --domains $DOMAINS --source $SOURCE_DIR --agent claude-code"
+        "generate-ide-commands.mjs exited non-zero; no command file was left half-written" \
+        "node $SOURCE_DIR/scripts/generate-ide-commands.mjs --out $CLAUDE_COMMANDS_DIR --server $COMMAND_SERVER_NAME --domains $DOMAINS --source $SOURCE_DIR --agent claude-code --record"
     return 1
 }
 

@@ -112,6 +112,29 @@ the default so you always see the list before anything is deleted.
 Afterwards, restart your editor so it drops the removed MCP servers, and open a
 new terminal so the removed alias disappears.
 
+## Keeping editor files current
+
+Claude Code commands (and, for `tech-lead-stack init`, the Cursor skills and
+Continue prompts it copies) are recorded in `~/.tech-lead-stack/installed.json`.
+Each time the MCP server starts, it brings them up to its own release, so you do
+not need to re-run the installer after an update:
+
+| Install                      | Refreshes from  | When                            |
+| :--------------------------- | :-------------- | :------------------------------ |
+| `tech-lead-stack init` (npm) | the npm package | the session after a new release |
+| `install.sh` (clone)         | your checkout   | the session after a `git pull`  |
+
+- Only files the record says are tls's are touched. A file you edited is left
+  alone (`npx tech-lead-stack doctor` lists it); re-running the installer
+  replaces it and keeps your copy in `~/.tech-lead-stack/backup/<date>-…/`.
+- Installs made by `init` 1.1.0–2.1.0 are taken over automatically on the first
+  session start; doctor says if one cannot be, and `init` fixes it.
+- A clone install refreshes from the checkout, so keep that folder.
+- `TLS_AUTO_REFRESH=0` in the server's environment turns the refresh off.
+- Project workflow copies (`<project>/.agents/`) are not refreshed
+  automatically, to avoid unexpected changes in your repositories; re-run `init`
+  in that project.
+
 ## Safety
 
 `lead-clean` refuses to run against your home directory, the filesystem root, or

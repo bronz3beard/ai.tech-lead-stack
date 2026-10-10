@@ -12,8 +12,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { copyOwned, recordFiles } from '../install/copies.mjs';
-import { generateCommands } from '../install/ide-commands.mjs';
+import { copyOwned } from '../install/copies.mjs';
+import { installSurfaces } from '../install/reconcile.mjs';
 import {
   enableForClaudeCode,
   findRtk,
@@ -23,7 +23,7 @@ import {
   RTK_DEFAULT_DIR,
 } from '../install/rtk-install.mjs';
 import { RTK_VERSION } from '../install/rtk-pin.mjs';
-import { globalTargets } from '../install/targets.mjs';
+import { selectSurfaces } from '../install/surfaces.mjs';
 import {
   type EditorChange,
   commandServer,
@@ -32,7 +32,21 @@ import {
 } from './init-plan.js';
 import { versionAtLeast } from './doctor-checks.js';
 
-type Manifest = { version: string | null; files: Record<string, string> };
+/** A recorded install output (see install/surfaces.mjs). */
+type Surface = {
+  id: string;
+  server?: string;
+  domains?: string[];
+  files?: string[];
+};
+
+type Manifest = {
+  version: string | null;
+  files: Record<string, string>;
+  source?: unknown;
+  surfaces?: Surface[] | null;
+  lastRefresh?: unknown;
+};
 
 export interface Step {
   /** Short name shown next to the result, e.g. "Cursor skills". */
@@ -40,9 +54,6 @@ export interface Step {
   describe: string;
   apply: () => Promise<string>;
 }
-
-const targetPath = (id: string) =>
-  globalTargets.find((t) => t.id === id)?.path as string;
 
 /** Editors being connected (or already connected) in this run. */
 const setUp = (changes: EditorChange[], editor: string) =>
@@ -69,37 +80,30 @@ function copyAll(
   return summarize(pairs.map((p) => copyOwned({ ...p, manifest })));
 }
 
+type InstallSummary = {
+  written: string[];
+  adopted: string[];
+  removed: string[];
+  kept: { to: string; reason: string }[];
+};
+
+function describeInstall(summary: InstallSummary, backupDir: string | null) {
+  const parts = [
+    `${summary.written.length} written`,
+    `${summary.adopted.length} already current`,
+  ];
+  if (summary.removed.length > 0)
+    parts.push(`${summary.removed.length} removed`);
+  if (summary.kept.length > 0)
+    parts.push(`${summary.kept.length} left alone (yours or a clone's link)`);
+  if (backupDir) parts.push(`your edited copies saved in ${backupDir}`);
+  return parts.join(', ');
+}
+
 const markdownIn = (dir: string) =>
   fs.existsSync(dir)
     ? fs.readdirSync(dir).filter((f) => f.endsWith('.md'))
     : [];
-
-function cursorSkillPairs(root: string) {
-  const manifestFile = path.join(root, '.ai', 'cursor-skills.manifest');
-  const skillsDir = targetPath('cursor-skills');
-  return fs
-    .readFileSync(manifestFile, 'utf8')
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line && !line.startsWith('#'))
-    .map((line) => line.split('|').map((part) => part.trim()))
-    .filter(([dir, rel]) => dir && rel && fs.existsSync(path.join(root, rel)))
-    .map(([dir, rel]) => ({
-      from: path.join(root, rel),
-      to: path.join(skillsDir, dir, 'SKILL.md'),
-    }));
-}
-
-function continuePromptPairs(root: string) {
-  const workflows = path.join(root, '.agents', 'workflows');
-  return markdownIn(workflows).map((file) => ({
-    from: path.join(workflows, file),
-    to: path.join(
-      targetPath('continue-prompts'),
-      file.replace(/\.md$/, '.prompt')
-    ),
-  }));
-}
 
 const WORKFLOW_DIRS = ['workflows', 'pm-workflows', 'hr-workflows'];
 
@@ -200,38 +204,53 @@ export function planSurfaces({
   const steps: Step[] = [];
   const notes: string[] = [];
 
+  // Editor files (Claude Code commands, Cursor skills, Continue prompts) are
+  // rendered, reconciled and recorded together, so the record says exactly
+  // what this install chose.
+  const chosen: Surface[] = [];
+  const wanted: string[] = [];
   const server = commandServer(changes);
   if (server) {
-    steps.push({
-      label: 'Claude Code commands',
-      describe: `Claude Code: install the /tls:* commands, calling the toolbox through "${server}"`,
-      apply: async () => {
-        const outDir = targetPath('claude-code-commands');
-        const { written } = generateCommands({
-          sourceDir: root,
-          outDir,
-          server,
-        });
-        recordFiles(
-          manifest,
-          written.map((file: string) => path.join(outDir, file))
-        );
-        return `${written.length} commands; type /tls: to see them`;
-      },
+    chosen.push({
+      id: 'claude-code-commands',
+      server,
+      domains: ['eng', 'pm', 'hr'],
     });
+    wanted.push(
+      `Claude Code: the /tls:* commands, calling the toolbox through "${server}"`
+    );
   }
   if (setUp(changes, 'cursor')) {
-    steps.push({
-      label: 'Cursor skills',
-      describe: 'Cursor: copy the skills into ~/.cursor/skills',
-      apply: async () => copyAll(cursorSkillPairs(root), manifest),
-    });
+    chosen.push({ id: 'cursor-skills' });
+    wanted.push('Cursor: the skills in ~/.cursor/skills');
   }
   if (setUp(changes, 'continue')) {
+    chosen.push({ id: 'continue-prompts' });
+    wanted.push('Continue: the workflows in ~/.continue/prompts');
+  }
+  const evaluatedEditors = changes.map((c) => c.target.editor);
+  if (chosen.length > 0 || (manifest.surfaces?.length ?? 0) > 0) {
     steps.push({
-      label: 'Continue prompts',
-      describe: 'Continue: copy the workflows into ~/.continue/prompts',
-      apply: async () => copyAll(continuePromptPairs(root), manifest),
+      label: 'Editor files',
+      describe: wanted.length > 0 ? wanted.join('; ') : 'Editor files: tidy up',
+      apply: async () => {
+        // Selected here, not when planning: init re-reads the record under the
+        // lock just before this runs, and another install may have recorded a
+        // surface meanwhile that must not be treated as dropped.
+        const surfaces: Surface[] = selectSurfaces({
+          chosen,
+          recorded: manifest.surfaces,
+          evaluatedEditors,
+        });
+        const result = await installSurfaces({
+          record: manifest,
+          surfaces,
+          root,
+        });
+        Object.assign(manifest, result.record);
+        if (result.error) throw new Error(result.error);
+        return describeInstall(result.summary, result.backupDir);
+      },
     });
   }
   if (projectDir) {

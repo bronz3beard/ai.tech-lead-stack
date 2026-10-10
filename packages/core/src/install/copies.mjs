@@ -23,18 +23,77 @@ export const MANIFEST_FILE = path.join(
 export const hashOf = (content) =>
   crypto.createHash('sha256').update(content).digest('hex');
 
-export function readManifest() {
+/**
+ * The record with every key present. `source` and `surfaces` stay null for a
+ * record written before they existed (init <= 2.1.0): the refresh tells that
+ * legacy shape apart from "nothing selected" (an empty array).
+ */
+export function parseManifest(text) {
   try {
-    const parsed = JSON.parse(fs.readFileSync(MANIFEST_FILE, 'utf8'));
-    return { version: parsed.version ?? null, files: parsed.files ?? {} };
+    const parsed = JSON.parse(text);
+    return {
+      version: parsed.version ?? null,
+      files: parsed.files ?? {},
+      source: parsed.source ?? null,
+      surfaces: Array.isArray(parsed.surfaces) ? parsed.surfaces : null,
+      lastRefresh: parsed.lastRefresh ?? null,
+    };
   } catch {
-    return { version: null, files: {} };
+    return {
+      version: null,
+      files: {},
+      source: null,
+      surfaces: null,
+      lastRefresh: null,
+    };
   }
 }
 
-export function writeManifest(manifest) {
-  fs.mkdirSync(path.dirname(MANIFEST_FILE), { recursive: true, mode: 0o700 });
-  fs.writeFileSync(MANIFEST_FILE, `${JSON.stringify(manifest, null, 2)}\n`);
+const serialize = (manifest) => `${JSON.stringify(manifest, null, 2)}\n`;
+const tempFor = (file) => `${file}.${process.pid}.tmp`;
+
+export function readManifest(file = MANIFEST_FILE) {
+  try {
+    return parseManifest(fs.readFileSync(file, 'utf8'));
+  } catch {
+    return parseManifest('{}');
+  }
+}
+
+/** Written to a temp file and renamed, so a reader never sees half a record. */
+export function writeManifest(manifest, file = MANIFEST_FILE) {
+  fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });
+  fs.writeFileSync(tempFor(file), serialize(manifest));
+  fs.renameSync(tempFor(file), file);
+}
+
+/**
+ * Where install outputs are rendered from: a clone (its root has `.git`; the
+ * path is canonical so a symlinked checkout still matches) or the npm package
+ * (any npx cache folder; it changes between versions).
+ */
+export async function sourceOf(root) {
+  try {
+    await fs.promises.access(path.join(root, '.git'));
+    return { kind: 'clone', root: await fs.promises.realpath(root) };
+  } catch {
+    return { kind: 'npm' };
+  }
+}
+
+/** Async twins for the refresh, which must not block the MCP server. */
+export async function loadManifest(file = MANIFEST_FILE) {
+  try {
+    return parseManifest(await fs.promises.readFile(file, 'utf8'));
+  } catch {
+    return parseManifest('{}');
+  }
+}
+
+export async function saveManifest(manifest, file = MANIFEST_FILE) {
+  await fs.promises.mkdir(path.dirname(file), { recursive: true, mode: 0o700 });
+  await fs.promises.writeFile(tempFor(file), serialize(manifest));
+  await fs.promises.rename(tempFor(file), file);
 }
 
 /**

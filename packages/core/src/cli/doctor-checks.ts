@@ -25,7 +25,9 @@ export const KNOWN_SETTINGS = [
 ] as const;
 
 const MIN_NODE = [22, 5] as const;
-const INIT = 'npx -y tech-lead-stack@1 init';
+// @latest, not a pinned major: init then registers the right `@<major>` itself,
+// and a pinned one here (it was @1) runs an outdated init after each major.
+const INIT = 'npx -y tech-lead-stack@latest init';
 
 type Env = Record<string, string | undefined>;
 const isSet = (env: Env, name: string) => Boolean(env[name]?.trim());
@@ -234,27 +236,83 @@ export function checkAnyEditor(editorChecks: (Check | null)[]): Check | null {
   };
 }
 
-/** Copied commands, skills and prompts, against the version now running. */
-export function checkCopies({
-  installed,
-  running,
-}: {
+/** What doctor.ts found about the installed editor files and their refresh. */
+export interface EditorFilesState {
+  /** Version that last wrote them (the install record). */
   installed: string | null;
   running: string;
-}): Check | null {
-  if (!installed) return null;
-  return installed === running
-    ? {
-        id: 'copies',
-        status: 'ok',
-        title: `Commands, skills and workflows: current (v${installed})`,
-      }
-    : {
-        id: 'copies',
-        status: 'warn',
-        title: `Commands, skills and workflows were installed by v${installed}; v${running} is running`,
-        fix: `Refresh them with: ${INIT}`,
+  /** The record lists surfaces (written by an install that records them). */
+  recorded: boolean;
+  /** For an older record without surfaces: can the refresh take it over? */
+  adoption: { ok: true } | { ok: false; reason: string } | null;
+  /** TLS_AUTO_REFRESH is not "0". */
+  autoRefresh: boolean;
+  lastRefresh: { at: string; error: string | null; kept: string[] } | null;
+  /** A live process holding the refresh lock for a long time, or null. */
+  stuckLock: { pid: number | null; at: string | null } | null;
+}
+
+/**
+ * Commands, skills and prompts copied onto this computer, and whether the
+ * MCP server keeps them current at each session start.
+ */
+export function checkCopies(s: EditorFilesState): Check | null {
+  if (!s.installed && !s.recorded) return null;
+  const id = 'copies';
+  const current = s.installed === s.running;
+  if (!s.autoRefresh) {
+    return {
+      id,
+      status: current ? 'info' : 'warn',
+      title: current
+        ? 'Editor files: current; automatic refresh is off (TLS_AUTO_REFRESH=0)'
+        : `Editor files were installed by v${s.installed}; v${s.running} is running, and automatic refresh is off (TLS_AUTO_REFRESH=0)`,
+      ...(current ? {} : { fix: `Refresh them with: ${INIT}` }),
+    };
+  }
+  if (!s.recorded) {
+    if (s.adoption?.ok) {
+      return {
+        id,
+        status: 'info',
+        title: `Editor files from v${s.installed} will be brought up to date at the next session start`,
       };
+    }
+    return {
+      id,
+      status: 'warn',
+      title: `Editor files from v${s.installed} cannot be kept current automatically${
+        s.adoption && !s.adoption.ok ? ` (${s.adoption.reason})` : ''
+      }`,
+      fix: `Run once: ${INIT}`,
+    };
+  }
+  if (s.stuckLock) {
+    return {
+      id,
+      status: 'warn',
+      title: `Editor files: process ${s.stuckLock.pid ?? 'unknown'} has been updating them since ${s.stuckLock.at ?? 'an unknown time'}`,
+      fix: 'If that process is stuck, stop it; the next session start finishes the update.',
+    };
+  }
+  if (s.lastRefresh?.error) {
+    return {
+      id,
+      status: 'warn',
+      title: `Editor files: the last automatic refresh failed (${s.lastRefresh.error})`,
+      fix: `Start a new session; if it happens again, run: ${INIT}`,
+    };
+  }
+  const kept = s.lastRefresh?.kept ?? [];
+  return {
+    id,
+    status: kept.length > 0 ? 'info' : 'ok',
+    title:
+      `Editor files: kept current automatically (v${s.installed})` +
+      (kept.length > 0
+        ? `; ${kept.length} left alone because you changed them: ${kept.slice(0, 3).join(', ')}${kept.length > 3 ? ', …' : ''}`
+        : ''),
+  };
 }
 
 export type DatabaseState =

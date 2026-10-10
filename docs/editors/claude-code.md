@@ -12,10 +12,25 @@ Cursor.
 This is the only integration that writes to **two locations outside your
 project**. Both are in your home directory, not in your app repository:
 
-| Path                      | What it holds                                                                                                | Safe to delete?                                              |
-| :------------------------ | :----------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------- |
-| `~/.claude/commands/tls/` | One generated `.md` file per skill. These are build artifacts and are regenerated from scratch on every run. | Yes. Re-run the installer to restore.                        |
-| `~/.claude.json`          | Your Claude Code config. The installer adds one key under `mcpServers` and touches nothing else.             | **No.** This file also holds your account and session state. |
+| Path                      | What it holds                                                                                    | Safe to delete?                                              |
+| :------------------------ | :----------------------------------------------------------------------------------------------- | :----------------------------------------------------------- |
+| `~/.claude/commands/tls/` | One generated `.md` file per skill, kept current automatically (see below).                      | Yes. Re-run the installer to restore.                        |
+| `~/.claude.json`          | Your Claude Code config. The installer adds one key under `mcpServers` and touches nothing else. | **No.** This file also holds your account and session state. |
+
+### Keeping `/tls:` current
+
+The installer records what it wrote in `~/.tech-lead-stack/installed.json`. Each
+time the MCP server starts (every Claude Code session, also behind a gateway
+such as slm-gate), it brings those commands up to its own release: new skills
+are added, changed ones updated, removed ones deleted. A clone install refreshes
+from the checkout, so a `git pull` is enough; an npm install refreshes when npx
+fetches a new release. New commands show up from the **next** session.
+
+- A command you edited is never overwritten by the automatic refresh; re-running
+  the installer replaces it and saves your copy in `~/.tech-lead-stack/backup/`.
+- Turn the refresh off with `TLS_AUTO_REFRESH=0` in the server's environment.
+- `npx tech-lead-stack doctor` shows the last refresh and anything it left
+  alone.
 
 > [!IMPORTANT] `~/.claude.json` is a live file that Claude Code rewrites while
 > it runs. The installer prefers the `claude` CLI

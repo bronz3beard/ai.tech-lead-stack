@@ -189,7 +189,9 @@ export function findGuideProblems(guide, facts) {
   };
 
   const commands = [
-    ...guide.matchAll(/npx -y tech-lead-stack@1 ([a-z-]+)((?:\s+--[a-z-]+)*)/g),
+    ...guide.matchAll(
+      /npx -y tech-lead-stack@latest ([a-z-]+)((?:\s+--[a-z-]+)*)/g
+    ),
   ];
   if (commands.length === 0)
     problems.push('The guide runs no tech-lead-stack commands.');

@@ -13,6 +13,7 @@ import {
   readManifest,
   removeOwned,
 } from '../install/copies.mjs';
+import { waitForLock } from '../install/lock.mjs';
 import { readEditors } from './editor-config.js';
 import { removeServer, serverIn, setServer } from './editor-write.js';
 import {
@@ -83,8 +84,20 @@ export async function runUninstall({
       console.log(`  ✗ ${change.target.label}: ${(err as Error).message}`);
     }
   }
-  removeOwned({ manifest, apply: true });
-  fs.rmSync(MANIFEST_FILE, { force: true });
+  // Under the refresh lock: a session refreshing right now would otherwise
+  // save the record again after it is deleted, and rewrite the files.
+  const lock = await waitForLock({
+    onWait: () =>
+      console.log(
+        '  … waiting for another tech-lead-stack process to finish updating editor files'
+      ),
+  });
+  try {
+    removeOwned({ manifest: readManifest(), apply: true });
+    fs.rmSync(MANIFEST_FILE, { force: true });
+  } finally {
+    await lock.release();
+  }
   console.log(
     failed > 0
       ? `\nDone, with ${failed} problem(s) above.`

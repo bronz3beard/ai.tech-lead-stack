@@ -11,13 +11,17 @@ import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
-import { readManifest } from '../install/copies.mjs';
+import { readManifest, sourceOf } from '../install/copies.mjs';
+import { repoRoot } from '../mcp-server/config.js';
+import { lockHolder } from '../install/lock.mjs';
+import { adoptLegacy } from '../install/refresh.mjs';
 import { RTK_VERSION } from '../install/rtk-pin.mjs';
 import { globalTargets } from '../install/targets.mjs';
 import { getPool } from '../lib/prisma.js';
 import {
   type Check,
   type DatabaseState,
+  type EditorFilesState,
   checkAnyEditor,
   checkCopies,
   checkDatabase,
@@ -94,8 +98,45 @@ export async function collectChecks(version: string): Promise<Check[]> {
     ...editors,
     checkAnyEditor(editors),
     checkRtk({ installed: await rtkVersion(), pinned: RTK_VERSION }),
-    checkCopies({ installed: readManifest().version, running: version }),
+    checkCopies(await editorFilesState(version)),
   ].filter((c): c is Check => c !== null);
+}
+
+/** A refresh takes well under a second; this long means something is stuck. */
+const STUCK_LOCK_MS = 60_000;
+
+/** Facts for checkCopies: the install record, its refresh, and the lock. */
+async function editorFilesState(running: string): Promise<EditorFilesState> {
+  const record = readManifest();
+  const legacy = !record.surfaces && Object.keys(record.files).length > 0;
+  let adoption: EditorFilesState['adoption'] = null;
+  if (legacy && (await sourceOf(repoRoot)).kind !== 'npm') {
+    // Same rule as the refresh: only the npm package takes over these.
+    adoption = {
+      ok: false,
+      reason:
+        'this toolbox runs from a clone; only the npm package takes over an install made by init',
+    };
+  } else if (legacy) {
+    const result = await adoptLegacy({ record }); // reads only
+    adoption = result.surfaces
+      ? { ok: true }
+      : { ok: false, reason: result.reason ?? 'unknown' };
+  }
+  const holder = await lockHolder();
+  const heldFor = holder?.at ? Date.now() - Date.parse(holder.at) : 0;
+  return {
+    installed: record.version,
+    running,
+    recorded: Array.isArray(record.surfaces),
+    adoption,
+    autoRefresh: process.env.TLS_AUTO_REFRESH !== '0',
+    lastRefresh: record.lastRefresh,
+    stuckLock:
+      holder?.alive && heldFor > STUCK_LOCK_MS
+        ? { pid: holder.pid, at: holder.at }
+        : null,
+  };
 }
 
 /** Prints the report and returns the process exit code. */

@@ -12,9 +12,18 @@
  * are re-exported under the gateway's name, so the correct value is the
  * gateway's (e.g. `slm-gate`, giving `mcp__slm-gate__get_skills`). Any proxy
  * behaves this way; nothing here is specific to one.
+ *
+ * Async throughout: the MCP server re-renders these at start (install/refresh.mjs)
+ * and must not block while doing it.
  */
-import fs from 'node:fs';
+import fs from 'node:fs/promises';
 import path from 'node:path';
+
+const exists = (file) =>
+  fs.access(file).then(
+    () => true,
+    () => false
+  );
 
 /** MCP tools a workflow may reference by bare name. */
 const MCP_TOOLS = [
@@ -78,14 +87,14 @@ const ARGUMENTS_BLOCK = [
   '',
 ].join('\n');
 
-function readEntries(sourceDir) {
+async function readEntries(sourceDir) {
   const surfacesFile = path.join(sourceDir, '.ai/agent-surfaces.json');
-  if (!fs.existsSync(surfacesFile)) {
+  if (!(await exists(surfacesFile))) {
     throw new Error(`surface index not found at ${surfacesFile}`);
   }
   let entries;
   try {
-    entries = JSON.parse(fs.readFileSync(surfacesFile, 'utf8')).entries;
+    entries = JSON.parse(await fs.readFile(surfacesFile, 'utf8')).entries;
   } catch (e) {
     throw new Error(`could not parse ${surfacesFile}: ${e.message}`);
   }
@@ -95,15 +104,15 @@ function readEntries(sourceDir) {
   return entries;
 }
 
-function commandBody({ entry, sourceDir, server, agent }) {
+async function commandBody({ entry, sourceDir, server, agent }) {
   const workflowFile = entry.workflowPath
     ? path.join(sourceDir, entry.workflowPath)
     : null;
-  if (workflowFile && fs.existsSync(workflowFile)) {
+  if (workflowFile && (await exists(workflowFile))) {
     // Use the workflow's own instructions verbatim. They carry the real
     // process (phases, gates, artifact paths) that a stub would lose.
     return resolveToolNames(
-      stripFrontmatter(fs.readFileSync(workflowFile, 'utf8')),
+      stripFrontmatter(await fs.readFile(workflowFile, 'utf8')),
       server
     );
   }
@@ -120,60 +129,84 @@ function commandBody({ entry, sourceDir, server, agent }) {
 }
 
 /**
+ * Renders one command per eligible skill, in memory: `files` is
+ * [{ name: '<command>.md', content }], `skipped` lists entries whose workflow
+ * file is missing. Reads only; writes nothing. `signal` (optional) aborts
+ * between files.
+ */
+export async function renderCommands({
+  sourceDir,
+  server = 'tech-lead-stack',
+  domains = ['eng', 'pm', 'hr'],
+  agent = 'claude-code',
+  signal,
+}) {
+  const eligible = (await readEntries(sourceDir)).filter(
+    (e) => e.ideEligible && domains.includes(e.domainKey)
+  );
+  if (eligible.length === 0) {
+    throw new Error(`no eligible entries for domains: ${domains.join(',')}`);
+  }
+  const files = [];
+  const skipped = [];
+  for (const entry of eligible) {
+    signal?.throwIfAborted();
+    const body = await commandBody({ entry, sourceDir, server, agent });
+    if (body === null) {
+      skipped.push(`${entry.name} (missing ${entry.workflowPath})`);
+      continue;
+    }
+    const description = entry.description?.trim()
+      ? entry.description.trim()
+      : `Run the tech-lead-stack ${entry.skill} skill`;
+    const content = [
+      '---',
+      `description: ${yamlQuote(description)}`,
+      'argument-hint: "[optional context, story, or slice]"',
+      '---',
+      '',
+      body.trimEnd(),
+      ARGUMENTS_BLOCK,
+    ].join('\n');
+    files.push({ name: `${entry.name}.md`, content });
+  }
+  return { files, skipped };
+}
+
+/**
  * Writes one command file per eligible skill into `outDir`, replacing what was
  * there. Returns the file names written and the entries skipped. Throws, and
  * leaves `outDir` untouched, if nothing could be written.
  */
-export function generateCommands({
+export async function generateCommands({
   sourceDir,
   outDir,
   server = 'tech-lead-stack',
   domains = ['eng', 'pm', 'hr'],
   agent = 'claude-code',
 }) {
-  const eligible = readEntries(sourceDir).filter(
-    (e) => e.ideEligible && domains.includes(e.domainKey)
-  );
-  if (eligible.length === 0) {
-    throw new Error(`no eligible entries for domains: ${domains.join(',')}`);
-  }
-
+  const { files, skipped } = await renderCommands({
+    sourceDir,
+    server,
+    domains,
+    agent,
+  });
   const staging = `${outDir}.staging.${process.pid}`;
-  fs.rmSync(staging, { recursive: true, force: true });
-  fs.mkdirSync(staging, { recursive: true });
+  await fs.rm(staging, { recursive: true, force: true });
+  await fs.mkdir(staging, { recursive: true });
 
-  const written = [];
-  const skipped = [];
   try {
-    for (const entry of eligible) {
-      const body = commandBody({ entry, sourceDir, server, agent });
-      if (body === null) {
-        skipped.push(`${entry.name} (missing ${entry.workflowPath})`);
-        continue;
-      }
-      const description = entry.description?.trim()
-        ? entry.description.trim()
-        : `Run the tech-lead-stack ${entry.skill} skill`;
-      const file = [
-        '---',
-        `description: ${yamlQuote(description)}`,
-        'argument-hint: "[optional context, story, or slice]"',
-        '---',
-        '',
-        body.trimEnd(),
-        ARGUMENTS_BLOCK,
-      ].join('\n');
-      fs.writeFileSync(path.join(staging, `${entry.name}.md`), file);
-      written.push(`${entry.name}.md`);
+    for (const { name, content } of files) {
+      await fs.writeFile(path.join(staging, name), content);
     }
-    if (written.length === 0) throw new Error('no commands were written');
+    if (files.length === 0) throw new Error('no commands were written');
 
-    fs.rmSync(outDir, { recursive: true, force: true });
-    fs.mkdirSync(path.dirname(outDir), { recursive: true });
-    fs.renameSync(staging, outDir);
+    await fs.rm(outDir, { recursive: true, force: true });
+    await fs.mkdir(path.dirname(outDir), { recursive: true });
+    await fs.rename(staging, outDir);
   } catch (e) {
-    fs.rmSync(staging, { recursive: true, force: true });
+    await fs.rm(staging, { recursive: true, force: true });
     throw new Error(`${e.message}; ${outDir} left untouched.`);
   }
-  return { written, skipped };
+  return { written: files.map((f) => f.name), skipped };
 }
