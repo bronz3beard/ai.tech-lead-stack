@@ -4,6 +4,19 @@ All notable changes to this project are recorded here. From 1.1.0 on,
 release-please writes each entry from the commit messages on `main` (see
 [docs/releasing.md](docs/releasing.md)); nobody edits this file by hand.
 
+## [2.2.0](https://github.com/bronz3beard/ai.tech-lead-stack/compare/v2.1.0...v2.2.0) (2026-10-10)
+
+
+### Added
+
+* **install:** keep /tls: commands and editor files current automatically at MCP server start ([a05d44a](https://github.com/bronz3beard/ai.tech-lead-stack/commit/a05d44af8789cf2e1c8998f6a59c6e1e6b08bd1e))
+
+
+### Fixed
+
+* **doctor:** point init, doctor and uninstall commands at [@latest](https://github.com/latest) instead of [@1](https://github.com/1) ([a05d44a](https://github.com/bronz3beard/ai.tech-lead-stack/commit/a05d44af8789cf2e1c8998f6a59c6e1e6b08bd1e))
+* **mcp-server:** advertise the real package version instead of a hard-coded 2.0.0 ([a05d44a](https://github.com/bronz3beard/ai.tech-lead-stack/commit/a05d44af8789cf2e1c8998f6a59c6e1e6b08bd1e))
+
 ## [2.1.0](https://github.com/bronz3beard/ai.tech-lead-stack/compare/v2.0.0...v2.1.0) (2026-10-08)
 
 
