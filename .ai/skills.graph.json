@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "generatedAt": "2026-10-08T17:15:57.376Z",
+  "generatedAt": "2026-10-14T20:38:27.940Z",
   "nodes": [
     {
       "name": "accessibility-auditor",
@@ -512,7 +512,7 @@
         "plan"
       ],
       "surface": "public",
-      "cost": "~5900 tokens"
+      "cost": "~6000 tokens"
     },
     {
       "name": "planning-expert-quick",
@@ -536,7 +536,7 @@
         "plan"
       ],
       "surface": "public",
-      "cost": "~2300 tokens"
+      "cost": "~2000 tokens"
     },
     {
       "name": "pr-automator",
@@ -929,7 +929,7 @@
         "plan"
       ],
       "surface": "public",
-      "cost": "~4450 tokens"
+      "cost": "~5500 tokens"
     },
     {
       "name": "visual-verifier",

@@ -32,6 +32,7 @@
       "reflexion-loop": "npx tsx scripts/reflexion-loop.ts",
       "regression-bug-fix": "cat .ai/skills/regression-bug-fix.md",
       "security-audit": "cat .ai/skills/security-audit.md",
+      "slice-baseline": "node scripts/slice-baseline.mjs",
       "solutioning-facilitator": "cat .ai/skills/solutioning-facilitator.md",
       "style-logic-exporter": "cat .ai/skills/style-logic-exporter.md",
       "technical-debt-auditor": "cat .ai/skills/technical-debt-auditor.md",

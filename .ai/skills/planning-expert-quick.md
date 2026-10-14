@@ -4,11 +4,11 @@ description: >
   Ultra-lean strategic planning. Optimized for speed, token efficiency, and
   rapid MVC delivery. Now PR-batch aware — it ingests vertical slices handed off
   from `vertical-slice-decomposer` as well as freeform slices a developer writes
-  by hand, keeps every PR batch <=15-20 changed files, and on reaching that
-  ceiling hands off to `pr-automator` and escalates multi-batch sequencing to
+  by hand, keeps every PR batch <=24 changed files, and on reaching that target
+  hands off to `pr-automator` and escalates multi-batch sequencing to
   `planning-expert`. Use for common, lightweight tasks (1-2 files) where
   velocity is the priority.
-cost: ~2300 tokens
+cost: ~2000 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Plan & Harden
@@ -110,9 +110,10 @@ verifies the planning phase in an IDE/MCP agent.
 
 ## 📦 PR Boundary Rule (condensed)
 
-- **Ceiling:** soft **15** / hard **20** counted changed files per PR batch. The
-  count is a **proxy** — the real cut is the deployable seam; pair it with the
-  line signals. **Count only functional/UI/reviewable changes** (logic, UI,
+- **Ceiling:** target **24** counted changed files per PR batch (the rare
+  45-file wide-but-shallow allowance belongs to `planning-expert`). The count is
+  a **proxy** — the real cut is the deployable seam; pair it with the line
+  signals. **Count only functional/UI/reviewable changes** (logic, UI,
   `next.config`/`tailwind.config`, helpers); **do not count** mechanical-only
   diffs (Prettier/formatting, import-only, lockfiles, generated, snapshots). A
   quick-plan task should rarely approach this.
@@ -145,7 +146,7 @@ verifies the planning phase in an IDE/MCP agent.
 | :------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | "This is too simple for tests."       | **Denied.** Simple logic often hides complex edge cases.                                                                                                                                             |
 | "I'll just skip Phase 0."             | **Denied.** Skipping discovery is the #1 cause of broken builds.                                                                                                                                     |
-| "It grew past 20 files, ship it all." | **Denied.** Escalate to `planning-expert` and split into forward-independent PRs at the deployable seam.                                                                                             |
+| "It grew past 24 files, ship it all." | **Denied.** Escalate to `planning-expert` and split into forward-independent PRs at the deployable seam.                                                                                             |
 | "I'll open the PR / push for you."    | **Denied for the planner.** It never runs git — hand off. `pr-automator` is the scoped exception (reads history + `gh pr create`; never pushes your code). Instruct the user; wait for confirmation. |
 
 ## 🚩 Red Flags (STOP & Pivot)
@@ -153,7 +154,7 @@ verifies the planning phase in an IDE/MCP agent.
 - **Bloat**: Plan exceeds 2 files or 50 lines (quick-plan threshold) — reassess
   scope.
 - **Ambiguity**: Unclear file paths or missing line ranges.
-- **Ceiling approach**: Heading toward 15+ files — escalate to `planning-expert`
+- **Ceiling approach**: Heading toward 20+ files — escalate to `planning-expert`
   rather than forcing it through here.
 - **Forward dependency**: A batch needs code from a not-yet-created PR.
 

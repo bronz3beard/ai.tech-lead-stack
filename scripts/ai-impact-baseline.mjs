@@ -430,7 +430,7 @@ function ghJson(args) {
   return JSON.parse(out);
 }
 
-function ghSearchAll({ query, q, cap }) {
+export function ghSearchAll({ query, q, cap }) {
   const nodes = [];
   let cursor = null;
   let capped = false;
@@ -684,7 +684,7 @@ function collectGitHub({ origin, windows, prCap, runCap }) {
   };
 }
 
-function githubAvailability(repoDir, disabled) {
+export function githubAvailability(repoDir, disabled) {
   if (disabled) return { ok: false, reason: 'disabled with --no-github' };
   let origin = null;
   try {

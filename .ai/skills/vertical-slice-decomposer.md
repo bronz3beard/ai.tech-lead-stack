@@ -5,9 +5,12 @@ description: >
   Figma URLs — into thin, independently deployable vertical slices (<=2 days)
   and emits ClickUp-ready tasks. Each task carries a technical-details section,
   a developer technical prompt, a dark-release (beta-flag) decision, and a
-  mock-vs-real-backend decision. Built for greenfield and (primarily) brownfield
+  mock-vs-real-backend decision. Sizes slices (<=2 working days, <=24 files,
+  fewest slices that each deploy, at most 3 open per developer) and, when it can
+  run, checks them against the repo's own merged history via the
+  `slice-baseline` tool. Built for greenfield and (primarily) brownfield
   features under Trunk-Based Development.
-cost: ~4450 tokens
+cost: ~5500 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Plan & Harden
@@ -105,6 +108,26 @@ protected regions, not narrative.
   states, components, and variants shown (empty / loading / error / populated;
   desktop / mobile). Reuse `ui-spec-generator` / `style-logic-exporter` if
   present.
+- **Sizing baseline (optional — never blocks slicing):** this repo's own merged
+  history from the `slice-baseline` tool. Use the first row that applies:
+
+  | Where you are                                                   | Do                                |
+  | --------------------------------------------------------------- | --------------------------------- |
+  | tech-lead-stack checkout                                        | `node scripts/slice-baseline.mjs` |
+  | Project linked to a tech-lead-stack clone                       | `rtk run slice-baseline`          |
+  | Read-only chat, npm install, or the command is missing or fails | Skip it                           |
+
+  Add `--window-days 90` for a recent view (default 180).
+  - **Tables printed:** use the story type's row ("≤2 days", "Files typical") to
+    judge whether a slice fits, and the developer table for the 1 + 2 rule. Pass
+    the `all` row's "Over 24" to `planning-expert` for its allowance check.
+  - **"No history baseline", skipped, or failed:** say so in one line and use
+    the defaults: <=2 working days, <=24 files, at most 3 open per developer.
+  - The baseline only **tightens or explains** limits; it never raises them. A
+    team whose typical PR is 40 files still slices to <=24.
+  - A table the user pastes counts as the baseline; state where it came from.
+    Developer names from it guide order and assignment in chat only — never copy
+    them into ClickUp tasks.
 
 ## Phase 0.5: Input Classification & Spec Precondition
 
@@ -130,12 +153,17 @@ protected regions, not narrative.
   Figma). For multi-story input, queue them; do not interleave. Finish slicing
   story N before story N+1 (limit WIP). Each distinct UI state/variant in a
   design is a candidate slice boundary.
+- **Open work per developer: 1 + 2.** A developer actively works one task and
+  holds at most two more open (in review, waiting, blocked) — never more than 3
+  open at once. Order and assign slices so nobody goes over. If the slice count
+  would force it, merge slices (merge pass, Phase 2) instead of queueing more.
 - **INVEST screen** each story — Independent, Negotiable, Valuable, Estimable,
-  **Small (<=2 days)**, Testable. Any story failing **Small** MUST be sliced.
+  **Small (<=2 working days, <=24 files)**, Testable. Any story failing
+  **Small** MUST be sliced.
 - **Maintain the Ledger** (reprint at every checkpoint and after every detour):
 
-  | #   | Story | Slice | Beta flag | Mock/Real | Status (queued/sliced/emitted) |
-  | --- | ----- | ----- | --------- | --------- | ------------------------------ |
+  | #   | Story | Slice | Files (est.) | Beta flag | Mock/Real | Status (queued/sliced/emitted) | Notes (merges, reasons) |
+  | --- | ----- | ----- | ------------ | --------- | --------- | ------------------------------ | ----------------------- |
 
 ## Phase 1.5: Requirement Inventory
 
@@ -175,8 +203,20 @@ Build BEFORE slicing; reprint with the Ledger every turn.
 
 - **Design-driven boundaries:** each state/variant a design shows maps to a
   strategy — populated view = happy path first; empty/loading/error states =
-  follow-up slices; desktop vs mobile = platform; data variants = data
-  variation.
+  follow-up slices (tasks inside one slice when the story is already Small);
+  desktop vs mobile = platform; data variants = data variation.
+- **Story already Small?** A story that passes INVEST "Small" is ONE slice. Its
+  scenarios and design states become tasks inside it, not separate slices.
+- **Slice count check:** estimate the story's total changed files (record each
+  slice's share in the Ledger's `Files (est.)`). Expect about (total files ÷ 24,
+  rounded up) slices. Up to double that is fine; more needs a one-line reason in
+  the Ledger. (A 28-file story → 2 slices, never 7.)
+- **Merge pass (run after slicing, before emitting):** merge two slices of the
+  same story when ALL hold: (1) together they still fit one slice (<=2 working
+  days AND <=24 files); (2) they share a flag (or neither needs one) and touch
+  mostly the same files; (3) neither is worth deploying without the other. Aim
+  for the FEWEST slices that each pass the deployability test. Log each merge in
+  the Ledger ("S3+S4 merged: same flag, same files").
 - **Task decomposition inside a slice:** each task is hours-not-days, leaves
   trunk green, ordered simplest-first, may use a flag/stub to integrate safely.
   Edge/error cases follow the happy path immediately — never deferred to
@@ -240,6 +280,7 @@ go-live. **Data source:** <Mock (backend-first / MSW fallback) | Real backend>.
 
 - GWT defined
 - <=2 days
+- <=24 files (est.)
 - testable
 - deps resolved. **Definition of Done:**
 - integrated to trunk
@@ -297,12 +338,19 @@ go-live. **Data source:** <Mock (backend-first / MSW fallback) | Real backend>.
 | "This story is fine at a week, we'll go faster."      | **Denied.** >2 days ⇒ reslice. Speed is not the fix; smaller batches are.                                                     |
 | "We can't deploy without the other team."             | **Denied.** That is an undefined contract. Define/version it and use contract tests so each side deploys independently.       |
 | "We drifted into a bug, let's just keep going there." | **Denied.** Resolve, fold into the slice, reprint the Ledger, resume the queue.                                               |
+| "Every scenario and design state is its own slice."   | **Denied.** More slices means more open work, not faster delivery. Run the merge pass; a Small story is one slice.            |
+| "It's 35 files, but it's still one slice."            | **Denied.** Past 24 files most changes miss 2 days. Cut at a deployable seam; only renames/moves may go wider (`/plan`).      |
+| "They can pick up a 4th while one waits for review."  | **Denied.** Review or unblock the open ones first. More open work makes each one finish later.                                |
 
 ## 🚩 Red Flags (STOP & Pivot)
 
 - **Horizontal slice detected** — item delivers a layer, not behaviour (fails
   the deployability test).
 - **Monolithic item** — 10+ acceptance criteria or a multi-week estimate.
+- **Over-split** — more than double (total files ÷ 24) slices with no Ledger
+  reason, or a Small story cut into several slices.
+- **Open-work breach** — the order or assignment leaves a developer with more
+  than 3 open slices.
 - **Role/handoff split** — separate "frontend builds X / backend builds Y"
   items.
 - **Ledger or Requirement Inventory missing or stale** after a detour —
@@ -320,7 +368,9 @@ go-live. **Data source:** <Mock (backend-first / MSW fallback) | Real backend>.
 - (c) every inventory row covered;
 - (d) every identifier grounded with evidence across ALL repos;
 - (e) verbatim zones intact and byte-matched;
-- (f) only `vertical-slices.md` produced.
+- (f) only `vertical-slices.md` produced;
+- (g) baseline source stated (tool output, pasted table, or "defaults"); slice
+  count within the check; every merge and extra slice has a Ledger reason.
 
 ## ✅ Verification Gate (Hard Evidence)
 
@@ -331,5 +381,6 @@ go-live. **Data source:** <Mock (backend-first / MSW fallback) | Real backend>.
 - **COVERAGE CHECK:** every inventory row maps to >=1 slice/AC; zero uncovered
   rows; every verbatim string in the ACs byte-matches its inventory row.
 - Target metrics the decomposition must satisfy: story cycle time **<2 days**,
-  **~100%** of items independently deployable, **0** cross-team deploy
-  dependencies per slice. "Seems small enough" is NOT evidence.
+  **<=24 files** per slice, **~100%** of items independently deployable, **0**
+  cross-team deploy dependencies per slice, **<=3** open slices per developer.
+  "Seems small enough" is NOT evidence.
