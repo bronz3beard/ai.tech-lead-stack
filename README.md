@@ -500,7 +500,7 @@ flowchart LR
 | **Leading a multi-agent team**    | `/dev-team`             | Orchestrates sub-agents safely in parallel.  |
 | **Deep architecture planning**    | `/plan`                 | Full codebase audit, solid vertical slices.  |
 | **Fast lean tasks**               | `/plan-quick`           | High velocity for smaller changes.           |
-| **Breaking down tickets**         | `/vertical-slice`       | Creates ClickUp-ready tasks (<= 2d).         |
+| **Breaking down tickets**         | `/vertical-slice`       | Fewest ClickUp tasks, <= 2d / <= 24 files.   |
 | **Local pre-commit check**        | `/code-review`          | 4 gates (Spec, SOLID, A11y, Evidence).       |
 | **Visual testing**                | `/verify-changes`       | Playwright-powered before/after screenshots. |
 | **Fixing QA/Regression feedback** | `/regression-bug-fix`   | Maps impact and remediates safely.           |

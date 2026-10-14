@@ -45,7 +45,8 @@ export const ALL_SKILLS: Array<Skill> = [
     description:
       'Decomposes user stories into thin, independently deployable vertical slices.',
     useCases: [
-      'Decomposing a large feature into 1-2 day deployable slices.',
+      'Decomposing a large feature into the fewest 1-2 day, <=24-file deployable slices.',
+      "Sizing slices against the repo's own merged history (days, files, open work per developer).",
       'Extracting technical details and design references for each slice.',
       'Deciding on beta-flags and mock vs real implementations.',
     ],

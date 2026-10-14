@@ -244,9 +244,9 @@ of rounds), name where things stand. Structure it as:
    does not know enough to choose, name it plainly: this needs a spike [S#],
    timeboxed.
 3. Smallest first slice — the thinnest vertically-sliced change that ships
-   something real and gets feedback fast (MinimumCD). Aim for 1–2 days of work;
-   put it behind a flag if it is risky. Ground it in the actual code you
-   inspected.
+   something real and gets feedback fast (MinimumCD). Aim for 1–2 days of work
+   and no more than ~24 changed files; put it behind a flag if it is risky.
+   Ground it in the actual code you inspected.
 4. Acceptance criteria — QA-owned: how we will know it works, including the key
    edge cases raised in the session.
 5. One concrete next step — a single action to take this session or this week.

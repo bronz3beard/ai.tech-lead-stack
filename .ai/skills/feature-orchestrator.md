@@ -101,9 +101,10 @@ verifies the implement phase in an IDE/MCP agent.
 ## Phase 2: Plan (Chain → `planning-expert` / `vertical-slice-decomposer`)
 
 - **Action:** Delegate decomposition. Default to `vertical-slice-decomposer` for
-  user-facing features (thin, independently deployable slices <=2 days, each
-  with a dark-release + mock-vs-real decision); use `planning-expert` for
-  refactors/architecture-heavy work.
+  user-facing features (the fewest thin, independently deployable slices of <=2
+  working days and <=24 files, sized from the repo's history when
+  `slice-baseline` can run, each with a dark-release + mock-vs-real decision);
+  use `planning-expert` for refactors/architecture-heavy work.
 - **Validation:** every item passes the deployability test (observable
   behaviour, no cross-team blocker, behaviour-not-layer). Order simplest-first;
   edge cases scheduled immediately after the happy path.
@@ -152,6 +153,8 @@ governance AND blanks the phase metrics.
 - **Mode confusion** — proposing write actions in read-only chat.
 - **Orphaned remediation** — dived into a bug and never returned to the phase.
 - **Monolithic plan** — a slice exceeding 2 days or touching unrelated files.
+- **Over-split plan** — a Small story cut into several slices, or more slices
+  than the decomposer's slice-count check allows without a reason.
 - **No evidence** — a slice marked done without test/build/screenshot output.
 
 ## ✅ Verification Gate (Hard Evidence)
@@ -159,5 +162,6 @@ governance AND blanks the phase metrics.
 - All three phases are accounted for, in order, each via its specialist skill.
 - Plan items are independently deployable; Implement (or its blueprint) carries
   explicit per-slice verification commands.
-- Target metrics: story cycle time <2 days, ~100% items independently
-  deployable, fresh evidence captured at every milestone.
+- Target metrics: story cycle time <2 days, <=24 files per slice, at most 3 open
+  slices per developer, ~100% items independently deployable, fresh evidence
+  captured at every milestone.
