@@ -4,13 +4,14 @@ description: >
   The complete Planning Expert Zenith. Orchestrates deep pattern discovery,
   vertical slicing, and safe incremental delivery. Now PR-batch aware — it
   ingests vertical slices handed off from `vertical-slice-decomposer` (the
-  `/plan` target) as well as freeform slices a developer writes by hand, caps
-  every PR batch at <=15-20 changed files, and breaks oversized plans into
-  forward-independent, individually deployable PRs with a blocking hand-off to
-  `pr-automator`. Use for complex or heavy tasks, architectural refactors,
-  multi-file features, or whenever a plan will touch more than ~15 files and
-  must be split into stacked PRs under Trunk-Based Development.
-cost: ~5900 tokens
+  `/plan` target) as well as freeform slices a developer writes by hand, aims
+  every PR batch at <=24 changed files (45 only for rare wide-but-shallow
+  changes), and breaks oversized plans into forward-independent, individually
+  deployable PRs with a blocking hand-off to `pr-automator`. Use for complex or
+  heavy tasks, architectural refactors, multi-file features, or whenever a plan
+  will touch more than ~24 files and must be split into stacked PRs under
+  Trunk-Based Development.
+cost: ~6000 tokens
 modes: [read-only, write, mcp]
 surface: public
 category: Plan & Harden
@@ -197,6 +198,12 @@ backend-first, and state those assumptions back.)
 - **Release & flag infra:** Locate the dark-release gate (e.g. Next.js
   middleware, `beta_*` cookies / `x-beta-flags` header) so an incomplete batch
   can be hidden behind a flag rather than deferred.
+- **Sizing baseline (optional — never blocks planning):** where you can run
+  commands, run `rtk run slice-baseline` (in the tech-lead-stack repo:
+  `node scripts/slice-baseline.mjs`), or reuse the one a
+  `vertical-slice-decomposer` hand-off already carries. Its `all` row's "Over
+  24" feeds the allowance check below. Read-only chat, an npm install, "No
+  history baseline", or a failed run → say so and use the defaults.
 - **Scoping:** Evaluate Global → Project → Folder scopes. **Last scope wins**.
 
 ### Phase 1: The W/W/H Implementation Plan
@@ -213,9 +220,14 @@ backend-first, and state those assumptions back.)
 
 - **Sizing (per task):** XS/S/M only (<5 files, <100 lines). If XL, break it
   down.
-- **Sizing (per PR batch):** group tasks into batches of **<=15 files (soft) /
-  20 files (hard ceiling)** counted changed files. A batch boundary MUST land on
-  a deployable seam — never split one task across two batches.
+- **Sizing (per PR batch):** aim for **<=24 changed files** (mechanical files
+  excluded, as below). A PR may go up to **45 files (hard ceiling)** only when
+  the extra files are wide-but-shallow (moves, renames, call-site updates,
+  config) or splitting would leave trunk broken — never to fit more new
+  behaviour in. State why in one line ("38 files: rename touches every call
+  site"). The allowance is rare: if more than 1 in 10 recent PRs went over 24,
+  split instead. A batch boundary MUST land on a deployable seam — never split
+  one task across two batches.
 - **Enforce against reality, not the estimate (execution contexts only):** in
   the IDE/MCP agent or e2b sandbox, before opening each new task re-run the same
   diff `pr-automator` uses, with mechanical files excluded, and compare to the
@@ -228,7 +240,7 @@ backend-first, and state those assumptions back.)
   ```
 
   Then discount any remaining file whose diff is import-only or formatting-only.
-  That remainder is the number checked against 15/20. In read-only chat you
+  That remainder is the number checked against 24/45. In read-only chat you
   cannot run this — enforce against the estimate and the file list the user
   reports, and hand this command off for the implementing agent to run.
 
@@ -255,11 +267,15 @@ backend-first, and state those assumptions back.)
 
 ### The File-Count Rule
 
-- **The count is a guardrail, not the real boundary.** A 19-file rename is
+- **The count is a guardrail, not the real boundary.** A 40-file rename is
   trivial to review; a 6-file state-machine rewrite is not. The **true cut is
   the deployable seam** — use the count as a proxy and pair it with the line
   signals (<100 lines/task, <500 lines/plan) and review-complexity judgement.
-- **Soft target: 15** counted files per batch. **Hard ceiling: 20.**
+- **Target: 24** counted files per batch. **Hard ceiling: 45**, for the rare
+  wide-but-shallow batch only (see Sizing above).
+- **Allowance check:** if the sizing baseline shows more than 10% of recent PRs
+  over 24 files, the 45-file allowance is used up; split instead. With no
+  baseline, every batch over 24 still needs its one-line reason.
 - **What counts (functional / reviewable change):** count a file once per batch
   only if its change is **functional or UI** — anything that consumes real
   code-review time: logic and helpers (`*.ts`), UI (`*.tsx`/`*.jsx`/`*.css`/
@@ -272,11 +288,11 @@ backend-first, and state those assumptions back.)
   behaviour change, lockfiles (`pnpm-lock.yaml`, `package-lock.json`,
   `yarn.lock`), generated clients, and snapshots. These never push you over the
   ceiling on their own.
-- As the counted tally crosses **15**, start looking for the next deployable
-  seam. Adding a task that would push the batch **over 20 counted files** is
-  forbidden — close the batch first.
+- As the counted tally nears **24**, start looking for the next deployable seam.
+  Adding new behaviour that would push the batch **over 24 counted files**, or
+  anything that would push it **over 45**, is forbidden — close the batch first.
 - **Irreducible-unit exception:** if one minimal deployable unit genuinely
-  cannot land under 20 counted files (e.g. a codemod, a generated client), that
+  cannot land under 45 counted files (e.g. a codemod, a generated client), that
   is a **🚩 red flag** for a horizontal/over-coarse slice. STOP, surface it, and
   get explicit user sign-off (with justification) before exceeding the ceiling.
 
@@ -337,7 +353,7 @@ When a batch hits the ceiling on a deployable seam:
 
 ### The PR Batch Ledger (reprint at every checkpoint and after every detour)
 
-| Batch | Files (n / 20) | Tasks | Branch | Base | Beta flag | PR status (planned / ready-for-PR / drafted / merged) |
+| Batch | Files (n / 24) | Tasks | Branch | Base | Beta flag | PR status (planned / ready-for-PR / drafted / merged) |
 | ----- | -------------- | ----- | ------ | ---- | --------- | ----------------------------------------------------- |
 
 ## 🛠 Outcome Actions
@@ -354,7 +370,8 @@ When a batch hits the ceiling on a deployable seam:
 | "This is just a small change, no need for deep discovery." | **Denied.** Small changes have the highest risk of unintended side effects.                                                                                                                                                                    |
 | "The environment isn't set up for testing."                | **Denied.** Part of Phase 0 is resolving environment blockers or mocking them.                                                                                                                                                                 |
 | "The existing code is messy, I'll clean it later."         | **Denied.** Follow the Boy Scout Rule: Leave it better than you found it.                                                                                                                                                                      |
-| "It's all one feature — just ship the 30 files in one PR." | **Denied.** >20 files buries the review signal and breaks MinimumCD atomic batches. Cut at the deployable seam.                                                                                                                                |
+| "It's all one feature — just ship the 30 files in one PR." | **Denied.** >24 files of new behaviour buries the review signal, misses 2 days more often than not, and breaks MinimumCD atomic batches. Cut at the deployable seam.                                                                           |
+| "It's over 24, but we have the 45-file allowance."         | **Denied** unless the extra files are wide-but-shallow and the stated reason is in the Ledger — and only while fewer than 1 in 10 recent PRs went over 24.                                                                                     |
 | "Batch 2 needs batch 1's unmerged code, so bundle them."   | **Denied.** That is a _backward_ dependency — stack the branch on batch 1. Only _forward_ dependencies are forbidden.                                                                                                                          |
 | "I'll just push the branch / open the PR for you."         | **Denied for the planning agent.** It never runs git — it hands off. `pr-automator` is the sanctioned exception, and even it only reads history + runs `gh pr create`; it never pushes your code. Instruct the user and wait for confirmation. |
 | "Keep planning past the ceiling, we'll split it later."    | **Denied.** Post-hoc splitting loses the deployable-seam discipline and produces broken intermediate PRs. Freeze at the seam now.                                                                                                              |
@@ -369,8 +386,9 @@ When a batch hits the ceiling on a deployable seam:
   conventions.
 - **Silence on Failure**: Tool output shows errors but the plan proceeds as if
   successful.
-- **Ceiling breach**: A batch is heading past 20 files with no deployable seam —
-  reslice or invoke the irreducible-unit exception.
+- **Ceiling breach**: A batch is heading past 24 files with no deployable seam
+  and no wide-but-shallow reason, or past 45 at all — reslice or invoke the
+  irreducible-unit exception.
 - **Forward dependency**: A batch needs code that lives in a not-yet-created PR.
 - **Unnormalized freeform input**: planning a hand-written "slice" verbatim when
   it is really a layer or several corridors, or with the beta-flag / data-source
@@ -387,4 +405,5 @@ When a batch hits the ceiling on a deployable seam:
 - **Tools**: Use `rtk run validate`, `npm test`, or browser automation logs.
 - **Per batch**: each batch passes the **Forward-Independence Rule** (working
   code • no forward dep • flag-gated if incomplete) and records its final file
-  tally (<=20) in the Ledger. "It's basically deployable" is NOT evidence.
+  tally (<=24, or <=45 with its one-line reason) in the Ledger. "It's basically
+  deployable" is NOT evidence.
