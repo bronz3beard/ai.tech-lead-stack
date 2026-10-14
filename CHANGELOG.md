@@ -4,6 +4,13 @@ All notable changes to this project are recorded here. From 1.1.0 on,
 release-please writes each entry from the commit messages on `main` (see
 [docs/releasing.md](docs/releasing.md)); nobody edits this file by hand.
 
+## [2.3.0](https://github.com/bronz3beard/ai.tech-lead-stack/compare/v2.2.0...v2.3.0) (2026-10-14)
+
+
+### Added
+
+* **vertical-slice:** size slices from the repo's own history ([#155](https://github.com/bronz3beard/ai.tech-lead-stack/issues/155)) ([b2509f4](https://github.com/bronz3beard/ai.tech-lead-stack/commit/b2509f4196c7656de8219a3ad032bedffc4a0473))
+
 ## [2.2.0](https://github.com/bronz3beard/ai.tech-lead-stack/compare/v2.1.0...v2.2.0) (2026-10-10)
 
 
