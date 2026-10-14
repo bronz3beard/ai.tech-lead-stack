@@ -36,12 +36,18 @@ modes:
    treat them as in-scope spec: read Figma via the Figma MCP/connector when
    available (else request an exported frame), and extract the states/variants
    shown — each is a candidate slice boundary.
+   **Sizing baseline (optional):** where you can run commands, run
+   `rtk run slice-baseline` (in the tech-lead-stack repo:
+   `node scripts/slice-baseline.mjs`). If it prints "No history baseline", is
+   missing, or fails, say so and use the defaults (<=2 working days, <=24
+   files, at most 3 open per developer). Never block on it.
 
 3. **Run the skill workflow**: Build the Slice Ledger from the input story/
    stories and any design frames, slice vertically (deployability test + BDD
-   boundaries + design states), decide beta-flag and mock-vs-real per slice, and
-   emit ClickUp-ready task blocks per the Output Contract (including the Design
-   reference field).
+   boundaries + design states), run the slice-count check and merge pass so
+   each story gets the fewest slices that each deploy, decide beta-flag and
+   mock-vs-real per slice, and emit ClickUp-ready task blocks per the Output
+   Contract (including the Design reference field).
 
 4. **Anti-drift**: This is iterative. After any detour into a single slice's
    detail or error resolution, fold the result back into that slice, reprint the
