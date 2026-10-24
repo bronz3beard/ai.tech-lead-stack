@@ -21,7 +21,7 @@
     "@tailwindcss/typography": "^0.5.20",
     "@zenithfoundry/tech-lead-stack": "workspace:*",
     "adm-zip": "^0.6.1",
-    "ai": "7.0.127",
+    "ai": "7.0.148",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
